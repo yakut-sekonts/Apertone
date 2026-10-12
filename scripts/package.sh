@@ -21,13 +21,30 @@ cp LICENSE THIRD_PARTY_LICENSES.md "$notices/"
 cp "$build_directory/_deps/libraw-src/LICENSE.LGPL" "$notices/LibRaw-LGPL.txt"
 cp "$build_directory/_deps/libraw-src/COPYRIGHT" "$notices/LibRaw-COPYRIGHT.txt"
 cp "$build_directory/_deps/lcms-src/LICENSE" "$notices/LittleCMS-LICENSE.txt"
-# Keep exact corresponding LGPL source archives with the distributed bundle.
-curl -fL --retry 3 https://www.libraw.org/data/LibRaw-0.21.5.tar.gz -o "$notices/sources/LibRaw-0.21.5.tar.gz"
+# Sources are reused by exact archive/version name after a complete tar validation.
+# Interrupted downloads never replace the cached archive.
+source_cache="$PWD/.tools/packaging-sources"
+mkdir -p "$source_cache"
+archive_source() {
+    local url="$1" archive="$2"
+    if [[ ! -f "$source_cache/$archive" ]]; then
+        curl -fL --connect-timeout 15 --max-time 300 --speed-limit 1024 --speed-time 30 --retry 3 \
+            "$url" -o "$source_cache/$archive.partial"
+        tar -tf "$source_cache/$archive.partial" > /dev/null
+        mv "$source_cache/$archive.partial" "$source_cache/$archive"
+    fi
+    tar -tf "$source_cache/$archive" > /dev/null
+    cp "$source_cache/$archive" "$notices/sources/"
+}
+archive_source https://www.libraw.org/data/LibRaw-0.21.5.tar.gz LibRaw-0.21.5.tar.gz
 for module in qtbase qtdeclarative qtsvg; do
     archive="$module-everywhere-src-6.10.3.tar.xz"
-    curl -fL --retry 3 "https://download.qt.io/archive/qt/6.10/6.10.3/submodules/$archive" -o "$notices/sources/$archive"
+    archive_source "https://download.qt.io/archive/qt/6.10/6.10.3/submodules/$archive" "$archive"
     .tools/venv/bin/python scripts/extract-qt-notices.py "$notices/sources/$archive" "$notices/$module"
 done
+# Optional QML modules cause macdeployqt to copy QtSql drivers, including drivers
+# for external DB vendors. Luma uses SQLite's C API and has no QtSql driver usage.
+rm -rf "$output/Luma.app/Contents/PlugIns/sqldrivers"
 codesign --force --deep --sign - "$output/Luma.app"
 codesign --verify --deep --strict "$output/Luma.app"
 ditto -c -k --sequesterRsrc --keepParent "$output/Luma.app" "$output/Luma-macos-arm64.zip"

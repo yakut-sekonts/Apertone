@@ -9,7 +9,7 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Current milestone: 0.2 — Develop Core
+## Current milestone: 0.3 — Library
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
@@ -25,7 +25,11 @@ project name used for implementation.
 - ✅ ColorSync display profile → LittleCMS display transform; rerender on screen change.
 - ✅ Shared core used by desktop, CLI and tests.
 - ✅ Nikon D7500 restart acceptance, unit/integration tests and public macOS CI.
-- 🗓 Advanced Develop, library grid, masks, presets and Metal image processing.
+- ✅ Add/Copy import of files and folders, duplicate detection and per-file journal checkpoints.
+- ✅ Lazy original thumbnails, virtualized grid/filmstrip and bounded metadata paging.
+- ✅ Single/multi/range selection, ratings, Pick/Reject, color labels and manual collections.
+- ✅ Basic search and combined metadata/collection filters.
+- 🗓 Advanced Develop, masks, presets and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -45,7 +49,7 @@ reconstruction, noise reduction and production camera profiles remain planned.
 ## Build and run
 
 ```bash
-git clone --branch codex/develop-core https://github.com/yakut-sekonts/Luma.git
+git clone --branch codex/library https://github.com/yakut-sekonts/Luma.git
 cd Luma
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -56,11 +60,12 @@ open build/Luma.app
 ```
 
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
-M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2). Stage 0.2 builds on it;
-the commands above select the Develop implementation branch.
+M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2), Develop Core in
+[PR #4](https://github.com/yakut-sekonts/Luma/pull/4). Library builds on both;
+the commands above select the Library implementation branch.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
-this option, the app uses its macOS application-data directory. RAW files stay
-at their original paths. The catalog contains absolute paths and editing data;
+this option, the app uses its macOS application-data directory. Add keeps RAW files
+at their original paths; Copy registers verified copies in the chosen destination. The catalog contains absolute paths and editing data;
 it is local user data and must not be committed.
 
 ```bash
@@ -97,3 +102,35 @@ source EXIF/GPS. JPEG quality is selectable; TIFF is 16-bit. A destination is
 not overwritten unless explicitly selected, and the RAW/catalog cannot be
 replaced. Export is cancellable. Resize, selectable spaces, metadata options,
 output sharpening, batch export and DNG are later work.
+
+## Library scope
+
+Use Import to choose files/folders and Add or Copy. Duplicates are detected by
+SHA-256 plus size and skipped by default. Copy creates a unique session directory
+and a subdirectory per file; it never overwrites a source or existing destination.
+Cancel keeps completed checkpoints. Startup recovers only dead-owner sessions,
+registering verified complete copies and preserving changed published files.
+Per-file failures and their source paths remain in the local import journal.
+
+Double-click opens a sensor-decoded photo in Develop. Cmd-click toggles selection;
+Shift-click selects a range; Cmd+A selects the filtered set. Keys 0–5 rate,
+P/X/U set Pick/Reject/Unflag. Search covers filename/path/camera/lens; rating, flag,
+label and manual collection filters combine before pagination. Collections are
+references to assets; deleting one preserves originals and edits.
+
+The model caches at most 16 × 128 metadata rows; grid and filmstrip virtualize
+delegates. Lazy original thumbnails use two workers, a 96-request admission limit
+and a 512 MiB disk cache in `<catalog>.luma-cache/thumbnails`. Embedded JPEGs are
+used only for Library previews; Develop always reads sensor data. The 100k-row
+metadata fixture verifies bounded paging and selection, not performance of
+100,000 real photos. Edited thumbnails, Move, smart collections, import naming/
+backup templates, keywords, XMP and missing-file relinking remain later work.
+
+```bash
+build/bin/luma import add /path/to/raw-folder --catalog /path/to/catalog.sqlite
+build/bin/luma import copy /path/to/destination /path/to/raw-folder --catalog /path/to/catalog.sqlite
+build/bin/luma library --rating 4 --flag 1 --catalog /path/to/catalog.sqlite
+build/bin/luma collections --catalog /path/to/catalog.sqlite
+```
+
+![Luma Library with project-generated test DNGs](docs/library.png)

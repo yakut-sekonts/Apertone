@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased — 0.2.0 / Develop Core
+## Unreleased — 0.3.0 / Library
+
+- Catalog schema 3: manual collections, membership indexes and per-file import journal.
+- Add/Copy import, recursive folder scan, SHA-256/size duplicate detection and cancellation.
+- No-replace Copy installation, complete-item checkpoints and dead-owner recovery.
+- Bounded paged metadata model; virtualized grid and Develop filmstrip.
+- Lazy original thumbnail cache with embedded-preview/RAW fallback.
+- Single/multi/range/select-all; rating, flags, labels, collections and combined filters.
+- Concurrent catalog initialization, rollback/recovery and 100k metadata fixture coverage.
+
+Known limitations: original thumbnails; no Move, smart collections, import naming/
+backup templates, keywords, XMP or real 100k-image performance certification.
+
+## 0.2.0 / Develop Core
 
 - Version 2 edit documents and transactional M0 catalog migration.
 - Manual Temperature/Tint, As Shot and named WB presets; camera-space preview.

@@ -59,18 +59,21 @@ sources retain their upstream warnings. CI runs on macOS Apple Silicon only.
 ```
 
 This bundles the used Qt frameworks/plugins, LibRaw, LGPL notices and source
-archives, produces an ad-hoc-signed `dist/Luma.app`, and checksums `Luma-macos-arm64.zip`.
+archives, produces an ad-hoc-signed `dist/Luma.app`, and checksums `Luma-macos-arm64.zip`. Exact-version source archives are cached
+locally after tar validation; downloads have connection/transfer timeouts.
+Unused QtSql drivers are removed from the bundle.
 The app should not depend on the developer's Qt SDK or Homebrew paths at runtime.
 Developer ID signing, notarization and DMG releases are separate later work.
 
 ## Catalog location
 
 The default location is resolved through Qt's `AppLocalDataLocation` on macOS.
-The left panel displays the actual catalog path. Pass `--catalog FILE` to either
-executable for a separate catalog. The initial workflow is Add-only: source
-files stay in place. Keep their directories available after restart.
+The Develop left panel displays the actual catalog path. Pass `--catalog FILE` to either
+executable for a separate catalog. Add keeps source
+files in place; Copy stores verified copies in the chosen destination. Keep the
+registered original/copy directories available after restart.
 
-Known current constraints: session-local undo only; no grid, named versions or relocating
+Known current constraints: session-local undo only; no named versions or relocating
 missing files; no claim of calibrated production image quality or sub-50 ms
 preview latency. Current limitations are tracked in the roadmap and changelog.
 
@@ -83,5 +86,20 @@ invalid batch rollback, overwrite policy, original/hard-link protection and
 cancelled export cleanup. Core tests include migration from schema 1, parameter
 boundaries and monotonic tone processing.
 
-Catalog schema 2 cannot be opened by the older M0 binary. Keep a backup before
+Catalog schema 3 cannot be opened by older M0/Develop Core binaries. Keep a backup before
 using a newer build on an important catalog; migration preserves M0 edits.
+
+## Library acceptance
+
+`library-import-restart` exercises Add/Copy, folder recursion, per-item failures,
+checksum duplicates, cancellation, dead-owner recovery and live-owner exclusion.
+Core tests cover migration 2→3, concurrent new-catalog initialization and atomic
+bulk metadata/collection rollback. A generated 100k-row catalog exercises the
+actual Qt model with its 16-page bound, range/select-all and filters. Public GUI
+acceptance generates lazy thumbnails, organizes a collection, opens a RAW in
+Develop, saves its edit and closes during queued import. It runs offscreen in CI.
+This does not certify large real-photo browsing latency or memory pressure.
+
+The thumbnail cache and SQLite journal are local data. Do not commit them,
+private RAW files or copied originals. Copy errors identify the source and reason
+in `import_items`; the UI shows summary counts and a details dialog (first 100 failures).

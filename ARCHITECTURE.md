@@ -5,14 +5,14 @@
 ```mermaid
 flowchart TD
     QML[Qt QML UI] --> Controller[EditorController / UI state]
-    CLI[CLI] --> Services[SessionService]
+    CLI[CLI] --> Services[SessionService / LibraryService]
     Controller --> Services
     Controller --> Jobs[JobManager]
     Controller --> Render[CPU renderer]
     Services --> Catalog[SQLite catalog]
     Services --> RAW[LibRaw decoder]
     RAW --> Bayer[Float32 normalization / demosaic]
-    Bayer --> Image[Scene-linear sRGB FloatImage]
+    Bayer --> Image[Camera RGB FloatImage]
     Image --> Render
     Render --> ICC[LittleCMS display transform]
     Controller --> Platform[platform/macos ColorSync]
@@ -27,17 +27,17 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 ## Implemented modules
 
 - `core/raw`: bounded LibRaw sensor decoding, metadata and validation. Does not
-  invoke `dcraw_process`, `unpack_thumb` or an embedded-JPEG pipeline.
+  invoke `dcraw_process`. `unpack_thumb` is confined to Library thumbnails.
 - `core/image`: Float32 Bayer data, bilinear interpolation, camera color matrix.
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
 - `core/edits`: validated typed Develop document; schema version 2.
-- `core/catalog`: SQLite connection per worker operation and migrations 1/2.
+- `core/catalog`: SQLite connection per worker operation and migrations 1/2/3.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
-- `apps/shared`: open/restore/save workflow independent of GUI.
-- `apps/desktop`: Qt controller and thread-safe QQuickImageProvider.
+- `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
+- `apps/desktop`: Qt editor controller, bounded paged LibraryModel and asynchronous thumbnail provider.
 - `apps/cli`: explicit-catalog machine-readable commands.
 
 Future `core/masks`, `cache`, `presets`, `search`, `ai` are described by
@@ -98,18 +98,21 @@ Opening an existing path preserves the edit document and checks its checksum. Mo
 originals are not silently reassociated with prior edits. Missing sources cause
 a visible error; their catalog row and edits remain intact.
 
-Future migrations add versions, collections, keywords, presets, import/export
-sessions and render cache entries. A newer unsupported schema is refused rather
+Migration 3 adds collections/membership and checkpointed import sessions/items.
+Future migrations add versions, keywords, presets, export sessions and render cache entries. A newer unsupported schema is refused rather
 than overwritten. Automated backups and crash recovery UI are planned for 0.9.
 
 ## Memory and cache
 
 Inputs are capped at 512 MB and 100 MP; LibRaw's raw allocation budget is 512 MB.
-Only one decode runs at a time. Full Float32 data is released after generation of
+One Develop/export decode runs on the editor I/O lane; at most two independent
+Library thumbnail jobs can decode RAW when embedded previews are unavailable. Full Float32 data is released after generation of
 the current 2560 px floating-point preview. At 1:1 the future viewer will request
-a full render; M0 exposes Fit only. There is currently no multi-photo cache or
-disk LRU. Future keys include asset checksum, edit revision, pipeline version,
-resolution and ICC profile hash.
+a full render; M0 exposes Fit only. Library has a 512 MiB disk thumbnail cache, oldest-use eviction, two workers and
+a 96-request admission limit. Its key is source checksum plus original pipeline
+version; thumbnails are bounded to 384 px. The metadata LRU has 16×128 rows.
+Edited render-cache keys will additionally include edit revision, resolution and
+ICC profile hash.
 
 ## AI providers
 
@@ -140,3 +143,22 @@ without an 8-bit intermediate. A sibling temporary output is finalized and
 synced before atomic link/rename installation. Queued load/export cancellation
 uses independent cooperative tokens, so completion callbacks still release UI
 state even if cancellation precedes job execution.
+
+## Library and import
+
+ADR 0007 records the paged model and checkpoint protocol. Filtering and pages
+run on the read worker; edits run on a separate write worker; import has its own
+cooperative cancellation token. Selection is by asset UUID independently of page
+residency; explicit Select All stores IDs for the filtered set. No SQLite, source
+file stat or RAW decoding runs on the GUI thread. Normal close requests both
+editor-save completion and import cancellation/checkpoint completion.
+
+Copy records a staged item before filesystem installation, streams into an owned
+sibling temporary file, checks SHA-256, fsyncs and links without replacement.
+Asset insertion and terminal item state share a SQLite transaction. Recovery
+atomically claims a dead-owner session before processing it; concurrent apps
+cannot recover the same session. Duplicate policy is persisted in the journal.
+Changed published files are preserved; originals are never removed by recovery.
+SQLite WAL setup retries BUSY/LOCKED for at most three seconds at concurrent
+initialization; upgrades recheck the schema under BEGIN IMMEDIATE. Current-schema readers
+do not take a writer lock and remain usable during WAL writes.

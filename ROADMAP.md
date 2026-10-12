@@ -28,9 +28,16 @@ Auto/eyedropper WB, persistent history, advanced export options and DNG remain l
 
 ## 0.3 — Library
 
-🗓 Planned. Import dialog, Add/Copy, transactional import sessions, thumbnails,
-virtualized grid, filmstrip, ratings, Pick/Reject, collections and selection.
-Move remains explicitly gated by integrity and recovery tests.
+[Issue #5](https://github.com/yakut-sekonts/Luma/issues/5)
+
+✅ Implemented. Add/Copy import of files/folders, per-file transactional checkpoints,
+SHA-256/size duplicate detection, cancellation and dead-owner journal recovery;
+lazy original thumbnails, bounded paged metadata, virtualized grid and filmstrip.
+Single/multi/range selection, ratings, Pick/Reject/Unflag, color labels, manual
+collections and combined basic filters are included. Migration 2→3 preserves edits.
+Acceptance covers generated RAWs, GUI organization/restart, Copy integrity and a
+100k-row metadata/model fixture. Real 100k-image performance remains unverified.
+Move, smart collections, advanced import templates, keywords and XMP remain later work.
 
 ## 0.4 — Professional Develop and presets
 

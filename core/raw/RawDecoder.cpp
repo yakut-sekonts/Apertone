@@ -23,38 +23,7 @@ std::optional<double> positive(double value) {
 int cancelRaw(void *context, enum LibRaw_progress, int, int) {
     return static_cast<luma::CancellationToken *>(context)->isCancelled() ? 1 : 0;
 }
-} // namespace
-
-DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::CancellationToken stop,
-                              const std::function<void(double)> &progress) const {
-    checkCancellation(stop);
-    if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000) {
-        throw std::runtime_error("RAW is missing or exceeds the 512 MB input budget.");
-    }
-    // LibRaw contains large metadata tables. macOS worker stacks are only 512 KB.
-    const auto allocation = std::make_unique<LibRaw>();
-    auto &decoder = *allocation;
-    decoder.set_progress_handler(cancelRaw, &stop);
-    decoder.imgdata.rawparams.max_raw_memory_mb = 512;
-    requireSuccess(decoder.open_file(path.c_str()), "Open RAW");
-    if (progress) {
-        progress(0.1);
-    }
-    requireSuccess(decoder.unpack(), "Decode sensor data");
-    checkCancellation(stop);
-    const auto &data = decoder.imgdata;
-    const auto &sizes = data.sizes;
-    if (!data.rawdata.raw_image || data.idata.filters == 0 || data.idata.filters == 9 ||
-        data.idata.colors != 3 || sizes.width < 2 || sizes.height < 2) {
-        throw std::runtime_error(
-            "M0 supports integer Bayer RAW only; X-Trans, monochrome and RGB RAW are planned.");
-    }
-    pixelCount(sizes.width, sizes.height);
-    if (sizes.top_margin + sizes.height > sizes.raw_height ||
-        sizes.left_margin + sizes.width > sizes.raw_width ||
-        sizes.raw_pitch < static_cast<unsigned>(sizes.raw_width) * sizeof(unsigned short)) {
-        throw std::runtime_error("Invalid RAW sensor bounds.");
-    }
+PhotoMetadata metadataFrom(const libraw_data_t &data) {
     PhotoMetadata metadata;
     metadata.camera = text(data.idata.make) + " " + text(data.idata.model);
     metadata.lens = text(data.lens.Lens);
@@ -93,9 +62,76 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     if (data.other.timestamp > 0) {
         metadata.captureTimestamp = data.other.timestamp;
     }
-    metadata.width = sizes.width;
-    metadata.height = sizes.height;
-    metadata.orientation = sizes.flip;
+    metadata.width = data.sizes.width;
+    metadata.height = data.sizes.height;
+    metadata.orientation = data.sizes.flip;
+
+    return metadata;
+}
+} // namespace
+
+PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, CancellationToken stop) const {
+    checkCancellation(stop);
+    if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000)
+        throw std::runtime_error("RAW is missing or exceeds the input budget.");
+    const auto decoder = std::make_unique<LibRaw>();
+    decoder->set_progress_handler(cancelRaw, &stop);
+    requireSuccess(decoder->open_file(path.c_str()), "Read RAW metadata");
+    const auto &data = decoder->imgdata;
+    if (data.idata.filters == 0 || data.idata.filters == 9 || data.idata.colors != 3 ||
+        data.sizes.width < 2 || data.sizes.height < 2)
+        throw std::runtime_error("Library currently supports Bayer RAW only.");
+    pixelCount(data.sizes.width, data.sizes.height);
+    checkCancellation(stop);
+    return metadataFrom(data);
+}
+std::vector<std::uint8_t> RawDecoder::embeddedJPEG(const std::filesystem::path &path,
+                                                   CancellationToken stop) const {
+    checkCancellation(stop);
+    const auto decoder = std::make_unique<LibRaw>();
+    decoder->set_progress_handler(cancelRaw, &stop);
+    requireSuccess(decoder->open_file(path.c_str()), "Read thumbnail");
+    const int code = decoder->unpack_thumb();
+    checkCancellation(stop);
+    if (code != LIBRAW_SUCCESS || decoder->imgdata.thumbnail.tformat != LIBRAW_THUMBNAIL_JPEG)
+        return {};
+    const auto &thumbnail = decoder->imgdata.thumbnail;
+    if (!thumbnail.thumb || thumbnail.tlength > 32'000'000)
+        return {};
+    const auto *begin = reinterpret_cast<const std::uint8_t *>(thumbnail.thumb);
+    return {begin, begin + thumbnail.tlength};
+}
+DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::CancellationToken stop,
+                              const std::function<void(double)> &progress) const {
+    checkCancellation(stop);
+    if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000) {
+        throw std::runtime_error("RAW is missing or exceeds the 512 MB input budget.");
+    }
+    // LibRaw contains large metadata tables. macOS worker stacks are only 512 KB.
+    const auto allocation = std::make_unique<LibRaw>();
+    auto &decoder = *allocation;
+    decoder.set_progress_handler(cancelRaw, &stop);
+    decoder.imgdata.rawparams.max_raw_memory_mb = 512;
+    requireSuccess(decoder.open_file(path.c_str()), "Open RAW");
+    if (progress) {
+        progress(0.1);
+    }
+    requireSuccess(decoder.unpack(), "Decode sensor data");
+    checkCancellation(stop);
+    const auto &data = decoder.imgdata;
+    const auto &sizes = data.sizes;
+    if (!data.rawdata.raw_image || data.idata.filters == 0 || data.idata.filters == 9 ||
+        data.idata.colors != 3 || sizes.width < 2 || sizes.height < 2) {
+        throw std::runtime_error(
+            "M0 supports integer Bayer RAW only; X-Trans, monochrome and RGB RAW are planned.");
+    }
+    pixelCount(sizes.width, sizes.height);
+    if (sizes.top_margin + sizes.height > sizes.raw_height ||
+        sizes.left_margin + sizes.width > sizes.raw_width ||
+        sizes.raw_pitch < static_cast<unsigned>(sizes.raw_width) * sizeof(unsigned short)) {
+        throw std::runtime_error("Invalid RAW sensor bounds.");
+    }
+    auto metadata = metadataFrom(data);
 
     std::array<int, 4> cfa{};
     for (int y = 0; y < 2; ++y) {

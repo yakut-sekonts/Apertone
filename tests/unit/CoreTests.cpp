@@ -245,7 +245,13 @@ void catalogTests() {
                 SELECT asset_id,exposure,revision,updated_at FROM edit_documents;
             DROP TABLE edit_documents;
             ALTER TABLE legacy_edits RENAME TO edit_documents;
-            DELETE FROM schema_migrations WHERE version=2;
+            DROP TABLE import_items;
+            DROP TABLE import_sessions;
+            DROP TABLE collection_assets;
+            DROP TABLE collections;
+            DROP INDEX assets_filename;
+            DROP INDEX assets_flag;
+            DELETE FROM schema_migrations WHERE version>=2;
             PRAGMA user_version=1;
             COMMIT;
         )sql";
@@ -263,7 +269,7 @@ void catalogTests() {
         }
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
                 "Cannot reopen future schema fixture.");
-        require(sqlite3_exec(db, "PRAGMA user_version=3", nullptr, nullptr, nullptr) == SQLITE_OK,
+        require(sqlite3_exec(db, "PRAGMA user_version=4", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });

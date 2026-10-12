@@ -1,4 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/desktop/LibraryAcceptance.h"
+#include "apps/desktop/LibraryModel.h"
+#include "apps/desktop/ThumbnailProvider.h"
 #include <QCommandLineParser>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -13,7 +16,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.2.0"));
+    app.setApplicationVersion(QStringLiteral("0.3.0"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -40,6 +43,11 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: cancel queued export")});
     parser.addOption({QStringLiteral("test-close-during-export"),
                       QStringLiteral("Integration test: close with queued load/export")});
+    parser.addOption({QStringLiteral("test-library"),
+                      QStringLiteral("Integration test: Library import and organization"),
+                      QStringLiteral("folder")});
+    parser.addOption({QStringLiteral("test-close-import"),
+                      QStringLiteral("Integration test: close during import")});
     parser.process(app);
     const auto catalog =
         parser.isSet(QStringLiteral("catalog"))
@@ -48,9 +56,15 @@ int main(int argc, char **argv) {
                   QStringLiteral("/catalog.sqlite");
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
+    LibraryModel library(std::filesystem::path(catalog.toStdString()));
+    QObject::connect(&library, &LibraryModel::openRequested, &editor, &EditorController::openFile);
+    QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
     QQmlApplicationEngine engine;
+    engine.addImageProvider(QStringLiteral("thumbnail"),
+                            new ThumbnailProvider(std::filesystem::path(catalog.toStdString())));
     engine.addImageProvider(QStringLiteral("preview"), provider);
     engine.rootContext()->setContextProperty(QStringLiteral("editor"), &editor);
+    engine.rootContext()->setContextProperty(QStringLiteral("library"), &library);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
@@ -65,6 +79,11 @@ int main(int argc, char **argv) {
     editor.setWindow(window);
     if (parser.isSet(QStringLiteral("smoke-test"))) {
         QTimer::singleShot(300, &app, &QCoreApplication::quit);
+    } else if (parser.isSet(QStringLiteral("test-library"))) {
+        startLibraryAcceptance(app, window, editor, library,
+                               parser.value(QStringLiteral("test-library")),
+                               parser.value(QStringLiteral("test-screenshot")),
+                               parser.isSet(QStringLiteral("test-close-import")));
     } else if (parser.isSet(QStringLiteral("test-edit")) ||
                parser.isSet(QStringLiteral("test-restore"))) {
         const bool editing = parser.isSet(QStringLiteral("test-edit"));

@@ -15,6 +15,9 @@ struct DecodedRaw {
 
 class RawDecoder {
   public:
+    PhotoMetadata inspect(const std::filesystem::path &path, CancellationToken stop = {}) const;
+    std::vector<std::uint8_t> embeddedJPEG(const std::filesystem::path &path,
+                                           CancellationToken stop = {}) const;
     DecodedRaw decode(const std::filesystem::path &path, luma::CancellationToken stop = {},
                       const std::function<void(double)> &progress = {}) const;
 };

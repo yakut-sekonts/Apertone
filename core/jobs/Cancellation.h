@@ -29,6 +29,9 @@ class CancellationSource {
     bool isCancelled() const noexcept {
         return state_->load(std::memory_order_acquire);
     }
+    bool sameState(const CancellationSource &other) const noexcept {
+        return state_ == other.state_;
+    }
     CancellationToken token() const {
         return CancellationToken(state_);
     }

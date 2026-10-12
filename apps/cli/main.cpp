@@ -1,3 +1,5 @@
+#include "apps/cli/Json.h"
+#include "apps/cli/LibraryCommands.h"
 #include "apps/shared/SessionService.h"
 #include <algorithm>
 #include <cctype>
@@ -7,22 +9,7 @@
 #include <sstream>
 
 namespace {
-std::string quoted(const std::string &value) {
-    std::ostringstream output;
-    output << '"';
-    for (const unsigned char c : value) {
-        if (c == '"' || c == '\\') {
-            output << '\\' << c;
-        } else if (c < 32) {
-            output << "\\u" << std::hex << std::setw(4) << std::setfill('0') << static_cast<int>(c)
-                   << std::dec;
-        } else {
-            output << c;
-        }
-    }
-    output << '"';
-    return output.str();
-}
+using luma::cli::quoted;
 void printSession(const luma::PhotoSession &session) {
     const auto &asset = session.asset;
     auto number = [](std::optional<double> value) {
@@ -62,19 +49,31 @@ int main(int argc, char **argv) {
             }
         }
         if (arguments.empty() || arguments[0] == "--help") {
-            std::cout << "Luma Develop Core\nUsage: luma open RAW --catalog FILE\n"
+            std::cout << "Luma Library and Develop\nUsage: luma open RAW --catalog FILE\n"
                       << "       luma exposure EV --catalog FILE\n"
                       << "       luma restore --catalog FILE\n"
                       << "       luma develop PARAM=VALUE... --catalog FILE\n"
                       << "       luma enable|disable CORRECTION --catalog FILE\n"
                       << "       luma wb as-shot --catalog FILE\n"
                       << "       luma export DEST [--quality N] [--overwrite] --catalog FILE\n"
-                      << "       luma catalog verify --catalog FILE\n";
+                      << "       luma catalog verify --catalog FILE\n"
+                      << "       luma import add SOURCES... | import copy DEST SOURCES... "
+                         "--catalog FILE\n"
+                      << "       luma library [--search TEXT] [--rating N] [--flag N] [--label "
+                         "COLOR] [--collection ID] [--offset N] [--limit N] --catalog FILE\n"
+                      << "       luma rate|flag|label VALUE IDS... --catalog FILE\n"
+                      << "       luma collections | collection create NAME | collection rename ID "
+                         "NAME --catalog FILE\n"
+                      << "       luma collection add|remove ID ASSETS... | collection delete ID "
+                         "--catalog FILE\n"
+                      << "       luma recover --catalog FILE\n";
             return 0;
         }
         if (catalog.empty()) {
             throw std::runtime_error("Specify --catalog FILE explicitly.");
         }
+        if (luma::cli::libraryCommand(catalog, arguments))
+            return 0;
         luma::SessionService service(catalog);
         if (arguments[0] == "open" && arguments.size() == 2) {
             printSession(service.open(arguments[1]));

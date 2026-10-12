@@ -15,11 +15,16 @@ ApplicationWindow {
     palette.window: "#111318"
     palette.base: "#1b1e24"
     palette.text: "#e3e5e9"
+    palette.windowText: "#e3e5e9"
+    palette.placeholderText: "#858c97"
     palette.buttonText: "#e3e5e9"
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
-    onClosing: function(close) { close.accepted = editor.requestClose() }
+    property bool libraryMode: true
+    onClosing: function(close) { const a = library.requestClose(); const b = editor.requestClose(); close.accepted = a && b }
+    Connections { target: library; function onCloseReady() { root.close() } }
+    Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
     Connections { target: editor; function onCloseReady() { root.close() } }
     Shortcut { sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
     Shortcut { sequences: [StandardKey.Undo]; enabled: editor.canUndo && !editor.busy; onActivated: editor.undo() }
@@ -73,6 +78,8 @@ ApplicationWindow {
                 Label { text: "◐"; color: "#dfae77"; font.pixelSize: 28 }
                 Label { text: "luma"; color: "#f0f1f3"; font.pixelSize: 24; font.weight: Font.DemiBold; font.letterSpacing: 2 }
                 Label { text: "RAW WORKSPACE"; color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
+                Button { text: "Library"; highlighted: root.libraryMode; onClicked: root.libraryMode = true }
+                Button { text: "Develop"; highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Item { Layout.fillWidth: true }
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
                 Button { text: "↶"; enabled: editor.canUndo && !editor.busy; onClicked: editor.undo(); Accessible.name: "Undo" }
@@ -97,7 +104,9 @@ ApplicationWindow {
             ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
             Button { text: "Отменить"; onClicked: editor.cancelExport() }
         }
+        LibraryPane { visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {
+            visible: !root.libraryMode
             id: panels
             Layout.fillWidth: true; Layout.fillHeight: true
             orientation: Qt.Horizontal
@@ -207,6 +216,14 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+        ListView {
+            id: filmstrip
+            visible: !root.libraryMode && library.count > 0
+            Layout.fillWidth: true; Layout.preferredHeight: visible ? 112 : 0
+            orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
+            delegate: PhotoCard { width: 128; height: 104; compact: true }
+            ScrollBar.horizontal: ScrollBar {}
         }
         Rectangle {
             Layout.fillWidth: true; implicitHeight: 34; color: "#191c22"

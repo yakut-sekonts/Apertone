@@ -151,6 +151,8 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             self->history_ = luma::EditHistory(self->session_->asset.edits);
                             self->original_ = false;
                             self->render();
+                            emit self->photoLoaded(
+                                QString::fromStdString(self->session_->asset.id));
                         }
                         self->status_ =
                             self->session_
