@@ -12,7 +12,9 @@ fi
 ditto "$build_directory/Luma.app" "$output/Luma.app"
 mkdir -p "$output/Luma.app/Contents/Frameworks"
 cp "$build_directory/libluma_raw.dylib" "$output/Luma.app/Contents/Frameworks/"
-"$sdk/bin/macdeployqt" "$output/Luma.app" -qmldir="$PWD/apps/desktop/qml" -always-overwrite -no-strip
+# Exclude Qt's optional PostgreSQL/ODBC drivers and their external dependencies.
+# Luma uses the pinned SQLite C API, not those drivers.
+"$sdk/bin/macdeployqt" "$output/Luma.app" -qmldir="$PWD/apps/desktop/qml" -always-overwrite -no-strip -appstore-compliant
 notices="$output/Luma.app/Contents/Resources/ThirdParty"
 mkdir -p "$notices/sources"
 cp LICENSE THIRD_PARTY_LICENSES.md "$notices/"
