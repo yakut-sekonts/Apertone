@@ -92,13 +92,28 @@ AssetRecord readAsset(const Statement &query) {
         metadata.captureTimestamp = static_cast<std::int64_t>(*timestamp);
     }
     EditDocument edits{query.value(13)};
+    edits.temperature = query.value(14);
+    edits.tint = query.value(15);
+    edits.customWhiteBalance = query.value(16) != 0;
+    edits.contrast = query.value(17);
+    edits.highlights = query.value(18);
+    edits.shadows = query.value(19);
+    edits.whites = query.value(20);
+    edits.blacks = query.value(21);
+    edits.vibrance = query.value(22);
+    edits.saturation = query.value(23);
+    edits.enabledCorrections = static_cast<std::uint32_t>(query.value(24));
+    if (query.value(25) != EditDocument::schemaVersion)
+        throw std::runtime_error("Unsupported edit document version.");
     edits.validate();
     return {query.string(0), query.string(1), query.string(2), metadata, edits};
 }
-constexpr auto selectFields = "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
-                              "a.shutter_seconds,a.aperture,a.focal_length,a.width,a.height,a."
-                              "orientation,a.capture_date,e.exposure "
-                              "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
+constexpr auto selectFields =
+    "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
+    "a.shutter_seconds,a.aperture,a.focal_length,a.width,a.height,a."
+    "orientation,a.capture_date,e.exposure,e.temperature,e.tint,e.custom_wb,e.contrast,"
+    "e.highlights,e.shadows,e.whites,e.blacks,e.vibrance,e.saturation,e.enabled,e.schema_version "
+    "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
 Catalog::Catalog(const std::filesystem::path &path) {
@@ -133,7 +148,7 @@ Catalog::Catalog(const std::filesystem::path &path) {
             }
             current = static_cast<int>(version.value(0));
         }
-        if (current > 1) {
+        if (current > 2) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -161,6 +176,36 @@ Catalog::Catalog(const std::filesystem::path &path) {
                 CREATE TABLE session(slot INTEGER PRIMARY KEY CHECK(slot=1), asset_id TEXT NOT NULL REFERENCES assets(id));
                 INSERT INTO schema_migrations(version) VALUES(1);
                 PRAGMA user_version=1;
+            )sql");
+            execute("COMMIT;");
+            current = 1;
+        }
+        if (current == 1) {
+            execute("BEGIN IMMEDIATE;");
+            execute(R"sql(
+                CREATE TABLE edit_documents_v2(
+                    asset_id TEXT PRIMARY KEY REFERENCES assets(id) ON DELETE CASCADE,
+                    schema_version INTEGER NOT NULL DEFAULT 2 CHECK(schema_version=2),
+                    exposure REAL NOT NULL DEFAULT 0 CHECK(exposure BETWEEN -5 AND 5),
+                    temperature REAL NOT NULL DEFAULT 6500 CHECK(temperature BETWEEN 2000 AND 25000),
+                    tint REAL NOT NULL DEFAULT 0 CHECK(tint BETWEEN -150 AND 150),
+                    custom_wb INTEGER NOT NULL DEFAULT 0 CHECK(custom_wb IN (0,1)),
+                    contrast REAL NOT NULL DEFAULT 0 CHECK(contrast BETWEEN -100 AND 100),
+                    highlights REAL NOT NULL DEFAULT 0 CHECK(highlights BETWEEN -100 AND 100),
+                    shadows REAL NOT NULL DEFAULT 0 CHECK(shadows BETWEEN -100 AND 100),
+                    whites REAL NOT NULL DEFAULT 0 CHECK(whites BETWEEN -100 AND 100),
+                    blacks REAL NOT NULL DEFAULT 0 CHECK(blacks BETWEEN -100 AND 100),
+                    vibrance REAL NOT NULL DEFAULT 0 CHECK(vibrance BETWEEN -100 AND 100),
+                    saturation REAL NOT NULL DEFAULT 0 CHECK(saturation BETWEEN -100 AND 100),
+                    enabled INTEGER NOT NULL DEFAULT 511 CHECK(typeof(enabled)='integer' AND enabled BETWEEN 0 AND 511),
+                    revision INTEGER NOT NULL DEFAULT 0,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                INSERT INTO edit_documents_v2(asset_id,exposure,revision,updated_at)
+                    SELECT asset_id,exposure,revision,updated_at FROM edit_documents;
+                DROP TABLE edit_documents;
+                ALTER TABLE edit_documents_v2 RENAME TO edit_documents;
+                INSERT INTO schema_migrations(version) VALUES(2);
+                PRAGMA user_version=2;
             )sql");
             execute("COMMIT;");
         }
@@ -243,6 +288,37 @@ std::optional<AssetRecord> Catalog::activeAsset() const {
         db_,
         (std::string(selectFields) + "JOIN session s ON s.asset_id=a.id WHERE s.slot=1").c_str());
     return query.row() ? std::optional<AssetRecord>(readAsset(query)) : std::nullopt;
+}
+void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
+    edits.validate();
+    execute("BEGIN IMMEDIATE;");
+    try {
+        Statement query(
+            db_,
+            "UPDATE edit_documents SET exposure=?1,temperature=?2,tint=?3,custom_wb=?4,"
+            "contrast=?5,highlights=?6,shadows=?7,whites=?8,blacks=?9,vibrance=?10,saturation=?11,"
+            "enabled=?12,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
+        query.number(1, edits.exposure);
+        query.number(2, edits.temperature);
+        query.number(3, edits.tint);
+        query.number(4, edits.customWhiteBalance ? 1 : 0);
+        query.number(5, edits.contrast);
+        query.number(6, edits.highlights);
+        query.number(7, edits.shadows);
+        query.number(8, edits.whites);
+        query.number(9, edits.blacks);
+        query.number(10, edits.vibrance);
+        query.number(11, edits.saturation);
+        query.number(12, edits.enabledCorrections);
+        query.text(13, assetID);
+        query.row();
+        if (sqlite3_changes(db_) != 1)
+            throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
+        execute("COMMIT;");
+    } catch (...) {
+        sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+        throw;
+    }
 }
 void Catalog::saveExposure(const std::string &assetID, double ev) {
     EditDocument{ev}.validate();

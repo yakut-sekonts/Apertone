@@ -21,6 +21,8 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     connect(&saveTimer_, &QTimer::timeout, this, &EditorController::flushSave);
 }
 EditorController::~EditorController() {
+    exportCancellation_.cancel();
+    loadCancellation_.cancel();
     ioJobs_.shutdown();
     renderJobs_.shutdown();
 }
@@ -103,7 +105,9 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
-    loadJob_.cancel();
+    loadCancellation_.cancel();
+    loadCancellation_ = luma::CancellationSource{};
+    const auto stop = loadCancellation_.token();
     renderJob_.cancel();
     const auto revision = ++loadRevision_;
     ++renderRevision_;
@@ -114,7 +118,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
         source ? QStringLiteral("Декодирование RAW…") : QStringLiteral("Восстановление сессии…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
-    loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, revision](
+    loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, revision, stop](
                                                                  const luma::JobContext &context) {
         try {
             const auto progress = [self, revision, context](double value) {
@@ -131,9 +135,9 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                         Qt::QueuedConnection);
                 }
             };
-            auto result = source ? std::optional<luma::PhotoSession>(
-                                       service_.open(*source, context.stopToken(), progress))
-                                 : service_.restore(context.stopToken(), progress);
+            auto result =
+                source ? std::optional<luma::PhotoSession>(service_.open(*source, stop, progress))
+                       : service_.restore(stop, progress);
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
@@ -144,7 +148,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                         self->busy_ = false;
                         if (result) {
                             self->session_ = std::move(result);
-                            self->exposure_ = self->session_->asset.edits.exposure;
+                            self->history_ = luma::EditHistory(self->session_->asset.edits);
                             self->original_ = false;
                             self->render();
                         }
@@ -159,7 +163,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
             }
         } catch (const std::exception &error) {
             const auto message = QString::fromUtf8(error.what());
-            const bool cancelled = context.stopToken().isCancelled();
+            const bool cancelled = stop.isCancelled();
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
@@ -186,18 +190,115 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
         }
     });
 }
-void EditorController::setExposure(double value) {
-    if (!session_ || busy_ || closing_ || !std::isfinite(value) || value < -5 || value > 5 ||
-        value == exposure_) {
-        return;
-    }
-    exposure_ = value;
+bool EditorController::editable() const {
+    return session_ && !busy_ && !closing_;
+}
+QVariantMap EditorController::parameters() const {
+    QVariantMap values;
+    for (const auto *name : {"exposure", "temperature", "tint", "contrast", "highlights", "shadows",
+                             "whites", "blacks", "vibrance", "saturation"})
+        values.insert(QString::fromLatin1(name), history_.current().parameter(name));
+    return values;
+}
+QVariantMap EditorController::correctionStates() const {
+    QVariantMap values;
+    for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
+                             "whites", "blacks", "vibrance", "saturation"})
+        values.insert(QString::fromLatin1(name),
+                      history_.current().enabled(luma::EditDocument::correction(name)));
+    return values;
+}
+void EditorController::beginEdit() {
+    if (editable())
+        history_.begin();
+}
+void EditorController::endEdit() {
+    history_.end();
+    emit stateChanged();
+}
+void EditorController::editsChanged() {
     ++editRevision_;
     pendingSave_ = true;
     saveTimer_.start();
     status_ = QStringLiteral("Сохраняем правку…");
     emit stateChanged();
     render();
+}
+void EditorController::setParameter(const QString &name, double value) {
+    if (!editable())
+        return;
+    try {
+        auto next = history_.current();
+        next.setParameter(name.toStdString(), value);
+        if (next == history_.current())
+            return;
+        history_.apply(next);
+        editsChanged();
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+    }
+}
+void EditorController::setExposure(double value) {
+    setParameter(QStringLiteral("exposure"), value);
+}
+void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
+    if (!editable())
+        return;
+    try {
+        auto next = history_.current();
+        next.setEnabled(luma::EditDocument::correction(name.toStdString()), enabled);
+        if (next == history_.current())
+            return;
+        history_.apply(next);
+        editsChanged();
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+    }
+}
+void EditorController::setWhiteBalancePreset(const QString &name) {
+    if (!editable())
+        return;
+    auto next = history_.current();
+    next.customWhiteBalance = name != QStringLiteral("As Shot");
+    if (name == QStringLiteral("Daylight"))
+        next.temperature = 5500;
+    else if (name == QStringLiteral("Cloudy"))
+        next.temperature = 6500;
+    else if (name == QStringLiteral("Shade"))
+        next.temperature = 7500;
+    else if (name == QStringLiteral("Tungsten"))
+        next.temperature = 2850;
+    else if (name == QStringLiteral("Fluorescent"))
+        next.temperature = 4000;
+    else if (name != QStringLiteral("Custom") && name != QStringLiteral("As Shot"))
+        return;
+    if (name != QStringLiteral("Custom"))
+        next.tint = 0;
+    if (next == history_.current())
+        return;
+    history_.apply(next);
+    editsChanged();
+}
+void EditorController::undo() {
+    if (editable() && history_.canUndo()) {
+        history_.undo();
+        editsChanged();
+    }
+}
+void EditorController::redo() {
+    if (editable() && history_.canRedo()) {
+        history_.redo();
+        editsChanged();
+    }
+}
+void EditorController::resetEdits() {
+    if (editable() && history_.current() != luma::EditDocument{}) {
+        history_.end();
+        history_.apply({});
+        editsChanged();
+    }
 }
 void EditorController::setOriginal(bool value) {
     if (original_ == value || !session_) {
@@ -215,15 +316,16 @@ void EditorController::render() {
     const auto revision = ++renderRevision_;
     const auto image = session_->preview;
     const int orientation = session_->asset.metadata.orientation;
-    const double ev = original_ ? 0 : exposure_;
+    const auto edits = original_ ? luma::EditDocument{} : history_.current();
+    const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
-        luma::JobPriority::interactive,
-        [self, image, orientation, ev, profile, revision](const luma::JobContext &context) {
+        luma::JobPriority::interactive, [self, image, orientation, edits, calibration, profile,
+                                         revision](const luma::JobContext &context) {
             try {
-                const auto pixels =
-                    luma::renderCPU(*image, {ev}, orientation, profile, context.stopToken());
+                const auto pixels = luma::renderCPU(*image, edits, orientation, profile,
+                                                    context.stopToken(), calibration);
                 QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
                               QImage::Format_RGBA8888);
                 auto owned = output.copy();
@@ -268,22 +370,22 @@ void EditorController::flushSave() {
     pendingSave_ = false;
     ++pendingWrites_;
     const auto id = session_->asset.id;
-    const double ev = exposure_;
+    const auto edits = history_.current();
     const auto revision = editRevision_;
     const QPointer<EditorController> self(this);
     emit stateChanged();
     ioJobs_.submit(
-        luma::JobPriority::background, [this, self, id, ev, revision](const luma::JobContext &) {
+        luma::JobPriority::background, [this, self, id, edits, revision](const luma::JobContext &) {
             QString error;
             try {
-                service_.save(id, ev);
+                service_.save(id, edits);
             } catch (const std::exception &failure) {
                 error = QString::fromUtf8(failure.what());
             }
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
-                    [self, ev, revision, error] {
+                    [self, edits, revision, error] {
                         if (!self) {
                             return;
                         }
@@ -296,7 +398,7 @@ void EditorController::flushSave() {
                             self->closing_ = false;
                         } else if (self->editRevision_ == revision) {
                             self->saveFailed_ = false;
-                            self->session_->asset.edits.exposure = ev;
+                            self->session_->asset.edits = edits;
                             self->status_ = QStringLiteral("Правки сохранены автоматически");
                         }
                         emit self->stateChanged();
@@ -321,10 +423,10 @@ void EditorController::retrySave() {
     flushSave();
 }
 void EditorController::cancelLoad() {
-    loadJob_.cancel();
+    loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
-    if (!busy_ && !saving()) {
+    if (!busy_ && !saving() && !exporting_) {
         return true;
     }
     if (saveFailed_) {
@@ -333,13 +435,85 @@ bool EditorController::requestClose() {
         return false;
     }
     closing_ = true;
-    loadJob_.cancel();
+    cancelExport();
+    loadCancellation_.cancel();
     renderJob_.cancel();
     flushSave();
     return false;
 }
 void EditorController::checkClose() {
-    if (closing_ && !busy_ && !saving()) {
+    if (closing_ && !busy_ && !saving() && !exporting_) {
         emit closeReady();
     }
+}
+
+void EditorController::exportPhoto(const QUrl &destination, int format, int quality,
+                                   bool overwrite) {
+    if (!editable() || exporting_ || !destination.isLocalFile())
+        return;
+    endEdit();
+    luma::ExportOptions options{static_cast<luma::ExportFormat>(format), quality, overwrite};
+    try {
+        options.validate();
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+        return;
+    }
+    const auto asset = session_->asset;
+    const auto edits = history_.current();
+    const auto path = std::filesystem::path(destination.toLocalFile().toStdString());
+    exportCancellation_ = luma::CancellationSource{};
+    const auto stop = exportCancellation_.token();
+    exporting_ = true;
+    exportProgress_ = 0;
+    error_.clear();
+    status_ = QStringLiteral("Экспорт фотографии…");
+    emit stateChanged();
+    const QPointer<EditorController> self(this);
+    exportJob_ =
+        ioJobs_.submit(luma::JobPriority::background, [this, self, asset, edits, path, options,
+                                                       stop](const luma::JobContext &context) {
+            QString error;
+            try {
+                service_.exportPhoto(asset, edits, path, options, stop,
+                                     [self, context](double value) {
+                                         context.setProgress(value);
+                                         if (self)
+                                             QMetaObject::invokeMethod(
+                                                 self,
+                                                 [self, value] {
+                                                     if (self) {
+                                                         self->exportProgress_ = value;
+                                                         emit self->stateChanged();
+                                                     }
+                                                 },
+                                                 Qt::QueuedConnection);
+                                     });
+            } catch (const std::exception &failure) {
+                error = QString::fromUtf8(failure.what());
+            }
+            const bool cancelled = stop.isCancelled() && !error.isEmpty();
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, error, cancelled] {
+                        if (!self)
+                            return;
+                        self->exporting_ = false;
+                        self->status_ =
+                            cancelled ? QStringLiteral("Экспорт отменён")
+                            : error.isEmpty()
+                                ? QStringLiteral("Фотография экспортирована")
+                                : QStringLiteral("Не удалось экспортировать фотографию");
+                        if (!cancelled)
+                            self->error_ = error;
+                        emit self->stateChanged();
+                        self->checkClose();
+                    },
+                    Qt::QueuedConnection);
+        });
+}
+void EditorController::cancelExport() {
+    exportCancellation_.cancel();
 }

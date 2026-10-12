@@ -1,6 +1,7 @@
 #include "core/render/CpuRenderer.h"
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
+#include "core/render/DevelopPipeline.h"
 #include <algorithm>
 #include <cmath>
 
@@ -44,7 +45,8 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
 }
 
 DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientation,
-                       std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop) {
+                       std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
+                       RawColorCalibration calibration) {
     edits.validate();
     if (orientation < 0 || orientation > 7 ||
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {
@@ -53,7 +55,7 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
     const int width = orientation & 4 ? input.height : input.width;
     const int height = orientation & 4 ? input.width : input.height;
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
-    const float gain = static_cast<float>(std::exp2(edits.exposure));
+    const DevelopPipeline pipeline(edits, calibration);
     DisplayTransform transform(displayProfile);
     std::vector<float> row(static_cast<std::size_t>(width) * 3);
     for (int y = 0; y < height; ++y) {
@@ -68,9 +70,10 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                 sy = input.height - 1 - sy;
             }
             const auto inputOffset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-            for (int c = 0; c < 3; ++c) {
-                row[static_cast<std::size_t>(x) * 3 + c] = input.rgb[inputOffset + c] * gain;
-            }
+            const auto rgb = pipeline.pixel(
+                {input.rgb[inputOffset], input.rgb[inputOffset + 1], input.rgb[inputOffset + 2]});
+            for (std::size_t c = 0; c < 3; ++c)
+                row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }
         auto destination = std::span(result.rgba)
                                .subspan(static_cast<std::size_t>(y) * width * 4,

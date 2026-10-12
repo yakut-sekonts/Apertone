@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.1.0 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.2.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -21,14 +21,15 @@ include(cmake/Dependencies.cmake)
 
 add_library(luma_core STATIC
     core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
-    core/render/CpuRenderer.cpp core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
+    core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/edits/EditDocument.cpp
+    core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
 target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_core PUBLIC luma_libraw luma_sqlite luma_lcms)
 target_compile_options(luma_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-add_library(luma_macos STATIC platform/macos/DisplayProfile.mm platform/macos/FileHasher.cpp)
+add_library(luma_macos STATIC platform/macos/DisplayProfile.mm platform/macos/FileHasher.cpp platform/macos/ImageExporter.mm)
 target_include_directories(luma_macos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_macos PRIVATE "-framework AppKit" "-framework ColorSync")
+target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework ImageIO")
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 add_library(luma_services STATIC apps/shared/SessionService.cpp)
@@ -40,7 +41,7 @@ qt_standard_project_setup(REQUIRES 6.10)
 qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/PreviewProvider.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/Main.qml apps/desktop/qml/MetadataRow.qml)
+    QML_FILES apps/desktop/qml/Main.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml)
 target_link_libraries(Luma PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_options(Luma PRIVATE -Wall -Wextra -Wpedantic -Werror)
 set_target_properties(Luma PROPERTIES
@@ -67,6 +68,9 @@ if(BUILD_TESTING)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME synthetic-raw-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" synthetic)
+    add_test(NAME develop-export-restart COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/develop.py" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(develop-export-restart PROPERTIES TIMEOUT 180)
     add_test(NAME nikon-d7500-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" private)
     set_tests_properties(nikon-d7500-restart PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/color/RawColorCalibration.h"
 #include "core/image/FloatImage.h"
 #include "core/jobs/Cancellation.h"
 #include "core/metadata/PhotoMetadata.h"
@@ -9,6 +10,7 @@ namespace luma {
 struct DecodedRaw {
     FloatImage image;
     PhotoMetadata metadata;
+    RawColorCalibration calibration;
 };
 
 class RawDecoder {

@@ -1,7 +1,9 @@
 #include "apps/shared/SessionService.h"
+#include "core/edits/EditHistory.h"
 #include "core/image/Bayer.h"
 #include "core/jobs/JobManager.h"
 #include "core/render/CpuRenderer.h"
+#include "core/render/DevelopPipeline.h"
 #include <array>
 #include <cmath>
 #include <fstream>
@@ -73,6 +75,91 @@ void imageTests() {
     throws([&] { luma::renderCPU(gray, {}, 0, {}, stop.token()); });
     throws([] { luma::FloatImage invalid(0, 10); });
 }
+void developTests() {
+    luma::EditDocument edits;
+    luma::DevelopPipeline baseline(edits);
+    const std::array<float, 3> pixel{0.5F, 0.25F, 0.125F};
+    const auto neutral = baseline.pixel(pixel);
+    for (std::size_t c = 0; c < 3; ++c)
+        require(std::abs(neutral[c] - pixel[c]) < 1e-6, "Neutral Develop changed RGB.");
+    edits.exposure = 1;
+    const auto exposed = luma::DevelopPipeline(edits).pixel(pixel);
+    require(std::abs(exposed[0] - 1) < 1e-6, "Exposure is not linear.");
+    edits.setEnabled(luma::Correction::exposure, false);
+    require(luma::DevelopPipeline(edits).pixel(pixel) == neutral,
+            "Disabled Exposure changed output.");
+    require(edits.exposure == 1, "Disabling erased a parameter.");
+    edits = {};
+    edits.saturation = -100;
+    const auto gray = luma::DevelopPipeline(edits).pixel(pixel);
+    require(gray[0] == gray[1] && gray[1] == gray[2], "Saturation -100 is not monochrome.");
+    for (double temperature : {2000.0, 2850.0, 6500.0, 25000.0}) {
+        edits = {};
+        edits.customWhiteBalance = true;
+        edits.temperature = temperature;
+        edits.tint = 150;
+        const auto result = luma::DevelopPipeline(edits).pixel(pixel);
+        for (float channel : result)
+            require(std::isfinite(channel), "WB boundary produced non-finite pixels.");
+        edits.setEnabled(luma::Correction::whiteBalance, false);
+        require(luma::DevelopPipeline(edits).pixel(pixel) == neutral,
+                "Disabled manual WB must restore As Shot.");
+    }
+    for (double sign : {-100.0, 100.0}) {
+        edits = {};
+        edits.contrast = sign;
+        edits.highlights = -sign;
+        edits.shadows = sign;
+        edits.whites = -sign;
+        edits.blacks = sign;
+        const luma::DevelopPipeline pipeline(edits);
+        float previous = 0;
+        for (int i = 0; i <= 1000; ++i) {
+            const float value = static_cast<float>(std::exp2(-12 + i * 0.016));
+            const auto result = pipeline.pixel({value, value, value});
+            require(result[0] >= previous, "Tone boundary inverted luminance ordering.");
+            previous = result[0];
+        }
+    }
+    edits = {};
+    edits.highlights = -100;
+    require(luma::DevelopPipeline(edits).pixel({2, 2, 2})[0] < 2,
+            "Highlights did not recover float headroom.");
+    edits = {};
+    edits.shadows = 100;
+    require(luma::DevelopPipeline(edits).pixel({0.02F, 0.02F, 0.02F})[0] > 0.02F,
+            "Shadows did not lift low light.");
+    edits = {};
+    edits.vibrance = 100;
+    require(luma::DevelopPipeline(edits).pixel({0.2F, 0.2F, 0.2F})[0] == 0.2F,
+            "Vibrance altered neutral gray.");
+    throws([&] { edits.setParameter("tint", 151); });
+    throws([&] { edits.setParameter("exposure", std::numeric_limits<double>::quiet_NaN()); });
+    throws([&] { edits.setParameter("unknown", 1); });
+    require(edits.tint == 0, "Invalid edit partially mutated document.");
+    luma::EditHistory history;
+    history.begin();
+    for (int i = 1; i <= 20; ++i) {
+        auto next = history.current();
+        next.exposure = i / 10.0;
+        history.apply(next);
+    }
+    history.end();
+    require(history.canUndo(), "Gesture has no undo.");
+    history.undo();
+    require(history.current() == luma::EditDocument{} && !history.canUndo(),
+            "One slider gesture must be one Undo.");
+    history.redo();
+    require(history.current().exposure == 2, "Redo failed.");
+    history.undo();
+    edits = history.current();
+    edits.shadows = 30;
+    history.apply(edits);
+    require(!history.canRedo(), "New edit did not invalidate redo.");
+    history.apply({});
+    history.undo();
+    require(history.current().shadows == 30, "Reset must be one reversible operation.");
+}
 void catalogTests() {
     const auto directory =
         std::filesystem::temp_directory_path() /
@@ -110,9 +197,53 @@ void catalogTests() {
             require(asset->path.filename() == source.filename(), "Unicode path was corrupted.");
             reopened.verify();
         }
+        {
+            luma::Catalog catalog(path);
+            auto edits = catalog.activeAsset()->edits;
+            edits.temperature = 5350;
+            edits.tint = 12;
+            edits.customWhiteBalance = true;
+            edits.highlights = -45;
+            edits.shadows = 23;
+            edits.vibrance = 35;
+            edits.setEnabled(luma::Correction::shadows, false);
+            catalog.saveEdits(id, edits);
+            require(catalog.activeAsset()->edits == edits, "Develop document round trip failed.");
+            catalog.saveExposure(id, 0.75);
+            require(catalog.activeAsset()->edits.temperature == 5350,
+                    "Legacy Exposure update erased Develop.");
+        }
         sqlite3 *db = nullptr;
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK, "Cannot open schema test database.");
-        require(sqlite3_exec(db, "PRAGMA user_version=2", nullptr, nullptr, nullptr) == SQLITE_OK,
+        const char *legacy = R"sql(
+            BEGIN;
+            CREATE TABLE legacy_edits(asset_id TEXT PRIMARY KEY REFERENCES assets(id) ON DELETE CASCADE,
+                schema_version INTEGER NOT NULL DEFAULT 1 CHECK(schema_version=1),
+                exposure REAL NOT NULL DEFAULT 0 CHECK(exposure BETWEEN -5 AND 5),
+                revision INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            INSERT INTO legacy_edits(asset_id,exposure,revision,updated_at)
+                SELECT asset_id,exposure,revision,updated_at FROM edit_documents;
+            DROP TABLE edit_documents;
+            ALTER TABLE legacy_edits RENAME TO edit_documents;
+            DELETE FROM schema_migrations WHERE version=2;
+            PRAGMA user_version=1;
+            COMMIT;
+        )sql";
+        require(sqlite3_exec(db, legacy, nullptr, nullptr, nullptr) == SQLITE_OK,
+                "Cannot establish historical M0 fixture.");
+        sqlite3_close(db);
+        {
+            luma::Catalog migrated(path);
+            const auto asset = migrated.activeAsset();
+            require(asset && asset->id == id && asset->edits.exposure == 0.75,
+                    "M0 migration lost exposure or selection.");
+            require(!asset->edits.customWhiteBalance && asset->edits.temperature == 6500,
+                    "Migration defaults changed As Shot.");
+            migrated.verify();
+        }
+        require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
+                "Cannot reopen future schema fixture.");
+        require(sqlite3_exec(db, "PRAGMA user_version=3", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });
@@ -156,6 +287,7 @@ void jobTests() {
 int main() {
     try {
         imageTests();
+        developTests();
         catalogTests();
         jobTests();
         std::cout << "Core unit tests passed\n";

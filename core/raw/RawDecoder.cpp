@@ -141,8 +141,7 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
             const double sample =
                 data.rawdata.raw_image[(y + sizes.top_margin) * stride + x + sizes.left_margin];
             frame.samples[static_cast<std::size_t>(y) * sizes.width + x] =
-                static_cast<float>(std::max(0.0, sample - black) / (white - black)) *
-                gains[channel];
+                static_cast<float>(std::max(0.0, sample - black) / (white - black));
         }
     }
     std::array<float, 9> matrix{};
@@ -158,10 +157,10 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     auto image = demosaicBilinear(frame, stop);
     frame.samples.clear();
     frame.samples.shrink_to_fit();
-    cameraToLinearSRGB(image, matrix, stop);
+
     if (progress) {
         progress(1);
     }
-    return {std::move(image), std::move(metadata)};
+    return {std::move(image), std::move(metadata), {matrix, {gains[0], gains[1], gains[2]}}};
 }
 } // namespace luma

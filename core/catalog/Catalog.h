@@ -25,6 +25,7 @@ class Catalog {
     AssetRecord addAndSelect(const std::filesystem::path &source, const std::string &checksum,
                              const PhotoMetadata &metadata);
     std::optional<AssetRecord> activeAsset() const;
+    void saveEdits(const std::string &assetID, EditDocument edits);
     void saveExposure(const std::string &assetID, double ev);
     void verify() const;
 

@@ -1,4 +1,6 @@
 #include "apps/shared/SessionService.h"
+#include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -35,6 +37,15 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"focalLength\":" << number(asset.metadata.focalLength)
               << ",\"width\":" << asset.metadata.width << ",\"height\":" << asset.metadata.height
               << ",\"exposure\":" << std::setprecision(17) << asset.edits.exposure
+              << ",\"temperature\":" << asset.edits.temperature << ",\"tint\":" << asset.edits.tint
+              << ",\"customWhiteBalance\":" << (asset.edits.customWhiteBalance ? "true" : "false")
+              << ",\"contrast\":" << asset.edits.contrast
+              << ",\"highlights\":" << asset.edits.highlights
+              << ",\"shadows\":" << asset.edits.shadows << ",\"whites\":" << asset.edits.whites
+              << ",\"blacks\":" << asset.edits.blacks << ",\"vibrance\":" << asset.edits.vibrance
+              << ",\"saturation\":" << asset.edits.saturation
+              << ",\"enabledCorrections\":" << asset.edits.enabledCorrections
+              << ",\"editSchemaVersion\":" << luma::EditDocument::schemaVersion
               << ",\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace
@@ -51,9 +62,13 @@ int main(int argc, char **argv) {
             }
         }
         if (arguments.empty() || arguments[0] == "--help") {
-            std::cout << "Luma M0\nUsage: luma open RAW --catalog FILE\n"
+            std::cout << "Luma Develop Core\nUsage: luma open RAW --catalog FILE\n"
                       << "       luma exposure EV --catalog FILE\n"
                       << "       luma restore --catalog FILE\n"
+                      << "       luma develop PARAM=VALUE... --catalog FILE\n"
+                      << "       luma enable|disable CORRECTION --catalog FILE\n"
+                      << "       luma wb as-shot --catalog FILE\n"
+                      << "       luma export DEST [--quality N] [--overwrite] --catalog FILE\n"
                       << "       luma catalog verify --catalog FILE\n";
             return 0;
         }
@@ -83,6 +98,71 @@ int main(int argc, char **argv) {
             }
             service.save(asset->id, ev);
             std::cout << "{\"saved\":true}\n";
+        } else if (arguments[0] == "develop" && arguments.size() >= 2) {
+            luma::Catalog connection(catalog);
+            auto asset = connection.activeAsset();
+            if (!asset)
+                throw std::runtime_error("No active photo in this catalog.");
+            for (std::size_t i = 1; i < arguments.size(); ++i) {
+                const auto separator = arguments[i].find('=');
+                if (separator == std::string::npos)
+                    throw std::runtime_error("Expected PARAM=VALUE.");
+                const auto name = arguments[i].substr(0, separator);
+                const auto text = arguments[i].substr(separator + 1);
+                std::size_t consumed = 0;
+                const auto value = std::stod(text, &consumed);
+                if (consumed != text.size())
+                    throw std::runtime_error("Invalid edit number.");
+                asset->edits.setParameter(name, value);
+            }
+            service.save(asset->id, asset->edits);
+            std::cout << "{\"saved\":true}\n";
+        } else if ((arguments[0] == "enable" || arguments[0] == "disable") &&
+                   arguments.size() == 2) {
+            luma::Catalog connection(catalog);
+            auto asset = connection.activeAsset();
+            if (!asset)
+                throw std::runtime_error("No active photo in this catalog.");
+            asset->edits.setEnabled(luma::EditDocument::correction(arguments[1]),
+                                    arguments[0] == "enable");
+            service.save(asset->id, asset->edits);
+            std::cout << "{\"saved\":true}\n";
+        } else if (arguments == std::vector<std::string>{"wb", "as-shot"}) {
+            luma::Catalog connection(catalog);
+            auto asset = connection.activeAsset();
+            if (!asset)
+                throw std::runtime_error("No active photo in this catalog.");
+            asset->edits.customWhiteBalance = false;
+            service.save(asset->id, asset->edits);
+            std::cout << "{\"saved\":true}\n";
+        } else if (arguments[0] == "export" && arguments.size() >= 2) {
+            luma::Catalog connection(catalog);
+            const auto asset = connection.activeAsset();
+            if (!asset)
+                throw std::runtime_error("No active photo in this catalog.");
+            std::filesystem::path destination(arguments[1]);
+            auto extension = destination.extension().string();
+            std::transform(extension.begin(), extension.end(), extension.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
+            luma::ExportOptions options;
+            if (extension == ".png")
+                options.format = luma::ExportFormat::png;
+            else if (extension == ".tif" || extension == ".tiff")
+                options.format = luma::ExportFormat::tiff16;
+            for (std::size_t i = 2; i < arguments.size(); ++i) {
+                if (arguments[i] == "--overwrite")
+                    options.overwrite = true;
+                else if (arguments[i] == "--quality" && i + 1 < arguments.size()) {
+                    std::size_t consumed = 0;
+                    const auto text = arguments[++i];
+                    options.quality = std::stoi(text, &consumed);
+                    if (consumed != text.size())
+                        throw std::runtime_error("Invalid JPEG quality.");
+                } else
+                    throw std::runtime_error("Unknown export option.");
+            }
+            service.exportPhoto(*asset, asset->edits, destination, options);
+            std::cout << "{\"exported\":" << quoted(destination.string()) << "}\n";
         } else if (arguments == std::vector<std::string>{"catalog", "verify"}) {
             service.verify();
             std::cout << "{\"integrity\":\"ok\"}\n";

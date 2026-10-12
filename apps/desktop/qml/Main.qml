@@ -22,6 +22,8 @@ ApplicationWindow {
     onClosing: function(close) { close.accepted = editor.requestClose() }
     Connections { target: editor; function onCloseReady() { root.close() } }
     Shortcut { sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: editor.canUndo && !editor.busy; onActivated: editor.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: editor.canRedo && !editor.busy; onActivated: editor.redo() }
     Shortcut { sequences: [StandardKey.Quit]; onActivated: root.close() }
     Shortcut { sequence: "\\"; onActivated: editor.original = !editor.original }
     Shortcut { sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
@@ -30,6 +32,30 @@ ApplicationWindow {
         title: "Открыть RAW"
         nameFilters: ["Bayer RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", "Все файлы (*)"]
         onAccepted: editor.openFile(selectedFile)
+    }
+    Dialog {
+        id: exportSettings
+        title: "Экспорт"
+        modal: true
+        anchors.centerIn: parent
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: exportDialog.open()
+        ColumnLayout {
+            spacing: 12
+            Label { text: "Исходное разрешение · sRGB · без метаданных"; font.pixelSize: 12 }
+            ComboBox { id: exportFormat; model: ["JPEG", "PNG", "TIFF · 16 bit"]; Layout.fillWidth: true }
+            Label { text: "JPEG quality: " + exportQuality.value }
+            Slider { id: exportQuality; from: 1; to: 100; stepSize: 1; value: 92; enabled: exportFormat.currentIndex === 0; Layout.fillWidth: true }
+            CheckBox { id: overwriteExport; text: "Разрешить замену существующего файла"; checked: false }
+        }
+    }
+    FileDialog {
+        id: exportDialog
+        title: "Экспорт фотографии"
+        fileMode: FileDialog.SaveFile
+        nameFilters: exportFormat.currentIndex === 0 ? ["JPEG (*.jpg *.jpeg)"] : exportFormat.currentIndex === 1 ? ["PNG (*.png)"] : ["TIFF (*.tif *.tiff)"]
+        defaultSuffix: exportFormat.currentIndex === 0 ? "jpg" : exportFormat.currentIndex === 1 ? "png" : "tif"
+        onAccepted: editor.exportPhoto(selectedFile, exportFormat.currentIndex, Math.round(exportQuality.value), overwriteExport.checked)
     }
     DropArea {
         anchors.fill: parent
@@ -49,6 +75,9 @@ ApplicationWindow {
                 Label { text: "RAW WORKSPACE"; color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
                 Item { Layout.fillWidth: true }
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
+                Button { text: "↶"; enabled: editor.canUndo && !editor.busy; onClicked: editor.undo(); Accessible.name: "Undo" }
+                Button { text: "↷"; enabled: editor.canRedo && !editor.busy; onClicked: editor.redo(); Accessible.name: "Redo" }
+                Button { text: "Экспорт"; enabled: editor.hasPhoto && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
                 Button { text: "+  Открыть RAW"; enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
@@ -60,6 +89,13 @@ ApplicationWindow {
                 Label { text: editor.error; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
                 Button { visible: editor.saving && !editor.busy; text: "Повторить запись"; onClicked: editor.retrySave() }
             }
+        }
+        RowLayout {
+            visible: editor.exporting
+            Layout.fillWidth: true; Layout.margins: visible ? 10 : 0
+            Label { text: "Экспорт"; color: "#dfae77" }
+            ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
+            Button { text: "Отменить"; onClicked: editor.cancelExport() }
         }
         SplitView {
             id: panels
@@ -82,7 +118,7 @@ ApplicationWindow {
                     Item { Layout.fillHeight: true }
                     Label { text: "КАТАЛОГ"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                     Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                    Label { text: "LUMA / M0"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
+                    Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
                 }
             }
             Rectangle {
@@ -123,40 +159,52 @@ ApplicationWindow {
             }
             Rectangle {
                 SplitView.preferredWidth: 290; SplitView.minimumWidth: 250; SplitView.maximumWidth: 400; color: "#191c22"
-                ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 24; spacing: 20
-                    Label { text: "Коррекция"; font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
-                    Label { text: "СВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2; Layout.topMargin: 12 }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label { text: "Exposure"; color: "#d7dce3"; font.pixelSize: 12 }
-                        Item { Layout.fillWidth: true }
-                        Label { text: (editor.exposure >= 0 ? "+" : "") + editor.exposure.toFixed(2) + " EV"; color: "#dfae77"; font.pixelSize: 12 }
+                ScrollView {
+                    anchors.fill: parent
+                    anchors.margins: 18
+                    clip: true
+                    contentWidth: availableWidth
+                    ColumnLayout {
+                        width: parent.width
+                        spacing: 14
+                        Label { text: "Коррекция"; font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
+                        RowLayout {
+                            CheckBox { checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
+                            Label { text: "БАЛАНС БЕЛОГО"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1 }
+                        }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["As Shot","Daylight","Cloudy","Shade","Tungsten","Fluorescent","Custom"]
+                            currentIndex: editor.customWhiteBalance ? 6 : 0
+                            enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
+                            onActivated: editor.setWhiteBalancePreset(currentText)
+                        }
+                        DevelopSlider { parameter: "temperature"; label: "Temperature"; minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "tint"; label: "Tint"; minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        Label { visible: !editor.customWhiteBalance; text: "As Shot: WB из RAW. Kelvin доступен в Custom."; font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
+                        Label { text: "СВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "exposure"; label: "Exposure"; minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "contrast"; label: "Contrast"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "highlights"; label: "Highlights"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "shadows"; label: "Shadows"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "whites"; label: "Whites"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "blacks"; label: "Blacks"; Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
+                        Label { text: "ЦВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "vibrance"; label: "Vibrance"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "saturation"; label: "Saturation"; Layout.fillWidth: true }
+                        Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
+                        Label { text: "ДАННЫЕ СЪЁМКИ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
+                        MetadataRow { label: "Камера"; value: editor.camera; Layout.fillWidth: true }
+                        MetadataRow { label: "Объектив"; value: editor.lens; Layout.fillWidth: true }
+                        MetadataRow { label: "ISO"; value: editor.iso; Layout.fillWidth: true }
+                        MetadataRow { label: "Выдержка"; value: editor.shutter; Layout.fillWidth: true }
+                        MetadataRow { label: "Диафрагма"; value: editor.aperture; Layout.fillWidth: true }
+                        MetadataRow { label: "Фокусное"; value: editor.focalLength; Layout.fillWidth: true }
+                        Label { text: editor.saving ? "Сохраняем изменения…" : "Изменения сохраняются автоматически"; color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     }
-                    Slider {
-                        id: exposureSlider; Layout.fillWidth: true; from: -5; to: 5; stepSize: 0.01; value: editor.exposure
-                        enabled: editor.hasPhoto && !editor.busy
-                        Accessible.name: "Exposure"
-                        onMoved: editor.exposure = value
-                        TapHandler { acceptedButtons: Qt.LeftButton; onDoubleTapped: editor.exposure = 0 }
-                    }
-                    RowLayout {
-                        Label { text: "−5"; color: "#777f8b"; font.pixelSize: 9 }
-                        Item { Layout.fillWidth: true }
-                        Button { text: "Сбросить"; flat: true; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.exposure = 0 }
-                        Item { Layout.fillWidth: true }
-                        Label { text: "+5"; color: "#777f8b"; font.pixelSize: 9 }
-                    }
-                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                    Label { text: "ДАННЫЕ СЪЁМКИ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
-                    MetadataRow { label: "Камера"; value: editor.camera; Layout.fillWidth: true }
-                    MetadataRow { label: "Объектив"; value: editor.lens; Layout.fillWidth: true }
-                    MetadataRow { label: "ISO"; value: editor.iso; Layout.fillWidth: true }
-                    MetadataRow { label: "Выдержка"; value: editor.shutter; Layout.fillWidth: true }
-                    MetadataRow { label: "Диафрагма"; value: editor.aperture; Layout.fillWidth: true }
-                    MetadataRow { label: "Фокусное"; value: editor.focalLength; Layout.fillWidth: true }
-                    Item { Layout.fillHeight: true }
-                    Label { text: editor.saving ? "Сохраняем изменения…" : "Изменения сохраняются автоматически"; color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                 }
             }
         }
@@ -166,7 +214,7 @@ ApplicationWindow {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
                 Label { text: editor.status; font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: "Local-first · RAW → Float32 · CPU reference"; color: "#777f8b"; font.pixelSize: 10 }
+                Label { text: "Правки не изменяют исходный RAW"; color: "#777f8b"; font.pixelSize: 10 }
             }
         }
     }

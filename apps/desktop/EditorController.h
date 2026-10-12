@@ -1,14 +1,23 @@
 #pragma once
 #include "apps/desktop/PreviewProvider.h"
 #include "apps/shared/SessionService.h"
+#include "core/edits/EditHistory.h"
 #include "core/jobs/JobManager.h"
 #include <QObject>
 #include <QQuickWindow>
 #include <QTimer>
 #include <QUrl>
+#include <QVariantMap>
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
+    Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
+    Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
+    Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
+    Q_PROPERTY(bool exporting READ exporting NOTIFY stateChanged)
+    Q_PROPERTY(double exportProgress READ exportProgress NOTIFY stateChanged)
     Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
     Q_PROPERTY(bool saving READ saving NOTIFY stateChanged)
     Q_PROPERTY(bool hasPhoto READ hasPhoto NOTIFY stateChanged)
@@ -45,10 +54,27 @@ class EditorController final : public QObject {
         return original_;
     }
     double exposure() const {
-        return exposure_;
+        return history_.current().exposure;
     }
     double progress() const {
         return progress_;
+    }
+    QVariantMap parameters() const;
+    QVariantMap correctionStates() const;
+    bool customWhiteBalance() const {
+        return history_.current().customWhiteBalance;
+    }
+    bool canUndo() const {
+        return history_.canUndo();
+    }
+    bool canRedo() const {
+        return history_.canRedo();
+    }
+    bool exporting() const {
+        return exporting_;
+    }
+    double exportProgress() const {
+        return exportProgress_;
     }
     QString filename() const;
     QString camera() const;
@@ -69,6 +95,16 @@ class EditorController final : public QObject {
     void restore();
     void setWindow(QQuickWindow *window);
     Q_INVOKABLE void openFile(const QUrl &url);
+    Q_INVOKABLE void beginEdit();
+    Q_INVOKABLE void endEdit();
+    Q_INVOKABLE void setParameter(const QString &name, double value);
+    Q_INVOKABLE void setCorrectionEnabled(const QString &name, bool enabled);
+    Q_INVOKABLE void setWhiteBalancePreset(const QString &name);
+    Q_INVOKABLE void undo();
+    Q_INVOKABLE void redo();
+    Q_INVOKABLE void resetEdits();
+    Q_INVOKABLE void exportPhoto(const QUrl &destination, int format, int quality, bool overwrite);
+    Q_INVOKABLE void cancelExport();
     Q_INVOKABLE void setExposure(double value);
     Q_INVOKABLE void setOriginal(bool value);
     Q_INVOKABLE bool requestClose();
@@ -85,6 +121,9 @@ class EditorController final : public QObject {
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;
     luma::JobHandle loadJob_;
+    luma::CancellationSource loadCancellation_;
+    luma::JobHandle exportJob_;
+    luma::CancellationSource exportCancellation_;
     luma::JobHandle renderJob_;
     std::optional<luma::PhotoSession> session_;
     QTimer saveTimer_;
@@ -96,7 +135,9 @@ class EditorController final : public QObject {
     bool saveFailed_ = false;
     bool closing_ = false;
     int pendingWrites_ = 0;
-    double exposure_ = 0;
+    luma::EditHistory history_;
+    bool exporting_ = false;
+    double exportProgress_ = 0;
     double progress_ = 0;
     std::uint64_t loadRevision_ = 0;
     std::uint64_t renderRevision_ = 0;
@@ -107,6 +148,8 @@ class EditorController final : public QObject {
     QString error_;
     void load(std::optional<std::filesystem::path> source);
     void render();
+    void editsChanged();
+    bool editable() const;
     void flushSave();
     void checkClose();
     void refreshDisplayProfile();
