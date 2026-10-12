@@ -6,7 +6,10 @@ No dates are promised before measuring scope and performance.
 
 ## M0 — RAW Vertical Slice / 0.1 Foundation
 
-🚧 In progress. Public repository, Apache-2.0, pinned dependencies, macOS CI,
+[Issue #1](https://github.com/yakut-sekonts/Luma/issues/1) ·
+[Implementation PR #2](https://github.com/yakut-sekonts/Luma/pull/2)
+
+✅ Implemented; PR ready for review. Public repository, Apache-2.0, pinned dependencies, macOS CI,
 Qt/QML shell, SQLite migration, real Nikon NEF sensor decode, EXIF, CPU Exposure,
 autosave and recovery of the selected photo/exposure after restart.
 

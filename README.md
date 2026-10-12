@@ -7,6 +7,8 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 The product requirements originated under the working name Photon; Luma is the
 project name used for implementation.
 
+![Luma M0 viewer with a project-generated test DNG](docs/screenshot.png)
+
 ## Current milestone: M0 — RAW Vertical Slice
 
 - ✅ CMake project and Qt/QML application shell.
@@ -19,7 +21,7 @@ project name used for implementation.
 - ✅ Fit viewer, resizable panels, drag-and-drop and cancellable decoding.
 - ✅ ColorSync display profile → LittleCMS display transform; rerender on screen change.
 - ✅ Shared core used by desktop, CLI and tests.
-- 🚧 M0 acceptance verification and public CI.
+- ✅ Nikon D7500 restart acceptance, unit/integration tests and public macOS CI.
 - 🗓 Full Develop, library grid, export, masks, presets and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
@@ -40,7 +42,7 @@ reconstruction, noise reduction and production camera profiles remain planned.
 ## Build and run
 
 ```bash
-git clone https://github.com/yakut-sekonts/Luma.git
+git clone --branch codex/m0-raw-vertical-slice https://github.com/yakut-sekonts/Luma.git
 cd Luma
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -51,6 +53,8 @@ open build/Luma.app
 ```
 
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
+M0 is available in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2);
+the commands above select its implementation branch while it is under review.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
 this option, the app uses its macOS application-data directory. RAW files stay
 at their original paths. The catalog contains absolute paths and editing data;
