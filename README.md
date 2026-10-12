@@ -9,7 +9,16 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Current milestone: 0.3 — Library
+## First release: v0.3.0
+
+[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.3.0) ·
+[Release notes / known issues](docs/releases/v0.3.0.md)
+
+DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
+The build is ad-hoc signed and not notarized. Installation instructions and
+checksums accompany the release. Professional Develop and presets remain 0.4.
+
+## Included: 0.3 — Library
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
@@ -49,7 +58,7 @@ reconstruction, noise reduction and production camera profiles remain planned.
 ## Build and run
 
 ```bash
-git clone --branch codex/library https://github.com/yakut-sekonts/Luma.git
+git clone --branch v0.3.0 https://github.com/yakut-sekonts/Luma.git
 cd Luma
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -62,8 +71,8 @@ open build/Luma.app
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
 M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2), Develop Core in
 [PR #4](https://github.com/yakut-sekonts/Luma/pull/4), Library in
-[PR #6](https://github.com/yakut-sekonts/Luma/pull/6). Library builds on both;
-the commands above select the Library implementation branch.
+[PR #6](https://github.com/yakut-sekonts/Luma/pull/6). the first release includes all three stages.
+The commands above select the immutable release tag.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
 this option, the app uses its macOS application-data directory. Add keeps RAW files
 at their original paths; Copy registers verified copies in the chosen destination. The catalog contains absolute paths and editing data;

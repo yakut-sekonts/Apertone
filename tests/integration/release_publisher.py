@@ -1,0 +1,70 @@
+"""Verify publication ordering and refusal of incomplete or immutable assets. No network."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+publisher = Path(__file__).resolve().parents[2] / "scripts/publish-release.py"
+
+class ReleasePublisherTests(unittest.TestCase):
+    def run_case(self, mode):
+        with tempfile.TemporaryDirectory(prefix="luma-publisher-") as temporary:
+            root = Path(temporary)
+            assets = root / "dist/release"
+            assets.mkdir(parents=True)
+            for suffix in ("zip", "dmg"):
+                (assets / f"Luma-0.3.0-macos-arm64.{suffix}").write_bytes(b"synthetic archive")
+            info = {"version": "0.3.0", "source_commit": "a" * 40}
+            (assets / "BUILD_INFO.json").write_text(json.dumps(info))
+            entries = []
+            for path in sorted(assets.iterdir()):
+                entries.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}")
+            (assets / "SHA256SUMS").write_text("\n".join(entries) + "\n")
+            fake = root / "gh"
+            fake.write_text("#!/usr/bin/env python3\n" + '''
+import hashlib, json, os, pathlib, sys
+args = sys.argv[1:]
+with pathlib.Path("calls.jsonl").open("a") as file: file.write(json.dumps(args) + "\\n")
+mode = os.environ["MOCK_MODE"]
+if args[:2] == ["release", "view"]:
+    if mode == "published": print(json.dumps({"isDraft": False})); sys.exit(0)
+    sys.exit(1)
+if args[0] == "api":
+    assets = []
+    for path in pathlib.Path("dist/release").iterdir():
+        assets.append({"name":path.name,"state":"uploaded","size":path.stat().st_size,
+            "digest":"sha256:"+hashlib.sha256(path.read_bytes()).hexdigest()})
+    if mode == "bad-digest": assets[0]["digest"] = "sha256:wrong"
+    if mode == "incomplete": assets.pop()
+    print(json.dumps({"html_url":"https://github.com/yakut-sekonts/Luma/releases/tag/v0.3.0","assets":assets}))
+''')
+            fake.chmod(0o755)
+            env = {**os.environ, "PATH":str(root)+os.pathsep+str(Path(sys.executable).parent)+os.pathsep+os.environ["PATH"], "GITHUB_REPOSITORY":"yakut-sekonts/Luma", "GITHUB_REF_NAME":"v0.3.0", "GITHUB_SHA":"a"*40, "MOCK_MODE":mode}
+            if mode == "wrong-commit": env["GITHUB_SHA"] = "b"*40
+            if mode == "wrong-repo": env["GITHUB_REPOSITORY"] = "other/repo"
+            result = subprocess.run([sys.executable,str(publisher)],cwd=root,env=env,capture_output=True,text=True,timeout=20)
+            log = root / "calls.jsonl"
+            calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+            return result, calls
+
+    def test_complete_draft_publishes_last(self):
+        result,calls = self.run_case("valid")
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['api','repos/yakut-sekonts/Luma/releases/tags/v0.3.0'],['release','edit']])
+        self.assertIn("--draft",calls[1])
+        self.assertIn("--draft=false",calls[-1])
+
+    def test_invalid_assets_never_publish(self):
+        for mode in ("bad-digest","incomplete","wrong-commit","wrong-repo","published"):
+            with self.subTest(mode=mode):
+                result,calls=self.run_case(mode)
+                self.assertNotEqual(result.returncode,0)
+                self.assertFalse(any(call[:2]==["release","edit"] for call in calls))
+                if mode=="published": self.assertFalse(any(call[:2]==["release","upload"] for call in calls))
+
+if __name__ == "__main__":
+    unittest.main()

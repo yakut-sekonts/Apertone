@@ -103,3 +103,23 @@ This does not certify large real-photo browsing latency or memory pressure.
 The thumbnail cache and SQLite journal are local data. Do not commit them,
 private RAW files or copied originals. Copy errors identify the source and reason
 in `import_items`; the UI shows summary counts and a details dialog (first 100 failures).
+
+## Release packaging
+
+```bash
+./scripts/release-artifacts.sh build
+.tools/venv/bin/python scripts/verify-bundle.py
+```
+
+Release assets live under `dist/release`: versioned ZIP, DMG, BUILD_INFO.json and
+SHA256SUMS. The DMG contains Luma.app, an Applications shortcut, license and notes.
+BUILD_INFO.json identifies the source commit and dependencies. The ad-hoc-signed
+app is not notarized; follow the installation note in the release documentation.
+
+The macOS Release workflow also runs on `codex/release-*` branches to validate
+packaging before tagging. Tags `vX.Y.Z` must point to main history. A read-only
+build job tests, analyzes, packages and verifies the bundle without the Qt SDK.
+Only the separate publishing job has `contents: write`; it creates a draft,
+uploads assets, verifies GitHub SHA-256 digests and publishes the complete release.
+An already-published release is never overwritten. Only temporary repository
+GITHUB_TOKEN credentials are used by the publisher.

@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased — 0.3.0 / Library
+## 0.3.0 — 2026-10-12 / First macOS release and Library
 
+- Standalone macOS Apple Silicon DMG/ZIP, checksums, build provenance and release notes.
+- Verified tag-driven release workflow with repository-scoped publishing permissions.
 - Catalog schema 3: manual collections, membership indexes and per-file import journal.
 - Add/Copy import, recursive folder scan, SHA-256/size duplicate detection and cancellation.
 - No-replace Copy installation, complete-item checkpoints and dead-owner recovery.
