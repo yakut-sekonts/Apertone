@@ -451,7 +451,6 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
                                    bool overwrite) {
     if (!editable() || exporting_ || !destination.isLocalFile())
         return;
-    endEdit();
     luma::ExportOptions options{static_cast<luma::ExportFormat>(format), quality, overwrite};
     try {
         options.validate();
@@ -468,6 +467,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     exporting_ = true;
     exportProgress_ = 0;
     error_.clear();
+    endEdit();
     status_ = QStringLiteral("Экспорт фотографии…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
