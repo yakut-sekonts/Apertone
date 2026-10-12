@@ -32,8 +32,14 @@ with pathlib.Path("calls.jsonl").open("a") as file: file.write(json.dumps(args) 
 mode = os.environ["MOCK_MODE"]
 if args[:2] == ["release", "view"]:
     if mode == "published": print(json.dumps({"isDraft": False})); sys.exit(0)
+    if pathlib.Path("created").exists() or mode == "resume":
+        print(json.dumps({"isDraft": True, "databaseId": 123, "tagName": "v0.3.0"})); sys.exit(0)
     sys.exit(1)
+if args[:2] == ["release", "create"]:
+    pathlib.Path("created").touch()
 if args[0] == "api":
+    # The production bug: a draft is unavailable through releases/tags/<tag>.
+    if args[1] != "repos/yakut-sekonts/Luma/releases/123": sys.exit(1)
     assets = []
     for path in pathlib.Path("dist/release").iterdir():
         assets.append({"name":path.name,"state":"uploaded","size":path.stat().st_size,
@@ -54,9 +60,15 @@ if args[0] == "api":
     def test_complete_draft_publishes_last(self):
         result,calls = self.run_case("valid")
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['api','repos/yakut-sekonts/Luma/releases/tags/v0.3.0'],['release','edit']])
+        self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['release','view'],['api','repos/yakut-sekonts/Luma/releases/123'],['release','edit']])
         self.assertIn("--draft",calls[1])
         self.assertIn("--draft=false",calls[-1])
+
+    def test_existing_draft_resumes_without_creating_another_release(self):
+        result, calls = self.run_case("resume")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(any(call[:2] == ["release", "create"] for call in calls))
+        self.assertEqual(calls[-1][:2], ["release", "edit"])
 
     def test_invalid_assets_never_publish(self):
         for mode in ("bad-digest","incomplete","wrong-commit","wrong-repo","published"):

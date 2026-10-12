@@ -73,6 +73,8 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/tests/integration/release_publisher.py")
     add_test(NAME release-dmg-recovery COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/release_dmg.py")
+    add_test(NAME release-build-verification COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/release_build.py")
     add_test(NAME library-import-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/library.py" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:luma_library_tests>")
     set_tests_properties(library-import-restart PROPERTIES TIMEOUT 180)

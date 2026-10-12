@@ -123,3 +123,12 @@ Only the separate publishing job has `contents: write`; it creates a draft,
 uploads assets, verifies GitHub SHA-256 digests and publishes the complete release.
 An already-published release is never overwritten. Only temporary repository
 GITHUB_TOKEN credentials are used by the publisher.
+
+If publication fails after `build-package` succeeds, run Recover verified release
+publication with the existing tag and the original tag workflow run ID. The
+read-only job requires the exact tag commit in main, a successful original builder
+and its unexpired artifact. The publisher resumes the draft by release ID, checks
+all server digests and publishes the original assets without moving the tag.
+The `codex/release-recovery-0.3.0` push trigger bootstraps recovery of the first
+release; subsequent recovery runs use workflow_dispatch. Published releases are
+refused rather than overwritten.

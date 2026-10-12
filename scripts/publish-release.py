@@ -2,6 +2,7 @@
 
 Never retrieves a workstation credential or emits/saves a token.
 """
+import argparse
 import hashlib
 import json
 import os
@@ -13,13 +14,19 @@ import sys
 repository = os.environ.get("GITHUB_REPOSITORY")
 if repository != "yakut-sekonts/Luma":
     raise SystemExit("This publisher is scoped to yakut-sekonts/Luma.")
-tag = os.environ.get("GITHUB_REF_NAME", "")
+parser = argparse.ArgumentParser()
+parser.add_argument("--tag", default=os.environ.get("GITHUB_REF_NAME", ""))
+parser.add_argument("--source-commit", default=os.environ.get("GITHUB_SHA", ""))
+arguments = parser.parse_args()
+tag = arguments.tag
 if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
     raise SystemExit("Release requires a semantic-version tag.")
 version = tag[1:]
 folder = Path("dist/release")
 info = json.loads((folder / "BUILD_INFO.json").read_text())
-if info["version"] != version or info["source_commit"] != os.environ.get("GITHUB_SHA"):
+if not re.fullmatch(r"[0-9a-f]{40}", arguments.source_commit):
+    raise SystemExit("Release requires a full source commit SHA.")
+if info["version"] != version or info["source_commit"] != arguments.source_commit:
     raise SystemExit("Asset version/source commit does not match the release tag.")
 paths = [folder / f"Luma-{version}-macos-arm64.zip", folder / f"Luma-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
 manifest = {}
@@ -47,8 +54,14 @@ if existing.returncode == 0 and not json.loads(existing.stdout)["isDraft"]:
 if existing.returncode:
     gh("release", "create", tag, "--verify-tag", "--draft", "--title", f"Luma {version} — первый релиз для macOS", "--notes-file", f"docs/releases/{tag}.md")
 gh("release", "upload", tag, *map(str, paths), "--clobber")
-# The REST API exposes uploaded state, byte size and server-computed SHA-256.
-result = subprocess.run(["gh", "api", f"repos/{repository}/releases/tags/{tag}"], capture_output=True, text=True, check=True)
+# The tag endpoint can return 404 for drafts. gh resolves drafts through the
+# release list; use the resolved numeric ID for the asset REST request.
+draft = json.loads(gh("release", "view", tag, "--json", "databaseId,isDraft,tagName").stdout)
+if not draft["isDraft"] or draft["tagName"] != tag or type(draft["databaseId"]) is not int or draft["databaseId"] <= 0:
+    raise SystemExit("Release is not the expected draft; refusing publication.")
+result = subprocess.run(["gh", "api", f"repos/{repository}/releases/{draft['databaseId']}"], capture_output=True, text=True)
+if result.returncode:
+    raise SystemExit("Cannot verify draft release assets by ID; release remains unpublished.")
 release = json.loads(result.stdout)
 assets = {asset["name"]: asset for asset in release["assets"]}
 if set(assets) != set(checksums):

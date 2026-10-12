@@ -1,7 +1,7 @@
 name: macOS Release
 on:
   push:
-    branches: ['codex/release-*']
+    branches: ['codex/release-*', '!codex/release-recovery-*']
     tags: ['v*']
 permissions:
   contents: read
