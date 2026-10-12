@@ -61,7 +61,8 @@ open build/Luma.app
 
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
 M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2), Develop Core in
-[PR #4](https://github.com/yakut-sekonts/Luma/pull/4). Library builds on both;
+[PR #4](https://github.com/yakut-sekonts/Luma/pull/4), Library in
+[PR #6](https://github.com/yakut-sekonts/Luma/pull/6). Library builds on both;
 the commands above select the Library implementation branch.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
 this option, the app uses its macOS application-data directory. Add keeps RAW files

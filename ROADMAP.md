@@ -28,7 +28,8 @@ Auto/eyedropper WB, persistent history, advanced export options and DNG remain l
 
 ## 0.3 — Library
 
-[Issue #5](https://github.com/yakut-sekonts/Luma/issues/5)
+[Issue #5](https://github.com/yakut-sekonts/Luma/issues/5) ·
+[Implementation PR #6](https://github.com/yakut-sekonts/Luma/pull/6)
 
 ✅ Implemented. Add/Copy import of files/folders, per-file transactional checkpoints,
 SHA-256/size duplicate detection, cancellation and dead-owner journal recovery;
