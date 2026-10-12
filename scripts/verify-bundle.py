@@ -22,9 +22,9 @@ assert info["version"] == version
 assert info["source_commit"] == subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
 assert sdk.is_dir() and not hidden.exists()
 env = os.environ.copy()
-for name in ("QT_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH"):
+for name in ("QT_QPA_PLATFORM", "QT_QUICK_BACKEND", "QT_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH"):
     env.pop(name, None)
-env.update(QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software")
+env["QT_QUICK_BACKEND"] = "software"
 executable = app / "Contents/MacOS/Luma"
 sdk.rename(hidden)
 try:
