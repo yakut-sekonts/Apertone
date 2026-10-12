@@ -26,6 +26,7 @@ curl -fL --retry 3 https://www.libraw.org/data/LibRaw-0.21.5.tar.gz -o "$notices
 for module in qtbase qtdeclarative qtsvg; do
     archive="$module-everywhere-src-6.10.3.tar.xz"
     curl -fL --retry 3 "https://download.qt.io/archive/qt/6.10/6.10.3/submodules/$archive" -o "$notices/sources/$archive"
+    .tools/venv/bin/python scripts/extract-qt-notices.py "$notices/sources/$archive" "$notices/$module"
 done
 codesign --force --deep --sign - "$output/Luma.app"
 codesign --verify --deep --strict "$output/Luma.app"

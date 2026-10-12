@@ -7,7 +7,7 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   Used open-source modules are dynamically linked under **LGPL-3.0**, with
   module-specific BSD/Apache/MIT components and exceptions in the official SDK.
   GPL-only modules such as Qt Charts are not used. Official license files and
-  `qt_attribution.json` from the used SDK must accompany redistributed bundles.
+  `qt_attribution.json` from the corresponding source modules accompany redistributed bundles.
 - **LibRaw 0.21.5** — https://www.libraw.org / https://github.com/LibRaw/LibRaw
   RAW sensor decoding and camera metadata. Dual LGPL-2.1/CDDL-1.0; this project
   chooses **LGPL-2.1** and links it dynamically. Optional GPL demosaic packs,
