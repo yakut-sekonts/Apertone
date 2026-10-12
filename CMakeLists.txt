@@ -21,7 +21,7 @@ include(cmake/Dependencies.cmake)
 
 add_library(luma_core STATIC
     core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
-    core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/edits/EditDocument.cpp
+    core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/edits/EditDocument.cpp core/export/JpegICC.cpp
     core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
 target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_core PUBLIC luma_libraw luma_sqlite luma_lcms)

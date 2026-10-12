@@ -19,7 +19,7 @@ Public synthetic tests alone do not satisfy the Nikon acceptance criterion.
 
 ## 0.2 — Develop Core
 
-✅ Implemented locally; verification in progress. WB controls, exposure/tone, highlight/shadow handling, basic color,
+✅ Implemented; local acceptance passed. WB controls, exposure/tone, highlight/shadow handling, basic color,
 edit schema evolution, undo/redo, disable individual corrections, image export.
 Acceptance: edit and export a RAW; restart and reproduce the same render.
 Implemented export scope: full-resolution JPEG/PNG/16-bit TIFF, embedded sRGB,

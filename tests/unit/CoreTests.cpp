@@ -1,5 +1,6 @@
 #include "apps/shared/SessionService.h"
 #include "core/edits/EditHistory.h"
+#include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
 #include "core/jobs/JobManager.h"
 #include "core/render/CpuRenderer.h"
@@ -74,6 +75,25 @@ void imageTests() {
     stop.cancel();
     throws([&] { luma::renderCPU(gray, {}, 0, {}, stop.token()); });
     throws([] { luma::FloatImage invalid(0, 10); });
+}
+void jpegProfileTests() {
+    const std::vector<std::uint8_t> jpeg{255, 216, 255, 224, 0, 4, 1,   2,
+                                         255, 218, 0,   2,   7, 8, 255, 217};
+    const std::vector<std::uint8_t> profile(70000, 42);
+    const auto tagged = luma::embedJpegICC(jpeg, profile);
+    require(tagged[8] == 255 && tagged[9] == 226, "JPEG ICC marker missing.");
+    require(tagged[24] == 1 && tagged[25] == 2, "Multipart JPEG ICC numbering is wrong.");
+    require(std::equal(jpeg.begin(), jpeg.begin() + 8, tagged.begin()),
+            "ICC embedding moved the JFIF header.");
+    require(std::equal(jpeg.end() - 8, jpeg.end(), tagged.end() - 8),
+            "ICC embedding changed compressed pixels.");
+    require(luma::embedJpegICC(tagged, profile) == tagged,
+            "ICC replacement accumulated duplicate segments.");
+    throws([&] { luma::embedJpegICC({}, profile); });
+    throws([&] { luma::embedJpegICC(jpeg, {}); });
+    throws([&] {
+        luma::embedJpegICC(std::vector<std::uint8_t>{255, 216, 255, 224, 255, 255}, profile);
+    });
 }
 void developTests() {
     luma::EditDocument edits;
@@ -288,6 +308,7 @@ int main() {
     try {
         imageTests();
         developTests();
+        jpegProfileTests();
         catalogTests();
         jobTests();
         std::cout << "Core unit tests passed\n";

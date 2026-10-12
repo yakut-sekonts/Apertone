@@ -1,5 +1,6 @@
 #include "platform/macos/ImageExporter.h"
 #include "core/edits/EditDocument.h"
+#include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
 #include "core/render/DevelopPipeline.h"
@@ -10,6 +11,8 @@
 #include <cmath>
 #include <cstring>
 #include <fcntl.h>
+#include <fstream>
+#include <iterator>
 #include <lcms2.h>
 #include <unistd.h>
 
@@ -177,6 +180,22 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
         checkCancellation(stop);
         if (!CGImageDestinationFinalize(writer.get()))
             throw std::runtime_error("ImageIO could not finish export.");
+        checkCancellation(stop);
+        if (options.format == ExportFormat::jpeg) {
+            std::ifstream inputFile(temporary.path, std::ios::binary);
+            const std::vector<std::uint8_t> original((std::istreambuf_iterator<char>(inputFile)),
+                                                     {});
+            if (!inputFile.eof() && inputFile.fail())
+                throw std::runtime_error("Cannot read JPEG for ICC embedding.");
+            inputFile.close();
+            const auto tagged = embedJpegICC(original, profile);
+            std::ofstream outputFile(temporary.path, std::ios::binary | std::ios::trunc);
+            outputFile.write(reinterpret_cast<const char *>(tagged.data()),
+                             static_cast<std::streamsize>(tagged.size()));
+            outputFile.close();
+            if (!outputFile)
+                throw std::runtime_error("Cannot embed JPEG ICC profile.");
+        }
         checkCancellation(stop);
         int fd = open(temporary.path.c_str(), O_RDONLY);
         if (fd < 0)
