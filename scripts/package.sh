@@ -28,5 +28,5 @@ done
 codesign --force --deep --sign - "$output/Luma.app"
 codesign --verify --deep --strict "$output/Luma.app"
 ditto -c -k --sequesterRsrc --keepParent "$output/Luma.app" "$output/Luma-macos-arm64.zip"
-shasum -a 256 "$output/Luma-macos-arm64.zip" > "$output/SHA256SUMS"
+(cd "$output" && shasum -a 256 Luma-macos-arm64.zip > SHA256SUMS)
 echo "Packaged: $output/Luma.app"

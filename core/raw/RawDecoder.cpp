@@ -61,21 +61,30 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     if (metadata.lens.empty()) {
         metadata.lens = text(data.lens.makernotes.Lens);
     }
-    if (metadata.lens.empty() && data.lens.MinFocal > 0 && data.lens.MaxFocal > 0) {
+    const auto minFocal = positive(data.lens.MinFocal).value_or(data.lens.makernotes.MinFocal);
+    const auto maxFocal = positive(data.lens.MaxFocal).value_or(data.lens.makernotes.MaxFocal);
+    const auto minAperture =
+        positive(data.lens.MaxAp4MinFocal).value_or(data.lens.makernotes.MaxAp4MinFocal);
+    const auto maxAperture =
+        positive(data.lens.MaxAp4MaxFocal).value_or(data.lens.makernotes.MaxAp4MaxFocal);
+    if (metadata.lens.empty() && positive(minFocal) && positive(maxFocal)) {
         std::ostringstream description;
-        description << data.lens.MinFocal;
-        if (data.lens.MaxFocal != data.lens.MinFocal) {
-            description << "–" << data.lens.MaxFocal;
+        description << minFocal;
+        if (maxFocal != minFocal) {
+            description << "–" << maxFocal;
         }
         description << " mm";
-        if (data.lens.MaxAp4MinFocal > 0) {
-            description << " f/" << data.lens.MaxAp4MinFocal;
-            if (data.lens.MaxAp4MaxFocal > 0 &&
-                data.lens.MaxAp4MaxFocal != data.lens.MaxAp4MinFocal) {
-                description << "–" << data.lens.MaxAp4MaxFocal;
+        if (positive(minAperture)) {
+            description << " f/" << minAperture;
+            if (positive(maxAperture) && maxAperture != minAperture) {
+                description << "–" << maxAperture;
             }
         }
         metadata.lens = description.str();
+    }
+    if (metadata.lens.empty() && data.lens.nikon.LensIDNumber != 0) {
+        metadata.lens =
+            "Nikon lens ID " + std::to_string(static_cast<unsigned>(data.lens.nikon.LensIDNumber));
     }
     metadata.iso = positive(data.other.iso_speed);
     metadata.shutterSeconds = positive(data.other.shutter);

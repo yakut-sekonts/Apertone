@@ -29,6 +29,9 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-restore"),
                       QStringLiteral("Integration test: verify restored exposure"),
                       QStringLiteral("ev")});
+    parser.addOption({QStringLiteral("test-screenshot"),
+                      QStringLiteral("Integration test: save the rendered app window"),
+                      QStringLiteral("png")});
     parser.process(app);
     const auto catalog =
         parser.isSet(QStringLiteral("catalog"))
@@ -66,8 +69,10 @@ int main(int argc, char **argv) {
             return 2;
         }
         auto applied = std::make_shared<bool>(false);
+        auto finished = std::make_shared<bool>(false);
+        const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
         QObject::connect(&editor, &EditorController::stateChanged, &app,
-                         [&editor, &app, window, editing, target, applied] {
+                         [&editor, &app, window, editing, target, applied, finished, screenshot] {
                              if (!editor.error().isEmpty()) {
                                  std::cerr << editor.error().toStdString() << '\n';
                                  app.exit(1);
@@ -83,10 +88,21 @@ int main(int argc, char **argv) {
                                      return;
                                  }
                              }
-                             if (*applied && !editor.saving() && !editor.busy() &&
+                             if (*applied && !*finished && !editor.saving() && !editor.busy() &&
                                  !editor.previewUrl().isEmpty()) {
-                                 std::cout << "RAW viewer and Exposure persistence verified\n";
-                                 window->close();
+                                 *finished = true;
+                                 QTimer::singleShot(120, &app, [window, &app, screenshot] {
+                                     if (!screenshot.isEmpty()) {
+                                         const auto frame = window->grabWindow();
+                                         if (frame.isNull() || !frame.save(screenshot)) {
+                                             std::cerr << "Cannot capture the rendered viewer\n";
+                                             app.exit(1);
+                                             return;
+                                         }
+                                     }
+                                     std::cout << "RAW viewer and Exposure persistence verified\n";
+                                     window->close();
+                                 });
                              }
                          });
         QTimer::singleShot(90'000, &app, [&app] {
