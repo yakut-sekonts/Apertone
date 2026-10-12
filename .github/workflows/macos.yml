@@ -1,0 +1,34 @@
+name: macOS Apple Silicon
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-test:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Verify supported architecture
+        run: test "$(uname -m)" = arm64
+      - name: Install fixed toolchain and Qt
+        run: ./scripts/bootstrap.sh
+      - name: Configure
+        run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
+      - name: Build
+        run: .tools/venv/bin/cmake --build build --parallel 3
+      - name: Unit and integration tests
+        run: .tools/venv/bin/ctest --test-dir build --output-on-failure
+      - name: clang-format
+        run: ./scripts/check-format.sh
+      - name: clang-tidy
+        run: ./scripts/check-tidy.sh build
