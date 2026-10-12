@@ -1,0 +1,65 @@
+# Roadmap
+
+This follows the supplied requirements, renamed from Photon to Luma. Each stage
+ships an end-to-end workflow with persistent data, error handling and tests.
+No dates are promised before measuring scope and performance.
+
+## M0 — RAW Vertical Slice / 0.1 Foundation
+
+🚧 In progress. Public repository, Apache-2.0, pinned dependencies, macOS CI,
+Qt/QML shell, SQLite migration, real Nikon NEF sensor decode, EXIF, CPU Exposure,
+autosave and recovery of the selected photo/exposure after restart.
+
+Acceptance: clean clone → build → run → open Nikon D7500 NEF → change Exposure
+→ close → reopen → same photo and Exposure. Original checksum must not change.
+Public synthetic tests alone do not satisfy the Nikon acceptance criterion.
+
+## 0.2 — Develop Core
+
+🗓 Planned. WB controls, exposure/tone, highlight/shadow handling, basic color,
+edit schema evolution, undo/redo, disable individual corrections, image export.
+Acceptance: edit and export a RAW; restart and reproduce the same render.
+
+## 0.3 — Library
+
+🗓 Planned. Import dialog, Add/Copy, transactional import sessions, thumbnails,
+virtualized grid, filmstrip, ratings, Pick/Reject, collections and selection.
+Move remains explicitly gated by integrity and recovery tests.
+
+## 0.4 — Professional Develop and presets
+
+🗓 Planned. Curves, HSL, detail/noise reduction, crop, optics, targeted tools,
+versioned presets, subset parameters, preset previews, copy/paste and sync.
+Ready-to-use filters must have representative licensed image tests and no
+hidden irreversible effects. Preset application is one Undo operation.
+
+## 0.5 — Local Adjustments
+
+🗓 Planned. Brush, linear/radial gradients, color/luminance ranges, mask boolean
+operations, overlay, feathering and per-mask controls.
+
+## 0.6 — Performance
+
+🗓 Planned. Metal processing backend, CPU/GPU tolerance tests, bounded LRU,
+progressive quality, true 1:1 rendering, memory pressure handling and latency
+benchmarks on 8/16 GB Apple Silicon machines.
+
+## 0.7 — Advanced
+
+🗓 Planned. Optional local AI denoise, AI masks, content-aware removal and
+semantic search. Provider interfaces and privacy consent before any cloud option.
+
+## 0.8 — Merge
+
+🗓 Planned. HDR, panorama, alignment, deghosting and editable float outputs.
+
+## 0.9 — Stabilization
+
+🗓 Planned. 10k/100k/500k catalogs, complete metadata/XMP workflow, backups,
+missing-file relinking, recovery, fault injection, UI/performance regression tests.
+
+## 1.0 — Stable daily-use release
+
+🗓 Planned. All workflows in requirement §100 pass on supported hardware,
+including local masks, presets, batch sync, export and restart. Signing,
+notarization, release checksums and known issues accompany the release.

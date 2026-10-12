@@ -1,0 +1,15 @@
+name: Feature
+description: A scoped feature following the Luma roadmap
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: User workflow and milestone
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria and tests
+    validations:
+      required: true

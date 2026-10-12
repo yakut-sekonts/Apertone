@@ -1,0 +1,16 @@
+name: Bug report
+description: Report a reproducible failure without private assets
+body:
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction, expected and actual behavior
+      description: Do not attach private RAW files or catalog databases.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: macOS, hardware, version and sanitized diagnostics
+    validations:
+      required: true
