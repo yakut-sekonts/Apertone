@@ -1,6 +1,19 @@
 # Changelog
 
-## Unreleased — 0.1.0 / M0
+## Unreleased — 0.2.0 / Develop Core
+
+- Version 2 edit documents and transactional M0 catalog migration.
+- Manual Temperature/Tint, As Shot and named WB presets; camera-space preview.
+- CPU Exposure/tone/Vibrance/Saturation with per-correction enable switches.
+- Gesture-based session Undo/Redo, reset and Cmd+Z/Cmd+Shift+Z.
+- Full-resolution JPEG/PNG/16-bit TIFF export with deterministic embedded sRGB ICC.
+- Atomic destination install, overwrite policy, RAW/catalog protection and cancellation.
+- CLI Develop/export commands and restart-identical GUI export acceptance.
+
+Known limitations: reference WB/tone processing; no Auto/eyedropper WB, persistent
+history, camera profile calibration, advanced output settings or export queue.
+
+## 0.1.0 / M0
 
 - Initial C++20 / Qt 6 / QML macOS Apple Silicon application.
 - Real integer Bayer RAW decode and independent Float32 CPU pipeline.

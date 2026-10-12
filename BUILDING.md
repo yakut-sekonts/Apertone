@@ -70,6 +70,18 @@ The left panel displays the actual catalog path. Pass `--catalog FILE` to either
 executable for a separate catalog. The initial workflow is Add-only: source
 files stay in place. Keep their directories available after restart.
 
-Known M0 constraints: no export, undo/history, grid, named versions or relocating
+Known current constraints: session-local undo only; no grid, named versions or relocating
 missing files; no claim of calibrated production image quality or sub-50 ms
 preview latency. Current limitations are tracked in the roadmap and changelog.
+
+## Develop acceptance
+
+The develop-export-restart test exercises all parameters through the shared CLI,
+real desktop Undo/Redo, independent restarts and byte-identical PNG exports.
+It verifies JPEG/PNG ICC information, 16-bit TIFF and full-resolution dimensions,
+invalid batch rollback, overwrite policy, original/hard-link protection and
+cancelled export cleanup. Core tests include migration from schema 1, parameter
+boundaries and monotonic tone processing.
+
+Catalog schema 2 cannot be opened by the older M0 binary. Keep a backup before
+using a newer build on an important catalog; migration preserves M0 edits.

@@ -11,7 +11,7 @@ flowchart TD
     Controller --> Render[CPU renderer]
     Services --> Catalog[SQLite catalog]
     Services --> RAW[LibRaw decoder]
-    RAW --> Bayer[Float32 normalization / WB / demosaic]
+    RAW --> Bayer[Float32 normalization / demosaic]
     Bayer --> Image[Scene-linear sRGB FloatImage]
     Image --> Render
     Render --> ICC[LittleCMS display transform]
@@ -29,18 +29,18 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/raw`: bounded LibRaw sensor decoding, metadata and validation. Does not
   invoke `dcraw_process`, `unpack_thumb` or an embedded-JPEG pipeline.
 - `core/image`: Float32 Bayer data, bilinear interpolation, camera color matrix.
-- `core/render`: area-averaged standard preview and CPU Exposure reference path.
+- `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated exposure document; schema version 1.
-- `core/catalog`: SQLite connection per worker operation and migration 1.
+- `core/edits`: validated typed Develop document; schema version 2.
+- `core/catalog`: SQLite connection per worker operation and migrations 1/2.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save workflow independent of GUI.
 - `apps/desktop`: Qt controller and thread-safe QQuickImageProvider.
 - `apps/cli`: explicit-catalog machine-readable commands.
 
-Future `core/masks`, `cache`, `export`, `presets`, `search`, `ai` are described by
+Future `core/masks`, `cache`, `presets`, `search`, `ai` are described by
 the roadmap and will be created with their first implementation. Empty feature
 classes are not counted as functionality.
 
@@ -51,12 +51,13 @@ LibRaw open/unpack (integer sensor samples)
 → validate sensor bounds / memory budget / Bayer CFA
 → subtract per-channel and patterned black levels in floating point
 → normalize against sensor white level
-→ As Shot WB gains
-→ project bilinear demosaic
+→ project bilinear demosaic in camera RGB
+→ area-averaged camera RGB preview, max 2560 px (export retains original size)
+→ As Shot/manual WB gains
 → LibRaw camera-to-sRGB matrix
 → scene-linear Float32 sRGB (unclipped)
-→ area-averaged standard preview, max 2560 px
 → Exposure = RGB × 2^EV
+→ luminance tone and color corrections
 → monitor ICC through LittleCMS
 → oriented 8-bit RGBA display raster
 ```
@@ -81,7 +82,7 @@ New render requests cancel obsolete jobs; revision checks prevent stale images
 from replacing current UI state. Cancellation is checked per row and supplied
 to LibRaw's progress callback. No exception crosses a Qt queued callback.
 
-Exposure updates debounce for 180 ms. SQLite writes use `BEGIN IMMEDIATE`, WAL,
+Develop updates debounce for 180 ms. SQLite writes use `BEGIN IMMEDIATE`, WAL,
 `synchronous=FULL`, foreign keys and a busy timeout. Normal window close waits
 asynchronously for the pending transaction. On failure the UI retains the edit,
 reports the error and offers retry. A failed save blocks close and photo switch.
@@ -93,7 +94,7 @@ edit remains durable. This is not described as zero-loss recovery.
 Migration 1 creates `assets`, `edit_documents`, `session`, `schema_migrations`
 and indexes for checksum, capture date and rating. Every imported source has a
 UUID, canonical path and SHA-256. Metadata is persisted separately from edits.
-Opening an existing path preserves exposure and checks its checksum. Modified
+Opening an existing path preserves the edit document and checks its checksum. Modified
 originals are not silently reassociated with prior edits. Missing sources cause
 a visible error; their catalog row and edits remain intact.
 
@@ -120,3 +121,22 @@ with an ADR and real workflow tests.
 Cancellation uses a shared atomic token defined in `core/jobs/Cancellation.h`.
 It avoids dependence on `std::stop_token`, which is absent from Xcode 16 libc++
 despite C++20 language support, and is used consistently by decoder/render jobs.
+
+## Develop and export
+
+ADR 0006 defines the shared camera-space pipeline, reference Temperature/Tint,
+luminance remapping and immutable export snapshots. Version 2 migration rebuilds
+the edit table transactionally and preserves M0 exposure/revision/timestamps.
+Independent correction bits disable processing while retaining parameter values.
+
+The bounded per-session history records one slider gesture as one operation.
+Undo/Redo updates the same document and uses the same autosave/render path.
+Session changes establish a new history baseline; history is not durable yet.
+
+Export rechecks source SHA-256 and decodes full resolution on the I/O lane.
+ImageIO encodes JPEG/PNG/TIFF16, using an explicitly embedded deterministic sRGB
+ICC profile. It never uses monitor ICC. TIFF16 is quantized directly from Float32,
+without an 8-bit intermediate. A sibling temporary output is finalized and
+synced before atomic link/rename installation. Queued load/export cancellation
+uses independent cooperative tokens, so completion callbacks still release UI
+state even if cancellation precedes job execution.
