@@ -1,0 +1,66 @@
+"""Generate a project-owned Bayer DNG. No private photographs are distributed."""
+import struct
+from pathlib import Path
+
+
+def create_dng(path: Path) -> None:
+    width, height = 128, 96
+    entries = []
+
+    def tag(identifier, kind, values):
+        if kind == 2:
+            data = values.encode("ascii") + b"\0"
+            count = len(data)
+        elif kind in (5, 10):
+            count = len(values)
+            data = b"".join(struct.pack("<II" if kind == 5 else "<ii", *v) for v in values)
+        else:
+            count = len(values)
+            data = struct.pack("<" + {1: "B", 3: "H", 4: "I"}[kind] * count, *values)
+        entries.append((identifier, kind, count, data))
+
+    for identifier, value in [(256, width), (257, height), (273, 0), (278, height), (279, width * height * 2), (50717, 16383)]:
+        tag(identifier, 4, [value])
+    for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, 1), (277, 1), (284, 1), (50711, 1), (50778, 21), (34855, 100)]:
+        tag(identifier, 3, [value])
+    tag(271, 2, "Luma")
+    tag(272, 2, "Synthetic Bayer Camera")
+    tag(50708, 2, "Luma Synthetic Bayer Camera")
+    tag(33421, 3, [2, 2])
+    tag(33422, 1, [0, 1, 1, 2])
+    tag(50706, 1, [1, 4, 0, 0])
+    tag(50707, 1, [1, 1, 0, 0])
+    tag(50710, 1, [0, 1, 2])
+    tag(50714, 5, [(512, 1)])
+    tag(50728, 5, [(1, 1), (1, 1), (1, 1)])
+    tag(50721, 10, [(32406, 10000), (-15372, 10000), (-4986, 10000), (-9689, 10000), (18758, 10000), (415, 10000), (557, 10000), (-2040, 10000), (10570, 10000)])
+    tag(50719, 4, [0, 0])
+    tag(50720, 4, [width, height])
+    tag(33434, 5, [(1, 125)])
+    tag(33437, 5, [(28, 10)])
+    tag(37386, 5, [(35, 1)])
+    entries.sort()
+    extra = bytearray()
+    table = bytearray()
+    payload_start = 8 + 2 + len(entries) * 12 + 4
+    # Offset of the uncompressed sensor data after the IFD's auxiliary values.
+    image_start = payload_start + sum((len(data) + 1) // 2 * 2 for _, _, _, data in entries if len(data) > 4)
+    for identifier, kind, count, data in entries:
+        if identifier == 273:
+            data = struct.pack("<I", image_start)
+        if len(data) <= 4:
+            inline = data.ljust(4, b"\0")
+        else:
+            inline = struct.pack("<I", payload_start + len(extra))
+            extra.extend(data)
+            if len(extra) % 2:
+                extra.append(0)
+        table.extend(struct.pack("<HHI", identifier, kind, count) + inline)
+    samples = bytearray()
+    for y in range(height):
+        for x in range(width):
+            # A smooth luminance ramp plus a slight per-channel tint.
+            color = [0, 1, 1, 2][(y & 1) * 2 + (x & 1)]
+            value = 512 + int((0.08 + 0.55 * x / (width - 1)) * (16383 - 512) * [1, 0.95, 0.9][color])
+            samples.extend(struct.pack("<H", value))
+    path.write_bytes(b"II" + struct.pack("<HIH", 42, 8, len(entries)) + table + b"\0" * 4 + extra + samples)
