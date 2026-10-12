@@ -63,7 +63,7 @@ archives, produces an ad-hoc-signed `dist/Luma.app`, and checksums `Luma-macos-a
 locally after tar validation; downloads have connection/transfer timeouts.
 Unused QtSql drivers are removed from the bundle.
 The app should not depend on the developer's Qt SDK or Homebrew paths at runtime.
-Developer ID signing, notarization and DMG releases are separate later work.
+Developer ID signing and notarization remain separate work; see Release packaging for DMG.
 
 ## Catalog location
 
