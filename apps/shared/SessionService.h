@@ -1,9 +1,9 @@
 #pragma once
 #include "core/catalog/Catalog.h"
 #include "core/image/FloatImage.h"
+#include "core/jobs/Cancellation.h"
 #include <functional>
 #include <memory>
-#include <stop_token>
 
 namespace luma {
 struct PhotoSession {
@@ -13,9 +13,9 @@ struct PhotoSession {
 class SessionService {
   public:
     explicit SessionService(std::filesystem::path catalog) : catalogPath_(std::move(catalog)) {}
-    PhotoSession open(const std::filesystem::path &source, std::stop_token stop = {},
+    PhotoSession open(const std::filesystem::path &source, luma::CancellationToken stop = {},
                       const std::function<void(double)> &progress = {}) const;
-    std::optional<PhotoSession> restore(std::stop_token stop = {},
+    std::optional<PhotoSession> restore(luma::CancellationToken stop = {},
                                         const std::function<void(double)> &progress = {}) const;
     void save(const std::string &assetID, double exposure) const;
     void verify() const;

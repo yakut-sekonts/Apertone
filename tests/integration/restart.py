@@ -20,7 +20,7 @@ def main():
         catalog = directory / "catalog.sqlite"
         env = os.environ.copy()
         env["QT_QPA_PLATFORM"] = "offscreen"
-        env["QSG_RHI_BACKEND"] = "software"
+        env["QT_QUICK_BACKEND"] = "software"
 
         def run(*arguments, expected=0):
             result = subprocess.run([str(cli), *map(str, arguments), "--catalog", str(catalog)], capture_output=True, text=True, timeout=90)

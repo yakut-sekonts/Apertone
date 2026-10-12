@@ -159,7 +159,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
             }
         } catch (const std::exception &error) {
             const auto message = QString::fromUtf8(error.what());
-            const bool cancelled = context.stopToken().stop_requested();
+            const bool cancelled = context.stopToken().isCancelled();
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
@@ -241,7 +241,7 @@ void EditorController::render() {
                         Qt::QueuedConnection);
                 }
             } catch (const std::exception &error) {
-                if (context.stopToken().stop_requested()) {
+                if (context.stopToken().isCancelled()) {
                     return;
                 }
                 const auto message = QString::fromUtf8(error.what());

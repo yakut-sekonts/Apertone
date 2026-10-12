@@ -28,7 +28,7 @@ JobHandle JobManager::submit(JobPriority priority, std::function<void(const JobC
             throw std::runtime_error("Job system is shutting down.");
         }
         std::erase_if(queue_, [](const Job &job) {
-            if (!job.data->cancellation.stop_requested()) {
+            if (!job.data->cancellation.isCancelled()) {
                 return false;
             }
             job.data->state.store(JobState::cancelled);
@@ -60,19 +60,18 @@ void JobManager::run() {
             queue_.pop_front();
             active_.push_back(job.data);
         }
-        if (!job.data->cancellation.stop_requested()) {
+        if (!job.data->cancellation.isCancelled()) {
             job.data->state.store(JobState::running);
             try {
                 job.work(JobContext{job.data});
                 job.data->progress.store(1);
-                job.data->state.store(job.data->cancellation.stop_requested()
-                                          ? JobState::cancelled
-                                          : JobState::completed);
+                job.data->state.store(job.data->cancellation.isCancelled() ? JobState::cancelled
+                                                                           : JobState::completed);
             } catch (const std::exception &error) {
                 std::lock_guard lock(job.data->mutex);
                 job.data->error = error.what();
-                job.data->state.store(job.data->cancellation.stop_requested() ? JobState::cancelled
-                                                                              : JobState::failed);
+                job.data->state.store(job.data->cancellation.isCancelled() ? JobState::cancelled
+                                                                           : JobState::failed);
             } catch (...) {
                 job.data->state.store(JobState::failed);
             }
@@ -91,10 +90,10 @@ void JobManager::shutdown() {
         }
         stopping_ = true;
         for (const auto &data : active_) {
-            data->cancellation.request_stop();
+            data->cancellation.cancel();
         }
         for (const auto &job : queue_) {
-            job.data->cancellation.request_stop();
+            job.data->cancellation.cancel();
             job.data->state.store(JobState::cancelled);
         }
         queue_.clear();

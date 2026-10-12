@@ -10,7 +10,8 @@ float applyExposure(float linearValue, double ev) {
     return linearValue * static_cast<float>(std::exp2(ev));
 }
 
-FloatImage standardPreview(const FloatImage &input, int maximumDimension, std::stop_token stop) {
+FloatImage standardPreview(const FloatImage &input, int maximumDimension,
+                           luma::CancellationToken stop) {
     if (maximumDimension < 1 || input.rgb.size() != pixelCount(input.width, input.height) * 3) {
         throw std::runtime_error("Invalid preview dimensions or input buffer.");
     }
@@ -43,7 +44,7 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension, std::s
 }
 
 DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientation,
-                       std::span<const std::uint8_t> displayProfile, std::stop_token stop) {
+                       std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop) {
     edits.validate();
     if (orientation < 0 || orientation > 7 ||
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {

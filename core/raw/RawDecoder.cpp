@@ -21,11 +21,11 @@ std::optional<double> positive(double value) {
     return std::isfinite(value) && value > 0 ? std::optional<double>(value) : std::nullopt;
 }
 int cancelRaw(void *context, enum LibRaw_progress, int, int) {
-    return static_cast<std::stop_token *>(context)->stop_requested() ? 1 : 0;
+    return static_cast<luma::CancellationToken *>(context)->isCancelled() ? 1 : 0;
 }
 } // namespace
 
-DecodedRaw RawDecoder::decode(const std::filesystem::path &path, std::stop_token stop,
+DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::CancellationToken stop,
                               const std::function<void(double)> &progress) const {
     checkCancellation(stop);
     if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000) {

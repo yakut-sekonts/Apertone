@@ -6,7 +6,7 @@
 #include <sstream>
 
 namespace luma::macos {
-std::string sha256File(const std::filesystem::path &path, std::stop_token stop) {
+std::string sha256File(const std::filesystem::path &path, luma::CancellationToken stop) {
     std::ifstream stream(path, std::ios::binary);
     if (!stream) {
         throw std::runtime_error("Cannot read original file.");
@@ -15,7 +15,7 @@ std::string sha256File(const std::filesystem::path &path, std::stop_token stop) 
     CC_SHA256_Init(&context);
     std::array<char, 65536> buffer{};
     while (stream) {
-        if (stop.stop_requested()) {
+        if (stop.isCancelled()) {
             throw std::runtime_error("Operation cancelled.");
         }
         stream.read(buffer.data(), buffer.size());

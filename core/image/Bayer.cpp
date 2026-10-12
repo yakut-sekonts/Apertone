@@ -3,13 +3,13 @@
 #include <cmath>
 
 namespace luma {
-void checkCancellation(std::stop_token stop) {
-    if (stop.stop_requested()) {
+void checkCancellation(luma::CancellationToken stop) {
+    if (stop.isCancelled()) {
         throw std::runtime_error("Operation cancelled.");
     }
 }
 
-FloatImage demosaicBilinear(const BayerFrame &frame, std::stop_token stop) {
+FloatImage demosaicBilinear(const BayerFrame &frame, luma::CancellationToken stop) {
     if (frame.width < 2 || frame.height < 2 ||
         frame.samples.size() != pixelCount(frame.width, frame.height)) {
         throw std::runtime_error("Invalid Bayer frame.");
@@ -59,7 +59,7 @@ FloatImage demosaicBilinear(const BayerFrame &frame, std::stop_token stop) {
 }
 
 void cameraToLinearSRGB(FloatImage &image, const std::array<float, 9> &matrix,
-                        std::stop_token stop) {
+                        luma::CancellationToken stop) {
     for (const float value : matrix) {
         if (!std::isfinite(value)) {
             throw std::runtime_error("Invalid camera color matrix.");

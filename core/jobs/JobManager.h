@@ -1,11 +1,11 @@
 #pragma once
+#include "core/jobs/Cancellation.h"
 #include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <functional>
 #include <memory>
 #include <mutex>
-#include <stop_token>
 #include <string>
 #include <thread>
 #include <vector>
@@ -14,7 +14,7 @@ namespace luma {
 enum class JobState { queued, running, completed, cancelled, failed };
 enum class JobPriority { background, interactive };
 struct JobData {
-    std::stop_source cancellation;
+    luma::CancellationSource cancellation;
     std::atomic<JobState> state{JobState::queued};
     std::atomic<double> progress{0};
     std::mutex mutex;
@@ -25,7 +25,7 @@ class JobHandle {
     explicit JobHandle(std::shared_ptr<JobData> data = {}) : data_(std::move(data)) {}
     void cancel() const {
         if (data_) {
-            data_->cancellation.request_stop();
+            data_->cancellation.cancel();
         }
     }
     JobState state() const {
@@ -40,8 +40,8 @@ class JobHandle {
 };
 struct JobContext {
     std::shared_ptr<JobData> data;
-    std::stop_token stopToken() const {
-        return data->cancellation.get_token();
+    luma::CancellationToken stopToken() const {
+        return data->cancellation.token();
     }
     void setProgress(double value) const;
 };

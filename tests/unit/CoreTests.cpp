@@ -68,9 +68,9 @@ void imageTests() {
     require(rotated.rgba[8] == normal.rgba[0], "90-degree orientation mapping is wrong.");
     const auto preview = luma::standardPreview(gray, 2);
     require(preview.width == 1 && preview.height == 2, "Preview bound is wrong.");
-    std::stop_source stop;
-    stop.request_stop();
-    throws([&] { luma::renderCPU(gray, {}, 0, {}, stop.get_token()); });
+    luma::CancellationSource stop;
+    stop.cancel();
+    throws([&] { luma::renderCPU(gray, {}, 0, {}, stop.token()); });
     throws([] { luma::FloatImage invalid(0, 10); });
 }
 void catalogTests() {

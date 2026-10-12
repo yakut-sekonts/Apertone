@@ -63,7 +63,7 @@ if(BUILD_TESTING)
     target_compile_options(luma_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME core-unit COMMAND luma_tests)
     add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
-    set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QSG_RHI_BACKEND=software" TIMEOUT 30)
+    set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     add_test(NAME synthetic-raw-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" synthetic)

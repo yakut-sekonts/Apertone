@@ -116,3 +116,7 @@ AI is planned. Denoise, segmentation and embeddings will have independent core
 provider interfaces, with optional Core ML implementations in `platform/macos`.
 No cloud calls or telemetry are present. New provider contracts must be added
 with an ADR and real workflow tests.
+
+Cancellation uses a shared atomic token defined in `core/jobs/Cancellation.h`.
+It avoids dependence on `std::stop_token`, which is absent from Xcode 16 libc++
+despite C++20 language support, and is used consistently by decoder/render jobs.

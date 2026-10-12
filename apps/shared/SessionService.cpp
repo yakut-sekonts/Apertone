@@ -5,7 +5,7 @@
 #include "platform/macos/FileHasher.h"
 
 namespace luma {
-PhotoSession SessionService::open(const std::filesystem::path &source, std::stop_token stop,
+PhotoSession SessionService::open(const std::filesystem::path &source, luma::CancellationToken stop,
                                   const std::function<void(double)> &progress) const {
     const auto path = std::filesystem::canonical(source);
     const auto originalSize = std::filesystem::file_size(path);
@@ -27,7 +27,8 @@ PhotoSession SessionService::open(const std::filesystem::path &source, std::stop
     return {std::move(asset), std::move(preview)};
 }
 std::optional<PhotoSession>
-SessionService::restore(std::stop_token stop, const std::function<void(double)> &progress) const {
+SessionService::restore(luma::CancellationToken stop,
+                        const std::function<void(double)> &progress) const {
     Catalog catalog(catalogPath_);
     auto active = catalog.activeAsset();
     if (!active) {
