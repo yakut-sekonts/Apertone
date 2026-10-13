@@ -65,7 +65,7 @@ existing = gh("release", "view", tag, "--json", "isDraft", check=False)
 if existing.returncode == 0 and not json.loads(existing.stdout)["isDraft"]:
     raise SystemExit("Release is already published; immutable assets will not be replaced.")
 if existing.returncode:
-    gh("release", "create", tag, "--verify-tag", "--draft", "--title", f"Luma {version} — первый релиз для macOS", "--notes-file", f"docs/releases/{tag}.md")
+    gh("release", "create", tag, "--verify-tag", "--draft", "--title", f"Luma {version}", "--notes-file", f"docs/releases/{tag}.md")
 gh("release", "upload", tag, *map(str, paths), "--clobber")
 # The tag endpoint can return 404 for drafts. gh resolves drafts through the
 # release list; use the resolved numeric ID for the asset REST request.

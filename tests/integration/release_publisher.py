@@ -69,6 +69,7 @@ if args[0] == "api":
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['release','view'],['api','repos/yakut-sekonts/Luma/releases/123'],['release','edit']])
         self.assertIn("--draft",calls[1])
+        self.assertEqual(calls[1][calls[1].index("--title") + 1], "Luma 0.3.0")
         self.assertIn("--draft=false",calls[-1])
 
     def test_existing_draft_resumes_without_creating_another_release(self):
