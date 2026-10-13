@@ -46,6 +46,17 @@ done
 # Optional QML modules cause macdeployqt to copy QtSql drivers, including drivers
 # for external DB vendors. Luma uses SQLite's C API and has no QtSql driver usage.
 rm -rf "$output/Luma.app/Contents/PlugIns/sqldrivers"
+# macdeployqt leaves the build-only Sparkle search path in the main executable.
+# All runtime frameworks are already in the bundle; remove absolute build paths.
+.tools/venv/bin/python - "$output/Luma.app/Contents/MacOS/Luma" <<'PYTHON'
+from pathlib import Path
+import re, subprocess, sys
+executable = sys.argv[1]
+commands = subprocess.check_output(["otool", "-l", executable], text=True)
+for path in re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset", commands):
+    if Path(path).is_absolute():
+        subprocess.run(["install_name_tool", "-delete_rpath", path, executable], check=True)
+PYTHON
 .tools/venv/bin/python - "$output/Luma.app" <<'PYTHON'
 import json, plistlib, subprocess, sys
 from pathlib import Path
