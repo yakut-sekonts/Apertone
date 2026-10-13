@@ -2,6 +2,7 @@
 #include "core/edits/EditDocument.h"
 #include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
+#include "core/lens/LensCorrection.h"
 #include "core/render/CpuRenderer.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
@@ -128,6 +129,8 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
             bytesPerPixel = 6;
             bitmap = static_cast<CGBitmapInfo>(kCGImageAlphaNone) | kCGBitmapByteOrder16Little;
             rgb16.resize(pixelCount(width, height) * 3);
+            const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
+            const auto &input = optics.image();
             const DevelopPipeline pipeline(edits, decoded.calibration);
             const NoiseReductionPass noise(input, pipeline, edits, stop, 1, DetailDiagnostic::none,
                                            [&](double value) {
@@ -167,7 +170,8 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
             bytes = rgb16.data();
             size = rgb16.size() * sizeof(std::uint16_t);
         } else {
-            auto rendered = renderCPU(input, edits, orientation, {}, stop, decoded.calibration);
+            auto rendered = renderCPU(input, edits, orientation, {}, stop, decoded.calibration,
+                                      DetailDiagnostic::none, 1, decoded.metadata);
             rgba = std::move(rendered.rgba);
             bytes = rgba.data();
             size = rgba.size();
