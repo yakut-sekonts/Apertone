@@ -104,6 +104,9 @@ Rectangle {
                 Button { text: "Выбрать всё"; enabled: library.count > 0; onClicked: library.selectAll() }
                 Button { text: "Снять выделение"; enabled: library.selectedCount > 0; onClicked: library.clearSelection() }
             }
+            BatchSettings {}
+            Label { text: batch.status; textFormat: Text.PlainText; visible: text.length > 0; color: "#98a3b3"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+            Label { text: batch.error; textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Item {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 GridView {

@@ -45,16 +45,30 @@ ApplicationWindow {
             Button { visible: library.importing; text: "Отменить импорт"; onClicked: library.cancelImport() }
         }
     }
-    onClosing: function(close) { const a = library.requestClose(); const b = editor.requestClose(); close.accepted = a && b }
+    Connections { target: batch; function onChanged() { if (batch.working) batchWait.open(); else batchWait.close() } }
+    Dialog {
+        id: batchWait; title: "Пакетная обработка"; modal: true
+        closePolicy: Popup.NoAutoClose; anchors.centerIn: parent; width: 450; implicitWidth: 450
+        ColumnLayout {
+            width: parent.width
+            Label { text: batch.status; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ProgressBar { value: batch.progress; indeterminate: batch.waitingForSave; Layout.fillWidth: true }
+            Label { text: editor.error; textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Button { text: "Повторить сохранение"; visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
+            Button { text: "Отменить"; onClicked: batch.cancel() }
+        }
+    }
+    onClosing: function(close) { const c = batch.requestClose(); const a = library.requestClose(); const b = editor.requestClose(); close.accepted = a && b && c }
+    Connections { target: batch; function onCloseReady() { root.close() } }
     Connections { target: library; function onCloseReady() { root.close() } }
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
     Connections { target: editor; function onCloseReady() { root.close() } }
-    Shortcut { enabled: !updates.restartPending; sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
-    Shortcut { sequences: [StandardKey.Undo]; enabled: editor.canUndo && !editor.busy && !updates.restartPending; onActivated: editor.undo() }
-    Shortcut { sequences: [StandardKey.Redo]; enabled: editor.canRedo && !editor.busy && !updates.restartPending; onActivated: editor.redo() }
+    Shortcut { enabled: !updates.restartPending && !batch.working; sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo() }
     Shortcut { enabled: !updates.restartPending; sequences: [StandardKey.Quit]; onActivated: root.close() }
-    Shortcut { enabled: !updates.restartPending; sequence: "\\"; onActivated: editor.original = !editor.original }
-    Shortcut { enabled: !updates.restartPending; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
+    Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
+    Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     FileDialog {
         id: fileDialog
         title: "Открыть RAW"
@@ -86,14 +100,14 @@ ApplicationWindow {
         onAccepted: editor.exportPhoto(selectedFile, exportFormat.currentIndex, Math.round(exportQuality.value), overwriteExport.checked)
     }
     DropArea {
-        enabled: !updates.restartPending
+        enabled: !updates.restartPending && !batch.working
         anchors.fill: parent
         onDropped: function(drop) {
             if (drop.hasUrls && drop.urls.length === 1) { editor.openFile(drop.urls[0]); drop.acceptProposedAction() }
         }
     }
     ColumnLayout {
-        enabled: !updates.restartPending
+        enabled: !updates.restartPending && !batch.working
         anchors.fill: parent
         spacing: 0
         Rectangle {
@@ -108,8 +122,8 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
                 UpdateBell {}
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
-                Button { text: "↶"; enabled: editor.canUndo && !editor.busy && !updates.restartPending; onClicked: editor.undo(); Accessible.name: "Undo" }
-                Button { text: "↷"; enabled: editor.canRedo && !editor.busy && !updates.restartPending; onClicked: editor.redo(); Accessible.name: "Redo" }
+                Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: "Undo" }
+                Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: "Redo" }
                 Button { text: "Экспорт"; enabled: editor.hasPhoto && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
                 Button { text: "+  Открыть RAW"; enabled: !editor.busy; onClicked: fileDialog.open() }
             }

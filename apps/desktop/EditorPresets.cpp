@@ -37,3 +37,26 @@ void EditorController::clearPreviewSettings() {
     render();
     emit stateChanged();
 }
+
+bool EditorController::canPrepareBatch() const {
+    return !busy_ && !exporting_ && !closing_ && !editingLocked_ && deferredOpen_.isEmpty();
+}
+QString EditorController::photoID() const {
+    return session_ ? QString::fromStdString(session_->asset.id) : QString();
+}
+void EditorController::prepareExternalEdits() {
+    endEdit();
+    editingLocked_ = true;
+    flushSave();
+    emit stateChanged();
+}
+void EditorController::finishExternalEdits(const std::optional<luma::EditDocument> &edits) {
+    if (edits && session_) {
+        edits->validate();
+        session_->asset.edits = *edits;
+        history_ = luma::EditHistory(*edits);
+        render();
+    }
+    editingLocked_ = false;
+    emit stateChanged();
+}

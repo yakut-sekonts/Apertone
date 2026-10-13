@@ -367,67 +367,68 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
     edits.validate();
     execute("BEGIN IMMEDIATE;");
     try {
-        Statement query(
-            db_,
-            "UPDATE edit_documents SET exposure=?1,temperature=?2,tint=?3,custom_wb=?4,"
-            "contrast=?5,highlights=?6,shadows=?7,whites=?8,blacks=?9,vibrance=?10,saturation=?11,"
-            "enabled=?12,curve_shadows=?14,curve_darks=?15,curve_lights=?16,curve_highlights=?17,"
-            "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
-        query.number(1, edits.exposure);
-        query.number(2, edits.temperature);
-        query.number(3, edits.tint);
-        query.number(4, edits.customWhiteBalance ? 1 : 0);
-        query.number(5, edits.contrast);
-        query.number(6, edits.highlights);
-        query.number(7, edits.shadows);
-        query.number(8, edits.whites);
-        query.number(9, edits.blacks);
-        query.number(10, edits.vibrance);
-        query.number(11, edits.saturation);
-        query.number(12, edits.enabledCorrections);
-        query.text(13, assetID);
-        query.number(14, edits.curveShadows);
-        query.number(15, edits.curveDarks);
-        query.number(16, edits.curveLights);
-        query.number(17, edits.curveHighlights);
-        query.row();
-        if (sqlite3_changes(db_) != 1)
-            throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
-        for (const auto *sql : {"DELETE FROM edit_curve_points WHERE asset_id=?1",
-                                "DELETE FROM edit_hsl_bands WHERE asset_id=?1"}) {
-            Statement clear(db_, sql);
-            clear.text(1, assetID);
-            clear.row();
-        }
-        for (std::size_t channel = 0; channel < edits.curves.size(); ++channel) {
-            const auto &points = edits.curves[channel].points;
-            for (std::size_t position = 0; position < points.size(); ++position) {
-                Statement insert(db_,
-                                 "INSERT INTO edit_curve_points(asset_id,channel,position,x,y) "
-                                 "VALUES(?1,?2,?3,?4,?5)");
-                insert.text(1, assetID);
-                insert.integer(2, static_cast<std::int64_t>(channel));
-                insert.integer(3, static_cast<std::int64_t>(position));
-                insert.number(4, points[position].x);
-                insert.number(5, points[position].y);
-                insert.row();
-            }
-        }
-        for (std::size_t band = 0; band < edits.hsl.size(); ++band) {
-            Statement insert(db_,
-                             "INSERT INTO edit_hsl_bands(asset_id,band,hue,saturation,luminance) "
-                             "VALUES(?1,?2,?3,?4,?5)");
-            insert.text(1, assetID);
-            insert.integer(2, static_cast<std::int64_t>(band));
-            insert.number(3, edits.hsl[band].hue);
-            insert.number(4, edits.hsl[band].saturation);
-            insert.number(5, edits.hsl[band].luminance);
-            insert.row();
-        }
+        writeEdits(assetID, edits);
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
         throw;
+    }
+}
+void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) {
+    Statement query(
+        db_,
+        "UPDATE edit_documents SET exposure=?1,temperature=?2,tint=?3,custom_wb=?4,"
+        "contrast=?5,highlights=?6,shadows=?7,whites=?8,blacks=?9,vibrance=?10,saturation=?11,"
+        "enabled=?12,curve_shadows=?14,curve_darks=?15,curve_lights=?16,curve_highlights=?17,"
+        "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
+    query.number(1, edits.exposure);
+    query.number(2, edits.temperature);
+    query.number(3, edits.tint);
+    query.number(4, edits.customWhiteBalance ? 1 : 0);
+    query.number(5, edits.contrast);
+    query.number(6, edits.highlights);
+    query.number(7, edits.shadows);
+    query.number(8, edits.whites);
+    query.number(9, edits.blacks);
+    query.number(10, edits.vibrance);
+    query.number(11, edits.saturation);
+    query.number(12, edits.enabledCorrections);
+    query.text(13, assetID);
+    query.number(14, edits.curveShadows);
+    query.number(15, edits.curveDarks);
+    query.number(16, edits.curveLights);
+    query.number(17, edits.curveHighlights);
+    query.row();
+    if (sqlite3_changes(db_) != 1)
+        throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
+    for (const auto *sql : {"DELETE FROM edit_curve_points WHERE asset_id=?1",
+                            "DELETE FROM edit_hsl_bands WHERE asset_id=?1"}) {
+        Statement clear(db_, sql);
+        clear.text(1, assetID);
+        clear.row();
+    }
+    for (std::size_t channel = 0; channel < edits.curves.size(); ++channel) {
+        const auto &points = edits.curves[channel].points;
+        for (std::size_t position = 0; position < points.size(); ++position) {
+            Statement insert(db_, "INSERT INTO edit_curve_points(asset_id,channel,position,x,y) "
+                                  "VALUES(?1,?2,?3,?4,?5)");
+            insert.text(1, assetID);
+            insert.integer(2, static_cast<std::int64_t>(channel));
+            insert.integer(3, static_cast<std::int64_t>(position));
+            insert.number(4, points[position].x);
+            insert.number(5, points[position].y);
+            insert.row();
+        }
+    }
+    for (std::size_t band = 0; band < edits.hsl.size(); ++band) {
+        Statement insert(db_, "INSERT INTO edit_hsl_bands(asset_id,band,hue,saturation,luminance) "
+                              "VALUES(?1,?2,?3,?4,?5)");
+        insert.text(1, assetID);
+        insert.integer(2, static_cast<std::int64_t>(band));
+        insert.number(3, edits.hsl[band].hue);
+        insert.number(4, edits.hsl[band].saturation);
+        insert.number(5, edits.hsl[band].luminance);
+        insert.row();
     }
 }
 void Catalog::saveExposure(const std::string &assetID, double ev) {

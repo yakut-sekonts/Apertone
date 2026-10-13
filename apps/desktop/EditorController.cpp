@@ -93,7 +93,7 @@ void EditorController::restore() {
     load(std::nullopt);
 }
 void EditorController::openFile(const QUrl &url) {
-    if (!url.isLocalFile() || busy_ || closing_) {
+    if (!url.isLocalFile() || busy_ || closing_ || editingLocked_) {
         return;
     }
     if (saving()) {
@@ -197,7 +197,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     });
 }
 bool EditorController::editable() const {
-    return session_ && !busy_ && !closing_;
+    return session_ && !busy_ && !closing_ && !editingLocked_;
 }
 QVariantMap EditorController::parameters() const {
     QVariantMap values;
@@ -453,6 +453,8 @@ void EditorController::cancelLoad() {
     loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
+    if (editingLocked_)
+        return false;
     if (!busy_ && !saving() && !exporting_) {
         return true;
     }

@@ -189,3 +189,12 @@ mode. The desktop owns a separate temporary hover snapshot, which affects only
 preview rendering. Apply/Paste send the merged document through existing history,
 autosave and export code. Preset storage has no RAW or catalog paths in exported
 documents and does not require changing catalog schema 4.
+
+## Batch settings
+
+ADR 0010 defines whole-selection transactions and a disk-backed TEMP Undo journal
+on a dedicated worker connection. Single-photo and batch writes share the validated
+parent/curve/HSL writer. Conflict checks occur under the same write lock as Undo.
+The editor drains autosave before an external batch and adopts an active-document
+snapshot captured before commit, without issuing a stale follow-up save. The UI
+locks mutation and guards close/update readiness through the complete operation.

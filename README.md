@@ -184,3 +184,18 @@ Settings remain planned. See [preset workflow and validation](docs/PRESETS_REVIE
 The prepared 0.4.0 candidate remains a separate immutable source commit; these
 presets do not appear in the published v0.3.0 or that candidate. A development
 version is not a newly published GitHub release.
+
+## In development: batch settings / 0.4.2
+
+Library's settings row applies presets or copied groups to the selected photos.
+Sync Settings uses the open Develop photo as source and lets you select Light,
+Color, Curve and HSL. A batch waits for autosave and writes the whole selection
+atomically; cancel/failure rolls it back. One Undo batch/Redo batch operation
+restores the last successful batch and refuses to overwrite newer stored edits.
+Committed settings survive restart; batch Undo is session-local. An affected open
+photo gets a new local history baseline. Original thumbnails remain unchanged;
+Develop and export use the committed settings.
+
+Close and app updates wait for batch completion/rollback. No RAW decode is needed
+for batch settings and no catalog migration is introduced. Large-scale batch
+performance is not yet benchmarked. See [batch workflow and validation](docs/BATCH_REVIEW.md).

@@ -13,6 +13,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
+    Q_PROPERTY(bool selecting READ selecting NOTIFY stateChanged)
     Q_PROPERTY(bool working READ working NOTIFY stateChanged)
     Q_PROPERTY(bool importing READ importing NOTIFY stateChanged)
     Q_PROPERTY(bool loading READ loading NOTIFY stateChanged)
@@ -47,8 +48,13 @@ class LibraryModel final : public QAbstractListModel {
         return selected_.size();
     }
     bool working() const {
-        return importing_ || writing_ || closing_;
+        return importing_ || writing_ || closing_ || externalBusy_;
     }
+    bool selecting() const {
+        return selecting_;
+    }
+    void setExternalBusy(bool busy);
+    std::vector<std::string> selectionIDs() const;
     bool importing() const {
         return importing_;
     }
@@ -112,6 +118,7 @@ class LibraryModel final : public QAbstractListModel {
     QVariantList collections_;
     int count_ = 0, anchor_ = -1;
     std::uint64_t revision_ = 0, selectionRevision_ = 0;
+    bool externalBusy_ = false;
     bool importing_ = false, writing_ = true, closing_ = false, loading_ = false,
          selecting_ = false;
     double progress_ = 0;
@@ -120,7 +127,6 @@ class LibraryModel final : public QAbstractListModel {
     void reload(bool clear);
     void selectionChanged();
     void selectRange(int offset, int length, bool toggle);
-    std::vector<std::string> selectionIDs() const;
     void mutate(std::function<void(luma::Catalog &)> work);
     void checkClose();
 };

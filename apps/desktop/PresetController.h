@@ -19,6 +19,12 @@ class PresetController final : public QObject {
     bool hasCopiedSettings() const {
         return copied_.has_value();
     }
+    luma::DevelopPreset snapshot(const QString &id) const {
+        return find(id);
+    }
+    std::optional<luma::DevelopPreset> copiedSettings() const {
+        return copied_;
+    }
     Q_INVOKABLE bool refresh();
     Q_INVOKABLE bool save(const QString &id, const QString &name, const QString &folder, int groups,
                           bool captureCurrent);

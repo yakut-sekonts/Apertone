@@ -1,3 +1,4 @@
+#include "apps/desktop/BatchController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
@@ -19,7 +20,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.1-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.2-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -64,17 +65,21 @@ int main(int argc, char **argv) {
     PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),
                              editor);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
+    BatchController batch(std::filesystem::path(catalog.toStdString()), editor, library, presets);
     const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
                          parser.isSet(QStringLiteral("test-edit")) ||
                          parser.isSet(QStringLiteral("test-restore")) ||
                          parser.isSet(QStringLiteral("test-library"));
     UpdateController updates(
         [&] {
-            return !editor.busy() && !editor.saving() && !editor.exporting() && !library.working();
+            return !editor.busy() && !editor.saving() && !editor.exporting() &&
+                   !library.working() && !batch.working();
         },
         !testing);
     QObject::connect(&updates, &UpdateController::preparingRestart, &editor,
                      &EditorController::endEdit);
+    QObject::connect(&updates, &UpdateController::preparingRestart, &batch,
+                     &BatchController::cancel);
     QObject::connect(&library, &LibraryModel::openRequested, &editor, &EditorController::openFile);
     QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
     QQmlApplicationEngine engine;
@@ -85,6 +90,7 @@ int main(int argc, char **argv) {
     engine.rootContext()->setContextProperty(QStringLiteral("library"), &library);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("presets"), &presets);
+    engine.rootContext()->setContextProperty(QStringLiteral("batch"), &batch);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);

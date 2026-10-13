@@ -1,8 +1,10 @@
 #pragma once
 #include "core/edits/EditDocument.h"
+#include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
 #include "core/metadata/PhotoMetadata.h"
 #include <filesystem>
+#include <functional>
 #include <optional>
 #include <string>
 
@@ -16,6 +18,11 @@ struct AssetRecord {
     EditDocument edits;
 };
 
+struct BatchEditResult {
+    std::size_t changed = 0;
+    std::optional<EditDocument> active;
+};
+
 /// Each instance owns a connection on the calling worker thread.
 class Catalog {
   public:
@@ -27,6 +34,19 @@ class Catalog {
                              const PhotoMetadata &metadata);
     std::optional<AssetRecord> activeAsset() const;
     void saveEdits(const std::string &assetID, EditDocument edits);
+    BatchEditResult applyBatchEdits(const std::vector<std::string> &ids, const EditDocument &source,
+                                    std::uint32_t groups, CancellationToken stop = {},
+                                    const std::function<void(double)> &progress = {},
+                                    const std::string &activeID = {});
+    BatchEditResult restoreBatchEdits(bool redo, CancellationToken stop = {},
+                                      const std::string &activeID = {});
+    bool canUndoBatch() const {
+        return batchState_ == BatchState::applied;
+    }
+    bool canRedoBatch() const {
+        return batchState_ == BatchState::undone;
+    }
+    bool batchAffects(const std::string &id) const;
     void saveExposure(const std::string &assetID, double ev);
     std::optional<AssetRecord> assetByID(const std::string &id) const;
     std::optional<AssetRecord> duplicate(const std::string &checksum, std::int64_t size) const;
@@ -59,7 +79,12 @@ class Catalog {
     void verify() const;
 
   private:
+    enum class BatchState { none, applied, undone };
+    BatchState batchState_ = BatchState::none;
+    bool batchStorageConfigured_ = false;
     sqlite3 *db_ = nullptr;
+    std::optional<EditDocument> batchActiveEdits(const std::string &id) const;
+    void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;
     AssetRecord addAssetRecord(const std::filesystem::path &source, const std::string &checksum,
                                const PhotoMetadata &metadata, bool selectActive);

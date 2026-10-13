@@ -263,6 +263,8 @@ void LibraryModel::selectionChanged() {
     emit stateChanged();
 }
 void LibraryModel::clearSelection() {
+    if (externalBusy_)
+        return;
     selectionJob_.cancel();
     ++selectionRevision_;
     selecting_ = false;
@@ -271,7 +273,7 @@ void LibraryModel::clearSelection() {
     selectionChanged();
 }
 void LibraryModel::select(int row, bool toggle, bool range) {
-    if (row < 0 || row >= count_ || closing_)
+    if (row < 0 || row >= count_ || closing_ || externalBusy_)
         return;
     if (range && anchor_ >= 0) {
         selectRange(std::min(row, anchor_), std::abs(row - anchor_) + 1, toggle);
@@ -293,9 +295,10 @@ void LibraryModel::select(int row, bool toggle, bool range) {
     selectionChanged();
 }
 void LibraryModel::selectRange(int offset, int length, bool toggle) {
-    if (selecting_ || closing_)
+    if (selecting_ || closing_ || externalBusy_)
         return;
     selecting_ = true;
+    emit stateChanged();
     const auto revision = ++selectionRevision_;
     const auto path = catalog_;
     const auto filter = filter_;
@@ -332,6 +335,8 @@ void LibraryModel::selectAll() {
     selectRange(0, count_, false);
 }
 void LibraryModel::activate(int row) {
+    if (externalBusy_)
+        return;
     const auto url = data(index(row), Path).toUrl();
     if (!url.isEmpty())
         emit openRequested(url);
@@ -341,7 +346,12 @@ std::vector<std::string> LibraryModel::selectionIDs() const {
     ids.reserve(selected_.size());
     for (const auto &id : selected_)
         ids.push_back(id.toStdString());
+    std::sort(ids.begin(), ids.end());
     return ids;
+}
+void LibraryModel::setExternalBusy(bool busy) {
+    externalBusy_ = busy;
+    emit stateChanged();
 }
 void LibraryModel::mutate(std::function<void(luma::Catalog &)> work) {
     if (working())

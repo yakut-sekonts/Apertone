@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.1 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.2 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -21,7 +21,7 @@ include(cmake/Dependencies.cmake)
 include(cmake/Sparkle.cmake)
 
 add_library(luma_core STATIC
-    core/library/LibraryTypes.cpp core/catalog/LibraryCatalog.cpp core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
+    core/catalog/BatchEdits.cpp core/library/LibraryTypes.cpp core/catalog/LibraryCatalog.cpp core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
     core/presets/SettingsSubset.cpp core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/render/AdvancedColor.cpp core/edits/EditDocument.cpp core/export/JpegICC.cpp
     core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
 target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -40,11 +40,12 @@ target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
 qt_add_executable(Luma MACOSX_BUNDLE
+    apps/desktop/BatchController.cpp apps/desktop/BatchController.h
     apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/desktop/EditorPresets.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
+    QML_FILES apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Luma PRIVATE luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
@@ -76,6 +77,14 @@ if(BUILD_TESTING)
     target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
+    qt_add_executable(luma_batch_tests tests/unit/BatchTests.cpp apps/desktop/BatchController.cpp
+        apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
+        apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
+        apps/shared/PresetStore.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
+        apps/desktop/EditorController.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/PreviewProvider.cpp)
+    target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
+    target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp apps/shared/PresetStore.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
         apps/desktop/EditorController.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
@@ -96,6 +105,9 @@ if(BUILD_TESTING)
     add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
     set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/batch.py" "$<TARGET_FILE:luma_batch_tests>")
+    set_tests_properties(batch-settings-atomic-history PROPERTIES TIMEOUT 180)
     add_test(NAME presets-storage-preview-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/presets.py" "$<TARGET_FILE:luma_preset_tests>")
     set_tests_properties(presets-storage-preview-history PROPERTIES TIMEOUT 180)
