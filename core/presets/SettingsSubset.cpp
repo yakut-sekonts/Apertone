@@ -22,7 +22,8 @@ std::uint32_t settingsCorrections(std::uint32_t groups) {
     if (groups & 8)
         mask |= flag(Correction::hsl);
     if (groups & 16)
-        mask |= flag(Correction::sharpening);
+        mask |= flag(Correction::sharpening) | flag(Correction::luminanceNoise) |
+                flag(Correction::colorNoise);
     return mask;
 }
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,
@@ -60,6 +61,12 @@ EditDocument mergeSettings(const EditDocument &current, const EditDocument &sour
         result.sharpenRadius = source.sharpenRadius;
         result.sharpenDetail = source.sharpenDetail;
         result.sharpenMasking = source.sharpenMasking;
+        result.noiseLuminance = source.noiseLuminance;
+        result.noiseLuminanceDetail = source.noiseLuminanceDetail;
+        result.noiseLuminanceContrast = source.noiseLuminanceContrast;
+        result.noiseColor = source.noiseColor;
+        result.noiseColorDetail = source.noiseColorDetail;
+        result.noiseColorSmoothness = source.noiseColorSmoothness;
     }
     result.enabledCorrections =
         (current.enabledCorrections & ~mask) | (source.enabledCorrections & mask);

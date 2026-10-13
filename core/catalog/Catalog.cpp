@@ -48,6 +48,12 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     edits.sharpenRadius = query.value(32);
     edits.sharpenDetail = query.value(33);
     edits.sharpenMasking = query.value(34);
+    edits.noiseLuminance = query.value(35);
+    edits.noiseLuminanceDetail = query.value(36);
+    edits.noiseLuminanceContrast = query.value(37);
+    edits.noiseColor = query.value(38);
+    edits.noiseColorDetail = query.value(39);
+    edits.noiseColorSmoothness = query.value(40);
     const bool stored = query.value(30) != 0;
     if (stored)
         for (auto &curve : edits.curves)
@@ -86,7 +92,9 @@ constexpr auto selectFields =
     "orientation,a.capture_date,e.exposure,e.temperature,e.tint,e.custom_wb,e.contrast,"
     "e.highlights,e.shadows,e.whites,e.blacks,e.vibrance,e.saturation,e.enabled,e.schema_version,e."
     "curve_shadows,e.curve_darks,e.curve_lights,e.curve_highlights,e.advanced_saved,"
-    "e.sharpen_amount,e.sharpen_radius,e.sharpen_detail,e.sharpen_masking "
+    "e.sharpen_amount,e.sharpen_radius,e.sharpen_detail,e.sharpen_masking,"
+    "e.noise_luminance,e.noise_luminance_detail,e.noise_luminance_contrast,e.noise_color,e.noise_"
+    "color_detail,e.noise_color_smoothness "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
@@ -134,12 +142,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 5)
+        if (current == 6)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 5) {
+        if (current > 6) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -266,8 +274,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             )sql");
             current = 4;
         }
-        if (current == 4)
+        if (current == 4) {
             migrateSharpening();
+            current = 5;
+        }
+        if (current == 5)
+            migrateNoiseReduction();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -389,6 +401,8 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
         "contrast=?5,highlights=?6,shadows=?7,whites=?8,blacks=?9,vibrance=?10,saturation=?11,"
         "enabled=?12,curve_shadows=?14,curve_darks=?15,curve_lights=?16,curve_highlights=?17,"
         "sharpen_amount=?18,sharpen_radius=?19,sharpen_detail=?20,sharpen_masking=?21,"
+        "noise_luminance=?22,noise_luminance_detail=?23,noise_luminance_contrast=?24,noise_color=?"
+        "25,noise_color_detail=?26,noise_color_smoothness=?27,"
         "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
     query.number(1, edits.exposure);
     query.number(2, edits.temperature);
@@ -411,6 +425,12 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
     query.number(19, edits.sharpenRadius);
     query.number(20, edits.sharpenDetail);
     query.number(21, edits.sharpenMasking);
+    query.number(22, edits.noiseLuminance);
+    query.number(23, edits.noiseLuminanceDetail);
+    query.number(24, edits.noiseLuminanceContrast);
+    query.number(25, edits.noiseColor);
+    query.number(26, edits.noiseColorDetail);
+    query.number(27, edits.noiseColorSmoothness);
     query.row();
     if (sqlite3_changes(db_) != 1)
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");

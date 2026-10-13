@@ -75,6 +75,9 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
         edits.hsl[0].hue = static_cast<double>(i % 50);
         edits.sharpenAmount = static_cast<double>(i % 150);
         edits.sharpenRadius = 1.5;
+        edits.noiseLuminance = static_cast<double>(i % 100);
+        edits.noiseColor = 15 + static_cast<double>(i % 80);
+        edits.setEnabled(luma::Correction::colorNoise, i % 3 == 0);
         edits.setEnabled(luma::Correction::sharpening, i % 2 == 0);
         edits.curves[0].points = {{0, 0.02}, {0.5, 0.6}, {1, 1}};
         edits.setEnabled(luma::Correction::highlights, i % 2 == 0);
@@ -179,6 +182,13 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     auto detailSource = sourceEdits;
     detailSource.sharpenAmount = 85;
     detailSource.sharpenMasking = 60;
+    detailSource.noiseLuminance = 70;
+    detailSource.noiseLuminanceDetail = 30;
+    detailSource.noiseLuminanceContrast = 45;
+    detailSource.noiseColor = 80;
+    detailSource.noiseColorDetail = 25;
+    detailSource.noiseColorSmoothness = 90;
+    detailSource.setEnabled(luma::Correction::colorNoise, false);
     const auto detailResult = db.applyBatchEdits({f.ids[0], f.ids[2]}, detailSource, 16);
     require(detailResult.changed == 2, "Detail batch missed its selected subset.");
     const auto detailed = documents(f);
@@ -297,6 +307,10 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         require(synced[i].sharpenAmount == editor.currentSettings().sharpenAmount &&
                     synced[i].enabled(luma::Correction::sharpening) ==
                         editor.currentSettings().enabled(luma::Correction::sharpening) &&
+                    synced[i].noiseColor == editor.currentSettings().noiseColor &&
+                    synced[i].noiseLuminance == editor.currentSettings().noiseLuminance &&
+                    synced[i].enabled(luma::Correction::colorNoise) ==
+                        editor.currentSettings().enabled(luma::Correction::colorNoise) &&
                     synced[i].exposure == pasted[i].exposure,
                 "QML Sync missed Detail or changed excluded Light.");
     // A failed active-photo save cannot be overtaken by a batch write.

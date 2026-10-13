@@ -75,6 +75,13 @@ luma::EditDocument sample() {
     doc.sharpenRadius = 1.7;
     doc.sharpenDetail = 80;
     doc.sharpenMasking = 30;
+    doc.noiseLuminance = 60;
+    doc.noiseLuminanceDetail = 25;
+    doc.noiseLuminanceContrast = 70;
+    doc.noiseColor = 80;
+    doc.noiseColorDetail = 35;
+    doc.noiseColorSmoothness = 90;
+    doc.setEnabled(luma::Correction::colorNoise, false);
     return doc;
 }
 void documentTests() {
@@ -112,12 +119,33 @@ void documentTests() {
         QJsonDocument::fromJson(luma::encodePreset({"Detail", {}, source, 16})).object();
     legacyDetail["schemaVersion"] = 1;
     throws([&] { luma::decodePreset(QJsonDocument(legacyDetail).toJson()); });
+    auto version2 =
+        QJsonDocument::fromJson(luma::encodePreset({"Legacy Detail", {}, source, 16})).object();
+    version2["schemaVersion"] = 2;
+    auto settings2 = version2["settings"].toObject();
+    auto detail2 = settings2["Detail"].toObject();
+    for (const auto *name : {"noise.luminance", "noise.luminanceDetail", "noise.luminanceContrast",
+                             "noise.color", "noise.colorDetail", "noise.colorSmoothness"})
+        detail2.remove(name);
+    detail2["enabledCorrections"] = static_cast<int>(source.enabledCorrections & 2048U);
+    settings2["Detail"] = detail2;
+    version2["settings"] = settings2;
+    const auto oldDetail = luma::decodePreset(QJsonDocument(version2).toJson());
+    require(oldDetail.groups == 16 && oldDetail.settings.sharpenAmount == source.sharpenAmount &&
+                oldDetail.settings.noiseLuminance == 0 && oldDetail.settings.noiseColor == 0 &&
+                oldDetail.settings.enabled(luma::Correction::colorNoise),
+            "Schema 2 Detail migration changed sharpening or invented noise.");
+    auto invalid2 = detail2;
+    invalid2["noise.color"] = 20;
+    settings2["Detail"] = invalid2;
+    version2["settings"] = settings2;
+    throws([&] { luma::decodePreset(QJsonDocument(version2).toJson()); });
     const auto change = [&](const std::function<void(QJsonObject &)> &mutation) {
         auto root = QJsonDocument::fromJson(bytes).object();
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 3; });
+    change([](auto &root) { root["schemaVersion"] = 4; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
@@ -194,7 +222,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 3;
+    future["schemaVersion"] = 4;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -399,6 +427,12 @@ void detailEditorTests(const QString &source, const QString &root, const QString
     editor.setParameter("sharpen.radius", 1.8);
     editor.setParameter("sharpen.detail", 65);
     editor.setParameter("sharpen.masking", 40);
+    editor.setParameter("noise.luminance", 55);
+    editor.setParameter("noise.luminanceDetail", 70);
+    editor.setParameter("noise.luminanceContrast", 20);
+    editor.setParameter("noise.color", 65);
+    editor.setParameter("noise.colorDetail", 30);
+    editor.setParameter("noise.colorSmoothness", 80);
     editor.endEdit();
     const auto saved = editor.currentSettings();
     waitUntil([&] { return !editor.saving(); });
@@ -410,6 +444,7 @@ void detailEditorTests(const QString &source, const QString &root, const QString
     PresetController detailPresets(root + "/detail-presets.json", editor);
     detailPresets.copySettings(16);
     editor.setParameter("sharpen.amount", 10);
+    editor.setParameter("noise.color", 15);
     detailPresets.pasteSettings();
     require(editor.currentSettings() == saved, "Detail Copy/Paste did not preserve the subset.");
     editor.undo();
@@ -506,6 +541,58 @@ void detailEditorTests(const QString &source, const QString &root, const QString
     QCoreApplication::sendEvent(QCoreApplication::instance(), &released);
     editor.undo();
     require(editor.currentSettings() == saved, "QML gesture created more than one Undo.");
+    for (const auto *name : {"noise.luminance", "noise.luminanceDetail", "noise.luminanceContrast",
+                             "noise.color", "noise.colorDetail", "noise.colorSmoothness"}) {
+        auto *noiseSlider = window->findChild<QObject *>(QString::fromLatin1(name) + "Slider");
+        require(noiseSlider && noiseSlider->property("enabled").toBool(),
+                "Noise slider not available.");
+        const auto beforeGesture = editor.currentSettings();
+        QCoreApplication::sendEvent(QCoreApplication::instance(), &option);
+        noiseSlider->setProperty("pressed", true);
+        require(!editor.detailDiagnostic().isEmpty(), "Noise Option diagnostic did not start.");
+        noiseSlider->setProperty("value", 45);
+        QMetaObject::invokeMethod(noiseSlider, "moved");
+        noiseSlider->setProperty("value", 85);
+        QMetaObject::invokeMethod(noiseSlider, "moved");
+        noiseSlider->setProperty("pressed", false);
+        require(editor.detailDiagnostic().isEmpty() &&
+                    editor.currentSettings().parameter(name) == 85,
+                "Noise QML gesture failed.");
+        QCoreApplication::sendEvent(QCoreApplication::instance(), &released);
+        editor.undo();
+        require(editor.currentSettings() == beforeGesture,
+                "Noise gesture created multiple Undo steps.");
+    }
+    const auto noiseExport = root + "/noise-diagnostic-export.png";
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &option);
+    editor.setDetailControl("noise.color");
+    require(!editor.detailDiagnostic().isEmpty(), "Color diagnostic unavailable.");
+    editor.exportPhoto(QUrl::fromLocalFile(noiseExport), 1, 95, false);
+    waitUntil([&] { return !editor.exporting(); });
+    require(editor.detailDiagnostic().isEmpty() && read(noiseExport) == read(second),
+            "Noise diagnostic entered export.");
+    editor.setDetailControl("noise.luminanceDetail");
+    const auto noiseUrl = editor.previewUrl();
+    waitUntil([&] { return editor.previewUrl() != noiseUrl; });
+    const auto lumaDiagnostic = provider.requestImage({}, nullptr, {});
+    for (int y = 0; y < lumaDiagnostic.height(); ++y)
+        for (int x = 0; x < lumaDiagnostic.width(); ++x) {
+            const auto pixel = lumaDiagnostic.pixel(x, y);
+            require(qRed(pixel) == qGreen(pixel) && qGreen(pixel) == qBlue(pixel),
+                    "Noise luminance view contains color.");
+        }
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &released);
+    require(editor.detailDiagnostic().isEmpty(), "Noise Option release retained mode.");
+    for (const auto *name : {"luminanceNoise", "colorNoise"}) {
+        auto *toggle = window->findChild<QObject *>(QString::fromLatin1(name) + "Enabled");
+        require(toggle != nullptr, "Noise enable checkbox missing.");
+        toggle->setProperty("checked", false);
+        QMetaObject::invokeMethod(toggle, "toggled");
+        require(!editor.currentSettings().enabled(luma::EditDocument::correction(name)),
+                "Noise toggle failed.");
+        editor.undo();
+        require(editor.currentSettings() == saved, "Noise toggle Undo failed.");
+    }
     waitUntil([&] { return !editor.saving(); });
     require(luma::Catalog(catalog.toStdString()).activeAsset()->edits == saved,
             "Restart data differs from actual sharpening settings.");

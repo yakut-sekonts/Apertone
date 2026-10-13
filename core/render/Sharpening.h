@@ -5,13 +5,15 @@
 #include <functional>
 
 namespace luma {
-enum class DetailDiagnostic { none, amount, radius, detail, masking };
+enum class DetailDiagnostic { none, amount, radius, detail, masking, noiseLuminance, noiseColor };
+class NoiseReductionPass;
 class SharpeningPass {
   public:
     SharpeningPass(const FloatImage &input, const DevelopPipeline &pipeline,
                    const EditDocument &edits, CancellationToken stop = {}, double scale = 1,
                    DetailDiagnostic diagnostic = DetailDiagnostic::none,
-                   const std::function<void(double)> &progress = {});
+                   const std::function<void(double)> &progress = {},
+                   const NoiseReductionPass *noise = nullptr);
     std::array<float, 3> pixel(std::array<float, 3> developed, int x, int y) const;
     bool active() const {
         return !luminance_.empty();

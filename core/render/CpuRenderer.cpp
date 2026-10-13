@@ -2,6 +2,7 @@
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
 #include "core/render/DevelopPipeline.h"
+#include "core/render/NoiseReduction.h"
 #include <algorithm>
 #include <cmath>
 
@@ -57,7 +58,9 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
     const int height = orientation & 4 ? input.width : input.height;
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
     const DevelopPipeline pipeline(edits, calibration);
-    const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic);
+    const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic);
+    const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
+                                    &noise);
     DisplayTransform transform(displayProfile);
     std::vector<float> row(static_cast<std::size_t>(width) * 3);
     for (int y = 0; y < height; ++y) {
@@ -72,10 +75,11 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                 sy = input.height - 1 - sy;
             }
             const auto inputOffset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-            const auto rgb =
-                sharpening.pixel(pipeline.pixel({input.rgb[inputOffset], input.rgb[inputOffset + 1],
-                                                 input.rgb[inputOffset + 2]}),
-                                 sx, sy);
+            const auto developed =
+                noise.active() ? noise.pixel({}, sx, sy)
+                               : pipeline.pixel({input.rgb[inputOffset], input.rgb[inputOffset + 1],
+                                                 input.rgb[inputOffset + 2]});
+            const auto rgb = sharpening.pixel(developed, sx, sy);
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }

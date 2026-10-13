@@ -12,17 +12,28 @@ QString EditorController::detailDiagnostic() const {
         return QStringLiteral("Detail · детали после порога");
     case luma::DetailDiagnostic::masking:
         return QStringLiteral("Masking · белое обрабатывается");
+    case luma::DetailDiagnostic::noiseLuminance:
+        return QStringLiteral("Luminance · яркость без цвета");
+    case luma::DetailDiagnostic::noiseColor:
+        return QStringLiteral("Color · цвет на нейтральной яркости");
     case luma::DetailDiagnostic::none:
         return {};
     }
     return {};
 }
 void EditorController::setDetailControl(const QString &parameter) {
-    if (!parameter.isEmpty() && (parameter != QStringLiteral("sharpen.amount") &&
-                                 parameter != QStringLiteral("sharpen.radius") &&
-                                 parameter != QStringLiteral("sharpen.detail") &&
-                                 parameter != QStringLiteral("sharpen.masking")))
-        return;
+    if (!parameter.isEmpty()) {
+        try {
+            const auto correction = luma::EditDocument::correction(parameter.toStdString());
+            if (correction != luma::Correction::sharpening &&
+                correction != luma::Correction::luminanceNoise &&
+                correction != luma::Correction::colorNoise)
+                return;
+            history_.current().parameter(parameter.toStdString());
+        } catch (const std::exception &) {
+            return;
+        }
+    }
     detailControl_ = editable() && !original_ ? parameter : QString();
     if (!detailControl_.isEmpty())
         optionHeld_ =
@@ -31,8 +42,8 @@ void EditorController::setDetailControl(const QString &parameter) {
 }
 void EditorController::refreshDetailDiagnostic() {
     auto next = luma::DetailDiagnostic::none;
-    if (optionHeld_ && editable() && !original_ &&
-        history_.current().enabled(luma::Correction::sharpening)) {
+    if (optionHeld_ && editable() && !original_ && !detailControl_.isEmpty() &&
+        history_.current().enabled(luma::EditDocument::correction(detailControl_.toStdString()))) {
         if (detailControl_ == QStringLiteral("sharpen.amount"))
             next = luma::DetailDiagnostic::amount;
         else if (detailControl_ == QStringLiteral("sharpen.radius"))
@@ -41,6 +52,10 @@ void EditorController::refreshDetailDiagnostic() {
             next = luma::DetailDiagnostic::detail;
         else if (detailControl_ == QStringLiteral("sharpen.masking"))
             next = luma::DetailDiagnostic::masking;
+        else if (detailControl_.startsWith(QStringLiteral("noise.luminance")))
+            next = luma::DetailDiagnostic::noiseLuminance;
+        else if (detailControl_.startsWith(QStringLiteral("noise.color")))
+            next = luma::DetailDiagnostic::noiseColor;
     }
     if (next == diagnostic_)
         return;

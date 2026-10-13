@@ -29,7 +29,16 @@ constexpr std::array parameters{
     Parameter{"sharpen.amount", &EditDocument::sharpenAmount, 0, 150, Correction::sharpening},
     Parameter{"sharpen.radius", &EditDocument::sharpenRadius, 0.5, 3, Correction::sharpening},
     Parameter{"sharpen.detail", &EditDocument::sharpenDetail, 0, 100, Correction::sharpening},
-    Parameter{"sharpen.masking", &EditDocument::sharpenMasking, 0, 100, Correction::sharpening}};
+    Parameter{"sharpen.masking", &EditDocument::sharpenMasking, 0, 100, Correction::sharpening},
+    Parameter{"noise.luminance", &EditDocument::noiseLuminance, 0, 100, Correction::luminanceNoise},
+    Parameter{"noise.luminanceDetail", &EditDocument::noiseLuminanceDetail, 0, 100,
+              Correction::luminanceNoise},
+    Parameter{"noise.luminanceContrast", &EditDocument::noiseLuminanceContrast, 0, 100,
+              Correction::luminanceNoise},
+    Parameter{"noise.color", &EditDocument::noiseColor, 0, 100, Correction::colorNoise},
+    Parameter{"noise.colorDetail", &EditDocument::noiseColorDetail, 0, 100, Correction::colorNoise},
+    Parameter{"noise.colorSmoothness", &EditDocument::noiseColorSmoothness, 0, 100,
+              Correction::colorNoise}};
 const Parameter &find(std::string_view name) {
     for (const auto &parameter : parameters) {
         if (parameter.name == name)
@@ -72,7 +81,7 @@ void EditDocument::validate() const {
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~4095U) != 0)
+    if ((enabledCorrections & ~16383U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
     for (const auto &curve : curves)
         curve.validate();
@@ -102,6 +111,10 @@ void EditDocument::setParameter(std::string_view name, double value) {
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
+    if (name == "luminanceNoise")
+        return Correction::luminanceNoise;
+    if (name == "colorNoise")
+        return Correction::colorNoise;
     if (name == "curves")
         return Correction::curves;
     if (name == "hsl")

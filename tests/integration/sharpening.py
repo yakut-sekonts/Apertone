@@ -38,15 +38,15 @@ with tempfile.TemporaryDirectory(prefix="luma-sharpening-") as temporary:
         db.execute("CREATE TABLE old_edits AS SELECT asset_id, 3 AS schema_version, exposure, temperature, tint, custom_wb, contrast, highlights, shadows, whites, blacks, vibrance, saturation, enabled & 2047 AS enabled, curve_shadows, curve_darks, curve_lights, curve_highlights, advanced_saved, revision, updated_at FROM edit_documents")
         db.execute("DROP TABLE edit_documents")
         db.execute("ALTER TABLE old_edits RENAME TO edit_documents")
-        db.execute("DELETE FROM schema_migrations WHERE version=5")
+        db.execute("DELETE FROM schema_migrations WHERE version>=5")
         db.execute("PRAGMA user_version=4")
         revision = db.execute("SELECT revision,updated_at FROM edit_documents").fetchone()
         children = [db.execute(f"SELECT * FROM {table}").fetchall()
                     for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Migration changed existing settings/selection"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
-        assert db.execute("SELECT schema_version,sharpen_amount,sharpen_radius,sharpen_detail,sharpen_masking FROM edit_documents").fetchone() == (4,0,1,25,0)
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert db.execute("SELECT schema_version,sharpen_amount,sharpen_radius,sharpen_detail,sharpen_masking FROM edit_documents").fetchone() == (5,0,1,25,0)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == revision
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4
         assert db.execute("SELECT COUNT(*) FROM collections").fetchone()[0] == 1
@@ -87,7 +87,7 @@ with tempfile.TemporaryDirectory(prefix="luma-sharpening-") as temporary:
         db.execute("CREATE TABLE bad_edits AS SELECT asset_id, 3 AS schema_version, 9.0 AS exposure, temperature, tint, custom_wb, contrast, highlights, shadows, whites, blacks, vibrance, saturation, enabled & 2047 AS enabled, curve_shadows, curve_darks, curve_lights, curve_highlights, advanced_saved, revision, updated_at FROM edit_documents")
         db.execute("DROP TABLE edit_documents")
         db.execute("ALTER TABLE bad_edits RENAME TO edit_documents")
-        db.execute("DELETE FROM schema_migrations WHERE version=5")
+        db.execute("DELETE FROM schema_migrations WHERE version>=5")
         db.execute("PRAGMA user_version=4")
     run("restore", expected=1)
     with sqlite3.connect(catalog) as db:

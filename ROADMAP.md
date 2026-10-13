@@ -53,7 +53,10 @@ with atomic writes, cancellation, autosave coordination and conflict-aware
 session Undo/Redo. The first Detail substage implements Amount/Radius/Detail/
 Masking sharpening with transient Option diagnostics, shared preview/export,
 neutral catalog migration and preset/batch integration.
-Remaining scope: noise reduction, crop and optics,
+The second Detail substage implements manual Luminance Amount/Detail/Contrast
+and Color Amount/Detail/Smoothness, independent enable states, Option diagnostics
+and noise→sharpening ordering with neutral migration and preset/batch integration.
+Remaining scope: crop and optics,
 ready-made filters, edited thumbnails and advanced export.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.

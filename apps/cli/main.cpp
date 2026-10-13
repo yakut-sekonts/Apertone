@@ -62,6 +62,12 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"radius\":" << asset.edits.sharpenRadius
               << ",\"detail\":" << asset.edits.sharpenDetail
               << ",\"masking\":" << asset.edits.sharpenMasking
+              << "},\"noiseReduction\":{\"luminance\":" << asset.edits.noiseLuminance
+              << ",\"luminanceDetail\":" << asset.edits.noiseLuminanceDetail
+              << ",\"luminanceContrast\":" << asset.edits.noiseLuminanceContrast
+              << ",\"color\":" << asset.edits.noiseColor
+              << ",\"colorDetail\":" << asset.edits.noiseColorDetail
+              << ",\"colorSmoothness\":" << asset.edits.noiseColorSmoothness
               << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace

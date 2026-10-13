@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.3 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.4 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -21,8 +21,8 @@ include(cmake/Dependencies.cmake)
 include(cmake/Sparkle.cmake)
 
 add_library(luma_core STATIC
-    core/catalog/SharpeningMigration.cpp core/catalog/BatchEdits.cpp core/library/LibraryTypes.cpp core/catalog/LibraryCatalog.cpp core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
-    core/presets/SettingsSubset.cpp core/render/Sharpening.cpp core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/render/AdvancedColor.cpp core/edits/EditDocument.cpp core/export/JpegICC.cpp
+    core/catalog/NoiseReductionMigration.cpp core/catalog/SharpeningMigration.cpp core/catalog/BatchEdits.cpp core/library/LibraryTypes.cpp core/catalog/LibraryCatalog.cpp core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
+    core/presets/SettingsSubset.cpp core/render/NoiseReduction.cpp core/render/Sharpening.cpp core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/render/AdvancedColor.cpp core/edits/EditDocument.cpp core/export/JpegICC.cpp
     core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
 target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_core PUBLIC luma_libraw luma_sqlite luma_lcms)
@@ -91,6 +91,10 @@ if(BUILD_TESTING)
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_preset_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_preset_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_executable(luma_noise_tests tests/unit/NoiseReductionTests.cpp)
+    target_link_libraries(luma_noise_tests PRIVATE luma_services)
+    target_compile_options(luma_noise_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME noise-reduction-unit COMMAND luma_noise_tests)
     add_executable(luma_sharpening_tests tests/unit/SharpeningTests.cpp)
     target_link_libraries(luma_sharpening_tests PRIVATE luma_services)
     target_compile_options(luma_sharpening_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -131,6 +135,9 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" synthetic)
     add_test(NAME develop-export-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/develop.py" "$<TARGET_FILE:luma_cli>")
+    add_test(NAME noise-export-migration COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/noise_reduction.py" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(noise-export-migration PROPERTIES TIMEOUT 300)
     add_test(NAME sharpening-export-migration COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/sharpening.py" "$<TARGET_FILE:luma_cli>")
     set_tests_properties(sharpening-export-migration PROPERTIES TIMEOUT 300)

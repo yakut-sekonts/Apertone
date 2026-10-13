@@ -40,8 +40,8 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Basic search and combined metadata/collection filters.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
-- 🚧 Detail sharpening with Option diagnostics in source.
-- 🗓 Noise reduction, Crop, Optics, local masks and Metal image processing.
+- 🚧 Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
+- 🗓 Crop, Optics, local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -153,8 +153,8 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
-atomically with edit schema 4 / catalog schema 5. Neutral curves and HSL preserve
-the preceding Develop output. Sharpening is described below; noise reduction, Crop and Optics remain later 0.4 work.
+atomically with edit schema 5 / catalog schema 6. Neutral curves and HSL preserve
+the preceding Develop output. Sharpening and Noise Reduction are described below; Crop and Optics remain later 0.4 work.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -214,7 +214,7 @@ normal preview. Diagnostics do not change saved edits, history or exported pixel
 Preview, PNG/JPEG and TIFF16 use the same luminance sharpening stage. Preview
 scales Radius for its reduced resolution; Fit is not a substitute for 1:1
 inspection. Detail adjusts a soft residual threshold; Masking reduces sharpening
-in flat areas. This is Luma's own algorithm. Noise reduction, true 1:1 viewing and
+in flat areas. This is Luma's own algorithm. Manual noise reduction is described below; true 1:1 viewing and
 export-specific output sharpening remain separate work.
 
 Catalog 4→5 upgrades edit schema 3→4 with neutral sharpening while preserving
@@ -223,3 +223,30 @@ new catalog schema. The fifth Detail subset is available in presets, Copy/Paste
 and Library batch Sync/Undo. Preset/collection schema 2 reads legacy schema 1;
 legacy presets retain their original subsets. See [validation and scope](docs/SHARPENING_REVIEW.md).
 This development build does not publish a release or alter the frozen 0.4.0 candidate.
+
+## In development: manual Noise Reduction / 0.4.4
+
+Detail now includes Luminance Amount/Detail/Contrast and Color Amount/Detail/
+Smoothness (0–100), with separate enable switches. Amount defaults to zero;
+disabling retains values and restores the preceding processing. A cancellable
+CPU filter follows tone/color and precedes sharpening in preview and full-size
+PNG/JPEG/TIFF16. Color-only retains luminance; luminance-only retains opponent
+color differences. Detail protects smaller differences; Contrast retains local
+luminance contrast; Smoothness increases color smoothing radius.
+
+Option-drag displays reduced luminance without color or color on neutral
+luminance. Diagnostics are temporary, bypass sharpening and cannot enter exports,
+presets, autosave or history. Gesture/modifier release and app deactivation clear
+them. Reduced previews scale the spatial radius and cannot replace 1:1 inspection.
+
+Catalog 5→6 upgrades edit schema 4→5 neutrally, preserving previous sharpening,
+Curves/HSL, revisions, selection and metadata. Older builds refuse catalog 6.
+Detail presets, Copy/Paste, batch Sync and Undo include all six parameters.
+Preset/collection schema 3 reads schemas 1/2. Legacy schema-2 Detail presets
+initialize absent noise to neutral defaults; applying them resets noise to zero.
+Presets without Detail retain the current noise settings.
+
+See [scope and validation](docs/NOISE_REDUCTION_REVIEW.md) and
+[ADR 0012](docs/adr/0012-detail-noise-reduction.md). AI denoise, Metal, true 1:1,
+representative-photo tuning and 100 MP performance remain later work. This is a
+development build; the frozen 0.4.0 release candidate is unchanged.

@@ -85,6 +85,7 @@ class Catalog {
     sqlite3 *db_ = nullptr;
     std::optional<EditDocument> batchActiveEdits(const std::string &id) const;
     void migrateSharpening();
+    void migrateNoiseReduction();
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;
     AssetRecord addAssetRecord(const std::filesystem::path &source, const std::string &checksum,

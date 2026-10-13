@@ -1,5 +1,6 @@
 #include "core/render/Sharpening.h"
 #include "core/image/Bayer.h"
+#include "core/render/NoiseReduction.h"
 #include <algorithm>
 #include <cmath>
 
@@ -65,16 +66,21 @@ std::vector<float> gaussian(const std::vector<float> &source, int width, int hei
 SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &pipeline,
                                const EditDocument &edits, CancellationToken stop, double scale,
                                DetailDiagnostic diagnostic,
-                               const std::function<void(double)> &progress)
+                               const std::function<void(double)> &progress,
+                               const NoiseReductionPass *noise)
     : width_(input.width), height_(input.height), amount_(edits.sharpenAmount / 100),
       detail_(edits.sharpenDetail / 100), masking_(edits.sharpenMasking / 100),
       diagnostic_(diagnostic) {
     edits.validate();
     const auto count = pixelCount(width_, height_);
     if (input.rgb.size() != count * 3 || !std::isfinite(scale) || scale < 1.0 / 20000 ||
-        scale > 1 || diagnostic < DetailDiagnostic::none || diagnostic > DetailDiagnostic::masking)
+        scale > 1 || diagnostic < DetailDiagnostic::none ||
+        diagnostic > DetailDiagnostic::noiseColor)
         throw std::runtime_error("Invalid sharpening input, scale or diagnostic mode.");
     checkCancellation(stop);
+    if (diagnostic_ == DetailDiagnostic::noiseLuminance ||
+        diagnostic_ == DetailDiagnostic::noiseColor)
+        return;
     if (!edits.enabled(Correction::sharpening) ||
         (amount_ == 0 && diagnostic_ == DetailDiagnostic::none))
         return;
@@ -84,8 +90,10 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
         for (int x = 0; x < width_; ++x) {
             const auto index = static_cast<std::size_t>(y) * width_ + x;
             const auto offset = index * 3;
-            const auto rgb =
-                pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
+            const auto rgb = noise && noise->active()
+                                 ? noise->pixel({}, x, y)
+                                 : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                   input.rgb[offset + 2]});
             luminance_[index] = static_cast<float>(luminance(rgb));
             if (!std::isfinite(luminance_[index]))
                 throw std::runtime_error("Non-finite luminance in sharpening.");
@@ -137,6 +145,8 @@ std::array<float, 3> SharpeningPass::pixel(std::array<float, 3> developed, int x
         case DetailDiagnostic::masking:
             value = mask(x, y);
             break;
+        case DetailDiagnostic::noiseLuminance:
+        case DetailDiagnostic::noiseColor:
         case DetailDiagnostic::none:
             break;
         }

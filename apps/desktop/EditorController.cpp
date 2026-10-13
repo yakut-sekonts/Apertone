@@ -204,10 +204,30 @@ bool EditorController::editable() const {
 }
 QVariantMap EditorController::parameters() const {
     QVariantMap values;
-    for (const auto *name : {"exposure", "temperature", "tint", "contrast", "highlights", "shadows",
-                             "whites", "blacks", "vibrance", "saturation", "curve.shadows",
-                             "curve.darks", "curve.lights", "curve.highlights", "sharpen.amount",
-                             "sharpen.radius", "sharpen.detail", "sharpen.masking"})
+    for (const auto *name : {"exposure",
+                             "temperature",
+                             "tint",
+                             "contrast",
+                             "highlights",
+                             "shadows",
+                             "whites",
+                             "blacks",
+                             "vibrance",
+                             "saturation",
+                             "curve.shadows",
+                             "curve.darks",
+                             "curve.lights",
+                             "curve.highlights",
+                             "sharpen.amount",
+                             "sharpen.radius",
+                             "sharpen.detail",
+                             "sharpen.masking",
+                             "noise.luminance",
+                             "noise.luminanceDetail",
+                             "noise.luminanceContrast",
+                             "noise.color",
+                             "noise.colorDetail",
+                             "noise.colorSmoothness"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
     for (const auto band : luma::hslBands) {
         for (const auto *parameter : {"hue", "saturation", "luminance"}) {
@@ -221,7 +241,7 @@ QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
     for (const auto *name :
          {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
-          "vibrance", "saturation", "curves", "hsl", "sharpening"})
+          "vibrance", "saturation", "curves", "hsl", "sharpening", "luminanceNoise", "colorNoise"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;

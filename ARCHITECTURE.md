@@ -32,9 +32,9 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated typed Develop document; schema version 4.
+- `core/edits`: validated typed Develop document; schema version 5.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations through 5.
+- `core/catalog`: SQLite connection per worker operation and migrations through 6.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
@@ -58,7 +58,9 @@ LibRaw open/unpack (integer sensor samples)
 → LibRaw camera-to-sRGB matrix
 → scene-linear Float32 sRGB (unclipped)
 → Exposure = RGB × 2^EV
-→ luminance tone and color corrections
+→ luminance tone and color corrections, Curves and HSL
+→ manual luminance/color noise reduction
+→ luminance sharpening
 → monitor ICC through LittleCMS
 → oriented 8-bit RGBA display raster
 ```
@@ -188,7 +190,8 @@ the catalog. A core subset merge preserves every excluded group and the As Shot
 mode. The desktop owns a separate temporary hover snapshot, which affects only
 preview rendering. Apply/Paste send the merged document through existing history,
 autosave and export code. Preset storage has no RAW or catalog paths in exported
-documents. ADR 0011 extends it to schema 2 with the Detail group and legacy reads.
+documents. ADR 0011 extends it to schema 2 with the Detail group and legacy reads; ADR 0012
+extends it to schema 3 with noise parameters, accepting schema 1/2.
 
 ## Batch settings
 
@@ -201,9 +204,16 @@ locks mutation and guards close/update readiness through the complete operation.
 
 ## Detail sharpening
 
-SharpeningPass is a shared spatial stage after pointwise DevelopPipeline and
+NoiseReductionPass follows pointwise DevelopPipeline with an optional luminance/
+chroma component buffer and separable joint bilateral filtering. SharpeningPass
+consumes its reduced values without reapplying pointwise corrections and runs
 before ICC/quantization in display, PNG/JPEG and TIFF16. It retains two luminance
 planes and a bounded row ring, with per-row cancellation. Preview carries its
 reduction scale so Radius stays in original-image pixels. Option diagnostics are
-transient editor display state and never enter persistence/export. Catalog 5/edit
-4 and preset 2 preserve legacy settings with neutral sharpening; see ADR 0011.
+transient editor display state and never enter persistence/export. Catalog 6/edit
+5 and preset 3 preserve legacy settings with neutral noise/sharpening defaults;
+see ADR 0011 and ADR 0012.
+
+Manual NoiseReductionPass precedes sharpening in the shared CPU path;
+see [ADR 0012](docs/adr/0012-detail-noise-reduction.md) for controls, buffer bounds,
+neutral migration and preset compatibility.
