@@ -81,9 +81,10 @@ void EditDocument::validate() const {
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~32767U) != 0)
+    if ((enabledCorrections & ~65535U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
     crop.validate();
+    lens.validate();
     for (const auto &curve : curves)
         curve.validate();
     for (const auto &band : hsl) {
@@ -93,6 +94,8 @@ void EditDocument::validate() const {
     }
 }
 double EditDocument::parameter(std::string_view name) const {
+    if (name.starts_with("lens."))
+        return lens.parameter(name);
     if (name.starts_with("crop."))
         return crop.parameter(name);
     if (name.starts_with("hsl.")) {
@@ -108,7 +111,9 @@ void EditDocument::setParameters(const std::vector<std::pair<std::string, double
     auto next = *this;
     std::vector<std::pair<std::string, double>> cropValues;
     for (const auto &[name, value] : values) {
-        if (name.starts_with("crop."))
+        if (name.starts_with("lens."))
+            next.lens.setParameter(name, value);
+        else if (name.starts_with("crop."))
             cropValues.emplace_back(name, value);
         else if (name.starts_with("hsl.")) {
             const auto [band, member] = hslParameter(name);
@@ -123,6 +128,12 @@ void EditDocument::setParameters(const std::vector<std::pair<std::string, double
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
+    if (name == "lens")
+        return Correction::lens;
+    if (name.starts_with("lens.")) {
+        LensSettings{}.parameter(name);
+        return Correction::lens;
+    }
     if (name == "crop")
         return Correction::crop;
     if (name.starts_with("crop.")) {

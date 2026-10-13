@@ -238,7 +238,8 @@ QVariantMap EditorController::parameters() const {
     }
     for (const auto *name :
          {"crop.x", "crop.y", "crop.width", "crop.height", "crop.angle", "crop.aspect",
-          "crop.quarterTurns", "crop.flipHorizontal", "crop.flipVertical"})
+          "crop.quarterTurns", "crop.flipHorizontal", "crop.flipVertical", "lens.distortion",
+          "lens.vignetting", "lens.chromaticAberration"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
     return values;
 }
@@ -246,7 +247,7 @@ QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
     for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
                              "whites", "blacks", "vibrance", "saturation", "curves", "hsl",
-                             "sharpening", "luminanceNoise", "colorNoise", "crop"})
+                             "sharpening", "luminanceNoise", "colorNoise", "crop", "lens"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -387,7 +388,8 @@ void EditorController::render() {
         emit stateChanged();
     }
     const auto image = session_->preview;
-    const int orientation = session_->asset.metadata.orientation;
+    const auto metadata = session_->asset.metadata;
+    const int orientation = metadata.orientation;
     auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
     if (cropMode_ && edits.enabled(luma::Correction::crop)) {
         edits.crop.x = 0;
@@ -404,11 +406,11 @@ void EditorController::render() {
     renderJob_ =
         renderJobs_.submit(luma::JobPriority::interactive,
                            [self, image, orientation, edits, calibration, profile, revision,
-                            diagnostic, detailScale](const luma::JobContext &context) {
+                            diagnostic, detailScale, metadata](const luma::JobContext &context) {
                                try {
                                    const auto pixels = luma::renderCPU(
                                        *image, edits, orientation, profile, context.stopToken(),
-                                       calibration, diagnostic, detailScale);
+                                       calibration, diagnostic, detailScale, metadata);
                                    QImage output(pixels.rgba.data(), pixels.width, pixels.height,
                                                  pixels.width * 4, QImage::Format_RGBA8888);
                                    auto owned = output.copy();

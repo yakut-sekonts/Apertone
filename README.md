@@ -42,6 +42,7 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
 - 🚧 Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
 - 🚧 Crop, ratios, straighten, flips and guide overlays in source.
+- 🚧 Calibrated Lens Corrections with automatic/manual profiles in source.
 - 🗓 Optics, perspective Transform, local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
@@ -154,8 +155,8 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
-atomically with edit schema 6 / catalog schema 7. Neutral curves and HSL preserve
-the preceding Develop output. Sharpening and Noise Reduction are described below; Crop is described below; Optics and perspective Transform remain later 0.4 work.
+atomically with edit schema 7 / catalog schema 8. Neutral curves and HSL preserve
+the preceding Develop output. Sharpening and Noise Reduction are described below; Crop is described below; Perspective Transform remains later 0.4 work.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -279,3 +280,34 @@ geometry fields. See [scope and checks](docs/CROP_REVIEW.md) and
 Perspective/auto/guided Transform, lens corrections, higher-quality resampling and
 Metal remain separate work. This development build does not publish a public
 release or change the frozen 0.4.0 signing requirement.
+
+## In development: Lens Corrections / 0.4.6
+
+Optics uses a SHA256-pinned Lensfun v0.3.4 database and Luma's independent
+profile layer. Known camera/lens aliases resolve conservatively within
+compatible mounts; ambiguous or unknown lenses require manual selection.
+A searchable lens list shows profiles compatible with the detected camera.
+Unknown cameras cannot provide a sensor scale; no profile is invented.
+
+Enable the profile in Develop, then use Distortion and Vignetting (0–200,
+100 is calibrated strength), plus a lateral Chromatic Aberration switch.
+Each calibration's availability is visible. Distortion/CA interpolate linearly
+within calibrated focal bounds; PA vignetting interpolates aperture then focal
+within available bounds, using the farthest calibrated focus distance.
+No out-of-range extrapolation. This is not Lensfun interpolation equivalence.
+Fisheye projection conversion and longitudinal CA/defringe are not included.
+
+Sensor-linear correction precedes WB/color conversion, Develop and Detail;
+Crop follows Detail. Preview and PNG/JPEG/TIFF16 share this path. Bilinear
+per-channel sampling and reciprocal PA gain retain signed HDR. Conservative
+inward scaling keeps lookup positions inside the sensor, reducing field of view.
+Unsafe/non-monotonic calibration fails visibly. Active optics adds one float RGB
+buffer; disabled/zero/unavailable corrections retain the exact old pixel path.
+
+Catalog 7→8/edit 6→7 migration preserves old settings and initializes profile
+correction off. Older apps refuse catalog 8. Optics is the seventh
+preset/Copy/Paste/Sync subset; preset schema 5 reads 1–4 without inventing absent
+Optics groups. Selection/amounts/CA persist and participate in batch Undo/conflicts.
+Database data retain CC BY-SA 3.0; original XML, generated data and notices ship
+in the bundle. See [ADR 0014](docs/adr/0014-lens-profiles.md) and
+[Lens review](docs/LENS_REVIEW.md). This development version is not a public release.

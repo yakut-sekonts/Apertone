@@ -22,6 +22,12 @@ cp "$build_directory/_deps/libraw-src/LICENSE.LGPL" "$notices/LibRaw-LGPL.txt"
 cp "$build_directory/_deps/libraw-src/COPYRIGHT" "$notices/LibRaw-COPYRIGHT.txt"
 cp "$build_directory/_deps/lcms-src/LICENSE" "$notices/LittleCMS-LICENSE.txt"
 test -s "$notices/Sparkle-LICENSE.txt"
+mkdir -p "$notices/Lensfun"
+cp "$build_directory/_deps/lens_database-src/docs/cc-by-sa-3.0.txt" "$notices/Lensfun/LICENSE.txt"
+cp "$build_directory/_deps/lens_database-src/README.md" "$notices/Lensfun/UPSTREAM_README.md"
+cp -R "$build_directory/_deps/lens_database-src/data/db" "$notices/Lensfun/"
+cp "$build_directory/generated/LensDatabase.h" "$notices/Lensfun/"
+cp docs/LENS_DATABASE_NOTICE.md "$notices/Lensfun/NOTICE.md"
 # Sources are reused by exact archive/version name after a complete tar validation.
 # Interrupted downloads never replace the cached archive.
 source_cache="$PWD/.tools/packaging-sources"
@@ -66,7 +72,7 @@ with (app / "Contents/Info.plist").open("rb") as file:
 commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 info = {"version": version, "source_commit": commit, "platform": "macOS 14+", "architecture": "arm64",
         "signing": "ad-hoc", "notarized": False,
-        "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0"}}
+        "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0", "LensfunDatabase": "0.3.4"}}
 (app / "Contents/Resources/BUILD_INFO.json").write_text(json.dumps(info, indent=2) + "\n")
 PYTHON
 codesign --force --deep --sign - "$output/Luma.app"

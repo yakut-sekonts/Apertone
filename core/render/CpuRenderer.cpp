@@ -1,6 +1,7 @@
 #include "core/render/CpuRenderer.h"
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
+#include "core/lens/LensCorrection.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
@@ -46,10 +47,12 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
     return result;
 }
 
-DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientation,
+DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orientation,
                        std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
                        RawColorCalibration calibration, DetailDiagnostic diagnostic,
-                       double detailScale) {
+                       double detailScale, PhotoMetadata metadata) {
+    const LensCorrectionPass optics(source, edits, metadata, stop);
+    const auto &input = optics.image();
     edits.validate();
     if (orientation < 0 || orientation > 7 ||
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {

@@ -9,9 +9,10 @@ enum class SettingsGroup : std::uint32_t {
     curve = 4,
     hsl = 8,
     detail = 16,
-    crop = 32
+    crop = 32,
+    optics = 64
 };
-constexpr std::uint32_t allSettingsGroups = 63;
+constexpr std::uint32_t allSettingsGroups = 127;
 void validateSettingsGroups(std::uint32_t groups);
 std::uint32_t settingsCorrections(std::uint32_t groups);
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,

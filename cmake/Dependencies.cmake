@@ -30,3 +30,16 @@ add_library(luma_lcms STATIC ${lcms_sources})
 target_include_directories(luma_lcms SYSTEM PUBLIC "${lcms_SOURCE_DIR}/include")
 
 find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Core Gui Quick QuickControls2)
+
+# Only calibration data are consumed; Lensfun library/build code is not compiled.
+FetchContent_Declare(lens_database
+    URL https://codeload.github.com/lensfun/lensfun/tar.gz/refs/tags/v0.3.4
+    URL_HASH SHA256=dafb39c08ef24a0e2abd00d05d7341b1bf1f0c38bfcd5a4c69cf5f0ecb6db112
+    SOURCE_SUBDIR luma-data-only)
+FetchContent_MakeAvailable(lens_database)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/compile-lens-database.py"
+        "${lens_database_SOURCE_DIR}/data/db" "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
+    DEPENDS "${CMAKE_SOURCE_DIR}/scripts/compile-lens-database.py"
+    VERBATIM)

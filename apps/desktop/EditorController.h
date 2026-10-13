@@ -12,6 +12,8 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantMap lensState READ lensState NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList lensOptions READ lensOptions NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap cropState READ cropState NOTIFY stateChanged)
     Q_PROPERTY(bool cropCanvasReady READ cropCanvasReady NOTIFY stateChanged)
     Q_PROPERTY(bool cropMode READ cropMode WRITE setCropMode NOTIFY stateChanged)
@@ -69,6 +71,10 @@ class EditorController final : public QObject {
     double progress() const {
         return progress_;
     }
+    QVariantMap lensState() const;
+    QVariantList lensOptions() const;
+    Q_INVOKABLE void setLensProfile(const QString &id);
+    Q_INVOKABLE void resetLens();
     QVariantMap cropState() const;
     bool cropCanvasReady() const {
         return cropMode_ && cropCanvasReady_;

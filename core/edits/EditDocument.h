@@ -1,5 +1,6 @@
 #pragma once
 #include "core/edits/CropSettings.h"
+#include "core/edits/LensSettings.h"
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -23,7 +24,8 @@ enum class Correction : std::uint32_t {
     sharpening = 2048,
     luminanceNoise = 4096,
     colorNoise = 8192,
-    crop = 16384
+    crop = 16384,
+    lens = 32768
 };
 struct CurvePoint {
     double x = 0;
@@ -45,7 +47,7 @@ inline constexpr std::array<std::string_view, 4> curveChannels{"rgb", "red", "gr
 inline constexpr std::array<std::string_view, 8> hslBands{"red",  "orange", "yellow", "green",
                                                           "aqua", "blue",   "purple", "magenta"};
 struct EditDocument {
-    static constexpr int schemaVersion = 6;
+    static constexpr int schemaVersion = 7;
     double exposure = 0;
     double temperature = 6500;
     double tint = 0;
@@ -69,6 +71,7 @@ struct EditDocument {
     double noiseColorDetail = 50;
     double noiseColorSmoothness = 50;
     CropSettings crop{};
+    LensSettings lens{};
     double curveShadows = 0;
     double curveDarks = 0;
     double curveLights = 0;

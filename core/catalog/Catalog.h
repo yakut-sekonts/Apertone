@@ -87,6 +87,7 @@ class Catalog {
     void migrateSharpening();
     void migrateNoiseReduction();
     void migrateCrop();
+    void migrateLens();
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;
     AssetRecord addAssetRecord(const std::filesystem::path &source, const std::string &checksum,

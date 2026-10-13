@@ -59,7 +59,10 @@ and noise→sharpening ordering with neutral migration and preset/batch integrat
 The Crop substage implements an interactive frame, free/original/fixed/custom
 ratios, rotate/straighten/flip and transient composition guides, shared export
 geometry, targeted inverse mapping and preset/batch integration.
-Remaining scope: optics and perspective Transform,
+The Optics substage adds calibrated automatic/manual lens profiles, distortion/
+vignetting amounts and lateral CA before Develop/Detail, shared preview/export,
+neutral catalog migration and preset/batch integration.
+Remaining scope: perspective Transform,
 ready-made filters, edited thumbnails and advanced export.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.

@@ -63,6 +63,10 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
                               {"crop.quarterTurns", query.value(47)},
                               {"crop.flipHorizontal", query.value(48)},
                               {"crop.flipVertical", query.value(49)}});
+    edits.lens.profile = query.string(50);
+    edits.lens.setParameter("lens.distortion", query.value(51));
+    edits.lens.setParameter("lens.vignetting", query.value(52));
+    edits.lens.setParameter("lens.chromaticAberration", query.value(53));
     const bool stored = query.value(30) != 0;
     if (stored)
         for (auto &curve : edits.curves)
@@ -105,7 +109,7 @@ constexpr auto selectFields =
     "e.noise_luminance,e.noise_luminance_detail,e.noise_luminance_contrast,e.noise_color,e.noise_"
     "color_detail,e.noise_color_smoothness,"
     "e.crop_x,e.crop_y,e.crop_width,e.crop_height,e.crop_angle,e.crop_aspect,e.crop_quarter_turns,"
-    "e.crop_flip_h,e.crop_flip_v "
+    "e.crop_flip_h,e.crop_flip_v,e.lens_profile,e.lens_distortion,e.lens_vignetting,e.lens_ca "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
@@ -153,12 +157,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 7)
+        if (current == 8)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 7) {
+        if (current > 8) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -293,8 +297,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             migrateNoiseReduction();
             current = 6;
         }
-        if (current == 6)
+        if (current == 6) {
             migrateCrop();
+            current = 7;
+        }
+        if (current == 7)
+            migrateLens();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -419,7 +427,8 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
         "noise_luminance=?22,noise_luminance_detail=?23,noise_luminance_contrast=?24,noise_color=?"
         "25,noise_color_detail=?26,noise_color_smoothness=?27,"
         "crop_x=?28,crop_y=?29,crop_width=?30,crop_height=?31,crop_angle=?32,crop_aspect=?33,crop_"
-        "quarter_turns=?34,crop_flip_h=?35,crop_flip_v=?36,"
+        "quarter_turns=?34,crop_flip_h=?35,crop_flip_v=?36,lens_profile=?37,lens_distortion=?38,"
+        "lens_vignetting=?39,lens_ca=?40,"
         "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
     query.number(1, edits.exposure);
     query.number(2, edits.temperature);
@@ -457,6 +466,10 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
     query.number(34, edits.crop.quarterTurns);
     query.number(35, edits.crop.flipHorizontal);
     query.number(36, edits.crop.flipVertical);
+    query.text(37, edits.lens.profile);
+    query.number(38, edits.lens.distortion);
+    query.number(39, edits.lens.vignetting);
+    query.number(40, edits.lens.chromaticAberration);
     query.row();
     if (sqlite3_changes(db_) != 1)
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");

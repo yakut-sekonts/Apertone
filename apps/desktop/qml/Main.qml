@@ -274,6 +274,7 @@ ApplicationWindow {
                         HSLPanel { Layout.fillWidth:true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
                         CropPanel { Layout.fillWidth: true }
+                        LensPanel { Layout.fillWidth: true }
                         DetailPanel { Layout.fillWidth:true }
                         Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }

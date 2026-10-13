@@ -1,6 +1,7 @@
 #include "apps/cli/Json.h"
 #include "apps/cli/LibraryCommands.h"
 #include "apps/shared/SessionService.h"
+#include "core/lens/LensProfiles.h"
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -12,6 +13,7 @@ namespace {
 using luma::cli::quoted;
 void printSession(const luma::PhotoSession &session) {
     const auto &asset = session.asset;
+    const auto optics = luma::resolveLens(asset.metadata, asset.edits.lens);
     auto number = [](std::optional<double> value) {
         return value ? std::to_string(*value) : std::string("null");
     };
@@ -76,6 +78,13 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"quarterTurns\":" << asset.edits.crop.quarterTurns
               << ",\"flipHorizontal\":" << (asset.edits.crop.flipHorizontal ? "true" : "false")
               << ",\"flipVertical\":" << (asset.edits.crop.flipVertical ? "true" : "false")
+              << "},\"optics\":{\"profile\":" << quoted(asset.edits.lens.profile)
+              << ",\"resolvedProfile\":"
+              << quoted(optics.profile ? std::string(optics.profile->id) : "")
+              << ",\"status\":" << quoted(optics.status)
+              << ",\"distortion\":" << asset.edits.lens.distortion
+              << ",\"vignetting\":" << asset.edits.lens.vignetting << ",\"chromaticAberration\":"
+              << (asset.edits.lens.chromaticAberration ? "true" : "false")
               << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace
@@ -95,6 +104,7 @@ int main(int argc, char **argv) {
             std::cout << "Luma Library and Develop\nUsage: luma open RAW --catalog FILE\n"
                       << "       luma exposure EV --catalog FILE\n"
                       << "       luma restore --catalog FILE\n"
+                      << "       luma lens profiles | lens profile auto|ID --catalog FILE\n"
                       << "       luma develop PARAM=VALUE... --catalog FILE\n"
                       << "       luma curve rgb|red|green|blue X:Y X:Y... --catalog FILE\n"
                       << "       luma enable|disable CORRECTION --catalog FILE\n"
@@ -141,6 +151,28 @@ int main(int argc, char **argv) {
             }
             service.save(asset->id, ev);
             std::cout << "{\"saved\":true}\n";
+        } else if (arguments[0] == "lens" && arguments.size() == 2 && arguments[1] == "profiles") {
+            std::cout << '[';
+            bool first = true;
+            for (const auto &profile : luma::lensProfiles()) {
+                if (!first)
+                    std::cout << ',';
+                first = false;
+                std::cout << "{\"id\":" << quoted(std::string(profile.id))
+                          << ",\"name\":" << quoted(std::string(profile.name)) << '}';
+            }
+            std::cout << "]\n";
+        } else if (arguments[0] == "lens" && arguments.size() == 3 && arguments[1] == "profile") {
+            auto session = service.restore();
+            if (!session)
+                throw std::runtime_error("Open a RAW before editing.");
+            session->asset.edits.lens.profile = arguments[2] == "auto" ? "" : arguments[2];
+            session->asset.edits.validate();
+            if (!session->asset.edits.lens.profile.empty() &&
+                !luma::resolveLens(session->asset.metadata, session->asset.edits.lens).profile)
+                throw std::runtime_error("Lens profile is unavailable for this camera.");
+            service.save(session->asset.id, session->asset.edits);
+            printSession(*session);
         } else if (arguments[0] == "develop" && arguments.size() >= 2) {
             luma::Catalog connection(catalog);
             auto asset = connection.activeAsset();

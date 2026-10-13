@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.5-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.6-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -43,6 +43,8 @@ int main(int argc, char **argv) {
         {QStringLiteral("test-develop"), QStringLiteral("Integration test: Develop and history")});
     parser.addOption({QStringLiteral("test-advanced"),
                       QStringLiteral("Integration test: Curves, HSL and targeted gestures")});
+    parser.addOption({QStringLiteral("test-lens"),
+                      QStringLiteral("Integration test: calibrated Lens Corrections")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
     parser.addOption({QStringLiteral("test-cancel-export"),
@@ -128,13 +130,15 @@ int main(int argc, char **argv) {
         const bool cancelExport = parser.isSet(QStringLiteral("test-cancel-export"));
         const bool develop = parser.isSet(QStringLiteral("test-develop"));
         const bool advanced = parser.isSet(QStringLiteral("test-advanced"));
+        const bool lens = parser.isSet(QStringLiteral("test-lens"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
         QObject::connect(
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
-             exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced] {
+             exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced,
+             lens] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -144,6 +148,16 @@ int main(int argc, char **argv) {
                     *applied = true;
                     if (editing) {
                         editor.setExposure(target);
+                        if (lens) {
+                            if (!editor.lensState().value("distortionAvailable").toBool() ||
+                                !editor.lensState().value("vignettingAvailable").toBool() ||
+                                !editor.lensState().value("caAvailable").toBool()) {
+                                std::cerr << "Known lens calibration unavailable\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.setCorrectionEnabled(QStringLiteral("lens"), true);
+                        }
                         if (develop) {
                             editor.beginEdit();
                             editor.setParameter(QStringLiteral("temperature"), 5100);

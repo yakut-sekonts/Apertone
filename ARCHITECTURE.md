@@ -32,9 +32,9 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated typed Develop document; schema version 6.
+- `core/edits`: validated typed Develop document; schema version 7.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations through 7.
+- `core/catalog`: SQLite connection per worker operation and migrations through 8.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
@@ -54,6 +54,7 @@ LibRaw open/unpack (integer sensor samples)
 → normalize against sensor white level
 → project bilinear demosaic in camera RGB
 → area-averaged camera RGB preview, max 2560 px (export retains original size)
+→ optional sensor-linear optics (vignette gain + per-channel radial lookup)
 → As Shot/manual WB gains
 → LibRaw camera-to-sRGB matrix
 → scene-linear Float32 sRGB (unclipped)
@@ -193,7 +194,8 @@ preview rendering. Apply/Paste send the merged document through existing history
 autosave and export code. Preset storage has no RAW or catalog paths in exported
 documents. ADR 0011 extends it to schema 2 with the Detail group and legacy reads; ADR 0012
 extends it to schema 3 with noise parameters, accepting schema 1/2. ADR 0013 extends it to schema 4
-with an optional sixth Crop group, accepting schema 1/2/3.
+with an optional sixth Crop group, accepting schema 1/2/3. ADR 0014 extends it to schema 5
+with an optional seventh Optics group, accepting schema 1–4.
 
 ## Batch settings
 
@@ -224,3 +226,23 @@ CropGeometry shares inverse mapping and processed-linear sampling for preview,
 TIFF16 export and targeted source selection. Crop editing displays the uncropped
 transformed canvas without storing tool/guide state. Crop bounds-only gestures
 skip unchanged canvas rendering while maintaining autosave/Undo. See [ADR 0013](docs/adr/0013-crop-geometry.md).
+
+## Optical calibration
+
+`core/lens` consumes a typed, generated representation of the pinned Lensfun
+v0.3.4 database, separate CC BY-SA data, with no Lensfun library dependency.
+Camera crop factor, calibration crop factor/aspect and pixel-center coordinates
+normalize radial models across preview/full-resolution and sensor sizes.
+Per-channel CA lookup operates in camera RGB before matrix mixing; PA gain is
+applied at each source sample before bilinear interpolation. One corrected RGB
+buffer is allocated only for active effects. The same corrected input feeds
+Develop/Noise/Sharpening in CPU preview and TIFF16 export; PNG/JPEG delegate to
+CPU rendering. Targeted tools sample this corrected input after Crop inverse mapping.
+
+Polynomial derivative bounds give a conservative radial factor envelope,
+providing safe inward scaling over the whole rectangular sensor for all channels.
+Positive monotonic radial maps and positive vignette attenuation are enforced;
+invalid calibration produces an explicit render/export failure. Correction
+strength 0 or a disabled profile bypasses all resampling/copying. Missing or
+ambiguous data remain unavailable and preserve source pixels. Camera matching,
+mount compatibility and manual profile IDs never use a guessed sensor crop factor.

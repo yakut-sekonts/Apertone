@@ -1,4 +1,5 @@
 #include "apps/desktop/EditorController.h"
+#include "core/lens/LensCorrection.h"
 #include "core/render/AdvancedColor.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
@@ -140,7 +141,9 @@ bool EditorController::beginTargeted(double x, double y) {
         const bool curve = targetedTool_.startsWith(QStringLiteral("curve."));
         if (!history_.current().enabled(curve ? luma::Correction::curves : luma::Correction::hsl))
             return false;
-        const auto &image = *session_->preview;
+        const luma::LensCorrectionPass optics(*session_->preview, history_.current(),
+                                              session_->asset.metadata);
+        const auto &image = optics.image();
         const luma::CropGeometry geometry(image.width, image.height,
                                           session_->asset.metadata.orientation, history_.current());
         const int px = std::min(static_cast<int>(x * geometry.width()), geometry.width() - 1);

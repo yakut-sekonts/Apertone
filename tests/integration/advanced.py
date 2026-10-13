@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(prefix="luma-advanced-") as temporary:
     run("develop", "curve.shadows=-20", "curve.lights=35", "hsl.orange.hue=10",
         "hsl.red.saturation=-20", "hsl.blue.luminance=25")
     saved = run("restore")
-    assert saved["editSchemaVersion"] == 6
+    assert saved["editSchemaVersion"] == 7
     assert saved["curves"]["rgb"] == [[0,0.02],[0.3,0.2],[0.7,0.8],[1,0.98]]
     assert saved["hsl"]["orange"]["hue"] == 10 and saved["curveParametric"]["lights"] == 35
     run("curve", "rgb", "0:0", "0.4:0.6", "0.4:0.8", "1:1", expected=1)
@@ -46,7 +46,7 @@ with tempfile.TemporaryDirectory(prefix="luma-advanced-") as temporary:
     assert run("restore") == saved, "A failed advanced write changed the durable edit document"
     with sqlite3.connect(catalog) as db:
         db.execute("DROP TRIGGER fail_hsl")
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 7
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 8
         assert db.execute("SELECT COUNT(*) FROM edit_hsl_bands").fetchone()[0] == 8
     edited = root / "edited.png"
     run("export", edited)

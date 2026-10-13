@@ -21,6 +21,14 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
 - **Sparkle 2.10.0** — https://github.com/sparkle-project/Sparkle/releases/tag/2.10.0
   Native macOS update installation and EdDSA verification. Dynamically linked
   under its permissive Sparkle license; the complete upstream LICENSE is included.
+- **Lensfun database v0.3.4** — https://github.com/lensfun/lensfun/tree/v0.3.4/data/db
+  Lens calibration and camera/mount metadata, **CC BY-SA 3.0 Unported**.
+  Attribution: Lensfun contributors and Tom Niemann (original PTLens data).
+  Original XML database, upstream README/license, generated data representation
+  and transformation notice accompany the bundle under `ThirdParty/Lensfun`.
+  Generated calibration data retain CC BY-SA 3.0; Luma's independent profile
+  reader and optical mathematics are original Apache-2.0 code. Lensfun's
+  LGPL library, GPL applications and build system are not compiled or linked.
 - **Apple system frameworks** — CommonCrypto, AppKit and ColorSync from the
   system SDK. Used for SHA-256 and monitor profiles; no Apple SDK or framework
   binary is redistributed.

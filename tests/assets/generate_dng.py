@@ -3,7 +3,8 @@ import struct
 from pathlib import Path
 
 
-def create_dng(path: Path) -> None:
+def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens=None,
+               focal=35, aperture=2.8) -> None:
     width, height = 128, 96
     entries = []
 
@@ -23,9 +24,11 @@ def create_dng(path: Path) -> None:
         tag(identifier, 4, [value])
     for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, 1), (277, 1), (284, 1), (50711, 1), (50778, 21), (34855, 100)]:
         tag(identifier, 3, [value])
-    tag(271, 2, "Luma")
-    tag(272, 2, "Synthetic Bayer Camera")
-    tag(50708, 2, "Luma Synthetic Bayer Camera")
+    tag(271, 2, maker)
+    tag(272, 2, model)
+    tag(50708, 2, maker + " " + model)
+    if lens:
+        tag(42036, 2, lens)
     tag(33421, 3, [2, 2])
     tag(33422, 1, [0, 1, 1, 2])
     tag(50706, 1, [1, 4, 0, 0])
@@ -37,8 +40,8 @@ def create_dng(path: Path) -> None:
     tag(50719, 4, [0, 0])
     tag(50720, 4, [width, height])
     tag(33434, 5, [(1, 125)])
-    tag(33437, 5, [(28, 10)])
-    tag(37386, 5, [(35, 1)])
+    tag(33437, 5, [(int(round(aperture * 100)), 100)])
+    tag(37386, 5, [(int(round(focal * 100)), 100)])
     entries.sort()
     extra = bytearray()
     table = bytearray()

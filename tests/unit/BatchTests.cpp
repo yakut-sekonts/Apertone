@@ -79,6 +79,8 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
             0.1,        0.15, 0.7, 0.6, static_cast<double>(i % 15), 1.5, static_cast<int>(i % 4),
             i % 2 == 0, false};
         edits.setEnabled(luma::Correction::crop, i % 3 == 0);
+        edits.lens = {"0123456789abcdef0123456789abcdef", static_cast<double>(i), 80, i % 2 == 0};
+        edits.setEnabled(luma::Correction::lens, i % 3 == 0);
         edits.noiseLuminance = static_cast<double>(i % 100);
         edits.noiseColor = 15 + static_cast<double>(i % 80);
         edits.setEnabled(luma::Correction::colorNoise, i % 3 == 0);
@@ -218,6 +220,21 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     require(documents(f) == detailed, "Crop batch Undo lost geometry.");
     db.restoreBatchEdits(true);
     require(documents(f) == cropped, "Crop batch Redo lost geometry.");
+    auto opticsSource = cropSource;
+    opticsSource.lens = {"abcdef0123456789abcdef0123456789", 135, 45, false};
+    opticsSource.setEnabled(luma::Correction::lens, true);
+    require(db.applyBatchEdits({f.ids[0], f.ids[2]}, opticsSource, 64).changed == 2,
+            "Optics batch missed targets.");
+    const auto corrected = documents(f);
+    for (std::size_t i = 0; i < corrected.size(); ++i)
+        require(
+            corrected[i] ==
+                (i == 0 || i == 2 ? luma::mergeSettings(cropped[i], opticsSource, 64) : cropped[i]),
+            "Optics batch changed excluded settings/photos.");
+    db.restoreBatchEdits(false);
+    require(documents(f) == cropped, "Optics batch Undo lost settings.");
+    db.restoreBatchEdits(true);
+    require(documents(f) == corrected, "Optics batch Redo lost settings.");
 }
 void qmlTests(EditorController &editor, LibraryModel &library, PresetController &presets,
               BatchController &batch, const QString &qmlPath) {
@@ -248,7 +265,7 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
     require(QMetaObject::invokeMethod(button, "clicked"), "Cannot open Sync dialog.");
     auto *dialog = window->findChild<QObject *>("batchSyncDialog");
     require(dialog && dialog->property("visible").toBool(), "Sync dialog did not open.");
-    dialog->setProperty("groups", 2 | 8 | 16 | 32);
+    dialog->setProperty("groups", 2 | 8 | 16 | 32 | 64);
     auto *confirm = window->findChild<QObject *>("batchSyncConfirm");
     require(confirm && QMetaObject::invokeMethod(confirm, "clicked"),
             "Cannot apply Sync from QML.");
