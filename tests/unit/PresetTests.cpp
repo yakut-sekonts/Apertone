@@ -227,22 +227,22 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     require(QMetaObject::invokeMethod(child("presetCreate"), "clicked"),
             "Cannot open create dialog.");
     require(child("presetEditor")->property("visible").toBool(), "Create dialog is not visible.");
-    child("presetName")->setProperty("text", "QML preset");
-    child("presetFolder")->setProperty("text", "QML folder");
+    child("presetName")->setProperty("text", "QML <b>preset</b>");
+    child("presetFolder")->setProperty("text", "<b>QML folder</b>");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot save from QML dialog.");
     require(!child("presetEditor")->property("visible").toBool(), "Save did not close dialog.");
     require(presets.items().size() == 2, "QML did not persist new preset.");
     QString id;
     for (const auto &item : presets.items())
-        if (item.toMap()["name"].toString() == "QML preset")
+        if (item.toMap()["name"].toString() == "QML <b>preset</b>")
             id = item.toMap()["id"].toString();
     require(!id.isEmpty(), "QML preset name was not saved.");
     panel->setProperty("selectedId", id);
     require(QMetaObject::invokeMethod(panel, "openEditor", Q_ARG(QVariant, false)),
             "Cannot open edit dialog.");
-    require(child("presetName")->property("text").toString() == "QML preset" &&
-                child("presetFolder")->property("text").toString() == "QML folder",
+    require(child("presetName")->property("text").toString() == "QML <b>preset</b>" &&
+                child("presetFolder")->property("text").toString() == "<b>QML folder</b>",
             "Edit dialog lost metadata.");
     child("presetName")->setProperty("text", "QML renamed");
     child("presetGroup0")->setProperty("checked", false);
@@ -258,6 +258,9 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
                         item.toMap()["groups"].toInt() == 14,
                     "QML update lost name or group selection.");
     QCoreApplication::processEvents();
+    require(child("presetTitle")->property("textFormat").toInt() == Qt::PlainText &&
+                child("presetFolderTitle")->property("textFormat").toInt() == Qt::PlainText,
+            "Imported preset labels interpreted markup instead of literal text.");
     if (!warnings.isEmpty())
         throw std::runtime_error(warnings.join('\n').toStdString());
 }

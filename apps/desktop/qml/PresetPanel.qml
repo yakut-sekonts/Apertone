@@ -52,12 +52,20 @@ ColumnLayout {
         section.property: "folder"; section.criteria: ViewSection.FullString
         section.delegate: Label {
             required property string section
+            objectName: "presetFolderTitle"; textFormat: Text.PlainText
             text: section.length ? section : "Без папки"
             color: "#858c97"; font.pixelSize: 10; height: 26; topPadding: 7
         }
         delegate: ItemDelegate {
+            id: presetRow
             required property var modelData
             width: list.width; height: 34
+            contentItem: Label {
+                objectName: "presetTitle"
+                text: presetRow.modelData.name; textFormat: Text.PlainText
+                font: presetRow.font; color: presetRow.palette.buttonText
+                verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
+            }
             text: modelData.name; highlighted: panel.selectedId === modelData.id
             onHoveredChanged: {
                 if (hovered && editor.hasPhoto && !editor.busy) presets.preview(modelData.id)
@@ -138,7 +146,7 @@ ColumnLayout {
         property string presetId: ""
         onOpened: presetId = panel.selectedId
         standardButtons: Dialog.Ok | Dialog.Cancel
-        Label { text: panel.selected ? panel.selected.name : ""; color: "#d5d8de" }
+        Label { textFormat: Text.PlainText; text: panel.selected ? panel.selected.name : ""; color: "#d5d8de" }
         onAccepted: presets.remove(presetId)
     }
     FileDialog { id: importDialog; title: "Импорт пресета Luma"; nameFilters: ["Luma preset (*.json)"]; onAccepted: presets.importPreset(selectedFile) }

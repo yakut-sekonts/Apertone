@@ -25,7 +25,8 @@ absent groups requires explicit recapture from the active photo.
 
 Collections are limited to 512 presets and 1 MiB, whichever limit is reached first.
 Names/folders are trimmed, limited to 80 UTF-16 code units and reject control
-characters. Small bounded collection operations run synchronously in the desktop
+characters. Imported names/folders render as plain text, never rich-text markup.
+Small bounded collection operations run synchronously in the desktop
 controller. A non-blocking `QLockFile` coordinates writers; each mutation reloads
 under the lock and `QSaveFile` atomically replaces the collection. A corrupt,
 unsupported, locked or unwritable collection remains unchanged and produces an
