@@ -21,6 +21,7 @@
 #include <iostream>
 #include <source_location>
 
+void cropEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 namespace {
 void require(bool result, const char *message) {
     if (!result)
@@ -75,6 +76,8 @@ luma::EditDocument sample() {
     doc.sharpenRadius = 1.7;
     doc.sharpenDetail = 80;
     doc.sharpenMasking = 30;
+    doc.crop = {0.15, 0.2, 0.6, 0.7, 12, 1.5, 1, true, false};
+    doc.setEnabled(luma::Correction::crop, false);
     doc.noiseLuminance = 60;
     doc.noiseLuminanceDetail = 25;
     doc.noiseLuminanceContrast = 70;
@@ -90,7 +93,7 @@ void documentTests() {
     current.setParameter("exposure", -0.75);
     current.setParameter("temperature", 7800);
     current.setParameter("hsl.red.hue", 35);
-    for (std::uint32_t groups = 1; groups <= 31; ++groups) {
+    for (std::uint32_t groups = 1; groups <= 63; ++groups) {
         const luma::DevelopPreset preset{QStringLiteral("Мягкий портрет"),
                                          QStringLiteral("Портреты"), source, groups};
         const auto encoded = luma::encodePreset(preset);
@@ -140,12 +143,22 @@ void documentTests() {
     settings2["Detail"] = invalid2;
     version2["settings"] = settings2;
     throws([&] { luma::decodePreset(QJsonDocument(version2).toJson()); });
+    auto legacy3 =
+        QJsonDocument::fromJson(luma::encodePreset({"Legacy 3", {}, source, 31})).object();
+    legacy3["schemaVersion"] = 3;
+    const auto old3 = luma::decodePreset(QJsonDocument(legacy3).toJson());
+    require(luma::mergeSettings(current, old3.settings, old3.groups).crop == current.crop,
+            "Schema 3 introduced absent Crop settings.");
+    auto illegalCrop =
+        QJsonDocument::fromJson(luma::encodePreset({"Illegal Crop", {}, source, 32})).object();
+    illegalCrop["schemaVersion"] = 3;
+    throws([&] { luma::decodePreset(QJsonDocument(illegalCrop).toJson()); });
     const auto change = [&](const std::function<void(QJsonObject &)> &mutation) {
         auto root = QJsonDocument::fromJson(bytes).object();
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 4; });
+    change([](auto &root) { root["schemaVersion"] = 5; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
@@ -179,12 +192,12 @@ void documentTests() {
     });
     throws([&] { luma::decodePreset(QByteArray(1024 * 1024 + 1, ' ')); });
     throws([&] { luma::mergeSettings(current, source, 0); });
-    throws([&] { luma::mergeSettings(current, source, 32); });
+    throws([&] { luma::mergeSettings(current, source, 64); });
 }
 void storeTests(const QString &root) {
     const auto path = root + "/store.json";
     luma::PresetStore a(path), b(path);
-    const luma::DevelopPreset preset{"Test", "Folder", sample(), 31};
+    const luma::DevelopPreset preset{"Test", "Folder", sample(), 63};
     const auto first = a.put(preset), second = b.put(preset);
     require(a.load().size() == 2 && first != second, "A second writer erased existing presets.");
     auto renamed = preset;
@@ -222,7 +235,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 4;
+    future["schemaVersion"] = 5;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -296,14 +309,14 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     child("presetGroup0")->setProperty("checked", false);
     require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
             "Cannot select subset group.");
-    require(child("presetEditor")->property("groups").toInt() == 30,
+    require(child("presetEditor")->property("groups").toInt() == 62,
             "Group checkbox ignored subset.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot update from QML dialog.");
     for (const auto &item : presets.items())
         if (item.toMap()["id"].toString() == id)
             require(item.toMap()["name"].toString() == "QML renamed" &&
-                        item.toMap()["groups"].toInt() == 30,
+                        item.toMap()["groups"].toInt() == 62,
                     "QML update lost name or group selection.");
     QCoreApplication::processEvents();
     require(child("presetTitle")->property("textFormat").toInt() == Qt::PlainText &&
@@ -611,6 +624,8 @@ int main(int argc, char **argv) {
         documentTests();
         storeTests(temporary.path());
         editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
+        cropEditorTests(QString::fromLocal8Bit(argv[1]), temporary.path(),
+                        QString::fromLocal8Bit(argv[2]));
         detailEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         std::cout
             << "Preset subsets, JSON validation, atomic storage, hover, Undo and restart passed.\n";

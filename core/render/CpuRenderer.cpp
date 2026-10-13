@@ -1,6 +1,7 @@
 #include "core/render/CpuRenderer.h"
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
+#include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
 #include <algorithm>
@@ -54,8 +55,8 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {
         throw std::runtime_error("Invalid render input or orientation.");
     }
-    const int width = orientation & 4 ? input.height : input.width;
-    const int height = orientation & 4 ? input.width : input.height;
+    const CropGeometry geometry(input.width, input.height, orientation, edits);
+    const int width = geometry.width(), height = geometry.height();
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
     const DevelopPipeline pipeline(edits, calibration);
     const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic);
@@ -66,20 +67,14 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
     for (int y = 0; y < height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < width; ++x) {
-            int sx = orientation & 4 ? y : x;
-            int sy = orientation & 4 ? x : y;
-            if (orientation & 1) {
-                sx = input.width - 1 - sx;
-            }
-            if (orientation & 2) {
-                sy = input.height - 1 - sy;
-            }
-            const auto inputOffset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-            const auto developed =
-                noise.active() ? noise.pixel({}, sx, sy)
-                               : pipeline.pixel({input.rgb[inputOffset], input.rgb[inputOffset + 1],
-                                                 input.rgb[inputOffset + 2]});
-            const auto rgb = sharpening.pixel(developed, sx, sy);
+            const auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
+                const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
+                const auto developed =
+                    noise.active() ? noise.pixel({}, sx, sy)
+                                   : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                     input.rgb[offset + 2]});
+                return sharpening.pixel(developed, sx, sy);
+            });
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }

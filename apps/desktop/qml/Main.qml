@@ -21,6 +21,7 @@ ApplicationWindow {
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
+    onLibraryModeChanged: {if(libraryMode) editor.cropMode=false}
     property bool libraryMode: true
     Connections {
         target: updates
@@ -84,7 +85,7 @@ ApplicationWindow {
         onAccepted: exportDialog.open()
         ColumnLayout {
             spacing: 12
-            Label { text: "Исходное разрешение · sRGB · без метаданных"; font.pixelSize: 12 }
+            Label { text: "Разрешение после Crop · sRGB · без метаданных"; font.pixelSize: 12 }
             ComboBox { id: exportFormat; model: ["JPEG", "PNG", "TIFF · 16 bit"]; Layout.fillWidth: true }
             Label { text: "JPEG quality: " + exportQuality.value }
             Slider { id: exportQuality; from: 1; to: 100; stepSize: 1; value: 92; enabled: exportFormat.currentIndex === 0; Layout.fillWidth: true }
@@ -187,7 +188,7 @@ ApplicationWindow {
                             anchors.fill: parent; source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy
                             MouseArea {
                                 anchors.fill: parent
-                                enabled: editor.targetedTool !== "none" && editor.hasPhoto && !editor.busy && !editor.original
+                                enabled: !editor.cropMode && editor.targetedTool !== "none" && editor.hasPhoto && !editor.busy && !editor.original
                                 cursorShape: Qt.SizeVerCursor
                                 property real startY: 0
                                 property bool adjusting: false
@@ -200,6 +201,11 @@ ApplicationWindow {
                                 onReleased: { adjusting=false;editor.endTargeted() }
                                 onCanceled: { adjusting=false;editor.endTargeted() }
                             }
+                        }
+                        CropOverlay {
+                            x: (previewImage.width-previewImage.paintedWidth)/2
+                            y: (previewImage.height-previewImage.paintedHeight)/2
+                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy
@@ -267,6 +273,7 @@ ApplicationWindow {
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
                         HSLPanel { Layout.fillWidth:true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        CropPanel { Layout.fillWidth: true }
                         DetailPanel { Layout.fillWidth:true }
                         Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }

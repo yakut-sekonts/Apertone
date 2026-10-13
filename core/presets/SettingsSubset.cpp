@@ -24,6 +24,8 @@ std::uint32_t settingsCorrections(std::uint32_t groups) {
     if (groups & 16)
         mask |= flag(Correction::sharpening) | flag(Correction::luminanceNoise) |
                 flag(Correction::colorNoise);
+    if (groups & 32)
+        mask |= flag(Correction::crop);
     return mask;
 }
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,
@@ -68,6 +70,8 @@ EditDocument mergeSettings(const EditDocument &current, const EditDocument &sour
         result.noiseColorDetail = source.noiseColorDetail;
         result.noiseColorSmoothness = source.noiseColorSmoothness;
     }
+    if (groups & 32)
+        result.crop = source.crop;
     result.enabledCorrections =
         (current.enabledCorrections & ~mask) | (source.enabledCorrections & mask);
     result.validate();

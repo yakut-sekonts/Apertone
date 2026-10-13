@@ -36,7 +36,16 @@ constexpr std::array columns{"schema_version",
                              "noise_luminance_contrast",
                              "noise_color",
                              "noise_color_detail",
-                             "noise_color_smoothness"};
+                             "noise_color_smoothness",
+                             "crop_x",
+                             "crop_y",
+                             "crop_width",
+                             "crop_height",
+                             "crop_angle",
+                             "crop_aspect",
+                             "crop_quarter_turns",
+                             "crop_flip_h",
+                             "crop_flip_v"};
 class InterruptibleSQL {
   public:
     InterruptibleSQL(sqlite3 *db, CancellationToken stop) : db_(db), stop_(std::move(stop)) {

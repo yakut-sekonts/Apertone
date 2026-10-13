@@ -54,6 +54,15 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     edits.noiseColor = query.value(38);
     edits.noiseColorDetail = query.value(39);
     edits.noiseColorSmoothness = query.value(40);
+    edits.crop.setParameters({{"crop.x", query.value(41)},
+                              {"crop.y", query.value(42)},
+                              {"crop.width", query.value(43)},
+                              {"crop.height", query.value(44)},
+                              {"crop.angle", query.value(45)},
+                              {"crop.aspect", query.value(46)},
+                              {"crop.quarterTurns", query.value(47)},
+                              {"crop.flipHorizontal", query.value(48)},
+                              {"crop.flipVertical", query.value(49)}});
     const bool stored = query.value(30) != 0;
     if (stored)
         for (auto &curve : edits.curves)
@@ -94,7 +103,9 @@ constexpr auto selectFields =
     "curve_shadows,e.curve_darks,e.curve_lights,e.curve_highlights,e.advanced_saved,"
     "e.sharpen_amount,e.sharpen_radius,e.sharpen_detail,e.sharpen_masking,"
     "e.noise_luminance,e.noise_luminance_detail,e.noise_luminance_contrast,e.noise_color,e.noise_"
-    "color_detail,e.noise_color_smoothness "
+    "color_detail,e.noise_color_smoothness,"
+    "e.crop_x,e.crop_y,e.crop_width,e.crop_height,e.crop_angle,e.crop_aspect,e.crop_quarter_turns,"
+    "e.crop_flip_h,e.crop_flip_v "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
@@ -142,12 +153,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 6)
+        if (current == 7)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 6) {
+        if (current > 7) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -278,8 +289,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             migrateSharpening();
             current = 5;
         }
-        if (current == 5)
+        if (current == 5) {
             migrateNoiseReduction();
+            current = 6;
+        }
+        if (current == 6)
+            migrateCrop();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -403,6 +418,8 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
         "sharpen_amount=?18,sharpen_radius=?19,sharpen_detail=?20,sharpen_masking=?21,"
         "noise_luminance=?22,noise_luminance_detail=?23,noise_luminance_contrast=?24,noise_color=?"
         "25,noise_color_detail=?26,noise_color_smoothness=?27,"
+        "crop_x=?28,crop_y=?29,crop_width=?30,crop_height=?31,crop_angle=?32,crop_aspect=?33,crop_"
+        "quarter_turns=?34,crop_flip_h=?35,crop_flip_v=?36,"
         "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
     query.number(1, edits.exposure);
     query.number(2, edits.temperature);
@@ -431,6 +448,15 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
     query.number(25, edits.noiseColor);
     query.number(26, edits.noiseColorDetail);
     query.number(27, edits.noiseColorSmoothness);
+    query.number(28, edits.crop.x);
+    query.number(29, edits.crop.y);
+    query.number(30, edits.crop.width);
+    query.number(31, edits.crop.height);
+    query.number(32, edits.crop.angle);
+    query.number(33, edits.crop.aspect);
+    query.number(34, edits.crop.quarterTurns);
+    query.number(35, edits.crop.flipHorizontal);
+    query.number(36, edits.crop.flipVertical);
     query.row();
     if (sqlite3_changes(db_) != 1)
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/edits/CropSettings.h"
 #include <array>
 #include <cmath>
 #include <cstdint>
@@ -21,7 +22,8 @@ enum class Correction : std::uint32_t {
     hsl = 1024,
     sharpening = 2048,
     luminanceNoise = 4096,
-    colorNoise = 8192
+    colorNoise = 8192,
+    crop = 16384
 };
 struct CurvePoint {
     double x = 0;
@@ -43,7 +45,7 @@ inline constexpr std::array<std::string_view, 4> curveChannels{"rgb", "red", "gr
 inline constexpr std::array<std::string_view, 8> hslBands{"red",  "orange", "yellow", "green",
                                                           "aqua", "blue",   "purple", "magenta"};
 struct EditDocument {
-    static constexpr int schemaVersion = 5;
+    static constexpr int schemaVersion = 6;
     double exposure = 0;
     double temperature = 6500;
     double tint = 0;
@@ -55,7 +57,7 @@ struct EditDocument {
     double blacks = 0;
     double vibrance = 0;
     double saturation = 0;
-    std::uint32_t enabledCorrections = 16383;
+    std::uint32_t enabledCorrections = 32767;
     double sharpenAmount = 0;
     double sharpenRadius = 1;
     double sharpenDetail = 25;
@@ -66,6 +68,7 @@ struct EditDocument {
     double noiseColor = 0;
     double noiseColorDetail = 50;
     double noiseColorSmoothness = 50;
+    CropSettings crop{};
     double curveShadows = 0;
     double curveDarks = 0;
     double curveLights = 0;
@@ -83,6 +86,7 @@ struct EditDocument {
     void validate() const;
     double parameter(std::string_view name) const;
     void setParameter(std::string_view name, double value);
+    void setParameters(const std::vector<std::pair<std::string, double>> &values);
     static Correction correction(std::string_view name);
     static std::size_t curveChannel(std::string_view name);
     static std::size_t hslBand(std::string_view name);

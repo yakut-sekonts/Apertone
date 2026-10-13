@@ -81,8 +81,9 @@ void EditDocument::validate() const {
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~16383U) != 0)
+    if ((enabledCorrections & ~32767U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
+    crop.validate();
     for (const auto &curve : curves)
         curve.validate();
     for (const auto &band : hsl) {
@@ -92,6 +93,8 @@ void EditDocument::validate() const {
     }
 }
 double EditDocument::parameter(std::string_view name) const {
+    if (name.starts_with("crop."))
+        return crop.parameter(name);
     if (name.starts_with("hsl.")) {
         const auto [band, member] = hslParameter(name);
         return hsl[band].*member;
@@ -99,18 +102,33 @@ double EditDocument::parameter(std::string_view name) const {
     return this->*find(name).member;
 }
 void EditDocument::setParameter(std::string_view name, double value) {
+    setParameters({{std::string(name), value}});
+}
+void EditDocument::setParameters(const std::vector<std::pair<std::string, double>> &values) {
     auto next = *this;
-    if (name.starts_with("hsl.")) {
-        const auto [band, member] = hslParameter(name);
-        next.hsl[band].*member = value;
-    } else
-        next.*find(name).member = value;
-    if (name == "temperature" || name == "tint")
-        next.customWhiteBalance = true;
+    std::vector<std::pair<std::string, double>> cropValues;
+    for (const auto &[name, value] : values) {
+        if (name.starts_with("crop."))
+            cropValues.emplace_back(name, value);
+        else if (name.starts_with("hsl.")) {
+            const auto [band, member] = hslParameter(name);
+            next.hsl[band].*member = value;
+        } else
+            next.*find(name).member = value;
+        if (name == "temperature" || name == "tint")
+            next.customWhiteBalance = true;
+    }
+    next.crop.setParameters(cropValues);
     next.validate();
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
+    if (name == "crop")
+        return Correction::crop;
+    if (name.starts_with("crop.")) {
+        CropSettings{}.parameter(name);
+        return Correction::crop;
+    }
     if (name == "luminanceNoise")
         return Correction::luminanceNoise;
     if (name == "colorNoise")

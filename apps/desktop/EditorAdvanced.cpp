@@ -1,5 +1,6 @@
 #include "apps/desktop/EditorController.h"
 #include "core/render/AdvancedColor.h"
+#include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include <algorithm>
 #include <cmath>
@@ -113,6 +114,7 @@ QVariantList EditorController::curveSamples(const QString &channel, bool paramet
     return values;
 }
 void EditorController::setTargetedTool(const QString &tool) {
+    setCropMode(false);
     if (tool == targetedTool_)
         return;
     try {
@@ -130,7 +132,7 @@ void EditorController::setTargetedTool(const QString &tool) {
     }
 }
 bool EditorController::beginTargeted(double x, double y) {
-    if (!editable() || original_ || targetedTool_ == QStringLiteral("none"))
+    if (!editable() || original_ || cropMode_ || targetedTool_ == QStringLiteral("none"))
         return false;
     try {
         if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || x > 1 || y < 0 || y > 1)
@@ -139,16 +141,13 @@ bool EditorController::beginTargeted(double x, double y) {
         if (!history_.current().enabled(curve ? luma::Correction::curves : luma::Correction::hsl))
             return false;
         const auto &image = *session_->preview;
-        const auto orientation = session_->asset.metadata.orientation;
-        const int width = orientation & 4 ? image.height : image.width;
-        const int height = orientation & 4 ? image.width : image.height;
-        const int px = std::min(static_cast<int>(x * width), width - 1),
-                  py = std::min(static_cast<int>(y * height), height - 1);
-        int sx = orientation & 4 ? py : px, sy = orientation & 4 ? px : py;
-        if (orientation & 1)
-            sx = image.width - 1 - sx;
-        if (orientation & 2)
-            sy = image.height - 1 - sy;
+        const luma::CropGeometry geometry(image.width, image.height,
+                                          session_->asset.metadata.orientation, history_.current());
+        const int px = std::min(static_cast<int>(x * geometry.width()), geometry.width() - 1);
+        const int py = std::min(static_cast<int>(y * geometry.height()), geometry.height() - 1);
+        const auto mapped = geometry.source(px, py);
+        const int sx = std::clamp(static_cast<int>(std::lround(mapped[0])), 0, image.width - 1);
+        const int sy = std::clamp(static_cast<int>(std::lround(mapped[1])), 0, image.height - 1);
         const auto offset = (static_cast<std::size_t>(sy) * image.width + sx) * 3;
         auto sampling = history_.current();
         sampling.setEnabled(luma::Correction::hsl, false);

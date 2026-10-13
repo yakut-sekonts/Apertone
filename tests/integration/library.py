@@ -54,8 +54,8 @@ def main():
         run("collection", "delete", collection)
         assert run("restore")["exposure"] == 1.25
         with sqlite3.connect(catalog) as db:
-            assert db.execute("PRAGMA user_version").fetchone()[0] == 6
-            assert db.execute("SELECT schema_version FROM edit_documents LIMIT 1").fetchone()[0] == 5
+            assert db.execute("PRAGMA user_version").fetchone()[0] == 7
+            assert db.execute("SELECT schema_version FROM edit_documents LIMIT 1").fetchone()[0] == 6
         destination = root / "copy"
         destination.mkdir()
         copy_catalog = root / "copy.sqlite"

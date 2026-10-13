@@ -68,6 +68,14 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"color\":" << asset.edits.noiseColor
               << ",\"colorDetail\":" << asset.edits.noiseColorDetail
               << ",\"colorSmoothness\":" << asset.edits.noiseColorSmoothness
+              << "},\"crop\":{\"x\":" << asset.edits.crop.x << ",\"y\":" << asset.edits.crop.y
+              << ",\"width\":" << asset.edits.crop.width
+              << ",\"height\":" << asset.edits.crop.height
+              << ",\"angle\":" << asset.edits.crop.angle
+              << ",\"aspect\":" << asset.edits.crop.aspect
+              << ",\"quarterTurns\":" << asset.edits.crop.quarterTurns
+              << ",\"flipHorizontal\":" << (asset.edits.crop.flipHorizontal ? "true" : "false")
+              << ",\"flipVertical\":" << (asset.edits.crop.flipVertical ? "true" : "false")
               << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace
@@ -138,6 +146,7 @@ int main(int argc, char **argv) {
             auto asset = connection.activeAsset();
             if (!asset)
                 throw std::runtime_error("No active photo in this catalog.");
+            std::vector<std::pair<std::string, double>> values;
             for (std::size_t i = 1; i < arguments.size(); ++i) {
                 const auto separator = arguments[i].find('=');
                 if (separator == std::string::npos)
@@ -148,8 +157,9 @@ int main(int argc, char **argv) {
                 const auto value = std::stod(text, &consumed);
                 if (consumed != text.size())
                     throw std::runtime_error("Invalid edit number.");
-                asset->edits.setParameter(name, value);
+                values.emplace_back(name, value);
             }
+            asset->edits.setParameters(values);
             service.save(asset->id, asset->edits);
             std::cout << "{\"saved\":true}\n";
         } else if (arguments[0] == "curve" && arguments.size() >= 4) {

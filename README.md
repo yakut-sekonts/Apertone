@@ -41,7 +41,8 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
 - 🚧 Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
-- 🗓 Crop, Optics, local masks and Metal image processing.
+- 🚧 Crop, ratios, straighten, flips and guide overlays in source.
+- 🗓 Optics, perspective Transform, local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -153,8 +154,8 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
-atomically with edit schema 5 / catalog schema 6. Neutral curves and HSL preserve
-the preceding Develop output. Sharpening and Noise Reduction are described below; Crop and Optics remain later 0.4 work.
+atomically with edit schema 6 / catalog schema 7. Neutral curves and HSL preserve
+the preceding Develop output. Sharpening and Noise Reduction are described below; Crop is described below; Optics and perspective Transform remain later 0.4 work.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -250,3 +251,31 @@ See [scope and validation](docs/NOISE_REDUCTION_REVIEW.md) and
 [ADR 0012](docs/adr/0012-detail-noise-reduction.md). AI denoise, Metal, true 1:1,
 representative-photo tuning and 100 MP performance remain later work. This is a
 development build; the frozen 0.4.0 release candidate is unchanged.
+
+## In development: Crop and Straighten / 0.4.5
+
+Crop supports a movable frame with eight resize grips, Free, Original, 1:1, 4:3,
+3:2, 16:9 and custom locked ratios (1:100–100:1), ratio orientation swap,
+quarter-turn rotation, horizontal/vertical flips and Straighten (−45°–45°).
+Thirds, Grid, Diagonal and Golden ratio guides are temporary display overlays.
+One drag/slider gesture creates one Undo; reset/enable preserve other groups.
+
+The tool displays the full transformed canvas; Done, Original, preset preview,
+photo change and export leave this temporary view. Stored crop always applies to
+exports. Straighten excludes empty rotated corners and samples processed linear
+RGB bilinearly. Neutral/quarter-turn/flip/crop paths retain exact pixels. Full-size
+PNG/JPEG and TIFF16 share geometry after Detail and before output conversion.
+Targeted controls map coordinates back through the displayed crop to the source.
+Output dimensions are shown in the panel. Pixel rounding can differ slightly in
+Fit previews; very small crops retain at least one pixel.
+
+Catalog 6→7/edit schema 5→6 initializes neutral Crop and preserves prior settings,
+children, selection and metadata; failed migrations roll back. Older builds refuse
+catalog 7. Crop is the sixth preset/Copy/Paste/Sync subset. Preset schema 4 reads
+schemas 1/2/3 without adding absent Crop groups; batch Undo/conflicts include all
+geometry fields. See [scope and checks](docs/CROP_REVIEW.md) and
+[ADR 0013](docs/adr/0013-crop-geometry.md).
+
+Perspective/auto/guided Transform, lens corrections, higher-quality resampling and
+Metal remain separate work. This development build does not publish a public
+release or change the frozen 0.4.0 signing requirement.

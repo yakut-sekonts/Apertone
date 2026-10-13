@@ -110,6 +110,7 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    cropMode_ = false;
     clearDetailDiagnostic();
     endEdit();
     loadCancellation_.cancel();
@@ -235,13 +236,17 @@ QVariantMap EditorController::parameters() const {
             values.insert(QString::fromStdString(name), history_.current().parameter(name));
         }
     }
+    for (const auto *name :
+         {"crop.x", "crop.y", "crop.width", "crop.height", "crop.angle", "crop.aspect",
+          "crop.quarterTurns", "crop.flipHorizontal", "crop.flipVertical"})
+        values.insert(QString::fromLatin1(name), history_.current().parameter(name));
     return values;
 }
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
-    for (const auto *name :
-         {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
-          "vibrance", "saturation", "curves", "hsl", "sharpening", "luminanceNoise", "colorNoise"})
+    for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
+                             "whites", "blacks", "vibrance", "saturation", "curves", "hsl",
+                             "sharpening", "luminanceNoise", "colorNoise", "crop"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -259,7 +264,7 @@ void EditorController::endEdit() {
     history_.end();
     emit stateChanged();
 }
-void EditorController::editsChanged() {
+void EditorController::editsChanged(bool renderPreview) {
     presetPreview_.reset();
     ++editRevision_;
     pendingSave_ = true;
@@ -267,7 +272,8 @@ void EditorController::editsChanged() {
     status_ = QStringLiteral("Сохраняем правку…");
     refreshDetailDiagnostic();
     emit stateChanged();
-    render();
+    if (renderPreview)
+        render();
 }
 void EditorController::setParameter(const QString &name, double value) {
     clearPreviewSettings();
@@ -295,6 +301,8 @@ void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
     try {
         auto next = history_.current();
         next.setEnabled(luma::EditDocument::correction(name.toStdString()), enabled);
+        if (name == QStringLiteral("crop") && !enabled)
+            cropMode_ = false;
         if (next == history_.current())
             return;
         history_.apply(next);
@@ -362,6 +370,8 @@ void EditorController::setOriginal(bool value) {
     }
     presetPreview_.reset();
     original_ = value;
+    if (value)
+        cropMode_ = false;
     clearDetailDiagnostic();
     emit stateChanged();
     render();
@@ -372,10 +382,20 @@ void EditorController::render() {
     }
     renderJob_.cancel();
     const auto revision = ++renderRevision_;
+    if (cropMode_ && cropCanvasReady_) {
+        cropCanvasReady_ = false;
+        emit stateChanged();
+    }
     const auto image = session_->preview;
     const int orientation = session_->asset.metadata.orientation;
-    const auto edits =
-        original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    if (cropMode_ && edits.enabled(luma::Correction::crop)) {
+        edits.crop.x = 0;
+        edits.crop.y = 0;
+        edits.crop.width = 1;
+        edits.crop.height = 1;
+        edits.crop.aspect = 0;
+    }
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;
@@ -401,6 +421,7 @@ void EditorController::render() {
                                                }
                                                self->provider_->update(std::move(owned));
                                                ++self->imageRevision_;
+                                               self->cropCanvasReady_ = self->cropMode_;
                                                emit self->stateChanged();
                                            },
                                            Qt::QueuedConnection);
@@ -532,6 +553,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     exporting_ = true;
     exportProgress_ = 0;
     error_.clear();
+    setCropMode(false);
     endEdit();
     status_ = QStringLiteral("Экспорт фотографии…");
     emit stateChanged();

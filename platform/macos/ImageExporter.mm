@@ -3,6 +3,7 @@
 #include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
+#include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
 #import <Foundation/Foundation.h>
@@ -114,8 +115,8 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
         if (orientation < 0 || orientation > 7 ||
             input.rgb.size() != pixelCount(input.width, input.height) * 3)
             throw std::runtime_error("Invalid full-resolution export input.");
-        const int width = orientation & 4 ? input.height : input.width;
-        const int height = orientation & 4 ? input.width : input.height;
+        const CropGeometry geometry(input.width, input.height, orientation, edits);
+        const int width = geometry.width(), height = geometry.height();
         std::vector<std::uint8_t> rgba;
         std::vector<std::uint16_t> rgb16;
         int bits = 8, bytesPerPixel = 4;
@@ -145,17 +146,15 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
             for (int y = 0; y < height; ++y) {
                 checkCancellation(stop);
                 for (int x = 0; x < width; ++x) {
-                    int sx = orientation & 4 ? y : x, sy = orientation & 4 ? x : y;
-                    if (orientation & 1)
-                        sx = input.width - 1 - sx;
-                    if (orientation & 2)
-                        sy = input.height - 1 - sy;
-                    const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-                    const auto developed =
-                        noise.active() ? noise.pixel({}, sx, sy)
-                                       : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
-                                                         input.rgb[offset + 2]});
-                    const auto pixel = sharpening.pixel(developed, sx, sy);
+                    const auto pixel = geometry.sample(x, y, [&](int sx, int sy) {
+                        const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
+                        const auto developed =
+                            noise.active()
+                                ? noise.pixel({}, sx, sy)
+                                : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                  input.rgb[offset + 2]});
+                        return sharpening.pixel(developed, sx, sy);
+                    });
                     const auto target = (static_cast<std::size_t>(y) * width + x) * 3;
                     for (std::size_t c = 0; c < 3; ++c)
                         rgb16[target + c] = encode16(pixel[c]);

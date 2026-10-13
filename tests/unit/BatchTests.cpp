@@ -75,6 +75,10 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
         edits.hsl[0].hue = static_cast<double>(i % 50);
         edits.sharpenAmount = static_cast<double>(i % 150);
         edits.sharpenRadius = 1.5;
+        edits.crop = {
+            0.1,        0.15, 0.7, 0.6, static_cast<double>(i % 15), 1.5, static_cast<int>(i % 4),
+            i % 2 == 0, false};
+        edits.setEnabled(luma::Correction::crop, i % 3 == 0);
         edits.noiseLuminance = static_cast<double>(i % 100);
         edits.noiseColor = 15 + static_cast<double>(i % 80);
         edits.setEnabled(luma::Correction::colorNoise, i % 3 == 0);
@@ -200,6 +204,20 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     require(documents(f) == after, "Detail batch Undo lost new columns.");
     db.restoreBatchEdits(true);
     require(documents(f) == detailed, "Detail batch Redo lost new columns.");
+    auto cropSource = detailSource;
+    cropSource.crop = {0.2, 0.1, 0.5, 0.7, -7, 4.0 / 3, 2, true, true};
+    cropSource.setEnabled(luma::Correction::crop, false);
+    require(db.applyBatchEdits({f.ids[1], f.ids[3]}, cropSource, 32).changed == 2,
+            "Crop batch missed targets.");
+    const auto cropped = documents(f);
+    for (std::size_t i = 0; i < cropped.size(); ++i)
+        require(cropped[i] == (i == 1 || i == 3 ? luma::mergeSettings(detailed[i], cropSource, 32)
+                                                : detailed[i]),
+                "Crop batch changed excluded groups/photos.");
+    db.restoreBatchEdits(false);
+    require(documents(f) == detailed, "Crop batch Undo lost geometry.");
+    db.restoreBatchEdits(true);
+    require(documents(f) == cropped, "Crop batch Redo lost geometry.");
 }
 void qmlTests(EditorController &editor, LibraryModel &library, PresetController &presets,
               BatchController &batch, const QString &qmlPath) {
@@ -230,7 +248,7 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
     require(QMetaObject::invokeMethod(button, "clicked"), "Cannot open Sync dialog.");
     auto *dialog = window->findChild<QObject *>("batchSyncDialog");
     require(dialog && dialog->property("visible").toBool(), "Sync dialog did not open.");
-    dialog->setProperty("groups", 2 | 8 | 16);
+    dialog->setProperty("groups", 2 | 8 | 16 | 32);
     auto *confirm = window->findChild<QObject *>("batchSyncConfirm");
     require(confirm && QMetaObject::invokeMethod(confirm, "clicked"),
             "Cannot apply Sync from QML.");
@@ -307,6 +325,9 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         require(synced[i].sharpenAmount == editor.currentSettings().sharpenAmount &&
                     synced[i].enabled(luma::Correction::sharpening) ==
                         editor.currentSettings().enabled(luma::Correction::sharpening) &&
+                    synced[i].crop == editor.currentSettings().crop &&
+                    synced[i].enabled(luma::Correction::crop) ==
+                        editor.currentSettings().enabled(luma::Correction::crop) &&
                     synced[i].noiseColor == editor.currentSettings().noiseColor &&
                     synced[i].noiseLuminance == editor.currentSettings().noiseLuminance &&
                     synced[i].enabled(luma::Correction::colorNoise) ==

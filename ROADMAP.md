@@ -56,7 +56,10 @@ neutral catalog migration and preset/batch integration.
 The second Detail substage implements manual Luminance Amount/Detail/Contrast
 and Color Amount/Detail/Smoothness, independent enable states, Option diagnostics
 and noise→sharpening ordering with neutral migration and preset/batch integration.
-Remaining scope: crop and optics,
+The Crop substage implements an interactive frame, free/original/fixed/custom
+ratios, rotate/straighten/flip and transient composition guides, shared export
+geometry, targeted inverse mapping and preset/batch integration.
+Remaining scope: optics and perspective Transform,
 ready-made filters, edited thumbnails and advanced export.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.

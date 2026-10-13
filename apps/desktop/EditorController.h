@@ -12,6 +12,10 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantMap cropState READ cropState NOTIFY stateChanged)
+    Q_PROPERTY(bool cropCanvasReady READ cropCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool cropMode READ cropMode WRITE setCropMode NOTIFY stateChanged)
+    Q_PROPERTY(QString cropOverlay READ cropOverlay WRITE setCropOverlay NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
@@ -65,6 +69,21 @@ class EditorController final : public QObject {
     double progress() const {
         return progress_;
     }
+    QVariantMap cropState() const;
+    bool cropCanvasReady() const {
+        return cropMode_ && cropCanvasReady_;
+    }
+    bool cropMode() const {
+        return cropMode_;
+    }
+    QString cropOverlay() const {
+        return cropOverlay_;
+    }
+    void setCropMode(bool value);
+    void setCropOverlay(const QString &value);
+    Q_INVOKABLE void setCropRect(double x, double y, double width, double height);
+    Q_INVOKABLE void rotateCrop(int turns);
+    Q_INVOKABLE void resetCrop();
     QVariantMap parameters() const;
     QVariantMap correctionStates() const;
     QVariantMap curvePoints() const;
@@ -170,6 +189,9 @@ class EditorController final : public QObject {
     std::vector<std::uint8_t> displayProfile_;
     bool busy_ = false;
     bool editingLocked_ = false;
+    bool cropMode_ = false;
+    bool cropCanvasReady_ = false;
+    QString cropOverlay_ = QStringLiteral("thirds");
     bool original_ = false;
     bool pendingSave_ = false;
     bool saveFailed_ = false;
@@ -203,7 +225,7 @@ class EditorController final : public QObject {
     void advancedFailure(const std::exception &failure);
     void load(std::optional<std::filesystem::path> source);
     void render();
-    void editsChanged();
+    void editsChanged(bool renderPreview = true);
     bool editable() const;
     void flushSave();
     void checkClose();
