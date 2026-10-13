@@ -73,6 +73,9 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
         edits.temperature = 4500 + i * 10;
         edits.customWhiteBalance = i % 2 != 0;
         edits.hsl[0].hue = static_cast<double>(i % 50);
+        edits.sharpenAmount = static_cast<double>(i % 150);
+        edits.sharpenRadius = 1.5;
+        edits.setEnabled(luma::Correction::sharpening, i % 2 == 0);
         edits.curves[0].points = {{0, 0.02}, {0.5, 0.6}, {1, 1}};
         edits.setEnabled(luma::Correction::highlights, i % 2 == 0);
         db.saveEdits(asset.id, edits);
@@ -117,7 +120,10 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     const auto after = documents(f);
     for (std::size_t i = 0; i < after.size(); ++i) {
         require(after[i].exposure == 1.25 && after[i].temperature == f.edits[i].temperature &&
-                    after[i].hsl == f.edits[i].hsl && after[i].curves == sourceEdits.curves,
+                    after[i].hsl == f.edits[i].hsl && after[i].curves == sourceEdits.curves &&
+                    after[i].sharpenAmount == f.edits[i].sharpenAmount &&
+                    after[i].enabled(luma::Correction::sharpening) ==
+                        f.edits[i].enabled(luma::Correction::sharpening),
                 "Batch changed excluded groups or missed included ones.");
     }
     const auto noop = db.applyBatchEdits(f.ids, sourceEdits, 1 | 4);
@@ -170,6 +176,20 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     luma::Catalog restarted(f.catalog);
     require(!restarted.canUndoBatch() && documents(f) == after,
             "Batch edits/journal restart contract failed.");
+    auto detailSource = sourceEdits;
+    detailSource.sharpenAmount = 85;
+    detailSource.sharpenMasking = 60;
+    const auto detailResult = db.applyBatchEdits({f.ids[0], f.ids[2]}, detailSource, 16);
+    require(detailResult.changed == 2, "Detail batch missed its selected subset.");
+    const auto detailed = documents(f);
+    for (std::size_t i = 0; i < detailed.size(); ++i)
+        require(detailed[i] ==
+                    (i == 0 || i == 2 ? luma::mergeSettings(after[i], detailSource, 16) : after[i]),
+                "Detail batch changed excluded photos/groups.");
+    db.restoreBatchEdits(false);
+    require(documents(f) == after, "Detail batch Undo lost new columns.");
+    db.restoreBatchEdits(true);
+    require(documents(f) == detailed, "Detail batch Redo lost new columns.");
 }
 void qmlTests(EditorController &editor, LibraryModel &library, PresetController &presets,
               BatchController &batch, const QString &qmlPath) {
@@ -200,7 +220,7 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
     require(QMetaObject::invokeMethod(button, "clicked"), "Cannot open Sync dialog.");
     auto *dialog = window->findChild<QObject *>("batchSyncDialog");
     require(dialog && dialog->property("visible").toBool(), "Sync dialog did not open.");
-    dialog->setProperty("groups", 2 | 8);
+    dialog->setProperty("groups", 2 | 8 | 16);
     auto *confirm = window->findChild<QObject *>("batchSyncConfirm");
     require(confirm && QMetaObject::invokeMethod(confirm, "clicked"),
             "Cannot apply Sync from QML.");
@@ -272,6 +292,13 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
                     pasted[i].exposure == (i == 0 ? 0.75 : f.edits[i].exposure),
                 "Batch Paste changed excluded Light settings.");
     qmlTests(editor, library, presets, batch, qmlPath);
+    const auto synced = documents(f);
+    for (std::size_t i = 0; i < synced.size(); ++i)
+        require(synced[i].sharpenAmount == editor.currentSettings().sharpenAmount &&
+                    synced[i].enabled(luma::Correction::sharpening) ==
+                        editor.currentSettings().enabled(luma::Correction::sharpening) &&
+                    synced[i].exposure == pasted[i].exposure,
+                "QML Sync missed Detail or changed excluded Light.");
     // A failed active-photo save cannot be overtaken by a batch write.
     sql(f.catalog, "CREATE TRIGGER fail_save BEFORE UPDATE ON edit_documents BEGIN SELECT "
                    "RAISE(ABORT,'save blocked'); END");

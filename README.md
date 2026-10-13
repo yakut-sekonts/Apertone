@@ -39,8 +39,9 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Single/multi/range selection, ratings, Pick/Reject, color labels and manual collections.
 - ✅ Basic search and combined metadata/collection filters.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
-- 🚧 User presets with subset groups, hover preview and Copy/Paste in development.
-- 🗓 Detail, Crop, Optics, local masks, batch sync and Metal image processing.
+- ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
+- 🚧 Detail sharpening with Option diagnostics in source.
+- 🗓 Noise reduction, Crop, Optics, local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -152,8 +153,8 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
-atomically with edit schema 3 / catalog schema 4. Neutral curves and HSL preserve
-the preceding Develop output. Detail, Crop and Optics remain later 0.4 work.
+atomically with edit schema 4 / catalog schema 5. Neutral curves and HSL preserve
+the preceding Develop output. Sharpening is described below; noise reduction, Crop and Optics remain later 0.4 work.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -179,7 +180,7 @@ locked and atomic; corrupt or newer unsupported data is reported and preserved.
 Collections are bounded to 512 entries / 1 MiB. Copy selects groups; Paste applies
 that in-memory snapshot to one photo. Copy/Paste does not use the system clipboard
 and lasts only for the current application session. Batch paste/presets and Sync
-Settings remain planned. See [preset workflow and validation](docs/PRESETS_REVIEW.md).
+Settings are available in Library as described below. See [preset workflow and validation](docs/PRESETS_REVIEW.md).
 
 The prepared 0.4.0 candidate remains a separate immutable source commit; these
 presets do not appear in the published v0.3.0 or that candidate. A development
@@ -199,3 +200,26 @@ Develop and export use the committed settings.
 Close and app updates wait for batch completion/rollback. No RAW decode is needed
 for batch settings and no catalog migration is introduced. Large-scale batch
 performance is not yet benchmarked. See [batch workflow and validation](docs/BATCH_REVIEW.md).
+
+
+## In development: Detail sharpening / 0.4.3
+
+Detail provides Amount (0–150), Radius (0.5–3 original-image pixels), Detail
+(0–100) and Masking (0–100). Amount defaults to 0; disabling the group retains
+its values and restores the preceding output. Option-drag shows temporary
+luminance, residual or mask diagnostics. White in Masking marks affected areas.
+Modifier/gesture release, app deactivation and export preparation restore the
+normal preview. Diagnostics do not change saved edits, history or exported pixels.
+
+Preview, PNG/JPEG and TIFF16 use the same luminance sharpening stage. Preview
+scales Radius for its reduced resolution; Fit is not a substitute for 1:1
+inspection. Detail adjusts a soft residual threshold; Masking reduces sharpening
+in flat areas. This is Luma's own algorithm. Noise reduction, true 1:1 viewing and
+export-specific output sharpening remain separate work.
+
+Catalog 4→5 upgrades edit schema 3→4 with neutral sharpening while preserving
+Curves/HSL, selection, revisions and Library metadata. Older builds refuse the
+new catalog schema. The fifth Detail subset is available in presets, Copy/Paste
+and Library batch Sync/Undo. Preset/collection schema 2 reads legacy schema 1;
+legacy presets retain their original subsets. See [validation and scope](docs/SHARPENING_REVIEW.md).
+This development build does not publish a release or alter the frozen 0.4.0 candidate.

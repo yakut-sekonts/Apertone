@@ -176,7 +176,7 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: editor.original ? "ОРИГИНАЛЬНЫЙ RAW" : editor.presetPreview ? "PREVIEW ПРЕСЕТА" : "ПРЕДПРОСМОТР"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: editor.detailDiagnostic.length ? editor.detailDiagnostic : editor.original ? "ОРИГИНАЛЬНЫЙ RAW" : editor.presetPreview ? "PREVIEW ПРЕСЕТА" : "ПРЕДПРОСМОТР"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
                         Label { text: "FIT"; color: "#777f8b"; font.pixelSize: 10 }
                     }
@@ -266,6 +266,8 @@ ApplicationWindow {
                         CurvesPanel { Layout.fillWidth:true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
                         HSLPanel { Layout.fillWidth:true }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        DetailPanel { Layout.fillWidth:true }
                         Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: "ДАННЫЕ СЪЁМКИ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }

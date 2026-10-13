@@ -29,13 +29,13 @@ RowLayout {
         parent: Overlay.overlay; anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
         title: "Sync Settings"
-        property int groups: 15
+        property int groups: 31
         ColumnLayout {
             width: parent.width
             Label { text: "Источник: " + editor.filename; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: "Выбрано фото: " + library.selectedCount + ". Изменятся только отмеченные группы."; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Repeater {
-                model: ["Light", "Color", "Curve", "HSL"]
+                model: ["Light", "Color", "Curve", "HSL", "Detail"]
                 CheckBox {
                     required property string modelData
                     required property int index

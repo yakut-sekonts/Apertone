@@ -32,9 +32,9 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated typed Develop document; schema version 3.
+- `core/edits`: validated typed Develop document; schema version 4.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations 1/2/3.
+- `core/catalog`: SQLite connection per worker operation and migrations through 5.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
@@ -183,12 +183,12 @@ an update ZIP or replace their own running executable.
 
 ## User presets
 
-ADR 0009 defines schema-1 preset JSON and atomic shared collection storage beside
+ADR 0009 originally defines schema-1 preset JSON and atomic shared collection storage beside
 the catalog. A core subset merge preserves every excluded group and the As Shot
 mode. The desktop owns a separate temporary hover snapshot, which affects only
 preview rendering. Apply/Paste send the merged document through existing history,
 autosave and export code. Preset storage has no RAW or catalog paths in exported
-documents and does not require changing catalog schema 4.
+documents. ADR 0011 extends it to schema 2 with the Detail group and legacy reads.
 
 ## Batch settings
 
@@ -198,3 +198,12 @@ parent/curve/HSL writer. Conflict checks occur under the same write lock as Undo
 The editor drains autosave before an external batch and adopts an active-document
 snapshot captured before commit, without issuing a stale follow-up save. The UI
 locks mutation and guards close/update readiness through the complete operation.
+
+## Detail sharpening
+
+SharpeningPass is a shared spatial stage after pointwise DevelopPipeline and
+before ICC/quantization in display, PNG/JPEG and TIFF16. It retains two luminance
+planes and a bounded row ring, with per-row cancellation. Preview carries its
+reduction scale so Radius stays in original-image pixels. Option diagnostics are
+transient editor display state and never enter persistence/export. Catalog 5/edit
+4 and preset 2 preserve legacy settings with neutral sharpening; see ADR 0011.

@@ -46,7 +46,8 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
 
 DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientation,
                        std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
-                       RawColorCalibration calibration) {
+                       RawColorCalibration calibration, DetailDiagnostic diagnostic,
+                       double detailScale) {
     edits.validate();
     if (orientation < 0 || orientation > 7 ||
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {
@@ -56,6 +57,7 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
     const int height = orientation & 4 ? input.width : input.height;
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
     const DevelopPipeline pipeline(edits, calibration);
+    const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic);
     DisplayTransform transform(displayProfile);
     std::vector<float> row(static_cast<std::size_t>(width) * 3);
     for (int y = 0; y < height; ++y) {
@@ -70,8 +72,10 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                 sy = input.height - 1 - sy;
             }
             const auto inputOffset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-            const auto rgb = pipeline.pixel(
-                {input.rgb[inputOffset], input.rgb[inputOffset + 1], input.rgb[inputOffset + 2]});
+            const auto rgb =
+                sharpening.pixel(pipeline.pixel({input.rgb[inputOffset], input.rgb[inputOffset + 1],
+                                                 input.rgb[inputOffset + 2]}),
+                                 sx, sy);
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }

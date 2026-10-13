@@ -3,6 +3,7 @@
 #include "apps/shared/SessionService.h"
 #include "core/edits/EditHistory.h"
 #include "core/jobs/JobManager.h"
+#include "core/render/Sharpening.h"
 #include <QObject>
 #include <QQuickWindow>
 #include <QTimer>
@@ -17,6 +18,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString targetedTool READ targetedTool WRITE setTargetedTool NOTIFY stateChanged)
     Q_PROPERTY(bool editingLocked READ editingLocked NOTIFY stateChanged)
     Q_PROPERTY(bool presetPreview READ presetPreview NOTIFY stateChanged)
+    Q_PROPERTY(QString detailDiagnostic READ detailDiagnostic NOTIFY stateChanged)
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
@@ -116,6 +118,8 @@ class EditorController final : public QObject {
     luma::EditDocument currentSettings() const {
         return history_.current();
     }
+    QString detailDiagnostic() const;
+    Q_INVOKABLE void setDetailControl(const QString &parameter);
     void applySettings(const luma::EditDocument &settings, std::uint32_t groups);
     void previewSettings(const luma::EditDocument &settings, std::uint32_t groups);
     void clearPreviewSettings();
@@ -173,6 +177,9 @@ class EditorController final : public QObject {
     int pendingWrites_ = 0;
     luma::EditHistory history_;
     std::optional<luma::EditDocument> presetPreview_;
+    QString detailControl_;
+    bool optionHeld_ = false;
+    luma::DetailDiagnostic diagnostic_ = luma::DetailDiagnostic::none;
     bool exporting_ = false;
     double exportProgress_ = 0;
     double progress_ = 0;
@@ -201,4 +208,7 @@ class EditorController final : public QObject {
     void flushSave();
     void checkClose();
     void refreshDisplayProfile();
+    bool eventFilter(QObject *watched, QEvent *event) override;
+    void refreshDetailDiagnostic();
+    void clearDetailDiagnostic();
 };

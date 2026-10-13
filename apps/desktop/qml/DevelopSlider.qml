@@ -13,6 +13,7 @@ ColumnLayout {
     property string suffix: ""
     property string correction: parameter
     property bool allowDisable: true
+    property bool detailDiagnostic: false
     property bool available: editor.hasPhoto && !editor.busy
     spacing: 2
     RowLayout {
@@ -32,12 +33,13 @@ ColumnLayout {
         }
     }
     Slider {
+        objectName: control.detailDiagnostic ? control.parameter + "Slider" : ""
         Layout.fillWidth: true
         from: control.minimum; to: control.maximum; stepSize: control.step
         value: editor.parameters[control.parameter]
         enabled: control.available && (editor.correctionStates[control.correction] ?? true)
         Accessible.name: control.label
-        onPressedChanged: { if (pressed) editor.beginEdit(); else editor.endEdit() }
+        onPressedChanged: { if (pressed) { editor.beginEdit(); if (control.detailDiagnostic) editor.setDetailControl(control.parameter) } else editor.endEdit() }
         onMoved: editor.setParameter(control.parameter, value)
         TapHandler {
             acceptedButtons: Qt.LeftButton

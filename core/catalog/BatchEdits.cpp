@@ -9,11 +9,12 @@ namespace luma {
 namespace {
 using detail::Statement;
 constexpr std::array tables{"edit_documents", "edit_curve_points", "edit_hsl_bands"};
-constexpr std::array columns{"schema_version",   "exposure",      "temperature", "tint",
-                             "custom_wb",        "contrast",      "highlights",  "shadows",
-                             "whites",           "blacks",        "vibrance",    "saturation",
-                             "enabled",          "curve_shadows", "curve_darks", "curve_lights",
-                             "curve_highlights", "advanced_saved"};
+constexpr std::array columns{
+    "schema_version", "exposure",         "temperature",    "tint",           "custom_wb",
+    "contrast",       "highlights",       "shadows",        "whites",         "blacks",
+    "vibrance",       "saturation",       "enabled",        "curve_shadows",  "curve_darks",
+    "curve_lights",   "curve_highlights", "advanced_saved", "sharpen_amount", "sharpen_radius",
+    "sharpen_detail", "sharpen_masking"};
 class InterruptibleSQL {
   public:
     InterruptibleSQL(sqlite3 *db, CancellationToken stop) : db_(db), stop_(std::move(stop)) {

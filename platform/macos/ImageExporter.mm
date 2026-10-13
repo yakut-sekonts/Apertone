@@ -127,6 +127,11 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
             bitmap = static_cast<CGBitmapInfo>(kCGImageAlphaNone) | kCGBitmapByteOrder16Little;
             rgb16.resize(pixelCount(width, height) * 3);
             const DevelopPipeline pipeline(edits, decoded.calibration);
+            const SharpeningPass sharpening(input, pipeline, edits, stop, 1, DetailDiagnostic::none,
+                                            [&](double value) {
+                                                if (progress)
+                                                    progress(0.5 + 0.15 * value);
+                                            });
             for (int y = 0; y < height; ++y) {
                 checkCancellation(stop);
                 for (int x = 0; x < width; ++x) {
@@ -136,14 +141,18 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                     if (orientation & 2)
                         sy = input.height - 1 - sy;
                     const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-                    const auto pixel = pipeline.pixel(
-                        {input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
+                    const auto pixel =
+                        sharpening.pixel(pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                         input.rgb[offset + 2]}),
+                                         sx, sy);
                     const auto target = (static_cast<std::size_t>(y) * width + x) * 3;
                     for (std::size_t c = 0; c < 3; ++c)
                         rgb16[target + c] = encode16(pixel[c]);
                 }
                 if (progress)
-                    progress(0.5 + 0.4 * static_cast<double>(y + 1) / height);
+                    progress((sharpening.active() ? 0.65 : 0.5) +
+                             (sharpening.active() ? 0.25 : 0.4) * static_cast<double>(y + 1) /
+                                 height);
             }
             bytes = rgb16.data();
             size = rgb16.size() * sizeof(std::uint16_t);

@@ -27,7 +27,9 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     }
     Catalog catalog(catalogPath_);
     auto asset = catalog.addAndSelect(path, checksum, decoded.metadata);
-    return {std::move(asset), std::move(preview), decoded.calibration};
+    const auto scale = std::min(static_cast<double>(preview->width) / decoded.image.width,
+                                static_cast<double>(preview->height) / decoded.image.height);
+    return {std::move(asset), std::move(preview), decoded.calibration, scale};
 }
 std::optional<PhotoSession>
 SessionService::restore(luma::CancellationToken stop,

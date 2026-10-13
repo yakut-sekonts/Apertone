@@ -18,7 +18,8 @@ enum class Correction : std::uint32_t {
     vibrance = 128,
     saturation = 256,
     curves = 512,
-    hsl = 1024
+    hsl = 1024,
+    sharpening = 2048
 };
 struct CurvePoint {
     double x = 0;
@@ -40,7 +41,7 @@ inline constexpr std::array<std::string_view, 4> curveChannels{"rgb", "red", "gr
 inline constexpr std::array<std::string_view, 8> hslBands{"red",  "orange", "yellow", "green",
                                                           "aqua", "blue",   "purple", "magenta"};
 struct EditDocument {
-    static constexpr int schemaVersion = 3;
+    static constexpr int schemaVersion = 4;
     double exposure = 0;
     double temperature = 6500;
     double tint = 0;
@@ -52,7 +53,11 @@ struct EditDocument {
     double blacks = 0;
     double vibrance = 0;
     double saturation = 0;
-    std::uint32_t enabledCorrections = 2047;
+    std::uint32_t enabledCorrections = 4095;
+    double sharpenAmount = 0;
+    double sharpenRadius = 1;
+    double sharpenDetail = 25;
+    double sharpenMasking = 0;
     double curveShadows = 0;
     double curveDarks = 0;
     double curveLights = 0;

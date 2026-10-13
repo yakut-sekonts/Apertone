@@ -3,6 +3,7 @@
 #include "core/edits/EditDocument.h"
 #include "core/image/FloatImage.h"
 #include "core/jobs/Cancellation.h"
+#include "core/render/Sharpening.h"
 #include <cstdint>
 #include <span>
 
@@ -16,6 +17,8 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
                            luma::CancellationToken stop = {});
 DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientation = 0,
                        std::span<const std::uint8_t> displayProfile = {},
-                       luma::CancellationToken stop = {}, RawColorCalibration calibration = {});
+                       luma::CancellationToken stop = {}, RawColorCalibration calibration = {},
+                       DetailDiagnostic diagnostic = DetailDiagnostic::none,
+                       double detailScale = 1);
 float applyExposure(float linearValue, double ev);
 } // namespace luma

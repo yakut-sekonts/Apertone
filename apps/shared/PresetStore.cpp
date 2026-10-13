@@ -18,7 +18,7 @@ namespace {
 constexpr qint64 maxBytes = 1'048'576;
 constexpr std::size_t maxPresets = 512;
 const QStringList &groupNames() {
-    static const QStringList names{"Light", "Color", "Curve", "HSL"};
+    static const QStringList names{"Light", "Color", "Curve", "HSL", "Detail"};
     return names;
 }
 QStringList parameters(int group) {
@@ -29,13 +29,17 @@ QStringList parameters(int group) {
         return {"temperature", "tint", "vibrance", "saturation"};
     case 2:
         return {"curve.shadows", "curve.darks", "curve.lights", "curve.highlights"};
-    default: {
+    case 3: {
         QStringList names;
         for (const auto band : hslBands)
             for (const auto *parameter : {"hue", "saturation", "luminance"})
                 names.append(QString::fromStdString("hsl." + std::string(band) + "." + parameter));
         return names;
     }
+    case 4:
+        return {"sharpen.amount", "sharpen.radius", "sharpen.detail", "sharpen.masking"};
+    default:
+        throw std::runtime_error("Unsupported preset settings group.");
     }
 }
 void require(bool valid, const char *message) {
@@ -55,15 +59,17 @@ double number(const QJsonValue &value) {
             "Expected a finite preset number.");
     return value.toDouble();
 }
-void header(const QJsonObject &root, const QString &format) {
+int header(const QJsonObject &root, const QString &format) {
     require(root.value("format").isString() && root.value("format").toString() == format,
             "Unsupported preset format.");
-    require(number(root.value("schemaVersion")) == 1, "Unsupported preset schema version.");
+    const auto version = number(root.value("schemaVersion"));
+    require(version == 1 || version == 2, "Unsupported preset schema version.");
+    return static_cast<int>(version);
 }
 QJsonObject toJson(const DevelopPreset &preset) {
     preset.validate();
     QJsonObject settings;
-    for (int group = 0; group < 4; ++group) {
+    for (int group = 0; group < 5; ++group) {
         const auto bit = std::uint32_t{1} << group;
         if (!(preset.groups & bit))
             continue;
@@ -87,21 +93,21 @@ QJsonObject toJson(const DevelopPreset &preset) {
         settings.insert(groupNames()[group], values);
     }
     return {{"format", "luma.develop-preset"},
-            {"schemaVersion", 1},
+            {"schemaVersion", 2},
             {"name", preset.name},
             {"folder", preset.folder},
             {"settings", settings}};
 }
 DevelopPreset fromJson(const QJsonObject &root) {
     keys(root, {"format", "schemaVersion", "name", "folder", "settings"});
-    header(root, "luma.develop-preset");
+    const auto version = header(root, "luma.develop-preset");
     require(root.value("name").isString() && root.value("folder").isString(),
             "Preset name and folder must be strings.");
     DevelopPreset preset{root.value("name").toString(), root.value("folder").toString(), {}, 0};
     const auto settings = object(root.value("settings"));
     for (auto entry = settings.begin(); entry != settings.end(); ++entry) {
         const auto index = groupNames().indexOf(entry.key());
-        require(index >= 0, "Unsupported preset settings group.");
+        require(index >= 0 && (version == 2 || index < 4), "Unsupported preset settings group.");
         const auto bit = std::uint32_t{1} << index;
         preset.groups |= bit;
         const auto values = object(entry.value());
@@ -117,7 +123,7 @@ DevelopPreset fromJson(const QJsonObject &root) {
             preset.settings.setParameter(name.toStdString(), number(values.value(name)));
         const auto flags = number(values.value("enabledCorrections"));
         const auto mask = settingsCorrections(bit);
-        require(flags >= 0 && flags <= 2047 && std::floor(flags) == flags &&
+        require(flags >= 0 && flags <= 4095 && std::floor(flags) == flags &&
                     !(static_cast<std::uint32_t>(flags) & ~mask),
                 "Invalid preset correction flags.");
         preset.settings.enabledCorrections =
@@ -220,7 +226,7 @@ void PresetStore::save(const std::vector<StoredPreset> &presets) const {
     for (const auto &entry : presets)
         entries.append(QJsonObject{{"id", entry.id}, {"preset", toJson(entry.preset)}});
     write(path_, QJsonDocument(QJsonObject{{"format", "luma.preset-library"},
-                                           {"schemaVersion", 1},
+                                           {"schemaVersion", 2},
                                            {"presets", entries}})
                      .toJson());
 }

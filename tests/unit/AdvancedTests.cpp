@@ -163,7 +163,7 @@ void catalogTests() {
                 SELECT asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled&511,revision,updated_at FROM edit_documents;
             DROP TABLE edit_documents; ALTER TABLE historical_edits RENAME TO edit_documents;
             DROP TABLE edit_curve_points; DROP TABLE edit_hsl_bands;
-            DELETE FROM schema_migrations WHERE version=4; PRAGMA user_version=3;
+            DELETE FROM schema_migrations WHERE version>=4; PRAGMA user_version=3;
             COMMIT;
         )sql");
         {

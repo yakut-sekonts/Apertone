@@ -25,7 +25,11 @@ constexpr std::array parameters{
     Parameter{"curve.shadows", &EditDocument::curveShadows, -100, 100, Correction::curves},
     Parameter{"curve.darks", &EditDocument::curveDarks, -100, 100, Correction::curves},
     Parameter{"curve.lights", &EditDocument::curveLights, -100, 100, Correction::curves},
-    Parameter{"curve.highlights", &EditDocument::curveHighlights, -100, 100, Correction::curves}};
+    Parameter{"curve.highlights", &EditDocument::curveHighlights, -100, 100, Correction::curves},
+    Parameter{"sharpen.amount", &EditDocument::sharpenAmount, 0, 150, Correction::sharpening},
+    Parameter{"sharpen.radius", &EditDocument::sharpenRadius, 0.5, 3, Correction::sharpening},
+    Parameter{"sharpen.detail", &EditDocument::sharpenDetail, 0, 100, Correction::sharpening},
+    Parameter{"sharpen.masking", &EditDocument::sharpenMasking, 0, 100, Correction::sharpening}};
 const Parameter &find(std::string_view name) {
     for (const auto &parameter : parameters) {
         if (parameter.name == name)
@@ -68,7 +72,7 @@ void EditDocument::validate() const {
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~2047U) != 0)
+    if ((enabledCorrections & ~4095U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
     for (const auto &curve : curves)
         curve.validate();
@@ -102,6 +106,8 @@ Correction EditDocument::correction(std::string_view name) {
         return Correction::curves;
     if (name == "hsl")
         return Correction::hsl;
+    if (name == "sharpening")
+        return Correction::sharpening;
     if (name.starts_with("hsl.")) {
         hslParameter(name);
         return Correction::hsl;

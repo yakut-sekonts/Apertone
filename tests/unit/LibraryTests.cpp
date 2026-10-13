@@ -102,7 +102,21 @@ void catalogTests(const std::filesystem::path &root, const std::filesystem::path
     require(db.libraryCount() == 1, "Deleting collection deleted original.");
     require(db.activeAsset()->edits.exposure == 1.25, "Library mutation changed Develop edits.");
     sql(path,
-        R"sql(PRAGMA foreign_keys=OFF;DROP TABLE edit_curve_points;DROP TABLE edit_hsl_bands;DROP TABLE collection_assets;DROP TABLE collections;DROP TABLE import_items;DROP TABLE import_sessions;DROP INDEX assets_filename;DROP INDEX assets_flag;DELETE FROM schema_migrations WHERE version>=3;PRAGMA user_version=2;)sql");
+        R"sql(PRAGMA foreign_keys=OFF;
+            CREATE TABLE historical_edits(
+                asset_id TEXT PRIMARY KEY REFERENCES assets(id) ON DELETE CASCADE,
+                schema_version INTEGER NOT NULL DEFAULT 2 CHECK(schema_version=2),
+                exposure REAL NOT NULL DEFAULT 0,temperature REAL NOT NULL DEFAULT 6500,
+                tint REAL NOT NULL DEFAULT 0,custom_wb INTEGER NOT NULL DEFAULT 0,
+                contrast REAL NOT NULL DEFAULT 0,highlights REAL NOT NULL DEFAULT 0,
+                shadows REAL NOT NULL DEFAULT 0,whites REAL NOT NULL DEFAULT 0,
+                blacks REAL NOT NULL DEFAULT 0,vibrance REAL NOT NULL DEFAULT 0,saturation REAL NOT NULL DEFAULT 0,
+                enabled INTEGER NOT NULL DEFAULT 511 CHECK(enabled BETWEEN 0 AND 511),
+                revision INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            INSERT INTO historical_edits(asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled,revision,updated_at)
+                SELECT asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled&511,revision,updated_at FROM edit_documents;
+            DROP TABLE edit_documents; ALTER TABLE historical_edits RENAME TO edit_documents;
+DROP TABLE edit_curve_points;DROP TABLE edit_hsl_bands;DROP TABLE collection_assets;DROP TABLE collections;DROP TABLE import_items;DROP TABLE import_sessions;DROP INDEX assets_filename;DROP INDEX assets_flag;DELETE FROM schema_migrations WHERE version>=3;PRAGMA user_version=2;)sql");
     luma::Catalog migrated(path);
     require(migrated.activeAsset()->edits.exposure == 1.25, "Schema 2 migration lost edits.");
     require(migrated.libraryPage({}, 0, 1).front().rating == 4, "Migration lost ratings.");

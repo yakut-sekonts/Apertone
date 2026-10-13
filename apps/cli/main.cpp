@@ -58,7 +58,11 @@ void printSession(const luma::PhotoSession &session) {
                   << ",\"saturation\":" << band.saturation << ",\"luminance\":" << band.luminance
                   << '}';
     }
-    std::cout << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
+    std::cout << "},\"sharpening\":{\"amount\":" << asset.edits.sharpenAmount
+              << ",\"radius\":" << asset.edits.sharpenRadius
+              << ",\"detail\":" << asset.edits.sharpenDetail
+              << ",\"masking\":" << asset.edits.sharpenMasking
+              << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace
 

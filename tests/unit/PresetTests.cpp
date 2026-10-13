@@ -7,6 +7,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QKeyEvent>
 #include <QLockFile>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
@@ -18,6 +19,7 @@
 #include <QUuid>
 #include <functional>
 #include <iostream>
+#include <source_location>
 
 namespace {
 void require(bool result, const char *message) {
@@ -43,14 +45,17 @@ void write(const QString &path, const QByteArray &data) {
     require(file.open(QIODevice::WriteOnly) && file.write(data) == data.size(),
             "Cannot write test fixture.");
 }
-void waitUntil(const std::function<bool()> &ready) {
+void waitUntil(const std::function<bool()> &ready,
+               std::source_location location = std::source_location::current()) {
     QElapsedTimer timer;
     timer.start();
     while (!ready() && timer.elapsed() < 30000) {
         QCoreApplication::processEvents();
         QThread::msleep(2);
     }
-    require(ready(), "Timed out waiting for editor.");
+    if (!ready())
+        throw std::runtime_error("Timed out waiting for editor at PresetTests.cpp:" +
+                                 std::to_string(location.line()));
 }
 luma::EditDocument sample() {
     luma::EditDocument doc;
@@ -66,6 +71,10 @@ luma::EditDocument sample() {
     doc.setParameter("hsl.red.hue", -25);
     doc.setParameter("hsl.blue.luminance", 15);
     doc.enabledCorrections = 512 | 1 | 8 | 128;
+    doc.sharpenAmount = 65;
+    doc.sharpenRadius = 1.7;
+    doc.sharpenDetail = 80;
+    doc.sharpenMasking = 30;
     return doc;
 }
 void documentTests() {
@@ -74,7 +83,7 @@ void documentTests() {
     current.setParameter("exposure", -0.75);
     current.setParameter("temperature", 7800);
     current.setParameter("hsl.red.hue", 35);
-    for (std::uint32_t groups = 1; groups <= 15; ++groups) {
+    for (std::uint32_t groups = 1; groups <= 31; ++groups) {
         const luma::DevelopPreset preset{QStringLiteral("Мягкий портрет"),
                                          QStringLiteral("Портреты"), source, groups};
         const auto encoded = luma::encodePreset(preset);
@@ -92,18 +101,29 @@ void documentTests() {
                     "As Shot preset became custom white balance.");
     }
     const auto bytes = luma::encodePreset({"Test", {}, source, 15});
+    auto legacy = QJsonDocument::fromJson(bytes).object();
+    legacy["schemaVersion"] = 1;
+    const auto old = luma::decodePreset(QJsonDocument(legacy).toJson());
+    require(old.groups == 15 &&
+                luma::mergeSettings(current, old.settings, old.groups).sharpenAmount ==
+                    current.sharpenAmount,
+            "Legacy preset added absent Detail settings.");
+    auto legacyDetail =
+        QJsonDocument::fromJson(luma::encodePreset({"Detail", {}, source, 16})).object();
+    legacyDetail["schemaVersion"] = 1;
+    throws([&] { luma::decodePreset(QJsonDocument(legacyDetail).toJson()); });
     const auto change = [&](const std::function<void(QJsonObject &)> &mutation) {
         auto root = QJsonDocument::fromJson(bytes).object();
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 2; });
+    change([](auto &root) { root["schemaVersion"] = 3; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
     change([](auto &root) {
         auto groups = root["settings"].toObject();
-        groups["Detail"] = QJsonObject{};
+        groups["Masks"] = QJsonObject{};
         root["settings"] = groups;
     });
     for (const QJsonValue &value :
@@ -131,12 +151,12 @@ void documentTests() {
     });
     throws([&] { luma::decodePreset(QByteArray(1024 * 1024 + 1, ' ')); });
     throws([&] { luma::mergeSettings(current, source, 0); });
-    throws([&] { luma::mergeSettings(current, source, 16); });
+    throws([&] { luma::mergeSettings(current, source, 32); });
 }
 void storeTests(const QString &root) {
     const auto path = root + "/store.json";
     luma::PresetStore a(path), b(path);
-    const luma::DevelopPreset preset{"Test", "Folder", sample(), 15};
+    const luma::DevelopPreset preset{"Test", "Folder", sample(), 31};
     const auto first = a.put(preset), second = b.put(preset);
     require(a.load().size() == 2 && first != second, "A second writer erased existing presets.");
     auto renamed = preset;
@@ -174,7 +194,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 2;
+    future["schemaVersion"] = 3;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -248,14 +268,14 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     child("presetGroup0")->setProperty("checked", false);
     require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
             "Cannot select subset group.");
-    require(child("presetEditor")->property("groups").toInt() == 14,
+    require(child("presetEditor")->property("groups").toInt() == 30,
             "Group checkbox ignored subset.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot update from QML dialog.");
     for (const auto &item : presets.items())
         if (item.toMap()["id"].toString() == id)
             require(item.toMap()["name"].toString() == "QML renamed" &&
-                        item.toMap()["groups"].toInt() == 14,
+                        item.toMap()["groups"].toInt() == 30,
                     "QML update lost name or group selection.");
     QCoreApplication::processEvents();
     require(child("presetTitle")->property("textFormat").toInt() == Qt::PlainText &&
@@ -365,6 +385,134 @@ void editorTests(const QString &source, const QString &root, const QString &qmlP
     qmlTests(editor, presets, qmlPath);
     require(editor.error().isEmpty(), "Editor reported an unexpected error.");
 }
+
+void detailEditorTests(const QString &source, const QString &root, const QString &qmlPath) {
+    PreviewProvider provider;
+    const auto catalog = root + "/detail.sqlite";
+    EditorController editor(catalog.toStdString(), &provider);
+    editor.openFile(QUrl::fromLocalFile(source));
+    waitUntil(
+        [&] { return editor.hasPhoto() && !editor.busy() && !editor.previewUrl().isEmpty(); });
+    const auto baseline = editor.currentSettings();
+    editor.beginEdit();
+    editor.setParameter("sharpen.amount", 75);
+    editor.setParameter("sharpen.radius", 1.8);
+    editor.setParameter("sharpen.detail", 65);
+    editor.setParameter("sharpen.masking", 40);
+    editor.endEdit();
+    const auto saved = editor.currentSettings();
+    waitUntil([&] { return !editor.saving(); });
+    editor.undo();
+    require(editor.currentSettings() == baseline, "Sharpening gesture was not one Undo.");
+    editor.redo();
+    require(editor.currentSettings() == saved, "Sharpening Redo changed settings.");
+    waitUntil([&] { return !editor.saving(); });
+    PresetController detailPresets(root + "/detail-presets.json", editor);
+    detailPresets.copySettings(16);
+    editor.setParameter("sharpen.amount", 10);
+    detailPresets.pasteSettings();
+    require(editor.currentSettings() == saved, "Detail Copy/Paste did not preserve the subset.");
+    editor.undo();
+    require(editor.currentSettings().sharpenAmount == 10, "Detail Paste was not one Undo.");
+    editor.redo();
+    require(detailPresets.save({}, "Sharp", {}, 16, true), "Cannot save Detail preset.");
+    const auto detailID = detailPresets.items()[0].toMap()["id"].toString();
+    editor.setParameter("sharpen.masking", 90);
+    detailPresets.apply(detailID);
+    require(editor.currentSettings() == saved, "Applying Detail preset changed settings.");
+    editor.undo();
+    require(editor.currentSettings().sharpenMasking == 90, "Detail preset was not one Undo.");
+    editor.redo();
+    waitUntil([&] { return !editor.saving(); });
+    const auto oldUrl = editor.previewUrl();
+    QKeyEvent option(QEvent::KeyPress, Qt::Key_Alt, Qt::AltModifier);
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &option);
+    editor.setDetailControl("sharpen.masking");
+    waitUntil(
+        [&] { return editor.previewUrl() != oldUrl && !editor.detailDiagnostic().isEmpty(); });
+    const auto undo = editor.canUndo();
+    require(editor.currentSettings() == saved && !editor.saving(),
+            "Diagnostic changed saved edits.");
+    const auto diagnostic = provider.requestImage({}, nullptr, {});
+    for (int y = 0; y < diagnostic.height(); ++y)
+        for (int x = 0; x < diagnostic.width(); ++x) {
+            const auto pixel = diagnostic.pixel(x, y);
+            require(qRed(pixel) == qGreen(pixel) && qGreen(pixel) == qBlue(pixel),
+                    "Mask diagnostic has color.");
+        }
+    const auto first = root + "/diagnostic-export.png";
+    editor.exportPhoto(QUrl::fromLocalFile(first), 1, 95, false);
+    waitUntil([&] { return !editor.exporting(); });
+    require(QFile::exists(first), "Export during diagnostic failed.");
+    require(editor.detailDiagnostic().isEmpty(), "Export retained the diagnostic gesture.");
+    const auto afterExport = editor.previewUrl();
+    editor.setDetailControl("sharpen.masking");
+    waitUntil(
+        [&] { return !editor.detailDiagnostic().isEmpty() && editor.previewUrl() != afterExport; });
+    const auto diagnosticUrl = editor.previewUrl();
+    QKeyEvent released(QEvent::KeyRelease, Qt::Key_Alt, Qt::NoModifier);
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &released);
+    require(editor.detailDiagnostic().isEmpty(), "Option release retained diagnostic state.");
+    waitUntil([&] {
+        if (!editor.error().isEmpty())
+            throw std::runtime_error(editor.error().toStdString());
+        return editor.previewUrl() != diagnosticUrl;
+    });
+    require(editor.currentSettings() == saved && editor.canUndo() == undo && !editor.saving(),
+            "Option release changed history/autosave.");
+    const auto second = root + "/normal-export.png";
+    editor.exportPhoto(QUrl::fromLocalFile(second), 1, 95, false);
+    waitUntil([&] { return !editor.exporting(); });
+    require(read(first) == read(second), "Diagnostic leaked into exported pixels.");
+    editor.setDetailControl("sharpen.radius");
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &option);
+    require(!editor.detailDiagnostic().isEmpty(),
+            "Option during gesture did not start diagnostic.");
+    QEvent deactivate(QEvent::ApplicationDeactivate);
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &deactivate);
+    require(editor.detailDiagnostic().isEmpty(), "App deactivation retained diagnostic.");
+    // Actual QML pressed/moved bindings drive the same gesture and temporary state.
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty("editor", &editor);
+    QStringList warnings;
+    QObject::connect(&engine, &QQmlEngine::warnings, [&](const QList<QQmlError> &errors) {
+        for (const auto &error : errors)
+            warnings.append(error.toString());
+    });
+    QQmlComponent component(&engine);
+    component.setData(("import QtQuick\nimport QtQuick.Controls\nimport \"" +
+                       QUrl::fromLocalFile(qmlPath).toString() +
+                       "\"\nApplicationWindow {width: 290; height: 400; visible: true; DetailPanel "
+                       "{width: 250} }")
+                          .toUtf8(),
+                      QUrl());
+    waitUntil([&] { return component.status() != QQmlComponent::Loading; });
+    if (component.isError())
+        throw std::runtime_error(component.errorString().toStdString());
+    const std::unique_ptr<QObject> window(component.create());
+    require(window != nullptr, "Detail QML did not create.");
+    auto *slider = window->findChild<QObject *>("sharpen.amountSlider");
+    require(slider && slider->property("enabled").toBool(), "Sharpening slider is not available.");
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &option);
+    require(slider->setProperty("pressed", true), "Cannot press QML sharpening slider.");
+    require(!editor.detailDiagnostic().isEmpty(), "QML press did not start Option diagnostic.");
+    slider->setProperty("value", 95);
+    require(QMetaObject::invokeMethod(slider, "moved"), "Cannot move QML sharpening slider.");
+    slider->setProperty("value", 105);
+    QMetaObject::invokeMethod(slider, "moved");
+    slider->setProperty("pressed", false);
+    require(editor.detailDiagnostic().isEmpty() && editor.currentSettings().sharpenAmount == 105,
+            "QML release did not finish the gesture.");
+    QCoreApplication::sendEvent(QCoreApplication::instance(), &released);
+    editor.undo();
+    require(editor.currentSettings() == saved, "QML gesture created more than one Undo.");
+    waitUntil([&] { return !editor.saving(); });
+    require(luma::Catalog(catalog.toStdString()).activeAsset()->edits == saved,
+            "Restart data differs from actual sharpening settings.");
+    require(editor.error().isEmpty(), "Unexpected Detail editor error.");
+    if (!warnings.isEmpty())
+        throw std::runtime_error(warnings.join('\n').toStdString());
+}
 } // namespace
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
@@ -376,6 +524,7 @@ int main(int argc, char **argv) {
         documentTests();
         storeTests(temporary.path());
         editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
+        detailEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         std::cout
             << "Preset subsets, JSON validation, atomic storage, hover, Undo and restart passed.\n";
         return 0;

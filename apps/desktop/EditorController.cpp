@@ -19,8 +19,10 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     saveTimer_.setSingleShot(true);
     saveTimer_.setInterval(180);
     connect(&saveTimer_, &QTimer::timeout, this, &EditorController::flushSave);
+    QGuiApplication::instance()->installEventFilter(this);
 }
 EditorController::~EditorController() {
+    QGuiApplication::instance()->removeEventFilter(this);
     exportCancellation_.cancel();
     loadCancellation_.cancel();
     ioJobs_.shutdown();
@@ -108,6 +110,7 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    clearDetailDiagnostic();
     endEdit();
     loadCancellation_.cancel();
     loadCancellation_ = luma::CancellationSource{};
@@ -203,7 +206,8 @@ QVariantMap EditorController::parameters() const {
     QVariantMap values;
     for (const auto *name : {"exposure", "temperature", "tint", "contrast", "highlights", "shadows",
                              "whites", "blacks", "vibrance", "saturation", "curve.shadows",
-                             "curve.darks", "curve.lights", "curve.highlights"})
+                             "curve.darks", "curve.lights", "curve.highlights", "sharpen.amount",
+                             "sharpen.radius", "sharpen.detail", "sharpen.masking"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
     for (const auto band : luma::hslBands) {
         for (const auto *parameter : {"hue", "saturation", "luminance"}) {
@@ -215,18 +219,21 @@ QVariantMap EditorController::parameters() const {
 }
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
-    for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
-                             "whites", "blacks", "vibrance", "saturation", "curves", "hsl"})
+    for (const auto *name :
+         {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
+          "vibrance", "saturation", "curves", "hsl", "sharpening"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
 }
 void EditorController::beginEdit() {
+    clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable())
         history_.begin();
 }
 void EditorController::endEdit() {
+    clearDetailDiagnostic();
     clearPreviewSettings();
     targeted_.reset();
     history_.end();
@@ -238,6 +245,7 @@ void EditorController::editsChanged() {
     pendingSave_ = true;
     saveTimer_.start();
     status_ = QStringLiteral("Сохраняем правку…");
+    refreshDetailDiagnostic();
     emit stateChanged();
     render();
 }
@@ -302,6 +310,7 @@ void EditorController::setWhiteBalancePreset(const QString &name) {
     editsChanged();
 }
 void EditorController::undo() {
+    clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canUndo()) {
         targeted_.reset();
@@ -310,6 +319,7 @@ void EditorController::undo() {
     }
 }
 void EditorController::redo() {
+    clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canRedo()) {
         targeted_.reset();
@@ -318,6 +328,7 @@ void EditorController::redo() {
     }
 }
 void EditorController::resetEdits() {
+    clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.current() != luma::EditDocument{}) {
         history_.end();
@@ -331,6 +342,7 @@ void EditorController::setOriginal(bool value) {
     }
     presetPreview_.reset();
     original_ = value;
+    clearDetailDiagnostic();
     emit stateChanged();
     render();
 }
@@ -346,47 +358,51 @@ void EditorController::render() {
         original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
+    const auto diagnostic = diagnostic_;
+    const auto detailScale = session_->previewScale;
     const QPointer<EditorController> self(this);
-    renderJob_ = renderJobs_.submit(
-        luma::JobPriority::interactive, [self, image, orientation, edits, calibration, profile,
-                                         revision](const luma::JobContext &context) {
-            try {
-                const auto pixels = luma::renderCPU(*image, edits, orientation, profile,
-                                                    context.stopToken(), calibration);
-                QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
-                              QImage::Format_RGBA8888);
-                auto owned = output.copy();
-                if (self) {
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, revision, owned = std::move(owned)]() mutable {
-                            if (!self || self->renderRevision_ != revision) {
-                                return;
-                            }
-                            self->provider_->update(std::move(owned));
-                            ++self->imageRevision_;
-                            emit self->stateChanged();
-                        },
-                        Qt::QueuedConnection);
-                }
-            } catch (const std::exception &error) {
-                if (context.stopToken().isCancelled()) {
-                    return;
-                }
-                const auto message = QString::fromUtf8(error.what());
-                if (self) {
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, revision, message] {
-                            if (self && self->renderRevision_ == revision) {
-                                self->error_ = message;
-                                emit self->stateChanged();
-                            }
-                        },
-                        Qt::QueuedConnection);
-                }
-            }
-        });
+    renderJob_ =
+        renderJobs_.submit(luma::JobPriority::interactive,
+                           [self, image, orientation, edits, calibration, profile, revision,
+                            diagnostic, detailScale](const luma::JobContext &context) {
+                               try {
+                                   const auto pixels = luma::renderCPU(
+                                       *image, edits, orientation, profile, context.stopToken(),
+                                       calibration, diagnostic, detailScale);
+                                   QImage output(pixels.rgba.data(), pixels.width, pixels.height,
+                                                 pixels.width * 4, QImage::Format_RGBA8888);
+                                   auto owned = output.copy();
+                                   if (self) {
+                                       QMetaObject::invokeMethod(
+                                           self,
+                                           [self, revision, owned = std::move(owned)]() mutable {
+                                               if (!self || self->renderRevision_ != revision) {
+                                                   return;
+                                               }
+                                               self->provider_->update(std::move(owned));
+                                               ++self->imageRevision_;
+                                               emit self->stateChanged();
+                                           },
+                                           Qt::QueuedConnection);
+                                   }
+                               } catch (const std::exception &error) {
+                                   if (context.stopToken().isCancelled()) {
+                                       return;
+                                   }
+                                   const auto message = QString::fromUtf8(error.what());
+                                   if (self) {
+                                       QMetaObject::invokeMethod(
+                                           self,
+                                           [self, revision, message] {
+                                               if (self && self->renderRevision_ == revision) {
+                                                   self->error_ = message;
+                                                   emit self->stateChanged();
+                                               }
+                                           },
+                                           Qt::QueuedConnection);
+                                   }
+                               }
+                           });
 }
 void EditorController::flushSave() {
     saveTimer_.stop();

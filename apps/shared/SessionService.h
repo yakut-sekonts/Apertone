@@ -12,6 +12,7 @@ struct PhotoSession {
     AssetRecord asset;
     std::shared_ptr<const FloatImage> preview;
     RawColorCalibration calibration;
+    double previewScale = 1;
 };
 class SessionService {
   public:
