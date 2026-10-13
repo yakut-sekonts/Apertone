@@ -24,6 +24,8 @@ partial work, injected HSL insertion/Undo failures, conflict refusal/retry, no-o
 and failed replacement journal retention, active-photo refresh, pending/failed
 autosave, QML Sync controls, close during queued/running work, updater readiness,
 metadata/collection preservation, restart and unchanged original RAW checksums.
+An idle batch does not retain a close lock when autosave rejects closing; Library
+close preparation begins only after the editor and batch are ready to close.
 Existing RAW, color, Library, presets, export/restart and release tests remain
 required. No private test asset is published.
 

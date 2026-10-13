@@ -58,7 +58,7 @@ ApplicationWindow {
             Button { text: "Отменить"; onClicked: batch.cancel() }
         }
     }
-    onClosing: function(close) { const c = batch.requestClose(); const a = library.requestClose(); const b = editor.requestClose(); close.accepted = a && b && c }
+    onClosing: function(close) { const c = batch.requestClose(); const b = editor.requestClose(); const a = c && b ? library.requestClose() : false; close.accepted = a && b && c }
     Connections { target: batch; function onCloseReady() { root.close() } }
     Connections { target: library; function onCloseReady() { root.close() } }
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }

@@ -277,6 +277,8 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     wait([&] { return !editor.error().isEmpty() && editor.saving(); });
     const auto durable = documents(f);
     const auto draft = editor.currentSettings();
+    require(batch.requestClose() && !editor.requestClose(),
+            "Failed autosave must reject close while an idle batch is ready.");
     batch.sync(15);
     QCoreApplication::processEvents();
     require(batch.waitingForSave() && editor.currentSettings() == draft,
@@ -314,6 +316,10 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     wait([&] { return closed; });
     require(documents(f) == beforeClose && !editor.editingLocked(),
             "Close committed or retained a cancelled batch.");
+    // Another close participant can reject closing after batch readiness.
+    batch.sync(15);
+    require(batch.working(), "Batch remained locked after deferred close readiness.");
+    batch.cancel();
     require(editor.error().isEmpty(), "Unexpected editor error after batch acceptance.");
 }
 } // namespace

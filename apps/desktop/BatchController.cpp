@@ -171,7 +171,13 @@ void BatchController::finish(QString error, QString status, bool undo, bool redo
     library_.setExternalBusy(false);
     emit changed();
     if (closing_)
-        QMetaObject::invokeMethod(this, [this] { emit closeReady(); }, Qt::QueuedConnection);
+        QMetaObject::invokeMethod(
+            this,
+            [this] {
+                closing_ = false;
+                emit closeReady();
+            },
+            Qt::QueuedConnection);
 }
 void BatchController::cancel() {
     if (!working())
@@ -187,6 +193,8 @@ void BatchController::cancel() {
     }
 }
 bool BatchController::requestClose() {
+    if (!working())
+        return true;
     closing_ = true;
     cancel();
     return !working();
