@@ -15,8 +15,10 @@ ColumnLayout {
         graph.requestPaint();
     }
     onChannelChanged: {
-        curveGesture.dragging = false;
-        editor.endEdit();
+        if (curveGesture && curveGesture.dragging) {
+            curveGesture.dragging = false;
+            editor.endEdit();
+        }
         selected = -1;
         refresh();
         if (editor.targetedTool.startsWith("curve."))

@@ -79,7 +79,7 @@ with tempfile.TemporaryDirectory(prefix="luma-advanced-") as temporary:
         result = subprocess.run([str(gui), "--catalog", str(gui_catalog), "--test-develop", "--test-advanced", *args],
                                 env=env, capture_output=True, text=True, timeout=120)
         assert result.returncode == 0, result.stdout + result.stderr
-        for message in ("ReferenceError", "TypeError", "Unable to assign"):
+        for message in ("ReferenceError", "TypeError", "Unable to assign", "Binding loop detected"):
             assert message not in result.stderr, result.stderr
     assert first.read_bytes() == second.read_bytes(), "Advanced desktop restart changed exported pixels"
     restored = run("restore", database=gui_catalog)
