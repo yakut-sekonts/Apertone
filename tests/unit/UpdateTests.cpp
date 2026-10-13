@@ -80,7 +80,11 @@ int main(int argc, char **argv) {
         require(restarted == 0, "Restart ran during import");
         importDone = true;
         wait(240);
-        require(restarted == 1 && !updates.restartPending(), "Restart did not run exactly once");
+        require(restarted == 1 && updates.restartPending() && !updates.canCheck(),
+                "Restart did not run exactly once or UI unlocked before termination");
+        callbacks.failed();
+        require(!updates.restartPending() && updates.canCheck(),
+                "Failed installation locked retry");
         callbacks.finished();
         require(updates.availableVersion().isEmpty(), "Completed session kept stale bell badge");
         {

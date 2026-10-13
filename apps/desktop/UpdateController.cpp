@@ -9,6 +9,7 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
             return;
         restartTimer_.stop();
         auto action = std::exchange(install_, {});
+        message_ = QStringLiteral("Устанавливаем обновление и перезапускаем Luma…");
         emit changed();
         action();
     });
@@ -31,7 +32,14 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
              version_.clear();
              emit changed();
          },
-         [this](std::function<void()> action) { postponeInstallation(std::move(action)); }});
+         [this](std::function<void()> action) { postponeInstallation(std::move(action)); },
+         [this] { emit changed(); },
+         [this] {
+             restartTimer_.stop();
+             install_ = {};
+             restarting_ = false;
+             emit changed();
+         }});
     QTimer::singleShot(0, this, [this] {
         QString error;
         if (!native_->start(error))
@@ -60,8 +68,9 @@ void UpdateController::install() {
         native_->check(true);
 }
 void UpdateController::postponeInstallation(std::function<void()> action) {
-    if (install_ || !action)
+    if (restarting_ || !action)
         return;
+    restarting_ = true;
     install_ = std::move(action);
     message_ = QStringLiteral("Ожидаем сохранения правок и завершения операций перед обновлением…");
     emit preparingRestart();

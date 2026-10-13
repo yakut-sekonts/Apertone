@@ -5,6 +5,16 @@
 @property(nonatomic) UpdateCallbacks callbacks;
 @end
 @implementation LumaUpdateDelegate
+- (void)observeValueForKeyPath:(NSString *)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
+                       context:(void *)context {
+    if ([keyPath isEqualToString:@"canCheckForUpdates"]) {
+        self.callbacks.availability();
+    } else {
+        [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+    }
+}
 - (BOOL)supportsGentleScheduledUpdateReminders {
     return YES;
 }
@@ -41,12 +51,16 @@
     (void)updater;
     (void)check;
     if (error && error.code == SUNoUpdateError) {
+        self.callbacks.failed();
         self.callbacks.finished();
         self.callbacks.status(false, QStringLiteral("Доступных обновлений нет"));
     } else if (error && error.code != SUInstallationCanceledError) {
+        self.callbacks.failed();
         self.callbacks.status(false, QStringLiteral("Не удалось обновить Luma: ") +
                                          QString::fromUtf8(error.localizedDescription.UTF8String));
     } else {
+        if (error)
+            self.callbacks.failed();
         self.callbacks.status(false, QStringLiteral("Проверка обновлений завершена"));
     }
 }
@@ -75,8 +89,13 @@ class SparkleUpdater final : public NativeUpdater {
         controller_ = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:NO
                                                                     updaterDelegate:delegate_
                                                                  userDriverDelegate:delegate_];
+        [controller_.updater addObserver:delegate_
+                              forKeyPath:@"canCheckForUpdates"
+                                 options:NSKeyValueObservingOptionNew
+                                 context:nullptr];
     }
     ~SparkleUpdater() override {
+        [controller_.updater removeObserver:delegate_ forKeyPath:@"canCheckForUpdates"];
         // The controller and its weak delegates remain valid for the same lifetime.
         controller_ = nil;
         delegate_ = nil;

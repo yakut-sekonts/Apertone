@@ -49,12 +49,12 @@ ApplicationWindow {
     Connections { target: library; function onCloseReady() { root.close() } }
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
     Connections { target: editor; function onCloseReady() { root.close() } }
-    Shortcut { sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
-    Shortcut { sequences: [StandardKey.Undo]; enabled: editor.canUndo && !editor.busy; onActivated: editor.undo() }
-    Shortcut { sequences: [StandardKey.Redo]; enabled: editor.canRedo && !editor.busy; onActivated: editor.redo() }
-    Shortcut { sequences: [StandardKey.Quit]; onActivated: root.close() }
-    Shortcut { sequence: "\\"; onActivated: editor.original = !editor.original }
-    Shortcut { sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
+    Shortcut { enabled: !updates.restartPending; sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: editor.canUndo && !editor.busy && !updates.restartPending; onActivated: editor.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: editor.canRedo && !editor.busy && !updates.restartPending; onActivated: editor.redo() }
+    Shortcut { enabled: !updates.restartPending; sequences: [StandardKey.Quit]; onActivated: root.close() }
+    Shortcut { enabled: !updates.restartPending; sequence: "\\"; onActivated: editor.original = !editor.original }
+    Shortcut { enabled: !updates.restartPending; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     FileDialog {
         id: fileDialog
         title: "Открыть RAW"
@@ -86,6 +86,7 @@ ApplicationWindow {
         onAccepted: editor.exportPhoto(selectedFile, exportFormat.currentIndex, Math.round(exportQuality.value), overwriteExport.checked)
     }
     DropArea {
+        enabled: !updates.restartPending
         anchors.fill: parent
         onDropped: function(drop) {
             if (drop.hasUrls && drop.urls.length === 1) { editor.openFile(drop.urls[0]); drop.acceptProposedAction() }
@@ -107,8 +108,8 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
                 UpdateBell {}
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
-                Button { text: "↶"; enabled: editor.canUndo && !editor.busy; onClicked: editor.undo(); Accessible.name: "Undo" }
-                Button { text: "↷"; enabled: editor.canRedo && !editor.busy; onClicked: editor.redo(); Accessible.name: "Redo" }
+                Button { text: "↶"; enabled: editor.canUndo && !editor.busy && !updates.restartPending; onClicked: editor.undo(); Accessible.name: "Undo" }
+                Button { text: "↷"; enabled: editor.canRedo && !editor.busy && !updates.restartPending; onClicked: editor.redo(); Accessible.name: "Redo" }
                 Button { text: "Экспорт"; enabled: editor.hasPhoto && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
                 Button { text: "+  Открыть RAW"; enabled: !editor.busy; onClicked: fileDialog.open() }
             }

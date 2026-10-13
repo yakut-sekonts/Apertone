@@ -9,6 +9,8 @@ struct UpdateCallbacks {
     std::function<void(bool, QString)> status;
     std::function<void()> finished;
     std::function<void(std::function<void()>)> install;
+    std::function<void()> availability;
+    std::function<void()> failed;
 };
 class NativeUpdater {
   public:
@@ -46,7 +48,7 @@ class UpdateController final : public QObject {
     bool canCheck() const;
     bool automatic() const;
     bool restartPending() const {
-        return bool(install_);
+        return restarting_;
     }
     void setAutomatic(bool enabled);
     Q_INVOKABLE void check();
@@ -59,7 +61,7 @@ class UpdateController final : public QObject {
 
   private:
     QString version_, message_ = QStringLiteral("Обновления ещё не проверялись");
-    bool checking_ = false;
+    bool checking_ = false, restarting_ = false;
     std::unique_ptr<NativeUpdater> native_;
     std::function<bool()> ready_;
     std::function<void()> install_;
