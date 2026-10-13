@@ -150,7 +150,7 @@ ApplicationWindow {
                     Label { text: editor.hasPhoto ? editor.filename : "Фото не выбрано"; color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
                     Label { text: "Оригинал без изменений"; color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
-                    Item { Layout.fillHeight: true }
+                    PresetPanel { Layout.fillWidth: true; Layout.fillHeight: true }
                     Label { text: "КАТАЛОГ"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                     Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                     Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
@@ -162,7 +162,7 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: editor.original ? "ОРИГИНАЛЬНЫЙ RAW" : "ПРЕДПРОСМОТР"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: editor.original ? "ОРИГИНАЛЬНЫЙ RAW" : editor.presetPreview ? "PREVIEW ПРЕСЕТА" : "ПРЕДПРОСМОТР"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
                         Label { text: "FIT"; color: "#777f8b"; font.pixelSize: 10 }
                     }

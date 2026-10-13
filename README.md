@@ -38,7 +38,9 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Lazy original thumbnails, virtualized grid/filmstrip and bounded metadata paging.
 - ✅ Single/multi/range selection, ratings, Pick/Reject, color labels and manual collections.
 - ✅ Basic search and combined metadata/collection filters.
-- 🗓 Advanced Develop, masks, presets and Metal image processing.
+- ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
+- 🚧 User presets with subset groups, hover preview and Copy/Paste in development.
+- 🗓 Detail, Crop, Optics, local masks, batch sync and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -147,11 +149,11 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 
 ## In development: Curves, HSL and macOS updates
 
-The current development branch adds RGB and per-channel point curves,
+The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
 atomically with edit schema 3 / catalog schema 4. Neutral curves and HSL preserve
-the preceding Develop output. Presets, Detail, Crop and Optics remain later 0.4 work.
+the preceding Develop output. Detail, Crop and Optics remain later 0.4 work.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -162,3 +164,23 @@ Update checks send no photo/catalog data or system profiling payload.
 The published v0.3.0 binary has no updater and needs one manual installation of
 the first updater-enabled release. Future release publication requires the
 repository signing secret; see [macOS updates](docs/UPDATES.md).
+
+## In development: user presets / 0.4.1
+
+Develop's left panel saves subsets of Light, Color, Curve and HSL, including each
+selected group's enabled state and As Shot/custom WB mode. Hover renders a
+preview without changing edits or autosave; click applies it with one Undo. The
+menu edits/renames/moves/deletes presets and exports validated Luma JSON. Import
+assigns a new local ID. Flat folder names organize the list.
+
+Presets live in `presets.json` beside the selected catalog; catalogs in the same
+directory share the collection. Keep this file with catalog backups. Writes are
+locked and atomic; corrupt or newer unsupported data is reported and preserved.
+Collections are bounded to 512 entries / 1 MiB. Copy selects groups; Paste applies
+that in-memory snapshot to one photo. Copy/Paste does not use the system clipboard
+and lasts only for the current application session. Batch paste/presets and Sync
+Settings remain planned. See [preset workflow and validation](docs/PRESETS_REVIEW.md).
+
+The prepared 0.4.0 candidate remains a separate immutable source commit; these
+presets do not appear in the published v0.3.0 or that candidate. A development
+version is not a newly published GitHub release.

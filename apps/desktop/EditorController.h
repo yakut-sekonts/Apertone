@@ -15,6 +15,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
     Q_PROPERTY(QString targetedTool READ targetedTool WRITE setTargetedTool NOTIFY stateChanged)
+    Q_PROPERTY(bool presetPreview READ presetPreview NOTIFY stateChanged)
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
@@ -107,6 +108,16 @@ class EditorController final : public QObject {
     }
     QString previewUrl() const;
     QString catalogPath() const;
+    QString sourcePath() const;
+    bool presetPreview() const {
+        return presetPreview_.has_value();
+    }
+    luma::EditDocument currentSettings() const {
+        return history_.current();
+    }
+    void applySettings(const luma::EditDocument &settings, std::uint32_t groups);
+    void previewSettings(const luma::EditDocument &settings, std::uint32_t groups);
+    void clearPreviewSettings();
     void restore();
     void setWindow(QQuickWindow *window);
     Q_INVOKABLE void openFile(const QUrl &url);
@@ -152,6 +163,7 @@ class EditorController final : public QObject {
     bool closing_ = false;
     int pendingWrites_ = 0;
     luma::EditHistory history_;
+    std::optional<luma::EditDocument> presetPreview_;
     bool exporting_ = false;
     double exportProgress_ = 0;
     double progress_ = 0;

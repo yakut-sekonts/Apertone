@@ -22,6 +22,7 @@ void EditorController::advancedFailure(const std::exception &failure) {
     emit stateChanged();
 }
 void EditorController::applyAdvanced(luma::EditDocument next) {
+    clearPreviewSettings();
     next.validate();
     if (next != history_.current()) {
         history_.apply(std::move(next));

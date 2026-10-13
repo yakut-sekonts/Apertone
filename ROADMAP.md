@@ -44,8 +44,12 @@ Move, smart collections, advanced import templates, keywords and XMP remain late
 
 🚧 In progress. The first substage implements point/parametric Curves, HSL and
 targeted tools with atomic persistence, gesture Undo/Redo and reproducible exports.
-Remaining scope: detail/noise reduction, crop, optics,
-versioned presets, subset parameters, preset previews, copy/paste and sync.
+The next substage adds versioned user presets for Light/Color/Curve/HSL,
+flat folder organization, create/edit/rename/delete, JSON import/export,
+non-destructive hover preview and single-photo subset Copy/Paste. Preset/paste
+application is one Undo; edit/catalog schemas remain unchanged.
+Remaining scope: detail/noise reduction, crop, optics, multi-photo preset/paste
+application and Sync Settings.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 

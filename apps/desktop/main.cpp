@@ -1,9 +1,11 @@
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
+#include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
 #include <QCommandLineParser>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -17,7 +19,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.0"));
+    app.setApplicationVersion(QStringLiteral("0.4.1-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -59,6 +61,8 @@ int main(int argc, char **argv) {
                   QStringLiteral("/catalog.sqlite");
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
+    PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),
+                             editor);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
     const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
                          parser.isSet(QStringLiteral("test-edit")) ||
@@ -80,6 +84,7 @@ int main(int argc, char **argv) {
     engine.rootContext()->setContextProperty(QStringLiteral("editor"), &editor);
     engine.rootContext()->setContextProperty(QStringLiteral("library"), &library);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
+    engine.rootContext()->setContextProperty(QStringLiteral("presets"), &presets);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);

@@ -68,6 +68,9 @@ QString EditorController::dimensions() const {
 QString EditorController::catalogPath() const {
     return QString::fromStdString(catalog_.string());
 }
+QString EditorController::sourcePath() const {
+    return session_ ? QString::fromStdString(session_->asset.path.string()) : QString();
+}
 QString EditorController::previewUrl() const {
     return imageRevision_ > 0 ? QStringLiteral("image://preview/current?v=%1").arg(imageRevision_)
                               : QString();
@@ -219,15 +222,18 @@ QVariantMap EditorController::correctionStates() const {
     return values;
 }
 void EditorController::beginEdit() {
+    clearPreviewSettings();
     if (editable())
         history_.begin();
 }
 void EditorController::endEdit() {
+    clearPreviewSettings();
     targeted_.reset();
     history_.end();
     emit stateChanged();
 }
 void EditorController::editsChanged() {
+    presetPreview_.reset();
     ++editRevision_;
     pendingSave_ = true;
     saveTimer_.start();
@@ -236,6 +242,7 @@ void EditorController::editsChanged() {
     render();
 }
 void EditorController::setParameter(const QString &name, double value) {
+    clearPreviewSettings();
     if (!editable())
         return;
     try {
@@ -254,6 +261,7 @@ void EditorController::setExposure(double value) {
     setParameter(QStringLiteral("exposure"), value);
 }
 void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
+    clearPreviewSettings();
     if (!editable())
         return;
     try {
@@ -269,6 +277,7 @@ void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
     }
 }
 void EditorController::setWhiteBalancePreset(const QString &name) {
+    clearPreviewSettings();
     if (!editable())
         return;
     auto next = history_.current();
@@ -293,6 +302,7 @@ void EditorController::setWhiteBalancePreset(const QString &name) {
     editsChanged();
 }
 void EditorController::undo() {
+    clearPreviewSettings();
     if (editable() && history_.canUndo()) {
         targeted_.reset();
         history_.undo();
@@ -300,6 +310,7 @@ void EditorController::undo() {
     }
 }
 void EditorController::redo() {
+    clearPreviewSettings();
     if (editable() && history_.canRedo()) {
         targeted_.reset();
         history_.redo();
@@ -307,6 +318,7 @@ void EditorController::redo() {
     }
 }
 void EditorController::resetEdits() {
+    clearPreviewSettings();
     if (editable() && history_.current() != luma::EditDocument{}) {
         history_.end();
         history_.apply({});
@@ -317,6 +329,7 @@ void EditorController::setOriginal(bool value) {
     if (original_ == value || !session_) {
         return;
     }
+    presetPreview_.reset();
     original_ = value;
     emit stateChanged();
     render();
@@ -329,7 +342,8 @@ void EditorController::render() {
     const auto revision = ++renderRevision_;
     const auto image = session_->preview;
     const int orientation = session_->asset.metadata.orientation;
-    const auto edits = original_ ? luma::EditDocument{} : history_.current();
+    const auto edits =
+        original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const QPointer<EditorController> self(this);

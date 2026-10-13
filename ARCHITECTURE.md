@@ -33,6 +33,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
 - `core/edits`: validated typed Develop document; schema version 3.
+- `core/presets`: validated subset merge of implemented settings groups.
 - `core/catalog`: SQLite connection per worker operation and migrations 1/2/3.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
@@ -40,7 +41,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `apps/desktop`: Qt editor controller, bounded paged LibraryModel and asynchronous thumbnail provider.
 - `apps/cli`: explicit-catalog machine-readable commands.
 
-Future `core/masks`, `cache`, `presets`, `search`, `ai` are described by
+Future `core/masks`, `cache`, `search`, `ai` are described by
 the roadmap and will be created with their first implementation. Empty feature
 classes are not counted as functionality.
 
@@ -76,7 +77,7 @@ unrelated rendering graph.
 
 ## Threading, autosave and shutdown
 
-The GUI owns state only. The I/O job lane has one worker so open, restore and
+The GUI owns editor state. Small bounded preset collection I/O is synchronous; RAW, render and catalog workflows use workers. The I/O job lane has one worker so open, restore and
 catalog saves are ordered. Interactive preview uses a separate one-worker lane.
 New render requests cancel obsolete jobs; revision checks prevent stale images
 from replacing current UI state. Cancellation is checked per row and supplied
@@ -99,7 +100,7 @@ originals are not silently reassociated with prior edits. Missing sources cause
 a visible error; their catalog row and edits remain intact.
 
 Migration 3 adds collections/membership and checkpointed import sessions/items.
-Future migrations add versions, keywords, presets, export sessions and render cache entries. A newer unsupported schema is refused rather
+Future migrations add versions, keywords, export sessions and render cache entries. A newer unsupported schema is refused rather
 than overwritten. Automated backups and crash recovery UI are planned for 0.9.
 
 ## Memory and cache
@@ -179,3 +180,12 @@ for EditorController pending/failed saves, load, export and Library writes/impor
 The embedded Ed25519 public key validates archives. The private key stays in the
 release owner's Keychain or the repository Actions secret. Qt/core never process
 an update ZIP or replace their own running executable.
+
+## User presets
+
+ADR 0009 defines schema-1 preset JSON and atomic shared collection storage beside
+the catalog. A core subset merge preserves every excluded group and the As Shot
+mode. The desktop owns a separate temporary hover snapshot, which affects only
+preview rendering. Apply/Paste send the merged document through existing history,
+autosave and export code. Preset storage has no RAW or catalog paths in exported
+documents and does not require changing catalog schema 4.

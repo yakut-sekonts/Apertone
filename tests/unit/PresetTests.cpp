@@ -1,0 +1,383 @@
+#include "apps/desktop/EditorController.h"
+#include "apps/desktop/PresetController.h"
+#include "apps/shared/PresetStore.h"
+#include <QElapsedTimer>
+#include <QFile>
+#include <QGuiApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLockFile>
+#include <QQmlApplicationEngine>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQuickItem>
+#include <QQuickStyle>
+#include <QTemporaryDir>
+#include <QThread>
+#include <QUuid>
+#include <functional>
+#include <iostream>
+
+namespace {
+void require(bool result, const char *message) {
+    if (!result)
+        throw std::runtime_error(message);
+}
+template <typename F> void throws(F operation) {
+    bool failed = false;
+    try {
+        operation();
+    } catch (const std::exception &) {
+        failed = true;
+    }
+    require(failed, "Expected invalid preset to be rejected.");
+}
+QByteArray read(const QString &path) {
+    QFile file(path);
+    require(file.open(QIODevice::ReadOnly), "Cannot read test fixture.");
+    return file.readAll();
+}
+void write(const QString &path, const QByteArray &data) {
+    QFile file(path);
+    require(file.open(QIODevice::WriteOnly) && file.write(data) == data.size(),
+            "Cannot write test fixture.");
+}
+void waitUntil(const std::function<bool()> &ready) {
+    QElapsedTimer timer;
+    timer.start();
+    while (!ready() && timer.elapsed() < 30000) {
+        QCoreApplication::processEvents();
+        QThread::msleep(2);
+    }
+    require(ready(), "Timed out waiting for editor.");
+}
+luma::EditDocument sample() {
+    luma::EditDocument doc;
+    doc.setParameter("exposure", 1.25);
+    doc.setParameter("contrast", 12);
+    doc.setParameter("temperature", 5100);
+    doc.setParameter("tint", -13);
+    doc.customWhiteBalance = false;
+    doc.setParameter("vibrance", 23);
+    doc.setParameter("curve.lights", 20);
+    doc.curves[0] = {{{0, 0.03}, {0.4, 0.65}, {1, 0.98}}};
+    doc.curves[2] = {{{0, 0}, {0.3, 0.2}, {1, 1}}};
+    doc.setParameter("hsl.red.hue", -25);
+    doc.setParameter("hsl.blue.luminance", 15);
+    doc.enabledCorrections = 512 | 1 | 8 | 128;
+    return doc;
+}
+void documentTests() {
+    const auto source = sample();
+    luma::EditDocument current;
+    current.setParameter("exposure", -0.75);
+    current.setParameter("temperature", 7800);
+    current.setParameter("hsl.red.hue", 35);
+    for (std::uint32_t groups = 1; groups <= 15; ++groups) {
+        const luma::DevelopPreset preset{QStringLiteral("Мягкий портрет"),
+                                         QStringLiteral("Портреты"), source, groups};
+        const auto encoded = luma::encodePreset(preset);
+        const auto decoded = luma::decodePreset(encoded);
+        require(decoded.name == preset.name && decoded.folder == preset.folder &&
+                    decoded.groups == groups,
+                "Preset metadata did not survive JSON round trip.");
+        const auto merged = luma::mergeSettings(current, decoded.settings, decoded.groups);
+        require(merged == luma::mergeSettings(current, source, groups),
+                "JSON changed selected settings.");
+        require(luma::mergeSettings(merged, current, groups) == current,
+                "Subset changed unselected groups.");
+        if (groups & 2)
+            require(!merged.customWhiteBalance && merged.temperature == 5100,
+                    "As Shot preset became custom white balance.");
+    }
+    const auto bytes = luma::encodePreset({"Test", {}, source, 15});
+    const auto change = [&](const std::function<void(QJsonObject &)> &mutation) {
+        auto root = QJsonDocument::fromJson(bytes).object();
+        mutation(root);
+        throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
+    };
+    change([](auto &root) { root["schemaVersion"] = 2; });
+    change([](auto &root) { root["unexpected"] = true; });
+    change([](auto &root) { root["name"] = ""; });
+    change([](auto &root) { root["settings"] = QJsonObject{}; });
+    change([](auto &root) {
+        auto groups = root["settings"].toObject();
+        groups["Detail"] = QJsonObject{};
+        root["settings"] = groups;
+    });
+    for (const QJsonValue &value :
+         {QJsonValue{}, QJsonValue(true), QJsonValue(7.0), QJsonValue("1.0")})
+        change([&](auto &root) {
+            auto groups = root["settings"].toObject();
+            auto light = groups["Light"].toObject();
+            light["exposure"] = value;
+            groups["Light"] = light;
+            root["settings"] = groups;
+        });
+    change([](auto &root) {
+        auto groups = root["settings"].toObject();
+        auto color = groups["Color"].toObject();
+        color["enabledCorrections"] = 512;
+        groups["Color"] = color;
+        root["settings"] = groups;
+    });
+    change([](auto &root) {
+        auto groups = root["settings"].toObject();
+        auto curve = groups["Curve"].toObject();
+        curve.remove("points");
+        groups["Curve"] = curve;
+        root["settings"] = groups;
+    });
+    throws([&] { luma::decodePreset(QByteArray(1024 * 1024 + 1, ' ')); });
+    throws([&] { luma::mergeSettings(current, source, 0); });
+    throws([&] { luma::mergeSettings(current, source, 16); });
+}
+void storeTests(const QString &root) {
+    const auto path = root + "/store.json";
+    luma::PresetStore a(path), b(path);
+    const luma::DevelopPreset preset{"Test", "Folder", sample(), 15};
+    const auto first = a.put(preset), second = b.put(preset);
+    require(a.load().size() == 2 && first != second, "A second writer erased existing presets.");
+    auto renamed = preset;
+    renamed.name = "Renamed";
+    renamed.folder = "Moved";
+    a.put(renamed, first);
+    const auto loaded = b.load();
+    require(loaded[0].preset.name == "Renamed" && loaded[0].preset.folder == "Moved" &&
+                loaded[0].preset.settings == preset.settings,
+            "Rename/move changed saved settings.");
+    const auto exportPath = root + "/export.json";
+    luma::PresetStore::exportFile(exportPath, loaded[0].preset);
+    require(luma::PresetStore::importFile(exportPath).settings == preset.settings,
+            "Export/import changed settings.");
+    const auto before = read(path);
+    {
+        QLockFile lock(path + ".lock");
+        require(lock.tryLock(0), "Cannot acquire test lock.");
+        throws([&] { a.remove(first); });
+        throws([&] { a.put(preset); });
+        require(read(path) == before, "Locked mutation changed the collection.");
+    }
+    throws([&] { a.put(renamed, "missing"); });
+    throws([&] { a.remove("missing"); });
+    require(read(path) == before, "Missing-id mutation changed collection.");
+    write(path, "{invalid");
+    throws([&] { a.put(preset); });
+    throws([&] { a.remove(first); });
+    require(read(path) == "{invalid", "Corrupt collection was overwritten.");
+    auto rootJson = QJsonDocument::fromJson(before).object();
+    auto entries = rootJson["presets"].toArray();
+    entries.append(entries[0]);
+    rootJson["presets"] = entries;
+    write(path, QJsonDocument(rootJson).toJson());
+    throws([&] { a.load(); });
+    throws([&] { a.put(preset); });
+    auto future = QJsonDocument::fromJson(before).object();
+    future["schemaVersion"] = 2;
+    const auto futureBytes = QJsonDocument(future).toJson();
+    write(path, futureBytes);
+    throws([&] { a.put(preset); });
+    require(read(path) == futureBytes, "Future collection was overwritten.");
+    write(path, before);
+    a.remove(first);
+    require(b.load().size() == 1 && b.load()[0].id == second, "Delete removed wrong preset.");
+}
+void qmlTests(EditorController &editor, PresetController &presets, const QString &qmlPath) {
+    QQmlEngine engine;
+    engine.rootContext()->setContextProperty("editor", &editor);
+    engine.rootContext()->setContextProperty("presets", &presets);
+    QStringList warnings;
+    QObject::connect(&engine, &QQmlEngine::warnings, [&](const QList<QQmlError> &errors) {
+        for (const auto &error : errors)
+            warnings.append(error.toString());
+    });
+    QQmlComponent component(&engine);
+    component.setData(("import QtQuick\nimport QtQuick.Controls\nimport \"" +
+                       QUrl::fromLocalFile(qmlPath).toString() +
+                       "\"\nApplicationWindow { width: 480; height: 720; visible: true; "
+                       "font.family: \"Helvetica Neue\"; PresetPanel { anchors.fill: parent; "
+                       "anchors.margins: 20 } }")
+                          .toUtf8(),
+                      QUrl());
+    waitUntil([&] { return component.status() != QQmlComponent::Loading; });
+    if (component.status() == QQmlComponent::Error)
+        throw std::runtime_error(component.errorString().toStdString());
+    const std::unique_ptr<QObject> window(component.create());
+    require(window != nullptr, "Preset QML failed to create.");
+    const auto child = [&](const char *name) {
+        auto *value = window->findChild<QObject *>(QString::fromLatin1(name));
+        if (!value) {
+            const std::function<QObject *(QQuickItem *)> visit =
+                [&](QQuickItem *item) -> QObject * {
+                if (item->objectName() == QString::fromLatin1(name))
+                    return item;
+                for (auto *descendant : item->childItems())
+                    if (auto *found = visit(descendant))
+                        return found;
+                return nullptr;
+            };
+            value = visit(qobject_cast<QQuickWindow *>(window.get())->contentItem());
+        }
+        if (!value)
+            throw std::runtime_error(std::string("Preset control was not found: ") + name);
+        return value;
+    };
+    auto *panel = child("presetPanel");
+    require(QMetaObject::invokeMethod(child("presetCreate"), "clicked"),
+            "Cannot open create dialog.");
+    require(child("presetEditor")->property("visible").toBool(), "Create dialog is not visible.");
+    child("presetName")->setProperty("text", "QML preset");
+    child("presetFolder")->setProperty("text", "QML folder");
+    require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
+            "Cannot save from QML dialog.");
+    require(!child("presetEditor")->property("visible").toBool(), "Save did not close dialog.");
+    require(presets.items().size() == 2, "QML did not persist new preset.");
+    QString id;
+    for (const auto &item : presets.items())
+        if (item.toMap()["name"].toString() == "QML preset")
+            id = item.toMap()["id"].toString();
+    require(!id.isEmpty(), "QML preset name was not saved.");
+    panel->setProperty("selectedId", id);
+    require(QMetaObject::invokeMethod(panel, "openEditor", Q_ARG(QVariant, false)),
+            "Cannot open edit dialog.");
+    require(child("presetName")->property("text").toString() == "QML preset" &&
+                child("presetFolder")->property("text").toString() == "QML folder",
+            "Edit dialog lost metadata.");
+    child("presetName")->setProperty("text", "QML renamed");
+    child("presetGroup0")->setProperty("checked", false);
+    require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
+            "Cannot select subset group.");
+    require(child("presetEditor")->property("groups").toInt() == 14,
+            "Group checkbox ignored subset.");
+    require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
+            "Cannot update from QML dialog.");
+    for (const auto &item : presets.items())
+        if (item.toMap()["id"].toString() == id)
+            require(item.toMap()["name"].toString() == "QML renamed" &&
+                        item.toMap()["groups"].toInt() == 14,
+                    "QML update lost name or group selection.");
+    QCoreApplication::processEvents();
+    if (!warnings.isEmpty())
+        throw std::runtime_error(warnings.join('\n').toStdString());
+}
+void editorTests(const QString &source, const QString &root, const QString &qmlPath) {
+    PreviewProvider provider;
+    const auto catalog = root + "/editor.sqlite";
+    EditorController editor(catalog.toStdString(), &provider);
+    PresetController presets(root + "/editor-presets.json", editor);
+    editor.openFile(QUrl::fromLocalFile(source));
+    waitUntil(
+        [&] { return !editor.busy() && editor.hasPhoto() && !editor.previewUrl().isEmpty(); });
+    editor.setExposure(0.25);
+    editor.setParameter("hsl.red.hue", 17);
+    editor.setParameter("temperature", 7200);
+    editor.setExposure(0.75);
+    const auto previous = editor.previewUrl();
+    editor.undo();
+    waitUntil([&] { return !editor.saving() && editor.previewUrl() != previous; });
+    const auto baseline = editor.currentSettings();
+    const auto pixels = provider.requestImage({}, nullptr, {});
+    require(editor.canRedo(), "Fixture did not retain redo history.");
+    require(presets.save({}, "Warm", "Color", 2, true), "Cannot create preset.");
+    const auto id = presets.items()[0].toMap()["id"].toString();
+    editor.setParameter("temperature", 5100);
+    require(presets.save(id, "Warm", "Color", 2, true), "Cannot update preset settings.");
+    editor.undo();
+    const auto previewBefore = editor.previewUrl();
+    waitUntil([&] { return !editor.saving() && editor.previewUrl() != previewBefore; });
+    require(editor.currentSettings() == baseline, "Fixture Undo changed baseline.");
+    const bool undo = editor.canUndo(), redo = editor.canRedo();
+    const auto hoverBefore = editor.previewUrl();
+    presets.preview(id);
+    require(editor.presetPreview() && editor.currentSettings() == baseline && !editor.saving() &&
+                editor.canUndo() == undo && editor.canRedo() == redo,
+            "Hover modified edits, persistence or history.");
+    waitUntil([&] { return editor.previewUrl() != hoverBefore; });
+    require(provider.requestImage({}, nullptr, {}) != pixels,
+            "Preset preview did not change rendered pixels.");
+    luma::SessionService service(catalog.toStdString());
+    require(service.restore()->asset.edits == baseline, "Preview was persisted in the catalog.");
+    const auto hoverUrl = editor.previewUrl();
+    presets.clearPreview();
+    waitUntil([&] { return editor.previewUrl() != hoverUrl; });
+    require(provider.requestImage({}, nullptr, {}) == pixels && editor.canRedo() == redo,
+            "Leaving preview changed pixels or redo history.");
+    presets.apply(id);
+    require(editor.currentSettings().temperature == 5100 &&
+                editor.currentSettings().exposure == 0.25 &&
+                editor.currentSettings().hsl == baseline.hsl,
+            "Apply changed excluded settings.");
+    editor.undo();
+    require(editor.currentSettings() == baseline, "Preset was not exactly one Undo operation.");
+    editor.redo();
+    const auto applied = editor.currentSettings();
+    presets.preview(id);
+    editor.setOriginal(true);
+    require(!editor.presetPreview(), "Original mode retained preset hover.");
+    presets.preview(id);
+    require(!editor.presetPreview(), "Hover overrode Original mode.");
+    editor.setOriginal(false);
+    presets.copySettings(2 | 8);
+    editor.resetEdits();
+    presets.pasteSettings();
+    const auto pasted = luma::mergeSettings({}, applied, 2 | 8);
+    require(editor.currentSettings() == pasted, "Copy/Paste ignored selected groups.");
+    editor.undo();
+    require(editor.currentSettings() == luma::EditDocument{}, "Paste was not one Undo operation.");
+    editor.redo();
+    waitUntil([&] { return !editor.saving(); });
+    require(service.restore()->asset.edits == pasted,
+            "Applied settings did not survive catalog reload.");
+    const auto exported = root + "/applied.png", hoveredExport = root + "/hovered.png";
+    editor.exportPhoto(QUrl::fromLocalFile(exported), 1, 90, false);
+    waitUntil([&] { return !editor.exporting(); });
+    auto alternative = sample();
+    alternative.temperature = 9000;
+    alternative.customWhiteBalance = true;
+    editor.previewSettings(alternative, 2);
+    editor.exportPhoto(QUrl::fromLocalFile(hoveredExport), 1, 90, false);
+    waitUntil([&] { return !editor.exporting(); });
+    require(read(exported) == read(hoveredExport),
+            "Export used hover instead of applied settings.");
+    require(!editor.presetPreview(), "Export retained preset hover.");
+    require(!presets.save(id, "Warm", "Color", 15, false),
+            "Adding groups silently introduced default settings.");
+    require(presets.refresh(), "Cannot refresh saved presets.");
+    require(presets.save(id, "Renamed", "Moved", 2, false), "Cannot rename/move from controller.");
+    PresetController restarted(root + "/editor-presets.json", editor);
+    require(restarted.items()[0].toMap()["name"].toString() == "Renamed",
+            "Preset did not survive restart.");
+    require(!presets.exportPreset(id, QUrl::fromLocalFile(catalog)),
+            "Preset export replaced catalog.");
+    require(!presets.exportPreset(id, QUrl::fromLocalFile(source)), "Preset export replaced RAW.");
+    require(!presets.exportPreset(id, QUrl::fromLocalFile(root + "/editor-presets.json")),
+            "Preset export replaced its collection.");
+    const auto alias = root + "/collection-alias.json";
+    std::filesystem::create_hard_link((root + "/editor-presets.json").toStdString(),
+                                      alias.toStdString());
+    require(!presets.exportPreset(id, QUrl::fromLocalFile(alias)),
+            "Preset export replaced collection alias.");
+    require(presets.refresh(), "Cannot clear expected export failures.");
+    qmlTests(editor, presets, qmlPath);
+    require(editor.error().isEmpty(), "Editor reported an unexpected error.");
+}
+} // namespace
+int main(int argc, char **argv) {
+    QGuiApplication app(argc, argv);
+    QQuickStyle::setStyle("Basic");
+    try {
+        require(argc == 3, "Expected synthetic RAW and QML fixture paths.");
+        QTemporaryDir temporary;
+        require(temporary.isValid(), "Cannot create preset test directory.");
+        documentTests();
+        storeTests(temporary.path());
+        editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
+        std::cout
+            << "Preset subsets, JSON validation, atomic storage, hover, Undo and restart passed.\n";
+        return 0;
+    } catch (const std::exception &error) {
+        std::cerr << error.what() << '\n';
+        return 1;
+    }
+}
