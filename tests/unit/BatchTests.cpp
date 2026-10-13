@@ -63,7 +63,9 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
     const auto metadata = luma::RawDecoder().inspect(source);
     const auto checksum = luma::macos::sha256File(source);
     for (int i = 0; i < count; ++i) {
-        const auto path = root / ("photo-" + std::to_string(i) + ".DNG");
+        const auto name =
+            i == 0 ? std::string(90, 'a') + ".DNG" : "photo-" + std::to_string(i) + ".DNG";
+        const auto path = root / name;
         std::filesystem::copy_file(source, path);
         const auto asset = db.addAndSelect(path, checksum, metadata);
         luma::EditDocument edits;

@@ -26,6 +26,7 @@ autosave, QML Sync controls, close during queued/running work, updater readiness
 metadata/collection preservation, restart and unchanged original RAW checksums.
 An idle batch does not retain a close lock when autosave rejects closing; Library
 close preparation begins only after the editor and batch are ready to close.
+Sync accepts long source filenames independently of the preset-name limit.
 Existing RAW, color, Library, presets, export/restart and release tests remain
 required. No private test asset is published.
 

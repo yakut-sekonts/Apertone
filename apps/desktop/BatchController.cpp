@@ -60,10 +60,12 @@ void BatchController::sync(int groups) {
     try {
         if (!editor_.hasPhoto())
             throw std::runtime_error("Open the source photo before syncing settings.");
-        apply({editor_.filename(),
-               {},
-               editor_.currentSettings(),
-               static_cast<std::uint32_t>(groups)});
+        const auto settings = editor_.currentSettings();
+        const auto selectedGroups = static_cast<std::uint32_t>(groups);
+        luma::validateSettingsGroups(selectedGroups);
+        settings.validate();
+        start(
+            {Action::apply, library_.selectionIDs(), settings, selectedGroups, editor_.filename()});
     } catch (const std::exception &error) {
         failure(error);
     }
