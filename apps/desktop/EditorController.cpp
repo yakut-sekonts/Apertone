@@ -558,48 +558,57 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     status_ = QStringLiteral("Экспорт фотографии…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
-    exportJob_ =
-        ioJobs_.submit(luma::JobPriority::background, [this, self, asset, edits, path, options,
-                                                       stop](const luma::JobContext &context) {
-            QString error;
-            try {
-                service_.exportPhoto(asset, edits, path, options, stop,
-                                     [self, context](double value) {
-                                         context.setProgress(value);
-                                         if (self)
-                                             QMetaObject::invokeMethod(
-                                                 self,
-                                                 [self, value] {
-                                                     if (self) {
-                                                         self->exportProgress_ = value;
-                                                         emit self->stateChanged();
-                                                     }
-                                                 },
-                                                 Qt::QueuedConnection);
-                                     });
-            } catch (const std::exception &failure) {
-                error = QString::fromUtf8(failure.what());
-            }
-            const bool cancelled = stop.isCancelled() && !error.isEmpty();
-            if (self)
-                QMetaObject::invokeMethod(
-                    self,
-                    [self, error, cancelled] {
-                        if (!self)
-                            return;
-                        self->exporting_ = false;
-                        self->status_ =
-                            cancelled ? QStringLiteral("Экспорт отменён")
-                            : error.isEmpty()
-                                ? QStringLiteral("Фотография экспортирована")
-                                : QStringLiteral("Не удалось экспортировать фотографию");
-                        if (!cancelled)
-                            self->error_ = error;
-                        emit self->stateChanged();
-                        self->checkClose();
-                    },
-                    Qt::QueuedConnection);
-        });
+    // Preserve the immediate cancel/close opportunity before admitting I/O work.
+    // The request stays exporting_ until its cancellation/completion is delivered.
+    QMetaObject::invokeMethod(
+        this,
+        [self, asset, edits, path, options, stop] {
+            if (!self)
+                return;
+            self->exportJob_ = self->ioJobs_.submit(
+                luma::JobPriority::background,
+                [self, asset, edits, path, options, stop](const luma::JobContext &context) {
+                    QString error;
+                    try {
+                        self->service_.exportPhoto(
+                            asset, edits, path, options, stop, [self, context](double value) {
+                                context.setProgress(value);
+                                if (self)
+                                    QMetaObject::invokeMethod(
+                                        self,
+                                        [self, value] {
+                                            if (self) {
+                                                self->exportProgress_ = value;
+                                                emit self->stateChanged();
+                                            }
+                                        },
+                                        Qt::QueuedConnection);
+                            });
+                    } catch (const std::exception &failure) {
+                        error = QString::fromUtf8(failure.what());
+                    }
+                    const bool cancelled = stop.isCancelled() && !error.isEmpty();
+                    if (self)
+                        QMetaObject::invokeMethod(
+                            self,
+                            [self, error, cancelled] {
+                                if (!self)
+                                    return;
+                                self->exporting_ = false;
+                                self->status_ =
+                                    cancelled ? QStringLiteral("Экспорт отменён")
+                                    : error.isEmpty()
+                                        ? QStringLiteral("Фотография экспортирована")
+                                        : QStringLiteral("Не удалось экспортировать фотографию");
+                                if (!cancelled)
+                                    self->error_ = error;
+                                emit self->stateChanged();
+                                self->checkClose();
+                            },
+                            Qt::QueuedConnection);
+                });
+        },
+        Qt::QueuedConnection);
 }
 void EditorController::cancelExport() {
     exportCancellation_.cancel();

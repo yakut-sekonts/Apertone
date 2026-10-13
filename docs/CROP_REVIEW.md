@@ -47,3 +47,9 @@ clang-format/full clang-tidy and rechecks of the final changed sources passed.
 No manual native UI inspection, maximal-area straighten crop, higher-quality
 resampling, perspective/auto/guided Transform, lens profiles or Metal is claimed.
 See [ADR 0013](adr/0013-crop-geometry.md). Frozen 0.4.0 artifacts/signing are unchanged.
+
+CI exposed a race in the existing immediate-close acceptance on tiny exports:
+I/O could finish before the caller requested Close. Export admission now runs on
+the next UI event-loop turn while exporting remains true, so immediate cancel/
+close signals precede worker start. Captured settings and cancellation token remain
+unchanged; normal exports retain the existing atomic installation behavior.
