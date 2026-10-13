@@ -1,8 +1,10 @@
 #pragma once
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <stdexcept>
 #include <string_view>
+#include <vector>
 
 namespace luma {
 enum class Correction : std::uint32_t {
@@ -14,10 +16,31 @@ enum class Correction : std::uint32_t {
     whites = 32,
     blacks = 64,
     vibrance = 128,
-    saturation = 256
+    saturation = 256,
+    curves = 512,
+    hsl = 1024
 };
+struct CurvePoint {
+    double x = 0;
+    double y = 0;
+    bool operator==(const CurvePoint &) const = default;
+};
+struct PointCurve {
+    std::vector<CurvePoint> points{{0, 0}, {1, 1}};
+    bool operator==(const PointCurve &) const = default;
+    void validate() const;
+};
+struct HSLBand {
+    double hue = 0;
+    double saturation = 0;
+    double luminance = 0;
+    bool operator==(const HSLBand &) const = default;
+};
+inline constexpr std::array<std::string_view, 4> curveChannels{"rgb", "red", "green", "blue"};
+inline constexpr std::array<std::string_view, 8> hslBands{"red",  "orange", "yellow", "green",
+                                                          "aqua", "blue",   "purple", "magenta"};
 struct EditDocument {
-    static constexpr int schemaVersion = 2;
+    static constexpr int schemaVersion = 3;
     double exposure = 0;
     double temperature = 6500;
     double tint = 0;
@@ -29,7 +52,13 @@ struct EditDocument {
     double blacks = 0;
     double vibrance = 0;
     double saturation = 0;
-    std::uint32_t enabledCorrections = 511;
+    std::uint32_t enabledCorrections = 2047;
+    double curveShadows = 0;
+    double curveDarks = 0;
+    double curveLights = 0;
+    double curveHighlights = 0;
+    std::array<PointCurve, 4> curves{};
+    std::array<HSLBand, 8> hsl{};
     bool operator==(const EditDocument &) const = default;
     bool enabled(Correction correction) const {
         return (enabledCorrections & static_cast<std::uint32_t>(correction)) != 0;
@@ -42,5 +71,7 @@ struct EditDocument {
     double parameter(std::string_view name) const;
     void setParameter(std::string_view name, double value);
     static Correction correction(std::string_view name);
+    static std::size_t curveChannel(std::string_view name);
+    static std::size_t hslBand(std::string_view name);
 };
 } // namespace luma

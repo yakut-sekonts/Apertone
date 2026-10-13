@@ -1,5 +1,6 @@
 """Verify publication ordering and refusal of incomplete or immutable assets. No network."""
 import hashlib
+import base64
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,12 @@ class ReleasePublisherTests(unittest.TestCase):
             for suffix in ("zip", "dmg"):
                 (assets / f"Luma-0.3.0-macos-arm64.{suffix}").write_bytes(b"synthetic archive")
             info = {"version": "0.3.0", "source_commit": "a" * 40}
+            if mode.startswith("signed-"):
+                info["dependencies"] = {"Sparkle": "2.10.0"}
+                if mode != "signed-missing":
+                    signature = base64.b64encode(bytes(64)).decode()
+                    feed_version = "0.2.0" if mode == "signed-wrong-version" else "0.3.0"
+                    (assets / "appcast.xml").write_text(f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><enclosure url="https://github.com/yakut-sekonts/Luma/releases/download/v0.3.0/Luma-0.3.0-macos-arm64.zip" length="17" sparkle:version="{feed_version}" sparkle:edSignature="{signature}" /></item></channel></rss>')
             (assets / "BUILD_INFO.json").write_text(json.dumps(info))
             entries = []
             for path in sorted(assets.iterdir()):
@@ -70,8 +77,14 @@ if args[0] == "api":
         self.assertFalse(any(call[:2] == ["release", "create"] for call in calls))
         self.assertEqual(calls[-1][:2], ["release", "edit"])
 
+    def test_signed_feed_is_uploaded_before_publication(self):
+        result, calls = self.run_case("signed-valid")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        upload = next(call for call in calls if call[:2] == ["release", "upload"])
+        self.assertIn("dist/release/appcast.xml", upload)
+
     def test_invalid_assets_never_publish(self):
-        for mode in ("bad-digest","incomplete","wrong-commit","wrong-repo","published"):
+        for mode in ("bad-digest","incomplete","wrong-commit","wrong-repo","published","signed-missing","signed-wrong-version"):
             with self.subTest(mode=mode):
                 result,calls=self.run_case(mode)
                 self.assertNotEqual(result.returncode,0)

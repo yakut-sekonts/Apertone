@@ -27,7 +27,14 @@ for name in ("QT_QPA_PLATFORM", "QT_QUICK_BACKEND", "QT_PLUGIN_PATH", "QML_IMPOR
 env["QT_QUICK_BACKEND"] = "software"
 executable = app / "Contents/MacOS/Luma"
 sdk.rename(hidden)
+sparkle_sources = []
 try:
+    for source in (root / ".tools/sparkle", root / "build/_deps/sparkle-src", root / "build-verify/_deps/sparkle-src"):
+        if source.is_dir():
+            destination = source.with_name(source.name + ".luma-bundle-verification")
+            assert not destination.exists()
+            source.rename(destination)
+            sparkle_sources.append((source, destination))
     with tempfile.TemporaryDirectory(prefix="luma-bundle-") as temporary:
         folder = Path(temporary)
         sources = folder / "sources"
@@ -41,8 +48,8 @@ try:
         catalog = folder / "catalog.sqlite"
         for arguments in (
             ["--test-library", str(sources)],
-            ["--test-edit", str(raw), "--test-exposure", "0.65", "--test-develop", "--test-export", str(folder / "first.png")],
-            ["--test-restore", "0.65", "--test-develop", "--test-export", str(folder / "second.png")],
+            ["--test-edit", str(raw), "--test-exposure", "0.65", "--test-develop", "--test-advanced", "--test-export", str(folder / "first.png")],
+            ["--test-restore", "0.65", "--test-develop", "--test-advanced", "--test-export", str(folder / "second.png")],
         ):
             result = subprocess.run([str(executable), "--catalog", str(catalog), *arguments], env=env, capture_output=True, text=True, timeout=120)
             if result.returncode:
@@ -53,4 +60,6 @@ try:
         assert len(list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))) == 2
         print(f"Standalone Luma {version}: Library, Develop, export/restart and source integrity passed without Qt SDK")
 finally:
+    for source, destination in reversed(sparkle_sources):
+        destination.rename(source)
     hidden.rename(sdk)

@@ -18,6 +18,9 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   amalgamation; no dependency on the host SQLite library.
 - **LittleCMS 2.17** — https://github.com/mm2/Little-CMS/tree/lcms2.17
   ICC conversion. **MIT**. Statically compiled, with the upstream LICENSE notice.
+- **Sparkle 2.10.0** — https://github.com/sparkle-project/Sparkle/releases/tag/2.10.0
+  Native macOS update installation and EdDSA verification. Dynamically linked
+  under its permissive Sparkle license; the complete upstream LICENSE is included.
 - **Apple system frameworks** — CommonCrypto, AppKit and ColorSync from the
   system SDK. Used for SHA-256 and monitor profiles; no Apple SDK or framework
   binary is redistributed.

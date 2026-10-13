@@ -13,6 +13,8 @@ class EditorController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
+    Q_PROPERTY(QString targetedTool READ targetedTool WRITE setTargetedTool NOTIFY stateChanged)
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
@@ -61,6 +63,19 @@ class EditorController final : public QObject {
     }
     QVariantMap parameters() const;
     QVariantMap correctionStates() const;
+    QVariantMap curvePoints() const;
+    QString targetedTool() const {
+        return targetedTool_;
+    }
+    void setTargetedTool(const QString &tool);
+    Q_INVOKABLE int addCurvePoint(const QString &channel, double x, double y);
+    Q_INVOKABLE void moveCurvePoint(const QString &channel, int index, double x, double y);
+    Q_INVOKABLE void removeCurvePoint(const QString &channel, int index);
+    Q_INVOKABLE void resetCurve(const QString &channel);
+    Q_INVOKABLE QVariantList curveSamples(const QString &channel, bool parametric) const;
+    Q_INVOKABLE bool beginTargeted(double x, double y);
+    Q_INVOKABLE void adjustTargeted(double delta);
+    Q_INVOKABLE void endTargeted();
     bool customWhiteBalance() const {
         return history_.current().customWhiteBalance;
     }
@@ -147,6 +162,17 @@ class EditorController final : public QObject {
     QUrl deferredOpen_;
     QString status_ = QStringLiteral("Готово к работе");
     QString error_;
+    QString targetedTool_ = QStringLiteral("none");
+    struct TargetGesture {
+        luma::EditDocument base;
+        std::size_t channel = 0;
+        double sample = 0;
+        std::array<double, 8> weights{};
+        QString parameter;
+    };
+    std::optional<TargetGesture> targeted_;
+    void applyAdvanced(luma::EditDocument next);
+    void advancedFailure(const std::exception &failure);
     void load(std::optional<std::filesystem::path> source);
     void render();
     void editsChanged();

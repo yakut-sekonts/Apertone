@@ -10,4 +10,11 @@
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
+  <key>SUFeedURL</key><string>https://github.com/yakut-sekonts/Luma/releases/latest/download/appcast.xml</string>
+  <key>SUPublicEDKey</key><string>yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI=</string>
+  <key>SUEnableAutomaticChecks</key><true/>
+  <key>SUAllowsAutomaticUpdates</key><false/>
+  <key>SUAutomaticallyUpdate</key><false/>
+  <key>SUScheduledCheckInterval</key><integer>86400</integer>
+  <key>SUSendProfileInfo</key><false/>
 </dict></plist>

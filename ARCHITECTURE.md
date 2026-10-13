@@ -32,7 +32,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated typed Develop document; schema version 2.
+- `core/edits`: validated typed Develop document; schema version 3.
 - `core/catalog`: SQLite connection per worker operation and migrations 1/2/3.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
@@ -162,3 +162,20 @@ Changed published files are preserved; originals are never removed by recovery.
 SQLite WAL setup retries BUSY/LOCKED for at most three seconds at concurrent
 initialization; upgrades recheck the schema under BEGIN IMMEDIATE. Current-schema readers
 do not take a writer lock and remain usable during WAL writes.
+
+## Advanced color and updates
+
+Catalog migration 3→4 retains Library state and preceding corrections while adding
+four curve parameters, normalized point arrays and eight HSL bands. Child rows
+and the main edit row are one transaction. Saved-but-incomplete advanced rows are
+reported as corruption. Neutral defaults preserve older renders. The PCHIP point
+curves and parametric/HSL processing run in perceptual sRGB around the existing
+linear pipeline; export shares this implementation.
+
+UpdateController bridges QML to Sparkle's standard updater through an ARC-managed
+Objective-C++ delegate. Scheduled checks use gentle reminders in the bell;
+installation remains Sparkle's native UI. A deferred installation block waits
+for EditorController pending/failed saves, load, export and Library writes/imports.
+The embedded Ed25519 public key validates archives. The private key stays in the
+release owner's Keychain or the repository Actions secret. Qt/core never process
+an update ZIP or replace their own running executable.

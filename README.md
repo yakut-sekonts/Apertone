@@ -103,7 +103,7 @@ licenses; see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 Temperature spans 2000–25000 K and Tint spans −150…150. Manual WB uses a
 reference white-point approximation; As Shot uses the RAW camera gains.
 Auto WB, eyedropper, highlight reconstruction, persistent history, Versions,
-curves, detail and calibrated camera profiles remain planned. Undo/Redo retains
+detail and calibrated camera profiles remain planned. Undo/Redo retains
 up to 200 operations in the current active-photo session. Double-click resets a
 slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
@@ -144,3 +144,21 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 ```
 
 ![Luma Library with project-generated test DNGs](docs/library.png)
+
+## In development: Curves, HSL and macOS updates
+
+The current development branch adds RGB and per-channel point curves,
+parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
+photo gestures. These use the same processing in preview and export, and save
+atomically with edit schema 3 / catalog schema 4. Neutral curves and HSL preserve
+the preceding Develop output. Presets, Detail, Crop and Optics remain later 0.4 work.
+
+A bell in the toolbar shows scheduled update reminders. Check manually or opt out
+of daily checks in its popover. Install opens Sparkle's native release/install UI;
+Sparkle verifies the signed ZIP, replaces the app and relaunches it. Luma waits
+for successful autosave and ongoing imports/exports before allowing relaunch.
+Update checks send no photo/catalog data or system profiling payload.
+
+The published v0.3.0 binary has no updater and needs one manual installation of
+the first updater-enabled release. Future release publication requires the
+repository signing secret; see [macOS updates](docs/UPDATES.md).

@@ -86,7 +86,7 @@ invalid batch rollback, overwrite policy, original/hard-link protection and
 cancelled export cleanup. Core tests include migration from schema 1, parameter
 boundaries and monotonic tone processing.
 
-Catalog schema 3 cannot be opened by older M0/Develop Core binaries. Keep a backup before
+Catalog schema 4 cannot be opened by v0.3.0 or older binaries. Keep a backup before
 using a newer build on an important catalog; migration preserves M0 edits.
 
 ## Library acceptance
@@ -132,3 +132,14 @@ all server digests and publishes the original assets without moving the tag.
 The `codex/release-recovery-0.3.0` push trigger bootstraps recovery of the first
 release; subsequent recovery runs use workflow_dispatch. Published releases are
 refused rather than overwritten.
+
+
+Sparkle 2.10.0 is fetched by CMake with a fixed SHA-256 and embedded into the
+app bundle. The complete upstream license accompanies packaging. See
+[UPDATES.md](docs/UPDATES.md) for signing and publication setup.
+
+`advanced-color-unit` / `advanced-export-restart` cover Curves/HSL, migration,
+transaction fault injection, targeted GUI gestures and restart PNG/TIFF exports.
+`update-restart-guard` checks saves/export/import gating and retry/badge behavior.
+`signed-update-feed` checks real CryptoKit verification against RFC 8032, tampered
+archives and private-key stdin handling without a production signing key.

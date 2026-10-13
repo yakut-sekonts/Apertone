@@ -44,6 +44,16 @@ jobs:
         run: ./scripts/release-artifacts.sh build
       - name: Verify standalone application
         run: .tools/venv/bin/python scripts/verify-bundle.py
+      - name: Sign update archive and prepare appcast
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY before publishing updater-enabled releases.' >&2
+            exit 1
+          fi
+          .tools/venv/bin/python scripts/create-appcast.py --signer build/_deps/sparkle-src/bin/sign_update
       - name: Upload verified assets
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

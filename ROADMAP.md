@@ -42,7 +42,9 @@ Move, smart collections, advanced import templates, keywords and XMP remain late
 
 ## 0.4 — Professional Develop and presets
 
-🗓 Planned. Curves, HSL, detail/noise reduction, crop, optics, targeted tools,
+🚧 In progress. The first substage implements point/parametric Curves, HSL and
+targeted tools with atomic persistence, gesture Undo/Redo and reproducible exports.
+Remaining scope: detail/noise reduction, crop, optics,
 versioned presets, subset parameters, preset previews, copy/paste and sync.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.

@@ -12,7 +12,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-AssetRecord readAsset(const Statement &query) {
+AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
     metadata.lens = query.string(4);
@@ -40,6 +40,39 @@ AssetRecord readAsset(const Statement &query) {
     edits.enabledCorrections = static_cast<std::uint32_t>(query.value(24));
     if (query.value(25) != EditDocument::schemaVersion)
         throw std::runtime_error("Unsupported edit document version.");
+    edits.curveShadows = query.value(26);
+    edits.curveDarks = query.value(27);
+    edits.curveLights = query.value(28);
+    edits.curveHighlights = query.value(29);
+    const bool stored = query.value(30) != 0;
+    if (stored)
+        for (auto &curve : edits.curves)
+            curve.points.clear();
+    Statement points(db, "SELECT channel,position,x,y FROM edit_curve_points WHERE asset_id=?1 "
+                         "ORDER BY channel,position");
+    points.text(1, query.string(0));
+    while (points.row()) {
+        const auto channel = points.integer(0), position = points.integer(1);
+        if (!stored || channel < 0 || channel >= 4 || position < 0 || position >= 32 ||
+            static_cast<std::size_t>(position) !=
+                edits.curves[static_cast<std::size_t>(channel)].points.size())
+            throw std::runtime_error("Incomplete or invalid stored curve points.");
+        edits.curves[static_cast<std::size_t>(channel)].points.push_back(
+            {points.value(2), points.value(3)});
+    }
+    Statement bands(
+        db,
+        "SELECT band,hue,saturation,luminance FROM edit_hsl_bands WHERE asset_id=?1 ORDER BY band");
+    bands.text(1, query.string(0));
+    std::size_t count = 0;
+    while (bands.row()) {
+        if (!stored || count >= edits.hsl.size() ||
+            bands.integer(0) != static_cast<std::int64_t>(count))
+            throw std::runtime_error("Incomplete or invalid stored HSL bands.");
+        edits.hsl[count++] = {bands.value(1), bands.value(2), bands.value(3)};
+    }
+    if (stored && count != edits.hsl.size())
+        throw std::runtime_error("Missing stored HSL bands.");
     edits.validate();
     return {query.string(0), query.string(1), query.string(2), metadata, edits};
 }
@@ -47,7 +80,8 @@ constexpr auto selectFields =
     "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
     "a.shutter_seconds,a.aperture,a.focal_length,a.width,a.height,a."
     "orientation,a.capture_date,e.exposure,e.temperature,e.tint,e.custom_wb,e.contrast,"
-    "e.highlights,e.shadows,e.whites,e.blacks,e.vibrance,e.saturation,e.enabled,e.schema_version "
+    "e.highlights,e.shadows,e.whites,e.blacks,e.vibrance,e.saturation,e.enabled,e.schema_version,e."
+    "curve_shadows,e.curve_darks,e.curve_lights,e.curve_highlights,e.advanced_saved "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
@@ -95,12 +129,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 3)
+        if (current == 4)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 3) {
+        if (current > 4) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -179,6 +213,52 @@ Catalog::Catalog(const std::filesystem::path &path) {
                 INSERT INTO schema_migrations(version) VALUES(3);
                 PRAGMA user_version=3;
             )sql");
+            current = 3;
+        }
+        if (current == 3) {
+            execute(R"sql(
+                CREATE TABLE edit_documents_v3(
+                    asset_id TEXT PRIMARY KEY REFERENCES assets(id) ON DELETE CASCADE,
+                    schema_version INTEGER NOT NULL DEFAULT 3 CHECK(schema_version=3),
+                    exposure REAL NOT NULL DEFAULT 0 CHECK(exposure BETWEEN -5 AND 5),
+                    temperature REAL NOT NULL DEFAULT 6500 CHECK(temperature BETWEEN 2000 AND 25000),
+                    tint REAL NOT NULL DEFAULT 0 CHECK(tint BETWEEN -150 AND 150),
+                    custom_wb INTEGER NOT NULL DEFAULT 0 CHECK(custom_wb IN (0,1)),
+                    contrast REAL NOT NULL DEFAULT 0 CHECK(contrast BETWEEN -100 AND 100),
+                    highlights REAL NOT NULL DEFAULT 0 CHECK(highlights BETWEEN -100 AND 100),
+                    shadows REAL NOT NULL DEFAULT 0 CHECK(shadows BETWEEN -100 AND 100),
+                    whites REAL NOT NULL DEFAULT 0 CHECK(whites BETWEEN -100 AND 100),
+                    blacks REAL NOT NULL DEFAULT 0 CHECK(blacks BETWEEN -100 AND 100),
+                    vibrance REAL NOT NULL DEFAULT 0 CHECK(vibrance BETWEEN -100 AND 100),
+                    saturation REAL NOT NULL DEFAULT 0 CHECK(saturation BETWEEN -100 AND 100),
+                    enabled INTEGER NOT NULL DEFAULT 2047 CHECK(typeof(enabled)='integer' AND enabled BETWEEN 0 AND 2047),
+                    curve_shadows REAL NOT NULL DEFAULT 0 CHECK(curve_shadows BETWEEN -100 AND 100),
+                    curve_darks REAL NOT NULL DEFAULT 0 CHECK(curve_darks BETWEEN -100 AND 100),
+                    curve_lights REAL NOT NULL DEFAULT 0 CHECK(curve_lights BETWEEN -100 AND 100),
+                    curve_highlights REAL NOT NULL DEFAULT 0 CHECK(curve_highlights BETWEEN -100 AND 100),
+                    advanced_saved INTEGER NOT NULL DEFAULT 0 CHECK(advanced_saved IN (0,1)),
+                    revision INTEGER NOT NULL DEFAULT 0,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+                INSERT INTO edit_documents_v3(asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled,revision,updated_at)
+                    SELECT asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled|1536,revision,updated_at FROM edit_documents;
+                DROP TABLE edit_documents;
+                ALTER TABLE edit_documents_v3 RENAME TO edit_documents;
+                CREATE TABLE edit_curve_points(
+                    asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+                    channel INTEGER NOT NULL CHECK(channel BETWEEN 0 AND 3),
+                    position INTEGER NOT NULL CHECK(position BETWEEN 0 AND 31),
+                    x REAL NOT NULL CHECK(x BETWEEN 0 AND 1), y REAL NOT NULL CHECK(y BETWEEN 0 AND 1),
+                    PRIMARY KEY(asset_id,channel,position));
+                CREATE TABLE edit_hsl_bands(
+                    asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+                    band INTEGER NOT NULL CHECK(band BETWEEN 0 AND 7),
+                    hue REAL NOT NULL CHECK(hue BETWEEN -100 AND 100),
+                    saturation REAL NOT NULL CHECK(saturation BETWEEN -100 AND 100),
+                    luminance REAL NOT NULL CHECK(luminance BETWEEN -100 AND 100),
+                    PRIMARY KEY(asset_id,band));
+                INSERT INTO schema_migrations(version) VALUES(4);
+                PRAGMA user_version=4;
+            )sql");
         }
         execute("COMMIT;");
     } catch (...) {
@@ -219,7 +299,7 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
     query.text(1, path.string());
     AssetRecord result;
     if (query.row()) {
-        result = readAsset(query);
+        result = readAsset(db_, query);
         if (result.checksum != checksum) {
             throw std::runtime_error("Original file changed. Existing edits were preserved; "
                                      "automatic replacement is disabled.");
@@ -267,12 +347,12 @@ std::optional<AssetRecord> Catalog::activeAsset() const {
     Statement query(
         db_,
         (std::string(selectFields) + "JOIN session s ON s.asset_id=a.id WHERE s.slot=1").c_str());
-    return query.row() ? std::optional<AssetRecord>(readAsset(query)) : std::nullopt;
+    return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
 }
 std::optional<AssetRecord> Catalog::assetByID(const std::string &id) const {
     Statement query(db_, (std::string(selectFields) + "WHERE a.id=?1").c_str());
     query.text(1, id);
-    return query.row() ? std::optional<AssetRecord>(readAsset(query)) : std::nullopt;
+    return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
 }
 std::optional<AssetRecord> Catalog::duplicate(const std::string &checksum,
                                               std::int64_t size) const {
@@ -281,7 +361,7 @@ std::optional<AssetRecord> Catalog::duplicate(const std::string &checksum,
                              .c_str());
     query.text(1, checksum);
     query.integer(2, size);
-    return query.row() ? std::optional<AssetRecord>(readAsset(query)) : std::nullopt;
+    return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
 }
 void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
     edits.validate();
@@ -291,7 +371,8 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
             db_,
             "UPDATE edit_documents SET exposure=?1,temperature=?2,tint=?3,custom_wb=?4,"
             "contrast=?5,highlights=?6,shadows=?7,whites=?8,blacks=?9,vibrance=?10,saturation=?11,"
-            "enabled=?12,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
+            "enabled=?12,curve_shadows=?14,curve_darks=?15,curve_lights=?16,curve_highlights=?17,"
+            "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
         query.number(1, edits.exposure);
         query.number(2, edits.temperature);
         query.number(3, edits.tint);
@@ -305,9 +386,44 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
         query.number(11, edits.saturation);
         query.number(12, edits.enabledCorrections);
         query.text(13, assetID);
+        query.number(14, edits.curveShadows);
+        query.number(15, edits.curveDarks);
+        query.number(16, edits.curveLights);
+        query.number(17, edits.curveHighlights);
         query.row();
         if (sqlite3_changes(db_) != 1)
             throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
+        for (const auto *sql : {"DELETE FROM edit_curve_points WHERE asset_id=?1",
+                                "DELETE FROM edit_hsl_bands WHERE asset_id=?1"}) {
+            Statement clear(db_, sql);
+            clear.text(1, assetID);
+            clear.row();
+        }
+        for (std::size_t channel = 0; channel < edits.curves.size(); ++channel) {
+            const auto &points = edits.curves[channel].points;
+            for (std::size_t position = 0; position < points.size(); ++position) {
+                Statement insert(db_,
+                                 "INSERT INTO edit_curve_points(asset_id,channel,position,x,y) "
+                                 "VALUES(?1,?2,?3,?4,?5)");
+                insert.text(1, assetID);
+                insert.integer(2, static_cast<std::int64_t>(channel));
+                insert.integer(3, static_cast<std::int64_t>(position));
+                insert.number(4, points[position].x);
+                insert.number(5, points[position].y);
+                insert.row();
+            }
+        }
+        for (std::size_t band = 0; band < edits.hsl.size(); ++band) {
+            Statement insert(db_,
+                             "INSERT INTO edit_hsl_bands(asset_id,band,hue,saturation,luminance) "
+                             "VALUES(?1,?2,?3,?4,?5)");
+            insert.text(1, assetID);
+            insert.integer(2, static_cast<std::int64_t>(band));
+            insert.number(3, edits.hsl[band].hue);
+            insert.number(4, edits.hsl[band].saturation);
+            insert.number(5, edits.hsl[band].luminance);
+            insert.row();
+        }
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

@@ -22,6 +22,29 @@ ApplicationWindow {
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
     property bool libraryMode: true
+    Connections {
+        target: updates
+        function onChanged() {
+            if (updates.restartPending) restartWait.open();
+            else restartWait.close();
+        }
+    }
+    Dialog {
+        id: restartWait
+        title: "Подготовка обновления"
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        anchors.centerIn: parent
+        width: 430
+        ColumnLayout {
+            width: parent.width
+            Label { text: updates.message; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: editor.error.length > 0; text: editor.error; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Button { visible: editor.saving && !editor.busy; text: "Повторить сохранение"; onClicked: editor.retrySave() }
+            Button { visible: editor.exporting; text: "Отменить экспорт"; onClicked: editor.cancelExport() }
+            Button { visible: library.importing; text: "Отменить импорт"; onClicked: library.cancelImport() }
+        }
+    }
     onClosing: function(close) { const a = library.requestClose(); const b = editor.requestClose(); close.accepted = a && b }
     Connections { target: library; function onCloseReady() { root.close() } }
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
@@ -69,6 +92,7 @@ ApplicationWindow {
         }
     }
     ColumnLayout {
+        enabled: !updates.restartPending
         anchors.fill: parent
         spacing: 0
         Rectangle {
@@ -81,6 +105,7 @@ ApplicationWindow {
                 Button { text: "Library"; highlighted: root.libraryMode; onClicked: root.libraryMode = true }
                 Button { text: "Develop"; highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Item { Layout.fillWidth: true }
+                UpdateBell {}
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
                 Button { text: "↶"; enabled: editor.canUndo && !editor.busy; onClicked: editor.undo(); Accessible.name: "Undo" }
                 Button { text: "↷"; enabled: editor.canRedo && !editor.busy; onClicked: editor.redo(); Accessible.name: "Redo" }
@@ -142,7 +167,25 @@ ApplicationWindow {
                     }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
-                        Image { anchors.fill: parent; source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy }
+                        Image {
+                            id: previewImage
+                            anchors.fill: parent; source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: editor.targetedTool !== "none" && editor.hasPhoto && !editor.busy && !editor.original
+                                cursorShape: Qt.SizeVerCursor
+                                property real startY: 0
+                                property bool adjusting: false
+                                onPressed: function(mouse) {
+                                    const left=(width-previewImage.paintedWidth)/2, top=(height-previewImage.paintedHeight)/2
+                                    if(previewImage.paintedWidth<=0||previewImage.paintedHeight<=0||mouse.x<left||mouse.x>left+previewImage.paintedWidth||mouse.y<top||mouse.y>top+previewImage.paintedHeight){mouse.accepted=false;return}
+                                    startY=mouse.y;adjusting=editor.beginTargeted((mouse.x-left)/previewImage.paintedWidth,(mouse.y-top)/previewImage.paintedHeight)
+                                }
+                                onPositionChanged: function(mouse) { if(pressed&&adjusting&&previewImage.paintedHeight>0)editor.adjustTargeted((startY-mouse.y)/previewImage.paintedHeight) }
+                                onReleased: { adjusting=false;editor.endTargeted() }
+                                onCanceled: { adjusting=false;editor.endTargeted() }
+                            }
+                        }
                         ColumnLayout {
                             anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy
                             Label { text: "◉"; font.pixelSize: 72; color: "#dfae77"; Layout.alignment: Qt.AlignHCenter }
@@ -164,6 +207,7 @@ ApplicationWindow {
                         Button { text: "Обработка"; checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         Button { text: "Оригинал"; checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                     }
+                    Label { visible:editor.targetedTool!=="none";text:"Нажмите на тон или цвет и потяните вверх / вниз";color:"#dfae77";font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
                 }
             }
             Rectangle {
@@ -203,6 +247,10 @@ ApplicationWindow {
                         Label { text: "ЦВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
                         DevelopSlider { parameter: "vibrance"; label: "Vibrance"; Layout.fillWidth: true }
                         DevelopSlider { parameter: "saturation"; label: "Saturation"; Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        CurvesPanel { Layout.fillWidth:true }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        HSLPanel { Layout.fillWidth:true }
                         Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: "ДАННЫЕ СЪЁМКИ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }

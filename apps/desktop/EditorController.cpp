@@ -105,6 +105,7 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    endEdit();
     loadCancellation_.cancel();
     loadCancellation_ = luma::CancellationSource{};
     const auto stop = loadCancellation_.token();
@@ -198,14 +199,21 @@ bool EditorController::editable() const {
 QVariantMap EditorController::parameters() const {
     QVariantMap values;
     for (const auto *name : {"exposure", "temperature", "tint", "contrast", "highlights", "shadows",
-                             "whites", "blacks", "vibrance", "saturation"})
+                             "whites", "blacks", "vibrance", "saturation", "curve.shadows",
+                             "curve.darks", "curve.lights", "curve.highlights"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
+    for (const auto band : luma::hslBands) {
+        for (const auto *parameter : {"hue", "saturation", "luminance"}) {
+            const auto name = "hsl." + std::string(band) + "." + parameter;
+            values.insert(QString::fromStdString(name), history_.current().parameter(name));
+        }
+    }
     return values;
 }
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
     for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
-                             "whites", "blacks", "vibrance", "saturation"})
+                             "whites", "blacks", "vibrance", "saturation", "curves", "hsl"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -215,6 +223,7 @@ void EditorController::beginEdit() {
         history_.begin();
 }
 void EditorController::endEdit() {
+    targeted_.reset();
     history_.end();
     emit stateChanged();
 }
@@ -285,12 +294,14 @@ void EditorController::setWhiteBalancePreset(const QString &name) {
 }
 void EditorController::undo() {
     if (editable() && history_.canUndo()) {
+        targeted_.reset();
         history_.undo();
         editsChanged();
     }
 }
 void EditorController::redo() {
     if (editable() && history_.canRedo()) {
+        targeted_.reset();
         history_.redo();
         editsChanged();
     }

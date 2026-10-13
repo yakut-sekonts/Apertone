@@ -2,6 +2,7 @@
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/ThumbnailProvider.h"
+#include "apps/desktop/UpdateController.h"
 #include <QCommandLineParser>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -16,7 +17,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.3.0"));
+    app.setApplicationVersion(QStringLiteral("0.4.0-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -37,6 +38,8 @@ int main(int argc, char **argv) {
                       QStringLiteral("png")});
     parser.addOption(
         {QStringLiteral("test-develop"), QStringLiteral("Integration test: Develop and history")});
+    parser.addOption({QStringLiteral("test-advanced"),
+                      QStringLiteral("Integration test: Curves, HSL and targeted gestures")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
     parser.addOption({QStringLiteral("test-cancel-export"),
@@ -57,6 +60,17 @@ int main(int argc, char **argv) {
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
+    const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
+                         parser.isSet(QStringLiteral("test-edit")) ||
+                         parser.isSet(QStringLiteral("test-restore")) ||
+                         parser.isSet(QStringLiteral("test-library"));
+    UpdateController updates(
+        [&] {
+            return !editor.busy() && !editor.saving() && !editor.exporting() && !library.working();
+        },
+        !testing);
+    QObject::connect(&updates, &UpdateController::preparingRestart, &editor,
+                     &EditorController::endEdit);
     QObject::connect(&library, &LibraryModel::openRequested, &editor, &EditorController::openFile);
     QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
     QQmlApplicationEngine engine;
@@ -65,6 +79,7 @@ int main(int argc, char **argv) {
     engine.addImageProvider(QStringLiteral("preview"), provider);
     engine.rootContext()->setContextProperty(QStringLiteral("editor"), &editor);
     engine.rootContext()->setContextProperty(QStringLiteral("library"), &library);
+    engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
@@ -101,13 +116,14 @@ int main(int argc, char **argv) {
         const auto testSource = parser.value(QStringLiteral("test-edit"));
         const bool cancelExport = parser.isSet(QStringLiteral("test-cancel-export"));
         const bool develop = parser.isSet(QStringLiteral("test-develop"));
+        const bool advanced = parser.isSet(QStringLiteral("test-advanced"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
         QObject::connect(
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
-             exportPath, exportStarted, cancelExport, closeDuringExport, testSource] {
+             exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -138,6 +154,78 @@ int main(int argc, char **argv) {
                             editor.redo();
                             editor.setCorrectionEnabled(QStringLiteral("shadows"), false);
                         }
+                        if (advanced) {
+                            const auto originalCurves = editor.curvePoints();
+                            editor.beginEdit();
+                            const int point =
+                                editor.addCurvePoint(QStringLiteral("rgb"), 0.4, 0.55);
+                            editor.moveCurvePoint(QStringLiteral("rgb"), point, 0.4, 0.6);
+                            editor.moveCurvePoint(QStringLiteral("rgb"), point, 0.4, 0.62);
+                            editor.endEdit();
+                            editor.undo();
+                            if (editor.curvePoints() != originalCurves) {
+                                std::cerr << "Curve gesture Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            const auto beforeHSL = editor.parameters();
+                            editor.beginEdit();
+                            editor.setParameter(QStringLiteral("hsl.red.hue"), 12);
+                            editor.setParameter(QStringLiteral("hsl.blue.luminance"), 25);
+                            editor.endEdit();
+                            editor.undo();
+                            if (editor.parameters() != beforeHSL) {
+                                std::cerr << "HSL gesture Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            editor.setParameter(QStringLiteral("curve.lights"), 15);
+                            const auto beforeTarget = editor.curvePoints();
+                            editor.setTargetedTool(QStringLiteral("curve.red"));
+                            if (!editor.beginTargeted(0.4, 0.5)) {
+                                std::cerr << "Curve target did not begin\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.adjustTargeted(0.05);
+                            editor.adjustTargeted(0.08);
+                            editor.endTargeted();
+                            if (editor.curvePoints() == beforeTarget) {
+                                std::cerr << "Curve target did not change pixels\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.undo();
+                            if (editor.curvePoints() != beforeTarget) {
+                                std::cerr << "Targeted curve Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            const auto beforeColorTarget = editor.parameters();
+                            editor.setTargetedTool(QStringLiteral("hsl.saturation"));
+                            if (!editor.beginTargeted(0.4, 0.5)) {
+                                std::cerr << "HSL target did not begin\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.adjustTargeted(-0.15);
+                            editor.adjustTargeted(-0.2);
+                            editor.endTargeted();
+                            if (editor.parameters() == beforeColorTarget) {
+                                std::cerr << "HSL target did not change parameters\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.undo();
+                            if (editor.parameters() != beforeColorTarget) {
+                                std::cerr << "Targeted HSL Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.setTargetedTool(QStringLiteral("none"));
+                        }
                     } else if (std::abs(editor.exposure() - target) > 1e-9) {
                         std::cerr << "Exposure restoration mismatch\n";
                         app.exit(1);
@@ -150,6 +238,21 @@ int main(int argc, char **argv) {
                         editor.parameters().value(QStringLiteral("vibrance")).toDouble() != 35 ||
                         editor.correctionStates().value(QStringLiteral("shadows")).toBool()) {
                         std::cerr << "Develop restoration mismatch\n";
+                        app.exit(1);
+                        return;
+                    }
+                }
+                if (*applied && advanced && !editing && !editor.busy() && editor.hasPhoto()) {
+                    const auto points = editor.curvePoints().value(QStringLiteral("rgb")).toList();
+                    if (points.size() != 3 ||
+                        points[1].toMap().value(QStringLiteral("y")).toDouble() != 0.62 ||
+                        editor.parameters().value(QStringLiteral("curve.lights")).toDouble() !=
+                            15 ||
+                        editor.parameters().value(QStringLiteral("hsl.red.hue")).toDouble() != 12 ||
+                        editor.parameters()
+                                .value(QStringLiteral("hsl.blue.luminance"))
+                                .toDouble() != 25) {
+                        std::cerr << "Advanced restoration mismatch\n";
                         app.exit(1);
                         return;
                     }

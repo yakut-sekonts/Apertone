@@ -102,7 +102,7 @@ void catalogTests(const std::filesystem::path &root, const std::filesystem::path
     require(db.libraryCount() == 1, "Deleting collection deleted original.");
     require(db.activeAsset()->edits.exposure == 1.25, "Library mutation changed Develop edits.");
     sql(path,
-        R"sql(PRAGMA foreign_keys=OFF;DROP TABLE collection_assets;DROP TABLE collections;DROP TABLE import_items;DROP TABLE import_sessions;DROP INDEX assets_filename;DROP INDEX assets_flag;DELETE FROM schema_migrations WHERE version=3;PRAGMA user_version=2;)sql");
+        R"sql(PRAGMA foreign_keys=OFF;DROP TABLE edit_curve_points;DROP TABLE edit_hsl_bands;DROP TABLE collection_assets;DROP TABLE collections;DROP TABLE import_items;DROP TABLE import_sessions;DROP INDEX assets_filename;DROP INDEX assets_flag;DELETE FROM schema_migrations WHERE version>=3;PRAGMA user_version=2;)sql");
     luma::Catalog migrated(path);
     require(migrated.activeAsset()->edits.exposure == 1.25, "Schema 2 migration lost edits.");
     require(migrated.libraryPage({}, 0, 1).front().rating == 4, "Migration lost ratings.");

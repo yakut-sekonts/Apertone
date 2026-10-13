@@ -21,7 +21,11 @@ constexpr std::array parameters{
     Parameter{"whites", &EditDocument::whites, -100, 100, Correction::whites},
     Parameter{"blacks", &EditDocument::blacks, -100, 100, Correction::blacks},
     Parameter{"vibrance", &EditDocument::vibrance, -100, 100, Correction::vibrance},
-    Parameter{"saturation", &EditDocument::saturation, -100, 100, Correction::saturation}};
+    Parameter{"saturation", &EditDocument::saturation, -100, 100, Correction::saturation},
+    Parameter{"curve.shadows", &EditDocument::curveShadows, -100, 100, Correction::curves},
+    Parameter{"curve.darks", &EditDocument::curveDarks, -100, 100, Correction::curves},
+    Parameter{"curve.lights", &EditDocument::curveLights, -100, 100, Correction::curves},
+    Parameter{"curve.highlights", &EditDocument::curveHighlights, -100, 100, Correction::curves}};
 const Parameter &find(std::string_view name) {
     for (const auto &parameter : parameters) {
         if (parameter.name == name)
@@ -29,28 +33,91 @@ const Parameter &find(std::string_view name) {
     }
     throw std::runtime_error("Unknown edit parameter: " + std::string(name));
 }
+double HSLBand::*hslMember(std::string_view name) {
+    if (name == "hue")
+        return &HSLBand::hue;
+    if (name == "saturation")
+        return &HSLBand::saturation;
+    if (name == "luminance")
+        return &HSLBand::luminance;
+    throw std::runtime_error("Unknown HSL parameter.");
+}
+std::pair<std::size_t, double HSLBand::*> hslParameter(std::string_view name) {
+    const auto separator = name.find('.', 4);
+    if (separator == std::string_view::npos)
+        throw std::runtime_error("Invalid HSL parameter.");
+    return {EditDocument::hslBand(name.substr(4, separator - 4)),
+            hslMember(name.substr(separator + 1))};
+}
 } // namespace
+void PointCurve::validate() const {
+    if (points.size() < 2 || points.size() > 32 || points.front().x != 0 || points.back().x != 1)
+        throw std::runtime_error("Curve requires 2–32 points with fixed x endpoints at 0 and 1.");
+    double previous = -1;
+    for (const auto &point : points) {
+        if (!std::isfinite(point.x) || !std::isfinite(point.y) || point.x < 0 || point.x > 1 ||
+            point.y < 0 || point.y > 1 || point.x - previous < 0.001 - 1e-12)
+            throw std::runtime_error(
+                "Curve points must be finite, bounded and separated by at least 0.001.");
+        previous = point.x;
+    }
+}
 void EditDocument::validate() const {
     for (const auto &parameter : parameters) {
         const auto value = this->*parameter.member;
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~511U) != 0)
+    if ((enabledCorrections & ~2047U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
+    for (const auto &curve : curves)
+        curve.validate();
+    for (const auto &band : hsl) {
+        for (double value : {band.hue, band.saturation, band.luminance})
+            if (!std::isfinite(value) || value < -100 || value > 100)
+                throw std::runtime_error("HSL values must be finite and within -100…100.");
+    }
 }
 double EditDocument::parameter(std::string_view name) const {
+    if (name.starts_with("hsl.")) {
+        const auto [band, member] = hslParameter(name);
+        return hsl[band].*member;
+    }
     return this->*find(name).member;
 }
 void EditDocument::setParameter(std::string_view name, double value) {
     auto next = *this;
-    next.*find(name).member = value;
+    if (name.starts_with("hsl.")) {
+        const auto [band, member] = hslParameter(name);
+        next.hsl[band].*member = value;
+    } else
+        next.*find(name).member = value;
     if (name == "temperature" || name == "tint")
         next.customWhiteBalance = true;
     next.validate();
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
+    if (name == "curves")
+        return Correction::curves;
+    if (name == "hsl")
+        return Correction::hsl;
+    if (name.starts_with("hsl.")) {
+        hslParameter(name);
+        return Correction::hsl;
+    }
     return name == "whiteBalance" ? Correction::whiteBalance : find(name).correction;
+}
+std::size_t EditDocument::curveChannel(std::string_view name) {
+    for (std::size_t i = 0; i < curveChannels.size(); ++i)
+        if (curveChannels[i] == name)
+            return i;
+    throw std::runtime_error("Unknown curve channel.");
+}
+std::size_t EditDocument::hslBand(std::string_view name) {
+    for (std::size_t i = 0; i < hslBands.size(); ++i)
+        if (hslBands[i] == name)
+            return i;
+    throw std::runtime_error("Unknown HSL band.");
 }
 } // namespace luma

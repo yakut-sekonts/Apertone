@@ -65,7 +65,7 @@ def main():
         run("open", source)
         run("develop", "exposure=0.5", "temperature=5350", "tint=15", "contrast=20", "highlights=-35", "shadows=25", "whites=5", "blacks=-7", "vibrance=30", "saturation=12")
         saved = run("restore")
-        assert saved["customWhiteBalance"] and saved["editSchemaVersion"] == 2
+        assert saved["customWhiteBalance"] and saved["editSchemaVersion"] == 3
         run("develop", "contrast=50", "tint=nan", expected=1)
         assert run("restore")["contrast"] == 20, "Invalid batch partially committed"
         run("disable", "highlights")
@@ -121,7 +121,7 @@ def main():
         assert restored["shadows"] == 25 and restored["enabledCorrections"] & 16 == 0
         assert run("catalog", "verify")["integrity"] == "ok"
         with sqlite3.connect(catalog) as connection:
-            assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+            assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         assert hashlib.sha256(source.read_bytes()).hexdigest() == original_hash
         assert not list(directory.glob(".luma-export-*")), "Export temporary files leaked"
         print("Develop CLI/GUI, Undo/Redo, restart-identical exports, embedded ICC, TIFF16 and original/destination integrity passed")

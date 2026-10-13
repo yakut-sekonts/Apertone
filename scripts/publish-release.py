@@ -3,6 +3,7 @@
 Never retrieves a workstation credential or emits/saves a token.
 """
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -10,6 +11,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 repository = os.environ.get("GITHUB_REPOSITORY")
 if repository != "yakut-sekonts/Luma":
@@ -29,6 +31,17 @@ if not re.fullmatch(r"[0-9a-f]{40}", arguments.source_commit):
 if info["version"] != version or info["source_commit"] != arguments.source_commit:
     raise SystemExit("Asset version/source commit does not match the release tag.")
 paths = [folder / f"Luma-{version}-macos-arm64.zip", folder / f"Luma-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
+if info.get("dependencies", {}).get("Sparkle"):
+    ns = "http://www.andymatuschak.org/xml-namespaces/sparkle"
+    items = ET.parse(folder / "appcast.xml").findall("./channel/item")
+    if len(items) != 1:
+        raise SystemExit("Update feed must contain exactly this release.")
+    enclosure = items[0].find("enclosure")
+    if enclosure is None or enclosure.get(f"{{{ns}}}version") != version or enclosure.get("url") != f"https://github.com/{repository}/releases/download/{tag}/Luma-{version}-macos-arm64.zip" or enclosure.get("length") != str(paths[0].stat().st_size):
+        raise SystemExit("Update feed does not match the verified release ZIP.")
+    if len(base64.b64decode(enclosure.get(f"{{{ns}}}edSignature", ""), validate=True)) != 64:
+        raise SystemExit("Update feed requires an EdDSA signature.")
+    paths.insert(-1, folder / "appcast.xml")
 manifest = {}
 for line in (folder / "SHA256SUMS").read_text().splitlines():
     digest, name = line.split("  ", 1)

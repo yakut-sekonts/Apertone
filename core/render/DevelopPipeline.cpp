@@ -46,7 +46,9 @@ double amount(const EditDocument &edits, Correction correction, double value) {
 }
 } // namespace
 DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibration)
-    : edits_(edits), calibration_(calibration), gains_(calibration.asShotGains) {
+    : edits_(edits), calibration_(calibration), gains_(calibration.asShotGains),
+      curves_{ToneCurve(edits.curves[0]), ToneCurve(edits.curves[1]), ToneCurve(edits.curves[2]),
+              ToneCurve(edits.curves[3])} {
     edits.validate();
     for (auto value : calibration.cameraToSRGB)
         if (!std::isfinite(value))
@@ -58,6 +60,14 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
         gains_ = manualGains(edits.temperature, edits.tint, calibration);
     exposureGain_ =
         static_cast<float>(std::exp2(edits.enabled(Correction::exposure) ? edits.exposure : 0));
+    curvesActive_ = edits.enabled(Correction::curves) &&
+                    (edits.curveShadows != 0 || edits.curveDarks != 0 || edits.curveLights != 0 ||
+                     edits.curveHighlights != 0 ||
+                     std::any_of(edits.curves.begin(), edits.curves.end(),
+                                 [](const PointCurve &curve) { return curve != PointCurve{}; }));
+    hslActive_ = edits.enabled(Correction::hsl) &&
+                 std::any_of(edits.hsl.begin(), edits.hsl.end(),
+                             [](const HSLBand &band) { return band != HSLBand{}; });
 }
 std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
     for (std::size_t c = 0; c < 3; ++c) {
@@ -98,6 +108,19 @@ std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
     const double gain = std::max(0.0, (1 + saturation) * (1 + vibrance * (1 - chroma)));
     for (auto &value : rgb)
         value = static_cast<float>(gray + (value - gray) * gain);
+    if (curvesActive_ || hslActive_) {
+        std::array<double, 3> encoded{};
+        for (std::size_t c = 0; c < 3; ++c) {
+            encoded[c] = encodeSRGB(rgb[c]);
+            if (curvesActive_)
+                encoded[c] =
+                    curves_[c + 1].value(curves_[0].value(parametricCurve(encoded[c], edits_)));
+        }
+        if (hslActive_)
+            encoded = mixHSL(encoded, edits_.hsl);
+        for (std::size_t c = 0; c < 3; ++c)
+            rgb[c] = static_cast<float>(decodeSRGB(encoded[c]));
+    }
     return rgb;
 }
 } // namespace luma

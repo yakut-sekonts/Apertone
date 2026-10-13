@@ -33,7 +33,32 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"saturation\":" << asset.edits.saturation
               << ",\"enabledCorrections\":" << asset.edits.enabledCorrections
               << ",\"editSchemaVersion\":" << luma::EditDocument::schemaVersion
-              << ",\"checksum\":" << quoted(asset.checksum) << "}\n";
+              << ",\"curveParametric\":{\"shadows\":" << asset.edits.curveShadows
+              << ",\"darks\":" << asset.edits.curveDarks
+              << ",\"lights\":" << asset.edits.curveLights
+              << ",\"highlights\":" << asset.edits.curveHighlights << "},\"curves\":{";
+    for (std::size_t c = 0; c < luma::curveChannels.size(); ++c) {
+        if (c != 0)
+            std::cout << ',';
+        std::cout << quoted(std::string(luma::curveChannels[c])) << ":[";
+        const auto &points = asset.edits.curves[c].points;
+        for (std::size_t i = 0; i < points.size(); ++i) {
+            if (i != 0)
+                std::cout << ',';
+            std::cout << '[' << points[i].x << ',' << points[i].y << ']';
+        }
+        std::cout << ']';
+    }
+    std::cout << "},\"hsl\":{";
+    for (std::size_t b = 0; b < luma::hslBands.size(); ++b) {
+        if (b != 0)
+            std::cout << ',';
+        const auto &band = asset.edits.hsl[b];
+        std::cout << quoted(std::string(luma::hslBands[b])) << ":{\"hue\":" << band.hue
+                  << ",\"saturation\":" << band.saturation << ",\"luminance\":" << band.luminance
+                  << '}';
+    }
+    std::cout << "},\"checksum\":" << quoted(asset.checksum) << "}\n";
 }
 } // namespace
 
@@ -53,6 +78,7 @@ int main(int argc, char **argv) {
                       << "       luma exposure EV --catalog FILE\n"
                       << "       luma restore --catalog FILE\n"
                       << "       luma develop PARAM=VALUE... --catalog FILE\n"
+                      << "       luma curve rgb|red|green|blue X:Y X:Y... --catalog FILE\n"
                       << "       luma enable|disable CORRECTION --catalog FILE\n"
                       << "       luma wb as-shot --catalog FILE\n"
                       << "       luma export DEST [--quality N] [--overwrite] --catalog FILE\n"
@@ -113,6 +139,30 @@ int main(int argc, char **argv) {
                 if (consumed != text.size())
                     throw std::runtime_error("Invalid edit number.");
                 asset->edits.setParameter(name, value);
+            }
+            service.save(asset->id, asset->edits);
+            std::cout << "{\"saved\":true}\n";
+        } else if (arguments[0] == "curve" && arguments.size() >= 4) {
+            luma::Catalog connection(catalog);
+            auto asset = connection.activeAsset();
+            if (!asset)
+                throw std::runtime_error("No active photo in this catalog.");
+            auto &points =
+                asset->edits.curves[luma::EditDocument::curveChannel(arguments[1])].points;
+            points.clear();
+            for (std::size_t i = 2; i < arguments.size(); ++i) {
+                const auto separator = arguments[i].find(':');
+                if (separator == std::string::npos)
+                    throw std::runtime_error("Expected curve points as X:Y.");
+                auto number = [](const std::string &text) {
+                    std::size_t count = 0;
+                    const double value = std::stod(text, &count);
+                    if (count != text.size())
+                        throw std::runtime_error("Invalid curve coordinate.");
+                    return value;
+                };
+                points.push_back({number(arguments[i].substr(0, separator)),
+                                  number(arguments[i].substr(separator + 1))});
             }
             service.save(asset->id, asset->edits);
             std::cout << "{\"saved\":true}\n";
