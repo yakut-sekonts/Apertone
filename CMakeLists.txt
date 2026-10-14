@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.12 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.13 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -70,6 +70,9 @@ add_custom_command(TARGET Luma POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty"
     COMMAND ${CMAKE_COMMAND} -E copy "${sparkle_SOURCE_DIR}/LICENSE"
         "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt")
+target_compile_definitions(Luma PRIVATE LUMA_VERSION="${PROJECT_VERSION}")
+set_source_files_properties(resources/branding/Luma.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+target_sources(Luma PRIVATE resources/branding/Luma.icns)
 target_compile_options(Luma PRIVATE -Wall -Wextra -Wpedantic -Werror)
 set_target_properties(Luma PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.desktop"

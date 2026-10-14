@@ -8,10 +8,23 @@ actual=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Co
 [[ "$actual" == "$version" ]] || { echo "Bundle/release version mismatch" >&2; exit 1; }
 codesign --verify --deep --strict "$app"
 workspace=$(mktemp -d "$PWD/dist/luma-dmg.XXXXXX")
-trap 'rm -rf "$workspace"' EXIT
+mounted=0
+mountpoint="$workspace/volume"
+cleanup() {
+    if [[ "$mounted" == 1 ]]; then
+        hdiutil detach "$mountpoint" >/dev/null 2>&1 ||
+            hdiutil detach -force "$mountpoint" >/dev/null 2>&1 || {
+                echo "Could not detach generated image; preserving $workspace" >&2
+                return
+            }
+    fi
+    rm -rf "$workspace"
+}
+trap cleanup EXIT
 staging="$workspace/contents"
 mkdir "$staging"
 ditto "$app" "$staging/Luma.app"
+cp "$app/Contents/Resources/Luma.icns" "$staging/.VolumeIcon.icns"
 ln -s /Applications "$staging/Applications"
 cp LICENSE "$staging/LICENSE.txt"
 cp "docs/releases/v$version.md" "$staging/READ_ME.md"
@@ -23,7 +36,7 @@ touch "$staging/.metadata_never_index"
 for attempt in 1 2 3 4; do
     image="$workspace/attempt-$attempt.dmg"
     if LC_ALL=C hdiutil create -volname "Luma $version" -srcfolder "$staging" \
-        -fs HFS+ -format UDZO "$image" >"$workspace/create.log" 2>&1; then
+        -fs HFS+ -format UDRW "$image" >"$workspace/create.log" 2>&1; then
         cat "$workspace/create.log"
         break
     else
@@ -36,5 +49,13 @@ for attempt in 1 2 3 4; do
         sleep "$((attempt * 5))"
     fi
 done
-hdiutil verify "$image"
-mv -f "$image" "$PWD/dist/Luma-$version-macos-arm64.dmg"
+# The volume root's Finder flags are distinct from the staging directory flags.
+# Set them on the mounted writable volume, then compress the completed image.
+hdiutil attach -readwrite -nobrowse -noautoopen -mountpoint "$mountpoint" "$image" > "$workspace/attach.log"
+mounted=1
+xcrun SetFile -a C "$mountpoint"
+hdiutil detach "$mountpoint"
+mounted=0
+hdiutil convert "$image" -format UDZO -o "$workspace/final.dmg"
+hdiutil verify "$workspace/final.dmg"
+mv -f "$workspace/final.dmg" "$PWD/dist/Luma-$version-macos-arm64.dmg"

@@ -13,6 +13,7 @@ Dialog {
     ColumnLayout {
         width: parent.width
         spacing: 14
+        Label { objectName: "settingsVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 20; font.weight: Font.DemiBold; Layout.fillWidth: true }
         Label { text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
         ComboBox {
             id: languageChoice

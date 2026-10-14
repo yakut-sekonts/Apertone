@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.13 / Branded macOS release
+
+- Original Luma ICNS application and DMG volume icons.
+- One CMake version used by binary, Settings/title/status bar, Finder and installer.
+- Public release packages all completed 0.4 work, languages and ordinary images.
+- Installer/standalone/version/icon verification and signed Sparkle release feed.
+
 ## 0.4.12 / Source extension before Local Adjustments
 
 - Ordinary image Open/Add/Copy alongside RAW: JPEG, PNG, TIFF8/16, HEIC/HEIF,
@@ -13,7 +20,7 @@
   Spanish, Italian and French language packages.
 - Atomic persisted preference and full retranslation without changing user data.
 
-These are source/development versions; the public release remains v0.3.0.
+These extensions are included in the 0.4.13 public release.
 
 ## 0.3.0 — 2026-10-12 / First macOS release and Library
 

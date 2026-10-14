@@ -60,6 +60,10 @@ jobs:
         run: ./scripts/release-artifacts.sh build
       - name: Verify standalone application
         run: .tools/venv/bin/python scripts/verify-bundle.py
+      - name: Verify mounted installer and version
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Luma.app/Contents/Info.plist)
+          .tools/venv/bin/python scripts/verify-dmg.py "dist/release/Luma-$version-macos-arm64.dmg"
       - name: Sign update archive and prepare appcast
         if: steps.signing.outputs.configured == 'true'
         env:

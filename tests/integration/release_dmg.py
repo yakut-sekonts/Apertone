@@ -20,6 +20,8 @@ class DmgRecoveryTests(unittest.TestCase):
             contents.mkdir(parents=True)
             with (contents / "Info.plist").open("wb") as file:
                 plistlib.dump({"CFBundleShortVersionString": "0.3.0"}, file)
+            (contents / "Resources").mkdir()
+            (contents / "Resources/Luma.icns").write_bytes(b"synthetic icon")
             (root / "docs/releases").mkdir(parents=True)
             (root / "docs/releases/v0.3.0.md").write_text("Release notes")
             (root / "LICENSE").write_text("License")
@@ -27,7 +29,7 @@ class DmgRecoveryTests(unittest.TestCase):
             output.write_bytes(b"previous verified image")
             binaries = root / "bin"
             binaries.mkdir()
-            for name in ("codesign", "sleep"):
+            for name in ("codesign", "sleep", "xcrun"):
                 command = binaries / name
                 command.write_text("#!/bin/sh\nexit 0\n")
                 command.chmod(0o755)
@@ -37,8 +39,16 @@ import os
 from pathlib import Path
 import sys
 counter = Path(os.environ["DMG_TEST_COUNTER"])
+if sys.argv[1] in ("attach", "detach"):
+    sys.exit(0)
+if sys.argv[1] == "convert":
+    Path(sys.argv[-1]).write_bytes(b"new image")
+    sys.exit(0)
 if sys.argv[1] == "verify":
     sys.exit(3 if os.environ["DMG_TEST_FAILURE"] == "verify" else 0)
+staging = Path(sys.argv[sys.argv.index("-srcfolder") + 1])
+assert (staging / ".VolumeIcon.icns").read_bytes() == b"synthetic icon"
+assert (staging / "Applications").is_symlink()
 attempt = int(counter.read_text()) + 1 if counter.exists() else 1
 counter.write_text(str(attempt))
 Path(sys.argv[-1]).write_bytes(b"new image")

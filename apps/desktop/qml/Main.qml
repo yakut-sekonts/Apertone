@@ -10,7 +10,7 @@ ApplicationWindow {
     height: 840
     minimumWidth: 1000
     minimumHeight: 640
-    title: "Luma" + (editor.hasPhoto ? " — " + editor.filename : "")
+    title: "Luma " + Qt.application.version + (editor.hasPhoto ? " — " + editor.filename : "")
     color: "#111318"
     palette.window: "#111318"
     palette.base: "#1b1e24"
@@ -311,6 +311,7 @@ ApplicationWindow {
             Layout.fillWidth: true; implicitHeight: 34; color: "#191c22"
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
+                Label { objectName: "applicationVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 10; color: "#a9adb5" }
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
                 Label { text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
                 Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: "#777f8b"; font.pixelSize: 10 }

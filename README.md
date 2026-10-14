@@ -9,14 +9,14 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## First release: v0.3.0
+## Current release: v0.4.13
 
-[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.3.0) ·
-[Release notes / known issues](docs/releases/v0.3.0.md)
+[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.4.13) ·
+[Release notes / known issues](docs/releases/v0.4.13.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Professional Develop and presets remain 0.4.
+checksums accompany the release. The release includes all completed phase 0.4 work, runtime languages and ordinary images.
 
 ## Included in source: phase 0.4
 
@@ -70,7 +70,7 @@ reconstruction and production camera profiles remain planned.
 ## Build and run
 
 ```bash
-git clone --branch v0.3.0 https://github.com/yakut-sekonts/Luma.git
+git clone --branch v0.4.13 https://github.com/yakut-sekonts/Luma.git
 cd Luma
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -388,8 +388,8 @@ file installation. Default PNG output remains byte-identical to the 0.4.9 app.
 DNG has edits baked into 16-bit LinearRaw samples; it is not sensor archival.
 General RGB/float DNG ingestion remains unsupported. See [export behavior,
 limits and CLI options](docs/EXPORT.md) and [ADR 0018](docs/adr/0018-advanced-export.md).
-The development bundle is ad-hoc signed, without notarization. Public release
-v0.3.0 and the frozen 0.4.0 release candidate remain unchanged. Phase 0.5 starts
+The macOS bundle is ad-hoc signed, without notarization. Release 0.4.13 includes
+these completed features. Phase 0.5 starts
 only after the requested roadmap review.
 
 
@@ -408,5 +408,13 @@ RAW and ordinary images share Library Add/Copy, Develop, edited thumbnails, pres
 batch edits, export queue and restart. PNG/TIFF preserve transparency; JPEG/DNG
 flatten against black. Native ImageIO handles full-image color-managed decoding;
 RAW retains its sensor pipeline. See [supported formats and limits](docs/IMAGE_SUPPORT.md).
-This completes the requested pre-phase-0.5 extensions in source; public release
-v0.3.0 remains unchanged. Local Adjustments have not started.
+These requested pre-phase-0.5 extensions are included in release 0.4.13.
+Local Adjustments have not started.
+
+
+## macOS installer and version / 0.4.13
+
+The application and mounted DMG use the original Luma half-disc logo. Settings,
+window title, status bar, Finder and --version share CMake's release version.
+The latest GitHub Release provides a matching DMG, ZIP, SHA256SUMS, BUILD_INFO.json
+and signed Sparkle appcast. See [release notes](docs/releases/v0.4.13.md).
