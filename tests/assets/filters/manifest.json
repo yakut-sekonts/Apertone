@@ -1,0 +1,38 @@
+[
+  {
+    "file": "portrait.png",
+    "sha256": "b7224c8c68fc7aaf76657b0d039e9fac69c00117d58523e5d2a11fe7cd2fbe61",
+    "original_sha256": "88431cd9653ccd539741b555fb0a46b61558b301d4110412b5bc28b5e3ea6cb5",
+    "author": "NASA",
+    "license": "Public domain (NASA; editorial software QA, no endorsement)",
+    "source": "https://scikit-image.org/docs/stable/api/skimage.data.html#skimage.data.astronaut",
+    "license_url": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "download": "https://raw.githubusercontent.com/scikit-image/scikit-image/v0.25.2/skimage/data/astronaut.png",
+    "verified": "2026-10-14",
+    "conversion": "ImageIO thumbnail, EXIF orientation applied, max512px, PNG without source metadata"
+  },
+  {
+    "file": "landscape.png",
+    "sha256": "65f8cab61ebac24d87257397d9964af17e2972a5eb47d507ee44f3c0209c5b3d",
+    "original_sha256": "bde5ad5d830dfb5e0e35951ed3be6d638481df2f6749720208cd0670f46974d9",
+    "author": "Mshuang2",
+    "license": "CC0-1.0",
+    "source": "https://commons.wikimedia.org/wiki/File:River_landscape_with_rocks_and_trees.jpg",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/e/e0/River_landscape_with_rocks_and_trees.jpg",
+    "verified": "2026-10-14",
+    "conversion": "ImageIO thumbnail, EXIF orientation applied, max512px, PNG without source metadata"
+  },
+  {
+    "file": "night.png",
+    "sha256": "a10274f9ca55d6dbd6f09de8473831bbd3349d604149b7d497390b5e37845985",
+    "original_sha256": "4c7b23f3885e7b5587bdccfbbffb4d33393e76e3c4b3a08c101bb00fe2e01359",
+    "author": "Syd Storm",
+    "license": "CC0-1.0",
+    "source": "https://commons.wikimedia.org/wiki/File:Big_Ben_at_night,_30_April_2017.jpg",
+    "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "download": "https://upload.wikimedia.org/wikipedia/commons/5/53/Big_Ben_at_night%2C_30_April_2017.jpg",
+    "verified": "2026-10-14",
+    "conversion": "ImageIO thumbnail, EXIF orientation applied, max512px, PNG without source metadata"
+  }
+]

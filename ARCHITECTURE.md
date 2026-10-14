@@ -263,3 +263,14 @@ worker, then uses the same solver with coverage, noise and safety checks. Revisi
 guards prevent stale results. Tool modes only enable pointers on matching renders.
 Catalog 9/edit 8/preset 6 add Geometry as an eighth independent settings subset;
 compound matrices are validated atomically in editor, persistence and batch paths.
+
+
+## Built-in photographic filters
+
+ADR 0016 represents eight immutable looks as existing Curve/HSL presets (subset
+12). BuiltinPresets owns declarative parameters and stable `builtin:` IDs. The
+controller exposes a separate built-in list, resolves it for ordinary hover/apply/
+batch snapshots and refuses mutations. User storage and preset schemas are
+unchanged. JSON import creates an editable UUID copy. The shared renderer handles
+all processing; photographic fixtures and reviewed spatial metrics complement
+sensor/QML/history/batch acceptance.

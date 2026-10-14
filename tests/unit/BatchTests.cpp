@@ -283,6 +283,24 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
         throw std::runtime_error(component.errorString().toStdString());
     const std::unique_ptr<QObject> window(component.create());
     require(window != nullptr, "Batch QML did not load.");
+    const auto beforeFilter = editor.currentSettings();
+    auto *choice = window->findChild<QObject *>("batchPresetChoice");
+    require(choice && choice->property("count").toInt() == presets.items().size() + 8,
+            "Batch QML did not expose built-in filters and user presets.");
+    choice->setProperty("currentIndex", 3);
+    auto *apply = window->findChild<QObject *>("batchApplyPreset");
+    require(apply && QMetaObject::invokeMethod(apply, "clicked"),
+            "Cannot apply built-in from batch QML.");
+    wait([&] { return !batch.working(); });
+    require(batch.error().isEmpty() &&
+                editor.currentSettings() ==
+                    luma::mergeSettings(beforeFilter,
+                                        presets.snapshot("builtin:warm-film").settings, 12),
+            "Batch QML applied the wrong filter/subset.");
+    batch.undo();
+    wait([&] { return !batch.working(); });
+    require(editor.currentSettings() == beforeFilter,
+            "Batch QML filter Undo changed excluded settings.");
     auto *button = window->findChild<QObject *>("batchSync");
     require(button && button->property("enabled").toBool(), "Sync control is not available.");
     require(QMetaObject::invokeMethod(button, "clicked"), "Cannot open Sync dialog.");
@@ -359,6 +377,24 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         require(pasted[i].temperature == 7500 &&
                     pasted[i].exposure == (i == 0 ? 0.75 : f.edits[i].exposure),
                 "Batch Paste changed excluded Light settings.");
+    const auto beforeFilter = documents(f);
+    batch.applyPreset("builtin:warm-film");
+    wait([&] { return !batch.working(); });
+    require(batch.error().isEmpty(), "Built-in filter batch failed.");
+    const auto filtered = documents(f);
+    for (std::size_t i = 0; i < filtered.size(); ++i)
+        require(filtered[i] == luma::mergeSettings(beforeFilter[i],
+                                                   presets.snapshot("builtin:warm-film").settings,
+                                                   12),
+                "Built-in batch overwrote per-photo excluded settings.");
+    batch.undo();
+    wait([&] { return !batch.working(); });
+    require(documents(f) == beforeFilter, "Built-in batch Undo did not restore target settings.");
+    batch.redo();
+    wait([&] { return !batch.working(); });
+    require(documents(f) == filtered, "Built-in batch Redo changed target settings.");
+    batch.undo();
+    wait([&] { return !batch.working(); });
     qmlTests(editor, library, presets, batch, qmlPath);
     const auto synced = documents(f);
     for (std::size_t i = 0; i < synced.size(); ++i)

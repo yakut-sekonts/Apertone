@@ -1,5 +1,6 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/EditorController.h"
+#include "apps/shared/BuiltinPresets.h"
 #include <QFileInfo>
 #include <algorithm>
 #include <filesystem>
@@ -17,7 +18,21 @@ QVariantList PresetController::items() const {
                                   {"groups", static_cast<int>(entry.preset.groups)}});
     return result;
 }
+QVariantList PresetController::builtinItems() const {
+    QVariantList result;
+    for (const auto &entry : luma::builtinPresets())
+        result.append(QVariantMap{{"id", entry.id},
+                                  {"name", entry.preset.name},
+                                  {"groups", static_cast<int>(entry.preset.groups)}});
+    return result;
+}
 const luma::DevelopPreset &PresetController::find(const QString &id) const {
+    if (luma::builtinPresetID(id)) {
+        for (const auto &entry : luma::builtinPresets())
+            if (entry.id == id)
+                return entry.preset;
+        throw std::runtime_error("Unknown built-in filter.");
+    }
     const auto found =
         std::find_if(presets_.begin(), presets_.end(), [&](const auto &p) { return p.id == id; });
     if (found == presets_.end())
@@ -52,6 +67,8 @@ bool PresetController::refresh() {
 bool PresetController::save(const QString &id, const QString &name, const QString &folder,
                             int groups, bool captureCurrent) {
     try {
+        if (luma::builtinPresetID(id))
+            throw std::runtime_error("Built-in filters are read-only. Save a new user preset.");
         if (captureCurrent && (!editor_.hasPhoto() || editor_.busy()))
             throw std::runtime_error("Open a photo before capturing its settings.");
         luma::DevelopPreset preset;
@@ -76,6 +93,8 @@ bool PresetController::save(const QString &id, const QString &name, const QStrin
 }
 bool PresetController::remove(const QString &id) {
     try {
+        if (luma::builtinPresetID(id))
+            throw std::runtime_error("Built-in filters cannot be deleted.");
         store_.remove(id);
         return refresh();
     } catch (const std::exception &error) {

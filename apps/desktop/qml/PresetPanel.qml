@@ -28,8 +28,38 @@ ColumnLayout {
     onVisibleChanged: if (!visible) presets.clearPreview()
     Connections { target: presets; function onItemsChanged() { panel.selection() } }
     spacing: 8
-    Label { text: "ПРЕСЕТЫ"; color: "#858c97"; font.pixelSize: 10; font.letterSpacing: 1.5 }
+    TabBar {
+        id: presetTabs
+        objectName: "presetTabs"
+        Layout.fillWidth: true
+        onCurrentIndexChanged: presets.clearPreview()
+        TabButton { text: "Фильтры"; implicitWidth: 80; font.pixelSize: 11 }
+        TabButton { text: "Пресеты"; implicitWidth: 80; font.pixelSize: 11 }
+    }
+    ListView {
+        id: builtinList
+        objectName: "builtinFilterList"
+        visible: presetTabs.currentIndex === 0
+        Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
+        clip: true; model: presets.builtinItems
+        delegate: ItemDelegate {
+            id: filterRow
+            required property var modelData
+            objectName: "filter_" + modelData.id.substring(8)
+            width: builtinList.width; height: 30; text: modelData.name; hoverEnabled: true
+            enabled: editor.hasPhoto && !editor.busy
+            onHoveredChanged: {
+                if (hovered && enabled) presets.preview(modelData.id)
+                else if (!hovered) presets.clearPreview()
+            }
+            onClicked: presets.apply(modelData.id)
+            ToolTip.visible: hovered; ToolTip.delay: 700
+            ToolTip.text: "Curve и HSL. Экспозиция, WB, Detail и геометрия сохраняются. Один Undo."
+        }
+        ScrollBar.vertical: ScrollBar {}
+    }
     RowLayout {
+        visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; spacing: 4
         Button { objectName: "presetCreate"; implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: "Сохранить текущие настройки" }
         Button { text: "Импорт"; onClicked: importDialog.open(); Layout.fillWidth: true }
@@ -47,6 +77,7 @@ ColumnLayout {
     ListView {
         id: list
         objectName: "presetList"
+        visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
         clip: true; model: presets.items
         section.property: "folder"; section.criteria: ViewSection.FullString
@@ -59,7 +90,7 @@ ColumnLayout {
         delegate: ItemDelegate {
             id: presetRow
             required property var modelData
-            width: list.width; height: 34
+            width: list.width; height: 34; hoverEnabled: true
             contentItem: Label {
                 objectName: "presetTitle"
                 text: presetRow.modelData.name; textFormat: Text.PlainText

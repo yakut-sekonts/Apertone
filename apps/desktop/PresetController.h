@@ -8,11 +8,13 @@ class EditorController;
 class PresetController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList items READ items NOTIFY itemsChanged)
+    Q_PROPERTY(QVariantList builtinItems READ builtinItems CONSTANT)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(bool hasCopiedSettings READ hasCopiedSettings NOTIFY stateChanged)
   public:
     PresetController(QString path, EditorController &editor, QObject *parent = nullptr);
     QVariantList items() const;
+    QVariantList builtinItems() const;
     QString error() const {
         return error_;
     }

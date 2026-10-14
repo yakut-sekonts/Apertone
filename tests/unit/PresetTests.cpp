@@ -21,6 +21,7 @@
 #include <iostream>
 #include <source_location>
 
+void filterEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void cropEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void transformEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void lensEditorTests(const QString &source, const QString &root, const QString &qmlPath);
@@ -318,6 +319,8 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
             throw std::runtime_error(std::string("Preset control was not found: ") + name);
         return value;
     };
+    child("presetTabs")->setProperty("currentIndex", 1);
+    QCoreApplication::processEvents();
     auto *panel = child("presetPanel");
     require(QMetaObject::invokeMethod(child("presetCreate"), "clicked"),
             "Cannot open create dialog.");
@@ -658,6 +661,7 @@ int main(int argc, char **argv) {
         documentTests();
         storeTests(temporary.path());
         editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
+        filterEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         cropEditorTests(QString::fromLocal8Bit(argv[1]), temporary.path(),
                         QString::fromLocal8Bit(argv[2]));
         lensEditorTests(QString::fromLocal8Bit(argv[3]), temporary.path(),

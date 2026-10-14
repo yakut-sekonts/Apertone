@@ -44,6 +44,7 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - 🚧 Crop, ratios, straighten, flips and guide overlays in source.
 - 🚧 Calibrated Lens Corrections with automatic/manual profiles in source.
 - 🚧 Manual, Auto and Guided perspective Transform in source.
+- 🚧 Eight ready-made Curve/HSL filters with hover and Undo in source.
 - 🗓 Local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
@@ -332,3 +333,20 @@ read older schemas without introducing absent groups.
 See [ADR 0015](docs/adr/0015-perspective-transform.md) and
 [Transform review](docs/TRANSFORM_REVIEW.md). Ready-made filters, edited thumbnails
 and advanced export/queue remain in phase 0.4; Local Adjustments remain phase 0.5.
+
+
+## In development: Ready-made filters / 0.4.8
+
+Natural, Soft Portrait, Landscape, Warm Film, Cool Cinema, Matte, Vintage and Crisp
+are original declarative Curve/HSL presets. Hover previews without saving; click
+applies one Undo. They preserve per-photo Exposure, WB, Detail, Crop, Optics and
+Geometry, including enable states. Reapplying is idempotent. Every changed value
+remains editable; Natural resets only Curve/HSL. There is no hidden LUT or effect.
+
+Built-ins are read-only and stored independently of user presets. Export JSON and
+import it for an editable copy, or save your adjusted look as a new user preset.
+Batch preset application also accepts built-ins and preserves excluded settings.
+Three redistributable photographic fixtures, provenance and reviewed spatial/color
+regressions supplement RAW acceptance; see [fixture notes](tests/assets/filters/README.md),
+[ADR 0016](docs/adr/0016-ready-made-filters.md) and [review](docs/FILTERS_REVIEW.md).
+These are authored starting points, not commercial film/camera emulations.

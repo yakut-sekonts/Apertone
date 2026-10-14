@@ -7,10 +7,11 @@ RowLayout {
     objectName: "batchSettings"
     Layout.fillWidth: true
     property bool ready: library.selectedCount > 0 && !library.working && !library.selecting && !editor.busy && !editor.exporting
+    property var availablePresets: presets.builtinItems.concat(presets.items)
     ComboBox {
         id: presetChoice; objectName: "batchPresetChoice"
-        model: presets.items; textRole: "name"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
-        enabled: row.ready && presets.items.length > 0
+        model: row.availablePresets; textRole: "name"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
+        enabled: row.ready && row.availablePresets.length > 0
         delegate: ItemDelegate {
             required property var modelData
             width: presetChoice.width
@@ -18,7 +19,7 @@ RowLayout {
         }
         contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
     }
-    Button { objectName: "batchApplyPreset"; text: "Применить"; enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(presets.items[presetChoice.currentIndex].id) }
+    Button { objectName: "batchApplyPreset"; text: "Применить"; enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
     Button { objectName: "batchPaste"; text: "Paste"; enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
     Button { objectName: "batchSync"; text: "Sync Settings…"; enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
     Item { Layout.fillWidth: true }

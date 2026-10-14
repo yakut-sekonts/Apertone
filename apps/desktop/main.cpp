@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.7-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.8-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -47,6 +47,9 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: calibrated Lens Corrections")});
     parser.addOption({QStringLiteral("test-transform"),
                       QStringLiteral("Integration test: perspective geometry and history")});
+    parser.addOption({QStringLiteral("test-filter"),
+                      QStringLiteral("Integration test: built-in filter and Undo"),
+                      QStringLiteral("id")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
     parser.addOption({QStringLiteral("test-cancel-export"),
@@ -134,6 +137,7 @@ int main(int argc, char **argv) {
         const bool advanced = parser.isSet(QStringLiteral("test-advanced"));
         const bool lens = parser.isSet(QStringLiteral("test-lens"));
         const bool transform = parser.isSet(QStringLiteral("test-transform"));
+        const auto filter = parser.value(QStringLiteral("test-filter"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
@@ -141,7 +145,7 @@ int main(int argc, char **argv) {
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
              exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced, lens,
-             transform] {
+             transform, &presets, filter] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -180,6 +184,24 @@ int main(int argc, char **argv) {
                             editor.redo();
                             if (editor.parameters() != after) {
                                 std::cerr << "Transform gesture Redo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                        }
+                        if (!filter.isEmpty()) {
+                            const auto before = editor.currentSettings();
+                            presets.apply(filter);
+                            const auto after = editor.currentSettings();
+                            editor.undo();
+                            if (editor.currentSettings() != before || after == before ||
+                                !presets.error().isEmpty()) {
+                                std::cerr << "Built-in filter Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            if (editor.currentSettings() != after) {
+                                std::cerr << "Built-in filter Redo failed\n";
                                 app.exit(1);
                                 return;
                             }

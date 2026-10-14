@@ -42,3 +42,8 @@ Redistribution must preserve notices, provide the corresponding LGPL sources
 and permit replacement/relinking of LGPL libraries. A local debug build does not
 justify omitting those materials from a public release. The packaging script
 includes them; release verification must audit the final bundle.
+
+Test-only photographic fixtures in `tests/assets/filters` have separate public-
+domain/CC0 provenance; see that directory's README and checksum/author manifest.
+NASA portrait use is editorial software QA and implies no endorsement. These
+photos are not distributed in the application bundle or used as marketing art.

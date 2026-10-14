@@ -11,7 +11,7 @@ and stop before phase 0.5 for adjustments. Local Adjustments must not start.
 - [x] Calibrated Optics, manual/Auto profiles, distortion/vignette amounts and CA.
 - [x] Perspective Transform (§26): manual Rotate/Horizontal/Vertical/Aspect/Scale/
   X/Y Offset, Auto with confidence refusal, Guided vertical/horizontal line pairs.
-- [ ] Ready-made filters: declarative presets, hover, one Undo, preserve excluded
+- [x] Ready-made filters: declarative presets, hover, one Undo, preserve excluded
   groups, representative distributable licensed image fixtures and validation.
 - [ ] Edited thumbnails: correct edit-dependent cache identity, revision updates
   in grid/filmstrip after autosave/batch changes, stale-result isolation and restart.
