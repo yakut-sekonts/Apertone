@@ -290,3 +290,22 @@ URL nonce invalidates Qt's image cache without model resets or full-catalog scan
 Snapshot cache identities and Qt source replacement isolate late results. PhotoCard
 retries remain declarative bindings and reset with each new URL. Existing worker,
 admission and disk budgets remain; phase-0.6 optimization is separate.
+
+
+## Advanced export boundary
+
+`ExportOptions` owns pure typed validation and output dimensions. `LinearOutput`
+shares developed/corrected geometry, alpha-aware resize and output sharpening.
+macOS adapters handle ICC output, photographic metadata filtering, CoreText/image
+watermarks and ImageIO encoders. An original DNG writer streams calibrated 16-bit
+LinearRaw samples; the narrowly identified Luma DNG reader uses D50 forward
+calibration explicitly. No Adobe SDK or general RAW color-profile expansion.
+
+`ExportSettings` validates a versioned JSON representation for desktop profiles.
+`ExportController` coordinates autosave, plans immutable asset/edit/settings
+snapshots and runs one SessionService export at a time on its own JobManager.
+Pause happens between files; cooperative cancellation joins before destruction.
+Only final atomic file installation holds a short catalog writer transaction,
+checking originals again to include photos registered during rendering. Source
+encoding/preview/MakerNote fields never override the destination codec settings.
+No edit/catalog schema migration is needed. See docs/EXPORT.md and ADR 0018.

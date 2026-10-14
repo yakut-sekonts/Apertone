@@ -1,6 +1,7 @@
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/image/Bayer.h"
 #include "core/render/TransformMapping.h"
 #include <array>
 #include <chrono>
@@ -425,6 +426,37 @@ std::optional<AssetRecord> Catalog::assetByID(const std::string &id) const {
     Statement query(db_, (std::string(selectFields) + "WHERE a.id=?1").c_str());
     query.text(1, id);
     return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
+}
+bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
+                             CancellationToken stop) const {
+    Statement query(db_, "SELECT 1 FROM assets WHERE original_path=?1 LIMIT 1");
+    query.text(1, canonicalPath.string());
+    if (query.row())
+        return true;
+    if (!std::filesystem::exists(canonicalPath))
+        return false;
+    Statement paths(db_, "SELECT original_path FROM assets");
+    while (paths.row()) {
+        checkCancellation(stop);
+        std::error_code error;
+        if (std::filesystem::equivalent(canonicalPath, paths.string(0), error) && !error)
+            return true;
+    }
+    return false;
+}
+void Catalog::installExport(const std::filesystem::path &target, CancellationToken stop,
+                            const std::function<void()> &install) {
+    execute("BEGIN IMMEDIATE;");
+    try {
+        checkCancellation(stop);
+        if (originalAtPath(target, stop))
+            throw std::runtime_error("Export cannot replace a catalog original.");
+        install();
+        execute("COMMIT;");
+    } catch (...) {
+        sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+        throw;
+    }
 }
 std::optional<AssetSnapshot> Catalog::assetSnapshot(const std::string &id) {
     execute("BEGIN;");

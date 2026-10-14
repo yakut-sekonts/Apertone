@@ -3,6 +3,7 @@
 #include "apps/shared/SessionService.h"
 #include "core/lens/LensProfiles.h"
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdlib>
 #include <iomanip>
@@ -11,6 +12,20 @@
 
 namespace {
 using luma::cli::quoted;
+template <typename E, std::size_t N>
+E exportChoice(const std::string &value, const std::array<const char *, N> &choices) {
+    for (std::size_t i = 0; i < N; ++i)
+        if (value == choices[i])
+            return static_cast<E>(i);
+    throw std::runtime_error("Unknown export option value: " + value);
+}
+double exportNumber(const std::string &text) {
+    std::size_t consumed = 0;
+    const auto value = std::stod(text, &consumed);
+    if (consumed != text.size())
+        throw std::runtime_error("Invalid export numeric value.");
+    return value;
+}
 void printSession(const luma::PhotoSession &session) {
     const auto &asset = session.asset;
     const auto optics = luma::resolveLens(asset.metadata, asset.edits.lens);
@@ -257,17 +272,65 @@ int main(int argc, char **argv) {
                 options.format = luma::ExportFormat::png;
             else if (extension == ".tif" || extension == ".tiff")
                 options.format = luma::ExportFormat::tiff16;
+            if (extension == ".dng")
+                options.format = luma::ExportFormat::dng;
             for (std::size_t i = 2; i < arguments.size(); ++i) {
-                if (arguments[i] == "--overwrite")
+                const auto key = arguments[i];
+                if (key == "--overwrite") {
                     options.overwrite = true;
-                else if (arguments[i] == "--quality" && i + 1 < arguments.size()) {
+                    continue;
+                }
+                if (++i == arguments.size())
+                    throw std::runtime_error("Missing export option value.");
+                const auto &value = arguments[i];
+                if (key == "--quality") {
                     std::size_t consumed = 0;
-                    const auto text = arguments[++i];
-                    options.quality = std::stoi(text, &consumed);
-                    if (consumed != text.size())
+                    options.quality = std::stoi(value, &consumed);
+                    if (consumed != value.size())
                         throw std::runtime_error("Invalid JPEG quality.");
+                } else if (key == "--format")
+                    options.format = exportChoice<luma::ExportFormat>(
+                        value, std::array{"jpeg", "png", "tiff16", "tiff8", "dng"});
+                else if (key == "--color-space")
+                    options.colorSpace = exportChoice<luma::ExportColorSpace>(
+                        value, std::array{"srgb", "p3", "adobe-rgb", "prophoto"});
+                else if (key == "--compression")
+                    options.compression = exportChoice<luma::TiffCompression>(
+                        value, std::array{"none", "lzw", "zip"});
+                else if (key == "--resize")
+                    options.resize = exportChoice<luma::ResizeMode>(
+                        value, std::array{"original", "width", "height", "long", "short", "mp",
+                                          "percent"});
+                else if (key == "--size")
+                    options.resizeValue = exportNumber(value);
+                else if (key == "--output-sharpen")
+                    options.outputMedium = exportChoice<luma::OutputMedium>(
+                        value, std::array{"off", "screen", "matte", "glossy"});
+                else if (key == "--output-amount")
+                    options.outputAmount = exportChoice<luma::SharpenAmount>(
+                        value, std::array{"low", "standard", "high"});
+                else if (key == "--metadata")
+                    options.metadata = exportChoice<luma::MetadataPolicy>(
+                        value, std::array{"none", "all", "copyright", "remove-location"});
+                else if (key == "--watermark-text") {
+                    options.watermark.kind = luma::WatermarkKind::text;
+                    options.watermark.text = value;
+                } else if (key == "--watermark-image") {
+                    options.watermark.kind = luma::WatermarkKind::image;
+                    options.watermark.image = value;
+                } else if (key == "--watermark-opacity")
+                    options.watermark.opacity = exportNumber(value);
+                else if (key == "--watermark-size")
+                    options.watermark.size = exportNumber(value);
+                else if (key == "--watermark-margin")
+                    options.watermark.margin = exportNumber(value);
+                else if (key == "--watermark-anchor") {
+                    std::size_t consumed = 0;
+                    options.watermark.anchor = std::stoi(value, &consumed);
+                    if (consumed != value.size())
+                        throw std::runtime_error("Invalid watermark anchor.");
                 } else
-                    throw std::runtime_error("Unknown export option.");
+                    throw std::runtime_error("Unknown export option: " + key);
             }
             service.exportPhoto(*asset, asset->edits, destination, options);
             std::cout << "{\"exported\":" << quoted(destination.string()) << "}\n";

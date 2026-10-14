@@ -18,7 +18,7 @@ DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed
 The build is ad-hoc signed and not notarized. Installation instructions and
 checksums accompany the release. Professional Develop and presets remain 0.4.
 
-## Included: 0.3 — Library
+## Included in source: phase 0.4
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
@@ -40,11 +40,12 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Basic search and combined metadata/collection filters.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
-- 🚧 Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
-- 🚧 Crop, ratios, straighten, flips and guide overlays in source.
-- 🚧 Calibrated Lens Corrections with automatic/manual profiles in source.
-- 🚧 Manual, Auto and Guided perspective Transform in source.
-- 🚧 Eight ready-made Curve/HSL filters with hover and Undo in source.
+- ✅ Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
+- ✅ Crop, ratios, straighten, flips and guide overlays in source.
+- ✅ Calibrated Lens Corrections with automatic/manual profiles in source.
+- ✅ Manual, Auto and Guided perspective Transform in source.
+- ✅ Eight ready-made Curve/HSL filters with hover and Undo in source.
+- ✅ Advanced JPEG/PNG/TIFF8/16/DNG export, color/resize/metadata/watermark settings and sequential queue.
 - 🗓 Local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
@@ -52,15 +53,16 @@ Linux are outside the current scope.
 
 ### Image support
 
-M0 implements **integer Bayer RAW** only, including Nikon NEF and Bayer DNG.
+Luma develops **integer Bayer RAW**, including Nikon NEF and Bayer DNG, and
+reimports its own processed Linear RGB DNG output.
 LibRaw can decode other Bayer camera formats, but those are not claimed as
 verified until they have acceptance coverage. X-Trans, monochrome RAW,
-floating-point/RGB DNG and JPEG/HEIF/TIFF ingestion are planned.
+general floating-point/RGB DNG and JPEG/HEIF/TIFF ingestion are planned.
 Develop never uses the embedded JPEG as its image source.
 
 This is a foundation milestone, not a daily-use Lightroom replacement.
 Bilinear demosaic is a reference implementation; advanced demosaic, highlight
-reconstruction, noise reduction and production camera profiles remain planned.
+reconstruction and production camera profiles remain planned.
 
 ## Build and run
 
@@ -332,7 +334,7 @@ read older schemas without introducing absent groups.
 
 See [ADR 0015](docs/adr/0015-perspective-transform.md) and
 [Transform review](docs/TRANSFORM_REVIEW.md). Ready-made filters, edited thumbnails
-and advanced export/queue remain in phase 0.4; Local Adjustments remain phase 0.5.
+were completed in subsequent phase-0.4 substages; Local Adjustments remain phase 0.5.
 
 
 ## In development: Ready-made filters / 0.4.8
@@ -367,3 +369,22 @@ use identical JPEG bytes; corrupt or oversized entries are regenerated. Source
 hashes are checked around decoding. Two workers, 96 admitted requests, 384px output
 and the existing 512MB atomic disk cache remain; performance at scale is phase 0.6.
 See [ADR 0017](docs/adr/0017-edited-thumbnails.md).
+
+
+## Advanced export and queue / 0.4.10
+
+The Export panel supports JPEG, PNG, TIFF8/16 with None/LZW/ZIP, and processed
+Linear RGB DNG; sRGB/Display P3/Adobe RGB/ProPhoto; seven resize modes; output
+sharpening; metadata/location policies; Unicode text and image watermarks.
+Destination/naming/conflict settings can be saved as reusable profiles.
+Active/selected-photo export runs sequentially from immutable saved snapshots,
+with progress, filenames, completed/total, errors, pause/resume/cancel and
+close/update coordination. Originals and catalog state are protected at atomic
+file installation. Default PNG output remains byte-identical to the 0.4.9 app.
+
+DNG has edits baked into 16-bit LinearRaw samples; it is not sensor archival.
+General RGB/float DNG ingestion remains unsupported. See [export behavior,
+limits and CLI options](docs/EXPORT.md) and [ADR 0018](docs/adr/0018-advanced-export.md).
+The development bundle is ad-hoc signed, without notarization. Public release
+v0.3.0 and the frozen 0.4.0 release candidate remain unchanged. Phase 0.5 starts
+only after the requested roadmap review.

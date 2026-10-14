@@ -1,4 +1,5 @@
 #include "core/raw/RawDecoder.h"
+#include "core/color/RGBProfiles.h"
 #include "core/image/Bayer.h"
 #include <algorithm>
 #include <cmath>
@@ -22,6 +23,65 @@ std::optional<double> positive(double value) {
 }
 int cancelRaw(void *context, enum LibRaw_progress, int, int) {
     return static_cast<luma::CancellationToken *>(context)->isCancelled() ? 1 : 0;
+}
+bool lumaLinearDNG(const libraw_data_t &data) {
+    const auto model = text(data.idata.model);
+    return data.idata.dng_version != 0 && data.idata.filters == 0 && data.idata.colors == 3 &&
+           text(data.idata.make) == "Luma" &&
+           (model.starts_with("Rendered Linear RGB") ||
+            model.starts_with("Luma Rendered Linear RGB"));
+}
+RawColorCalibration linearCalibration(const libraw_data_t &data) {
+    const auto &profile = data.color.dng_color[0];
+    if (!lumaLinearDNG(data) || profile.illuminant != 23 || data.color.black != 0 ||
+        data.color.maximum != 65535)
+        throw std::runtime_error("Unsupported rendered Linear RGB DNG calibration.");
+    // LibRaw 0.21 copies TIFF matrix values without copying their parsedfields.
+    // Require the actual matrices to be finite, invertible and consistent instead.
+    bool calibrationPresent = false;
+    for (const auto &row : profile.calibration)
+        for (float value : row) {
+            if (!std::isfinite(value))
+                throw std::runtime_error("Invalid rendered DNG calibration.");
+            calibrationPresent = calibrationPresent || value != 0;
+        }
+    ColorMatrix3 forward{}, color{};
+    for (std::size_t row = 0; row < 3; ++row) {
+        if (!std::isfinite(data.color.dng_levels.asshotneutral[row]) ||
+            std::abs(data.color.dng_levels.asshotneutral[row] - 1) > 1e-6 ||
+            data.color.cblack[row] != 0)
+            throw std::runtime_error(
+                "Rendered Linear RGB DNG requires neutral WB and zero black level.");
+        const double analog = data.color.dng_levels.analogbalance[row];
+        if (!std::isfinite(analog) || (analog != 0 && std::abs(analog - 1) > 1e-6))
+            throw std::runtime_error("Unsupported rendered DNG analog balance.");
+        for (std::size_t column = 0; column < 3; ++column) {
+            forward[row * 3 + column] = profile.forwardmatrix[row][column];
+            color[row * 3 + column] = profile.colormatrix[row][column];
+            if (calibrationPresent &&
+                (!std::isfinite(profile.calibration[row][column]) ||
+                 std::abs(profile.calibration[row][column] - (row == column ? 1 : 0)) > 1e-6))
+                throw std::runtime_error("Unsupported rendered DNG camera calibration.");
+        }
+    }
+    (void)inverseColorMatrix(forward);
+    if (std::abs(forward[0] + forward[1] + forward[2] - .9642) > .005 ||
+        std::abs(forward[3] + forward[4] + forward[5] - 1) > .005 ||
+        std::abs(forward[6] + forward[7] + forward[8] - .8249) > .005)
+        throw std::runtime_error("Rendered DNG forward matrix does not preserve D50 neutral.");
+    const auto identity = multiplyColorMatrices(color, forward);
+    for (std::size_t i = 0; i < 9; ++i)
+        if (!std::isfinite(identity[i]) || std::abs(identity[i] - (i % 4 == 0 ? 1 : 0)) > .005)
+            throw std::runtime_error("Inconsistent rendered DNG color matrices.");
+    for (std::size_t i = 6; i < LIBRAW_CBLACK_SIZE; ++i)
+        if (data.color.cblack[i] != 0)
+            throw std::runtime_error("Rendered DNG requires a zero black-level grid.");
+    static const auto toSRGB = inverseColorMatrix(rgbToXYZD50(linearSRGBProfile()));
+    const auto matrix = multiplyColorMatrices(toSRGB, forward);
+    RawColorCalibration result;
+    for (std::size_t i = 0; i < matrix.size(); ++i)
+        result.cameraToSRGB[i] = static_cast<float>(matrix[i]);
+    return result;
 }
 PhotoMetadata metadataFrom(const libraw_data_t &data) {
     PhotoMetadata metadata;
@@ -78,10 +138,12 @@ PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, Cancellatio
     decoder->set_progress_handler(cancelRaw, &stop);
     requireSuccess(decoder->open_file(path.c_str()), "Read RAW metadata");
     const auto &data = decoder->imgdata;
-    if (data.idata.filters == 0 || data.idata.filters == 9 || data.idata.colors != 3 ||
-        data.sizes.width < 2 || data.sizes.height < 2)
+    if ((!lumaLinearDNG(data) && data.idata.filters == 0) || data.idata.filters == 9 ||
+        data.idata.colors != 3 || data.sizes.width < 2 || data.sizes.height < 2)
         throw std::runtime_error("Library currently supports Bayer RAW only.");
     pixelCount(data.sizes.width, data.sizes.height);
+    if (lumaLinearDNG(data))
+        (void)linearCalibration(data);
     checkCancellation(stop);
     return metadataFrom(data);
 }
@@ -120,6 +182,37 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     checkCancellation(stop);
     const auto &data = decoder.imgdata;
     const auto &sizes = data.sizes;
+    if (lumaLinearDNG(data)) {
+        const auto calibration = linearCalibration(data);
+        const int channels = data.rawdata.color3_image ? 3 : data.rawdata.color4_image ? 4 : 0;
+        if (channels == 0 || sizes.width < 22 || sizes.height < 22 ||
+            sizes.top_margin + sizes.height > sizes.raw_height ||
+            sizes.left_margin + sizes.width > sizes.raw_width ||
+            sizes.raw_pitch <
+                static_cast<unsigned>(sizes.raw_width) * channels * sizeof(unsigned short) ||
+            sizes.raw_pitch % (static_cast<unsigned>(channels) * sizeof(unsigned short)) != 0)
+            throw std::runtime_error("Invalid rendered Linear RGB DNG sample bounds.");
+        const auto stride =
+            sizes.raw_pitch / (static_cast<unsigned>(channels) * sizeof(unsigned short));
+        FloatImage image(sizes.width, sizes.height);
+        for (int y = 0; y < image.height; ++y) {
+            checkCancellation(stop);
+            for (int x = 0; x < image.width; ++x) {
+                const auto index =
+                    static_cast<std::size_t>(y + sizes.top_margin) * stride + x + sizes.left_margin;
+                const auto target = (static_cast<std::size_t>(y) * image.width + x) * 3;
+                for (std::size_t c = 0; c < 3; ++c)
+                    image.rgb[target + c] = (channels == 3 ? data.rawdata.color3_image[index][c]
+                                                           : data.rawdata.color4_image[index][c]) /
+                                            65535.F;
+            }
+            if (progress)
+                progress(0.45 + .55 * (y + 1.0) / image.height);
+        }
+        auto metadata = metadataFrom(data);
+        decoder.recycle();
+        return {std::move(image), std::move(metadata), calibration};
+    }
     if (!data.rawdata.raw_image || data.idata.filters == 0 || data.idata.filters == 9 ||
         data.idata.colors != 3 || sizes.width < 2 || sizes.height < 2) {
         throw std::runtime_error(

@@ -56,6 +56,10 @@ class Catalog {
     std::optional<AssetRecord> assetByID(const std::string &id) const;
     // Owns a read transaction; use on a dedicated reader connection.
     std::optional<AssetSnapshot> assetSnapshot(const std::string &id);
+    bool originalAtPath(const std::filesystem::path &canonicalPath,
+                        CancellationToken stop = {}) const;
+    void installExport(const std::filesystem::path &target, CancellationToken stop,
+                       const std::function<void()> &install);
     std::optional<AssetRecord> duplicate(const std::string &checksum, std::int64_t size) const;
     std::int64_t libraryCount(const LibraryFilter &filter = {}) const;
     std::vector<LibraryItem> libraryPage(const LibraryFilter &filter, int offset, int limit) const;

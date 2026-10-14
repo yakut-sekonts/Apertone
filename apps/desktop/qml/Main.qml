@@ -59,7 +59,8 @@ ApplicationWindow {
             Button { text: "Отменить"; onClicked: batch.cancel() }
         }
     }
-    onClosing: function(close) { const c = batch.requestClose(); const b = editor.requestClose(); const a = c && b ? library.requestClose() : false; close.accepted = a && b && c }
+    onClosing: function(close) { const d = exporter.requestClose(); const c = batch.requestClose(); const b = editor.requestClose(); const a = d && c && b ? library.requestClose() : false; close.accepted = a && b && c && d }
+    Connections { target: exporter; function onCloseReady() { root.close() } }
     Connections { target: batch; function onCloseReady() { root.close() } }
     Connections { target: library; function onCloseReady() { root.close() } }
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
@@ -76,30 +77,7 @@ ApplicationWindow {
         nameFilters: ["Bayer RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", "Все файлы (*)"]
         onAccepted: editor.openFile(selectedFile)
     }
-    Dialog {
-        id: exportSettings
-        title: "Экспорт"
-        modal: true
-        anchors.centerIn: parent
-        standardButtons: Dialog.Ok | Dialog.Cancel
-        onAccepted: exportDialog.open()
-        ColumnLayout {
-            spacing: 12
-            Label { text: "Разрешение после Crop · sRGB · без метаданных"; font.pixelSize: 12 }
-            ComboBox { id: exportFormat; model: ["JPEG", "PNG", "TIFF · 16 bit"]; Layout.fillWidth: true }
-            Label { text: "JPEG quality: " + exportQuality.value }
-            Slider { id: exportQuality; from: 1; to: 100; stepSize: 1; value: 92; enabled: exportFormat.currentIndex === 0; Layout.fillWidth: true }
-            CheckBox { id: overwriteExport; text: "Разрешить замену существующего файла"; checked: false }
-        }
-    }
-    FileDialog {
-        id: exportDialog
-        title: "Экспорт фотографии"
-        fileMode: FileDialog.SaveFile
-        nameFilters: exportFormat.currentIndex === 0 ? ["JPEG (*.jpg *.jpeg)"] : exportFormat.currentIndex === 1 ? ["PNG (*.png)"] : ["TIFF (*.tif *.tiff)"]
-        defaultSuffix: exportFormat.currentIndex === 0 ? "jpg" : exportFormat.currentIndex === 1 ? "png" : "tif"
-        onAccepted: editor.exportPhoto(selectedFile, exportFormat.currentIndex, Math.round(exportQuality.value), overwriteExport.checked)
-    }
+    ExportPanel { id: exportSettings }
     DropArea {
         enabled: !updates.restartPending && !batch.working
         anchors.fill: parent
@@ -125,7 +103,7 @@ ApplicationWindow {
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
                 Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: "Undo" }
                 Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: "Redo" }
-                Button { text: "Экспорт"; enabled: editor.hasPhoto && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                Button { text: "Экспорт"; enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
                 Button { text: "+  Открыть RAW"; enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
@@ -144,6 +122,27 @@ ApplicationWindow {
             Label { text: "Экспорт"; color: "#dfae77" }
             ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
             Button { text: "Отменить"; onClicked: editor.cancelExport() }
+        }
+        ColumnLayout {
+            visible: exporter.working || exporter.status.length > 0 || exporter.error.length > 0
+            Layout.fillWidth: true; Layout.margins: 10
+            RowLayout {
+                Label { text: exporter.status; textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
+                Label { text: exporter.completed + " / " + exporter.total }
+                Button { visible: exporter.working && !exporter.paused; text: exporter.pausePending ? "Пауза после файла…" : "Пауза"; enabled: !exporter.pausePending; onClicked: exporter.pause() }
+                Button { visible: exporter.paused; text: "Продолжить"; onClicked: exporter.resume() }
+                Button { visible: exporter.working; text: "Отменить"; onClicked: exporter.cancel() }
+                Button { text: "Настройки / ошибки"; onClicked: exportSettings.open() }
+            }
+            Label { visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
+            ProgressBar { visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
+            Label { visible: exporter.error.length > 0; text: exporter.error; textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ScrollView {
+                visible: exporter.failures.length > 0
+                Layout.fillWidth: true; Layout.preferredHeight: 65
+                TextArea { readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: "#ffc1bc" }
+            }
+            Button { visible: exporter.waitingForSave && editor.saving && !editor.busy; text: "Повторить сохранение"; onClicked: editor.retrySave() }
         }
         LibraryPane { visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {

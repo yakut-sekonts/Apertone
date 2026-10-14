@@ -20,6 +20,7 @@
 std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) {
     return {};
 }
+void exportQueueTests(const QString &source, const QString &root, const QString &qmlPath);
 void thumbnailTests(const QString &source, const QString &root, const QString &qmlPath);
 namespace {
 void require(bool value, const char *message) {
@@ -471,10 +472,18 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("Basic");
     try {
-        require(argc == 3 || (argc == 4 && std::string_view(argv[3]) == "--thumbnails"),
+        require(argc == 3 || (argc == 4 && (std::string_view(argv[3]) == "--thumbnails" ||
+                                            std::string_view(argv[3]) == "--export-queue")),
                 "Expected synthetic RAW and QML directory.");
         QTemporaryDir temporary;
         require(temporary.isValid(), "Cannot create batch test directory.");
+        if (argc == 4 && std::string_view(argv[3]) == "--export-queue") {
+            exportQueueTests(QString::fromUtf8(argv[1]), temporary.path(),
+                             QString::fromUtf8(argv[2]));
+            std::cout << "Export settings, immutable queue, pause/cancel/errors/QML and "
+                         "close/update passed.\n";
+            return 0;
+        }
         if (argc == 4) {
             thumbnailTests(QString::fromUtf8(argv[1]), temporary.path(),
                            QString::fromUtf8(argv[2]));

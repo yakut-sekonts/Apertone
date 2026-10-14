@@ -4,7 +4,10 @@
 #include "core/raw/RawDecoder.h"
 
 namespace luma::macos {
+using ExportInstallGuard = std::function<void(const std::function<void()> &)>;
 void writeImage(const DecodedRaw &decoded, EditDocument edits,
                 const std::filesystem::path &destination, ExportOptions options,
-                CancellationToken stop = {}, const std::function<void(double)> &progress = {});
-}
+                CancellationToken stop = {}, const std::function<void(double)> &progress = {},
+                const std::filesystem::path &metadataSource = {},
+                const ExportInstallGuard &installGuard = {});
+} // namespace luma::macos

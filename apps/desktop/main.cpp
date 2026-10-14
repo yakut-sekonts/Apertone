@@ -1,5 +1,6 @@
 #include "apps/desktop/BatchController.h"
 #include "apps/desktop/EditorController.h"
+#include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/PresetController.h"
@@ -20,7 +21,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.9-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.10-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -52,6 +53,9 @@ int main(int argc, char **argv) {
                       QStringLiteral("id")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
+    parser.addOption({QStringLiteral("test-export-queue"),
+                      QStringLiteral("Integration test: snapshot queue and DNG output"),
+                      QStringLiteral("folder")});
     parser.addOption({QStringLiteral("test-cancel-export"),
                       QStringLiteral("Integration test: cancel queued export")});
     parser.addOption({QStringLiteral("test-close-during-export"),
@@ -73,6 +77,7 @@ int main(int argc, char **argv) {
                              editor);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
     BatchController batch(std::filesystem::path(catalog.toStdString()), editor, library, presets);
+    ExportController exporter(std::filesystem::path(catalog.toStdString()), editor, library);
     const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
                          parser.isSet(QStringLiteral("test-edit")) ||
                          parser.isSet(QStringLiteral("test-restore")) ||
@@ -80,13 +85,16 @@ int main(int argc, char **argv) {
     UpdateController updates(
         [&] {
             return !editor.transformAutoBusy() && !editor.busy() && !editor.saving() &&
-                   !editor.exporting() && !library.working() && !batch.working();
+                   !editor.exporting() && !library.working() && !batch.working() &&
+                   !exporter.working();
         },
         !testing);
     QObject::connect(&updates, &UpdateController::preparingRestart, &editor,
                      &EditorController::endEdit);
     QObject::connect(&updates, &UpdateController::preparingRestart, &batch,
                      &BatchController::cancel);
+    QObject::connect(&updates, &UpdateController::preparingRestart, &exporter,
+                     &ExportController::cancel);
     QObject::connect(&library, &LibraryModel::openRequested, &editor, &EditorController::openFile);
     QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
     QObject::connect(&editor, &EditorController::editsSaved, &library,
@@ -100,6 +108,7 @@ int main(int argc, char **argv) {
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("presets"), &presets);
     engine.rootContext()->setContextProperty(QStringLiteral("batch"), &batch);
+    engine.rootContext()->setContextProperty(QStringLiteral("exporter"), &exporter);
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
@@ -119,6 +128,79 @@ int main(int argc, char **argv) {
                                parser.value(QStringLiteral("test-library")),
                                parser.value(QStringLiteral("test-screenshot")),
                                parser.isSet(QStringLiteral("test-close-import")));
+    } else if (parser.isSet(QStringLiteral("test-export-queue"))) {
+        const auto destination = parser.value(QStringLiteral("test-export-queue"));
+        const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
+        auto started = std::make_shared<bool>(false);
+        auto edited = std::make_shared<bool>(false);
+        QObject::connect(&editor, &EditorController::stateChanged, &app,
+                         [&, started, edited, destination] {
+                             if (!editor.error().isEmpty()) {
+                                 std::cerr << editor.error().toStdString() << '\n';
+                                 app.exit(1);
+                                 return;
+                             }
+                             if (editor.busy() || !editor.hasPhoto() || *started)
+                                 return;
+                             if (!*edited) {
+                                 *edited = true;
+                                 editor.setExposure(.42);
+                                 return;
+                             }
+                             if (editor.saving())
+                                 return;
+                             auto settings = exporter.settings();
+                             settings["destination"] = destination;
+                             settings["format"] = 4;
+                             settings["colorSpace"] = 1;
+                             settings["resize"] = 3;
+                             settings["resizeValue"] = 512;
+                             settings["metadata"] = 3;
+                             settings["watermarkKind"] = 1;
+                             settings["watermarkText"] = QStringLiteral("Luma QA · ©");
+                             if (!exporter.configure(settings)) {
+                                 std::cerr << exporter.error().toStdString() << '\n';
+                                 app.exit(1);
+                                 return;
+                             }
+                             *started = true;
+                             exporter.start(false);
+                         });
+        auto completed = std::make_shared<bool>(false);
+        QObject::connect(
+            &exporter, &ExportController::changed, &app,
+            [&, started, completed, screenshot, window] {
+                if (!*started || exporter.working() || *completed)
+                    return;
+                *completed = true;
+                if (!exporter.error().isEmpty() || !exporter.failures().isEmpty() ||
+                    exporter.succeeded() != 1) {
+                    std::cerr << exporter.error().toStdString()
+                              << exporter.failures().join('\n').toStdString() << " queue failed\n";
+                    app.exit(1);
+                    return;
+                }
+                if (!screenshot.isEmpty()) {
+                    auto *panel = window->findChild<QObject *>(QStringLiteral("exportPanel"));
+                    if (!panel || !QMetaObject::invokeMethod(panel, "open")) {
+                        app.exit(1);
+                        return;
+                    }
+                }
+                QTimer::singleShot(250, &app, [&, screenshot, window] {
+                    if (!screenshot.isEmpty() && !window->grabWindow().save(screenshot)) {
+                        app.exit(1);
+                        return;
+                    }
+                    std::cout << "Native immutable export queue and processed DNG verified\n";
+                    window->close();
+                });
+            });
+        QTimer::singleShot(90000, &app, [&app] {
+            std::cerr << "Queue GUI timed out\n";
+            app.exit(1);
+        });
+        editor.openFile(QUrl::fromLocalFile(parser.value(QStringLiteral("test-edit"))));
     } else if (parser.isSet(QStringLiteral("test-edit")) ||
                parser.isSet(QStringLiteral("test-restore"))) {
         const bool editing = parser.isSet(QStringLiteral("test-edit"));

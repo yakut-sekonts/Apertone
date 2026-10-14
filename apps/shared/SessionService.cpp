@@ -63,12 +63,23 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     if (source == target ||
         (std::filesystem::exists(target) && std::filesystem::equivalent(source, target)))
         throw std::runtime_error("Export cannot replace the original RAW.");
+    if (Catalog(catalogPath_).originalAtPath(target, stop))
+        throw std::runtime_error("Export cannot replace a catalog original.");
+    for (const auto &name :
+         {catalog.filename().string() + "-wal", catalog.filename().string() + "-shm",
+          std::string("presets.json"), std::string("export-settings.json")}) {
+        const auto state = catalog.parent_path() / name;
+        if (target == state || (std::filesystem::exists(target) && std::filesystem::exists(state) &&
+                                std::filesystem::equivalent(target, state)))
+            throw std::runtime_error("Export cannot replace application state.");
+    }
     auto extension = destination.extension().string();
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     const bool validExtension =
         options.format == ExportFormat::jpeg  ? (extension == ".jpg" || extension == ".jpeg")
         : options.format == ExportFormat::png ? extension == ".png"
+        : options.format == ExportFormat::dng ? extension == ".dng"
                                               : (extension == ".tif" || extension == ".tiff");
     if (!validExtension)
         throw std::runtime_error("Destination extension does not match export format.");
@@ -85,7 +96,10 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     if (initialTime != std::filesystem::last_write_time(source) ||
         initialSize != std::filesystem::file_size(source))
         throw std::runtime_error("Original changed during export decoding.");
-    macos::writeImage(decoded, edits, destination, options, stop, progress);
+    const auto guard = [&](const std::function<void()> &install) {
+        Catalog(catalogPath_).installExport(target, stop, install);
+    };
+    macos::writeImage(decoded, edits, destination, options, stop, progress, source, guard);
 }
 void SessionService::verify() const {
     Catalog(catalogPath_).verify();

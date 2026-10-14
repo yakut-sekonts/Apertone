@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.9 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.10 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -26,15 +26,16 @@ add_library(luma_core STATIC
     core/lens/LensProfiles.cpp core/lens/LensCorrection.cpp core/edits/LensSettings.cpp
     core/catalog/TransformMigration.cpp core/catalog/LensMigration.cpp core/catalog/CropMigration.cpp core/catalog/NoiseReductionMigration.cpp core/catalog/SharpeningMigration.cpp core/catalog/BatchEdits.cpp core/library/LibraryTypes.cpp core/catalog/LibraryCatalog.cpp core/catalog/Catalog.cpp core/raw/RawDecoder.cpp core/image/Bayer.cpp
     core/presets/SettingsSubset.cpp core/render/NoiseReduction.cpp core/render/Sharpening.cpp core/render/CropGeometry.cpp core/render/CpuRenderer.cpp core/render/DevelopPipeline.cpp core/render/AdvancedColor.cpp core/edits/CropSettings.cpp core/edits/EditDocument.cpp core/export/JpegICC.cpp
-    core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
+    core/export/ExportOptions.cpp core/export/LinearOutput.cpp core/export/DngWriter.cpp
+    core/color/RGBProfiles.cpp core/color/DisplayTransform.cpp core/jobs/JobManager.cpp)
 target_include_directories(luma_core PRIVATE "${CMAKE_BINARY_DIR}/generated")
 target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_core PUBLIC luma_libraw luma_sqlite luma_lcms)
 target_compile_options(luma_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-add_library(luma_macos STATIC platform/macos/DisplayProfile.mm platform/macos/FileHasher.cpp platform/macos/ImageExporter.mm)
+add_library(luma_macos STATIC platform/macos/AdvancedImageExporter.mm platform/macos/ExportMetadata.mm platform/macos/Watermark.mm platform/macos/ExportColor.mm platform/macos/DisplayProfile.mm platform/macos/FileHasher.cpp platform/macos/ImageExporter.mm)
 target_include_directories(luma_macos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework ImageIO")
+target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework ImageIO" "-framework CoreText")
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 add_library(luma_services STATIC apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
@@ -44,12 +45,13 @@ target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
 qt_add_executable(Luma MACOSX_BUNDLE
+    apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
     apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
+    QML_FILES apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Luma PRIVATE luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
@@ -81,7 +83,7 @@ if(BUILD_TESTING)
     target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
-    qt_add_executable(luma_batch_tests tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
+    qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
@@ -95,6 +97,10 @@ if(BUILD_TESTING)
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_preset_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_preset_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_executable(luma_export_tests tests/unit/ExportTests.cpp tests/unit/ExportNativeTests.mm)
+    target_link_libraries(luma_export_tests PRIVATE luma_services)
+    target_compile_options(luma_export_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME advanced-export-options-color-resize COMMAND luma_export_tests)
     add_executable(luma_filter_tests tests/unit/FilterTests.cpp apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp)
     target_link_libraries(luma_filter_tests PRIVATE luma_services Qt6::Gui)
     target_compile_options(luma_filter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -134,6 +140,8 @@ if(BUILD_TESTING)
     add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
     set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME export-settings-immutable-queue COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/export_queue.py" "$<TARGET_FILE:luma_batch_tests>" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Luma>")
+    set_tests_properties(export-settings-immutable-queue PROPERTIES TIMEOUT 180)
     add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/batch.py" "$<TARGET_FILE:luma_batch_tests>")
     set_tests_properties(batch-settings-atomic-history PROPERTIES TIMEOUT 180)

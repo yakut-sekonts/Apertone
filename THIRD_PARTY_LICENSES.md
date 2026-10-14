@@ -47,3 +47,8 @@ Test-only photographic fixtures in `tests/assets/filters` have separate public-
 domain/CC0 provenance; see that directory's README and checksum/author manifest.
 NASA portrait use is editorial software QA and implies no endorsement. These
 photos are not distributed in the application bundle or used as marketing art.
+
+Luma's original processed Linear RGB DNG writer follows Adobe's published DNG
+specification. No Adobe SDK source or binaries are included.
+This product includes DNG technology under license by Adobe.
+DNG specification: https://download.adobe.com/pub/adobe/dng/DNG_Spec_1_7_1_0.pdf

@@ -7,6 +7,7 @@
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
+#include "platform/macos/AdvancedImageExporter.h"
 #import <Foundation/Foundation.h>
 #import <ImageIO/ImageIO.h>
 #include <algorithm>
@@ -99,7 +100,14 @@ std::uint16_t encode16(float value) {
 } // namespace
 void writeImage(const DecodedRaw &decoded, EditDocument edits,
                 const std::filesystem::path &destination, ExportOptions options,
-                CancellationToken stop, const std::function<void(double)> &progress) {
+                CancellationToken stop, const std::function<void(double)> &progress,
+                const std::filesystem::path &metadataSource,
+                const ExportInstallGuard &installGuard) {
+    if (options.advanced()) {
+        writeAdvancedImage(decoded, edits, destination, options, stop, progress, metadataSource,
+                           installGuard);
+        return;
+    }
     @autoreleasepool {
         options.validate();
         edits.validate();
@@ -236,14 +244,20 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
         if (syncResult != 0)
             throw std::runtime_error("Cannot sync exported data.");
         checkCancellation(stop);
-        // link() refuses an existing destination atomically, including a concurrent writer.
-        const int installed = options.overwrite ? rename(temporary.path.c_str(), output.c_str())
-                                                : link(temporary.path.c_str(), output.c_str());
-        if (installed != 0)
-            throw std::runtime_error("Cannot install exported file: " +
-                                     std::string(std::strerror(errno)));
-        if (options.overwrite)
-            temporary.path.clear();
+        const auto install = [&] {
+            // link() refuses an existing destination atomically, including a concurrent writer.
+            const int installed = options.overwrite ? rename(temporary.path.c_str(), output.c_str())
+                                                    : link(temporary.path.c_str(), output.c_str());
+            if (installed != 0)
+                throw std::runtime_error("Cannot install exported file: " +
+                                         std::string(std::strerror(errno)));
+            if (options.overwrite)
+                temporary.path.clear();
+        };
+        if (installGuard)
+            installGuard(install);
+        else
+            install();
         if (progress)
             progress(1);
     }
