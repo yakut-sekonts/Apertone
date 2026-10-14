@@ -9,7 +9,32 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 jobs:
+  signing-configuration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      configured: ${{ steps.configuration.outputs.configured }}
+    steps:
+      - name: Check signing availability without exposing the key
+        id: configuration
+        env:
+          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+        run: echo "configured=$SIGNING_CONFIGURED" >> "$GITHUB_OUTPUT"
+      - name: Sparkle signing key is configured
+        if: steps.configuration.outputs.configured == 'true'
+        run: echo 'Release archives will be signed and verified against the embedded public key.'
+      - name: Sparkle signing key is missing
+        if: steps.configuration.outputs.configured != 'true'
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if [[ "$RELEASE_REF" == refs/tags/* ]]; then
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY before publishing updater-enabled releases.' >&2
+            exit 1
+          fi
+          echo '::notice::Candidate QA can continue, but publication requires SPARKLE_PRIVATE_KEY.'
   build-package:
+    needs: signing-configuration
     runs-on: macos-15
     timeout-minutes: 40
     steps:
@@ -28,22 +53,6 @@ jobs:
           if [[ "$RELEASE_REF" == refs/tags/* ]]; then
             [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
             git merge-base --is-ancestor HEAD origin/main
-          fi
-      - name: Check update signing configuration
-        id: signing
-        env:
-          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
-          RELEASE_REF: ${{ github.ref }}
-        run: |
-          echo "configured=$SIGNING_CONFIGURED" >> "$GITHUB_OUTPUT"
-          if [[ "$SIGNING_CONFIGURED" == true ]]; then
-            echo 'Sparkle signing key is configured; archive validation will check its public key.'
-          elif [[ "$RELEASE_REF" == refs/tags/* ]]; then
-            echo 'Configure repository secret SPARKLE_PRIVATE_KEY before publishing updater-enabled releases.' >&2
-            exit 1
-          else
-            echo '::notice::SPARKLE_PRIVATE_KEY is missing. This candidate can be tested but cannot be published yet.'
-            echo 'Update signing is not configured; candidate assets remain unsigned for Sparkle.' >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Install fixed toolchain and Qt
         run: ./scripts/bootstrap.sh
@@ -65,7 +74,7 @@ jobs:
           version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Luma.app/Contents/Info.plist)
           .tools/venv/bin/python scripts/verify-dmg.py "dist/release/Luma-$version-macos-arm64.dmg"
       - name: Sign update archive and prepare appcast
-        if: steps.signing.outputs.configured == 'true'
+        if: needs.signing-configuration.outputs.configured == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |

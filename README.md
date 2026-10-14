@@ -157,7 +157,7 @@ build/bin/luma collections --catalog /path/to/catalog.sqlite
 
 ![Luma Library with project-generated test DNGs](docs/library.png)
 
-## In development: Curves, HSL and macOS updates
+## Included: Curves, HSL and macOS updates
 
 The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
@@ -175,7 +175,7 @@ The published v0.3.0 binary has no updater and needs one manual installation of
 the first updater-enabled release. Future release publication requires the
 repository signing secret; see [macOS updates](docs/UPDATES.md).
 
-## In development: user presets / 0.4.1
+## Included: user presets / 0.4.1
 
 Develop's left panel saves subsets of Light, Color, Curve and HSL, including each
 selected group's enabled state and As Shot/custom WB mode. Hover renders a
@@ -191,11 +191,9 @@ that in-memory snapshot to one photo. Copy/Paste does not use the system clipboa
 and lasts only for the current application session. Batch paste/presets and Sync
 Settings are available in Library as described below. See [preset workflow and validation](docs/PRESETS_REVIEW.md).
 
-The prepared 0.4.0 candidate remains a separate immutable source commit; these
-presets do not appear in the published v0.3.0 or that candidate. A development
-version is not a newly published GitHub release.
+Presets and the subsequent phase 0.4 features are included in release 0.4.13.
 
-## In development: batch settings / 0.4.2
+## Included: batch settings / 0.4.2
 
 Library's settings row applies presets or copied groups to the selected photos.
 Sync Settings uses the open Develop photo as source and lets you select Light,
@@ -211,7 +209,7 @@ for batch settings and no catalog migration is introduced. Large-scale batch
 performance is not yet benchmarked. See [batch workflow and validation](docs/BATCH_REVIEW.md).
 
 
-## In development: Detail sharpening / 0.4.3
+## Included: Detail sharpening / 0.4.3
 
 Detail provides Amount (0–150), Radius (0.5–3 original-image pixels), Detail
 (0–100) and Masking (0–100). Amount defaults to 0; disabling the group retains
@@ -231,9 +229,9 @@ Curves/HSL, selection, revisions and Library metadata. Older builds refuse the
 new catalog schema. The fifth Detail subset is available in presets, Copy/Paste
 and Library batch Sync/Undo. Preset/collection schema 2 reads legacy schema 1;
 legacy presets retain their original subsets. See [validation and scope](docs/SHARPENING_REVIEW.md).
-This development build does not publish a release or alter the frozen 0.4.0 candidate.
+This feature is included in release 0.4.13.
 
-## In development: manual Noise Reduction / 0.4.4
+## Included: manual Noise Reduction / 0.4.4
 
 Detail now includes Luminance Amount/Detail/Contrast and Color Amount/Detail/
 Smoothness (0–100), with separate enable switches. Amount defaults to zero;
@@ -258,9 +256,9 @@ Presets without Detail retain the current noise settings.
 See [scope and validation](docs/NOISE_REDUCTION_REVIEW.md) and
 [ADR 0012](docs/adr/0012-detail-noise-reduction.md). AI denoise, Metal, true 1:1,
 representative-photo tuning and 100 MP performance remain later work. This is a
-development build; the frozen 0.4.0 release candidate is unchanged.
+release; the earlier frozen 0.4.0 candidate remains separate.
 
-## In development: Crop and Straighten / 0.4.5
+## Included: Crop and Straighten / 0.4.5
 
 Crop supports a movable frame with eight resize grips, Free, Original, 1:1, 4:3,
 3:2, 16:9 and custom locked ratios (1:100–100:1), ratio orientation swap,
@@ -285,10 +283,9 @@ geometry fields. See [scope and checks](docs/CROP_REVIEW.md) and
 [ADR 0013](docs/adr/0013-crop-geometry.md).
 
 Higher-quality resampling and
-Metal remain separate work. This development build does not publish a public
-release or change the frozen 0.4.0 signing requirement.
+Metal remain separate work. Crop is included in release 0.4.13.
 
-## In development: Lens Corrections / 0.4.6
+## Included: Lens Corrections / 0.4.6
 
 Optics uses a SHA256-pinned Lensfun v0.3.4 database and Luma's independent
 profile layer. Known camera/lens aliases resolve conservatively within
@@ -320,7 +317,7 @@ in the bundle. See [ADR 0014](docs/adr/0014-lens-profiles.md) and
 [Lens review](docs/LENS_REVIEW.md). This development version is not a public release.
 
 
-## In development: Perspective Transform / 0.4.7
+## Included: Perspective Transform / 0.4.7
 
 Transform adds Rotate, Horizontal/Vertical, Aspect, Scale, X/Y Offset and Constrain
 Crop. Auto detects sufficiently supported perspective lines asynchronously and
@@ -340,7 +337,7 @@ See [ADR 0015](docs/adr/0015-perspective-transform.md) and
 were completed in subsequent phase-0.4 substages; Local Adjustments remain phase 0.5.
 
 
-## In development: Ready-made filters / 0.4.8
+## Included: Ready-made filters / 0.4.8
 
 Natural, Soft Portrait, Landscape, Warm Film, Cool Cinema, Matte, Vintage and Crisp
 are original declarative Curve/HSL presets. Hover previews without saving; click
@@ -357,7 +354,7 @@ regressions supplement RAW acceptance; see [fixture notes](tests/assets/filters/
 These are authored starting points, not commercial film/camera emulations.
 
 
-## In development: Edited thumbnails / 0.4.9
+## Included: Edited thumbnails / 0.4.9
 
 Grid and filmstrip now render saved Develop, Detail, Optics, Transform and Crop
 settings through the shared calibrated renderer. Autosave and batch apply/Undo/Redo
