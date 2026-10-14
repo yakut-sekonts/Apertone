@@ -388,3 +388,12 @@ limits and CLI options](docs/EXPORT.md) and [ADR 0018](docs/adr/0018-advanced-ex
 The development bundle is ad-hoc signed, without notarization. Public release
 v0.3.0 and the frozen 0.4.0 release candidate remain unchanged. Phase 0.5 starts
 only after the requested roadmap review.
+
+
+## Language packages / 0.4.11
+
+Settings (gear) switches the UI between English, Russian, Simplified Chinese,
+Armenian, German, Spanish, Italian and French without restarting. English is the
+new-install default; an explicit choice persists. User photo/preset/collection
+names and processing IDs are unchanged. See [localization](docs/LOCALIZATION.md).
+This is a pre-phase-0.5 extension; Local Adjustments remain on hold.

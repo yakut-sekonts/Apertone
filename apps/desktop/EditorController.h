@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include "apps/desktop/PreviewProvider.h"
 #include "apps/shared/SessionService.h"
 #include "core/edits/EditHistory.h"
@@ -153,7 +154,7 @@ class EditorController final : public QObject {
     QString focalLength() const;
     QString dimensions() const;
     QString status() const {
-        return status_;
+        return status_.text();
     }
     QString error() const {
         return error_;
@@ -246,7 +247,7 @@ class EditorController final : public QObject {
     std::uint64_t imageRevision_ = 0;
     std::uint64_t editRevision_ = 0;
     QUrl deferredOpen_;
-    QString status_ = QStringLiteral("Готово к работе");
+    LocalizedText status_ = QStringLiteral("Ready");
     QString error_;
     QString targetedTool_ = QStringLiteral("none");
     struct TargetGesture {

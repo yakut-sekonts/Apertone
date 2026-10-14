@@ -1,0 +1,138 @@
+#include "apps/desktop/LocalizationController.h"
+#include "apps/desktop/LocalizedText.h"
+#include <QElapsedTimer>
+#include <QFile>
+#include <QGuiApplication>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QLockFile>
+#include <QQmlComponent>
+#include <QQmlContext>
+#include <QQmlEngine>
+#include <QQuickStyle>
+#include <QTemporaryDir>
+#include <QThread>
+#include <iostream>
+
+namespace {
+void require(bool value, const char *message) {
+    if (!value)
+        throw std::runtime_error(message);
+}
+template <typename F> void wait(F ready) {
+    QElapsedTimer timer;
+    timer.start();
+    while (!ready() && timer.elapsed() < 10000) {
+        QCoreApplication::processEvents();
+        QThread::msleep(1);
+    }
+    require(ready(), "Language QML timed out.");
+}
+QString read(const QString &path) {
+    QFile f(path);
+    require(f.open(QIODevice::ReadOnly), "Cannot read preferences fixture.");
+    return QString::fromUtf8(f.readAll());
+}
+void write(const QString &path, const QByteArray &bytes) {
+    QFile f(path);
+    require(f.open(QIODevice::WriteOnly) && f.write(bytes) == bytes.size(),
+            "Cannot write preferences fixture.");
+}
+} // namespace
+int main(int argc, char **argv) {
+    QGuiApplication app(argc, argv);
+    QQuickStyle::setStyle("Basic");
+    try {
+        require(argc == 2, "Expected QML directory.");
+        QTemporaryDir temporary;
+        require(temporary.isValid(), "Cannot create language fixture.");
+        const auto path = temporary.path() + QStringLiteral("/language.json");
+        QLocale::setDefault(QLocale(QStringLiteral("ru")));
+        {
+            QQmlEngine engine;
+            LocalizationController controller(path, engine);
+            require(controller.language() == QStringLiteral("en") && !QFile::exists(path),
+                    "Default must be English without startup writes.");
+            engine.rootContext()->setContextProperty("localization", &controller);
+            QStringList warnings;
+            QObject::connect(&engine, &QQmlEngine::warnings, [&](const QList<QQmlError> &errors) {
+                for (const auto &error : errors)
+                    warnings.append(error.toString());
+            });
+            QQmlComponent component(&engine);
+            component.setData(
+                ("import QtQuick\nimport QtQuick.Controls\nimport \"" +
+                 QUrl::fromLocalFile(QString::fromUtf8(argv[1])).toString() +
+                 "\"\nApplicationWindow { width: 700; height: 550; visible: true; Text { "
+                 "objectName: \"translatedCaption\"; text: qsTranslate(\"Luma\", \"Export\") } "
+                 "PreferencesPanel { id: settings; Component.onCompleted: open() } }")
+                    .toUtf8(),
+                QUrl());
+            wait([&] { return component.status() != QQmlComponent::Loading; });
+            if (component.isError())
+                throw std::runtime_error(component.errorString().toStdString());
+            const std::unique_ptr<QObject> window(component.create());
+            require(bool(window), "Preferences QML did not create.");
+            auto *caption = window->findChild<QObject *>("translatedCaption");
+            auto *choice = window->findChild<QObject *>("languageChoice");
+            require(caption && choice, "Language controls are missing.");
+            const auto languages = controller.languages();
+            require(languages.size() == 8, "Expected eight language packs.");
+            const QStringList expected{QStringLiteral("Export"),      QStringLiteral("Экспорт"),
+                                       QStringLiteral("导出"),        QStringLiteral("Արտահանել"),
+                                       QStringLiteral("Exportieren"), QStringLiteral("Exportar"),
+                                       QStringLiteral("Esporta"),     QStringLiteral("Exporter")};
+            const auto message = LocalizedText(QStringLiteral("Importing %1"))
+                                     .arg(QStringLiteral("Export %1 %2_日本語.NEF"));
+            for (qsizetype i = 0; i < languages.size(); ++i) {
+                const auto code = languages[i].toMap().value("code").toString();
+                require(choice->setProperty("currentIndex", i), "Cannot choose a language.");
+                require(
+                    QMetaObject::invokeMethod(choice, "activated", Q_ARG(int, static_cast<int>(i))),
+                    "Cannot activate actual language QML.");
+                QCoreApplication::processEvents();
+                require(controller.language() == code && controller.error().isEmpty(),
+                        "Language selection failed.");
+                require(caption->property("text").toString() == expected[i],
+                        "Existing QML binding did not retranslate.");
+                require(message.text().contains(QStringLiteral("Export %1 %2_日本語.NEF")),
+                        "Translation changed a filename or reinterpreted placeholders.");
+                require(read(path).contains(code), "Explicit language was not persisted.");
+            }
+            require(!controller.selectLanguage(QStringLiteral("unknown")) &&
+                        controller.language() == QStringLiteral("fr"),
+                    "Invalid locale changed the active pack.");
+            QLockFile lock(path + QStringLiteral(".lock"));
+            require(lock.tryLock(0), "Cannot lock language preferences.");
+            const auto before = read(path);
+            require(!controller.selectLanguage(QStringLiteral("de")) &&
+                        controller.language() == QStringLiteral("fr") && read(path) == before,
+                    "Write failure changed language or preferences.");
+            if (!warnings.isEmpty())
+                throw std::runtime_error(warnings.join('\n').toStdString());
+        }
+        {
+            QQmlEngine engine;
+            LocalizationController restored(path, engine);
+            require(restored.language() == QStringLiteral("fr") &&
+                        QCoreApplication::translate("Luma", "Export") == QStringLiteral("Exporter"),
+                    "Language did not survive restart.");
+        }
+        for (const auto &bytes :
+             {QByteArray("invalid"), QByteArray("{\"schema\":1,\"language\":\"invalid\"}"),
+              QByteArray("{\"schema\":2,\"language\":\"ru\"}")}) {
+            write(path, bytes);
+            QQmlEngine engine;
+            LocalizationController invalid(path, engine);
+            require(invalid.language() == QStringLiteral("en") && !invalid.error().isEmpty() &&
+                        read(path).toUtf8() == bytes,
+                    "Corrupt preferences did not preserve data and fall back to English.");
+        }
+        std::cout << "Eight language packs: English default, runtime QML retranslation, verbatim "
+                     "values, persistence and failure handling passed.\n";
+        return 0;
+    } catch (const std::exception &error) {
+        std::cerr << error.what() << '\n';
+        return 1;
+    }
+}

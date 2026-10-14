@@ -106,20 +106,20 @@ ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &sett
             if (result.camera && (camera.mount != result.camera->mount ||
                                   camera.cropFactor != result.camera->cropFactor)) {
                 result.camera = nullptr;
-                result.status = "Неоднозначная camera; профиль не применяется";
+                result.status = "Ambiguous camera; no profile applied";
                 return result;
             }
             result.camera = &camera;
         }
     if (!result.camera) {
-        result.status = "Camera отсутствует в базе; профиль не применяется";
+        result.status = "Camera not in the database; no profile applied";
         return result;
     }
     if (!settings.profile.empty()) {
         result.profile = lensProfile(settings.profile);
         if (!result.profile || !compatibleLens(*result.camera, *result.profile)) {
             result.profile = nullptr;
-            result.status = "Выбранный профиль отсутствует или несовместим с camera";
+            result.status = "Selected profile is missing or incompatible with the camera";
             return result;
         }
     } else {
@@ -128,20 +128,20 @@ ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &sett
                 compatibleLens(*result.camera, profile)) {
                 if (result.profile) {
                     result.profile = nullptr;
-                    result.status = "Неоднозначный lens; выберите профиль вручную";
+                    result.status = "Ambiguous lens; choose a profile manually";
                     return result;
                 }
                 result.profile = &profile;
             }
     }
     if (!result.profile) {
-        result.status = "Lens не определён; выберите профиль вручную";
+        result.status = "Lens not identified; choose a profile manually";
         return result;
     }
     const double focal = metadata.focalLength.value_or(0);
     const double aperture = metadata.aperture.value_or(0);
     if (!std::isfinite(focal) || focal <= 0) {
-        result.status = "Нет focal length; профиль не применяется";
+        result.status = "No focal length; no profile applied";
         return result;
     }
     const auto &profile = *result.profile;
@@ -150,10 +150,10 @@ ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &sett
     if (std::isfinite(aperture) && aperture > 0)
         result.vignetting = vignette(profile, focal, aperture);
     result.status = "Lensfun 0.3.4 · ";
-    result.status += result.distortion ? "Distortion ✓" : "Distortion: нет калибровки";
-    result.status += result.tca ? " · CA ✓" : " · CA: нет калибровки";
-    result.status += result.vignetting ? " · Vignetting ✓ (дальняя фокусировка)"
-                                       : " · Vignetting: нет калибровки для focal/aperture";
+    result.status += result.distortion ? "Distortion ✓" : "Distortion: no calibration";
+    result.status += result.tca ? " · CA ✓" : " · CA: no calibration";
+    result.status += result.vignetting ? " · Vignetting ✓ (distant focus)"
+                                       : " · Vignetting: no calibration for focal length/aperture";
     return result;
 }
 } // namespace luma

@@ -1,0 +1,35 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+
+Dialog {
+    id: panel
+    objectName: "preferencesPanel"
+    title: qsTranslate("Luma", "Settings")
+    modal: true
+    anchors.centerIn: parent
+    width: Math.min(parent.width - 60, 440)
+    standardButtons: Dialog.Close
+    ColumnLayout {
+        width: parent.width
+        spacing: 14
+        Label { text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        ComboBox {
+            id: languageChoice
+            objectName: "languageChoice"
+            Layout.fillWidth: true
+            model: localization.languages
+            textRole: "name"
+            valueRole: "code"
+            currentIndex: {
+                for (let i = 0; i < count; ++i)
+                    if (model[i].code === localization.language) return i
+                return 0
+            }
+            onActivated: localization.selectLanguage(model[currentIndex].code)
+            Accessible.name: qsTranslate("Luma", "Interface language")
+        }
+        Label { text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
+    }
+}

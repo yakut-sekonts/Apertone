@@ -204,7 +204,7 @@ void ExportController::startIDs(std::vector<std::string> ids) {
         editorHeld_ = true;
         library_.setExternalBusy(true);
         editor_.prepareExternalEdits();
-        status_ = QStringLiteral("Ожидаем сохранения правок…");
+        status_ = QStringLiteral("Waiting for edits to save…");
         preparation_.start();
         emit changed();
     } catch (const std::exception &error) {
@@ -224,7 +224,7 @@ void ExportController::plan() {
         return;
     preparation_.stop();
     phase_ = Phase::planning;
-    status_ = QStringLiteral("Фиксируем очередь…");
+    status_ = QStringLiteral("Planning queue snapshots…");
     emit changed();
     const auto ids = ids_;
     const auto settings = snapshot_;
@@ -346,7 +346,7 @@ void ExportController::next() {
     }
     if (pause_) {
         phase_ = Phase::paused;
-        status_ = QStringLiteral("Очередь приостановлена");
+        status_ = QStringLiteral("Queue paused");
         emit changed();
         return;
     }
@@ -354,7 +354,7 @@ void ExportController::next() {
     const auto item = items_[static_cast<std::size_t>(completed_)];
     current_ = QString::fromStdString(item.destination.filename().string());
     progress_ = 0;
-    status_ = QStringLiteral("Экспорт %1 / %2").arg(completed_ + 1).arg(total());
+    status_ = LocalizedText(QStringLiteral("Export %1 / %2")).arg(completed_ + 1).arg(total());
     emit changed();
     const auto stop = cancellation_.token();
     const auto options = snapshot_.options;
@@ -415,11 +415,12 @@ void ExportController::finish(bool cancelled) {
     phase_ = Phase::idle;
     pause_ = false;
     progress_ = cancelled ? 0 : 1;
-    status_ = (cancelled ? QStringLiteral("Отменено") : QStringLiteral("Готово")) +
-              QStringLiteral(" · экспортировано %1 · пропущено %2 · ошибок %3")
-                  .arg(succeeded_)
-                  .arg(skipped_)
-                  .arg(failures_.size());
+    status_ =
+        LocalizedText(cancelled ? QStringLiteral("Cancelled · exported %1 · skipped %2 · errors %3")
+                                : QStringLiteral("Done · exported %1 · skipped %2 · errors %3"))
+            .arg(succeeded_)
+            .arg(skipped_)
+            .arg(failures_.size());
     emit changed();
     if (closing_) {
         closing_ = false;
@@ -443,7 +444,7 @@ void ExportController::cancel() {
     if (!working())
         return;
     cancellation_.cancel();
-    status_ = QStringLiteral("Отмена экспорта…");
+    status_ = QStringLiteral("Cancelling export…");
     if (phase_ == Phase::waiting || phase_ == Phase::paused)
         finish(true);
     else

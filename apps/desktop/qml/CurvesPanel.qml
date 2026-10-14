@@ -44,10 +44,10 @@ ColumnLayout {
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("curves", checked)
             padding: 0
-            Accessible.name: "Включить кривые"
+            Accessible.name: qsTranslate("Luma", "Enable curves")
         }
         Label {
-            text: "КРИВЫЕ"
+            text: qsTranslate("Luma", "CURVES")
             color: "#858c97"
             font.pixelSize: 9
             font.letterSpacing: 2
@@ -56,11 +56,11 @@ ColumnLayout {
     }
     ComboBox {
         id: mode
-        model: ["Точечная", "Параметрическая"]
+        model: [qsTranslate("Luma", "Point"), qsTranslate("Luma", "Parametric")]
         Layout.fillWidth: true
         enabled: panel.available
         onActivated: panel.refresh()
-        Accessible.name: "Режим кривой"
+        Accessible.name: qsTranslate("Luma", "Curve mode")
     }
     RowLayout {
         visible: mode.currentIndex === 0
@@ -76,19 +76,19 @@ ColumnLayout {
                     value: "rgb"
                 },
                 {
-                    label: "Red",
+                    label: qsTranslate("Luma", "Red"),
                     value: "red"
                 },
                 {
-                    label: "Green",
+                    label: qsTranslate("Luma", "Green"),
                     value: "green"
                 },
                 {
-                    label: "Blue",
+                    label: qsTranslate("Luma", "Blue"),
                     value: "blue"
                 }
             ]
-            Accessible.name: "Канал кривой"
+            Accessible.name: qsTranslate("Luma", "Curve channel")
         }
         Button {
             text: "◎"
@@ -96,18 +96,18 @@ ColumnLayout {
             checked: editor.targetedTool === "curve." + panel.channel
             enabled: panel.available && !editor.original
             onClicked: editor.targetedTool = checked ? "curve." + panel.channel : "none"
-            Accessible.name: "Targeted Curve"
+            Accessible.name: qsTranslate("Luma", "Targeted Curve")
             ToolTip.visible: hovered
-            ToolTip.text: "Изменить тон жестом по фотографии"
+            ToolTip.text: qsTranslate("Luma", "Adjust tone with a photo gesture")
         }
         Button {
-            text: "Сброс"
+            text: qsTranslate("Luma", "Reset")
             enabled: panel.available
             onClicked: {
                 panel.selected = -1;
                 editor.resetCurve(panel.channel);
             }
-            Accessible.name: "Сброс кривой канала"
+            Accessible.name: qsTranslate("Luma", "Reset channel curve")
         }
     }
     Canvas {
@@ -219,7 +219,7 @@ ColumnLayout {
     RowLayout {
         visible: mode.currentIndex === 0
         Label {
-            text: "Клик — точка, drag — изменение"
+            text: qsTranslate("Luma", "Click to add a point; drag to adjust")
             font.pixelSize: 10
             color: "#858c97"
             Layout.fillWidth: true
@@ -235,7 +235,7 @@ ColumnLayout {
                 panel.selected = -1;
                 graph.requestPaint();
             }
-            Accessible.name: "Удалить точку кривой"
+            Accessible.name: qsTranslate("Luma", "Delete curve point")
         }
     }
     ColumnLayout {
@@ -243,28 +243,28 @@ ColumnLayout {
         Layout.fillWidth: true
         DevelopSlider {
             parameter: "curve.highlights"
-            label: "Highlights"
+            label: qsTranslate("Luma", "Highlights")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.lights"
-            label: "Lights"
+            label: qsTranslate("Luma", "Lights")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.darks"
-            label: "Darks"
+            label: qsTranslate("Luma", "Darks")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.shadows"
-            label: "Shadows"
+            label: qsTranslate("Luma", "Shadows")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true

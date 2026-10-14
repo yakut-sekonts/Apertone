@@ -6,9 +6,9 @@ Button {
     id: bell
     implicitWidth: 40
     implicitHeight: 36
-    Accessible.name: updates.availableVersion.length ? "Доступно обновление Luma "
+    Accessible.name: updates.availableVersion.length ? qsTranslate("Luma", "Luma update available ")
                                                        + updates.availableVersion :
-                                                       "Обновления Luma"
+                                                       qsTranslate("Luma", "Luma updates")
     ToolTip.visible: hovered
     ToolTip.text: Accessible.name
     onClicked: notifications.open()
@@ -57,7 +57,7 @@ Button {
             width: parent.width
             spacing: 12
             Label {
-                text: "Обновления"
+                text: qsTranslate("Luma", "Updates")
                 font.pixelSize: 17
                 font.bold: true
             }
@@ -68,13 +68,13 @@ Button {
                 font.pixelSize: 15
             }
             Label {
-                text: updates.message
+                text: qsTranslate("Luma", updates.message)
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
             Button {
                 visible: updates.availableVersion.length > 0
-                text: "Установить обновление…"
+                text: qsTranslate("Luma", "Install update…")
                 enabled: !updates.restartPending
                 Layout.fillWidth: true
                 onClicked: {
@@ -83,13 +83,13 @@ Button {
                 }
             }
             Button {
-                text: updates.checking ? "Проверяем…" : "Проверить обновления"
+                text: updates.checking ? qsTranslate("Luma", "Checking…") : qsTranslate("Luma", "Check for updates")
                 enabled: updates.canCheck && !updates.checking
                 Layout.fillWidth: true
                 onClicked: updates.check()
             }
             CheckBox {
-                text: "Проверять автоматически"
+                text: qsTranslate("Luma", "Check automatically")
                 checked: updates.automatic
                 onClicked: updates.automatic = checked
             }

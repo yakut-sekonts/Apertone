@@ -32,31 +32,31 @@ ApplicationWindow {
     }
     Dialog {
         id: restartWait
-        title: "Подготовка обновления"
+        title: qsTranslate("Luma", "Preparing update")
         modal: true
         closePolicy: Popup.NoAutoClose
         anchors.centerIn: parent
         width: 430
         ColumnLayout {
             width: parent.width
-            Label { text: updates.message; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { visible: editor.error.length > 0; text: editor.error; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Button { visible: editor.saving && !editor.busy; text: "Повторить сохранение"; onClicked: editor.retrySave() }
-            Button { visible: editor.exporting; text: "Отменить экспорт"; onClicked: editor.cancelExport() }
-            Button { visible: library.importing; text: "Отменить импорт"; onClicked: library.cancelImport() }
+            Label { text: qsTranslate("Luma", updates.message); wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: editor.error.length > 0; text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Button { visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+            Button { visible: editor.exporting; text: qsTranslate("Luma", "Cancel export"); onClicked: editor.cancelExport() }
+            Button { visible: library.importing; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
         }
     }
     Connections { target: batch; function onChanged() { if (batch.working) batchWait.open(); else batchWait.close() } }
     Dialog {
-        id: batchWait; title: "Пакетная обработка"; modal: true
+        id: batchWait; title: qsTranslate("Luma", "Batch processing"); modal: true
         closePolicy: Popup.NoAutoClose; anchors.centerIn: parent; width: 450; implicitWidth: 450
         ColumnLayout {
             width: parent.width
-            Label { text: batch.status; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ProgressBar { value: batch.progress; indeterminate: batch.waitingForSave; Layout.fillWidth: true }
-            Label { text: editor.error; textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Button { text: "Повторить сохранение"; visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
-            Button { text: "Отменить"; onClicked: batch.cancel() }
+            Label { text: qsTranslate("Luma", editor.error); textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Button { text: qsTranslate("Luma", "Retry save"); visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
+            Button { text: qsTranslate("Luma", "Cancel"); onClicked: batch.cancel() }
         }
     }
     onClosing: function(close) { const d = exporter.requestClose(); const c = batch.requestClose(); const b = editor.requestClose(); const a = d && c && b ? library.requestClose() : false; close.accepted = a && b && c && d }
@@ -73,10 +73,11 @@ ApplicationWindow {
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     FileDialog {
         id: fileDialog
-        title: "Открыть RAW"
-        nameFilters: ["Bayer RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", "Все файлы (*)"]
+        title: qsTranslate("Luma", "Open RAW")
+        nameFilters: ["Bayer RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", qsTranslate("Luma", "All files (*)")]
         onAccepted: editor.openFile(selectedFile)
     }
+    PreferencesPanel { id: preferences }
     ExportPanel { id: exportSettings }
     DropArea {
         enabled: !updates.restartPending && !batch.working
@@ -95,16 +96,17 @@ ApplicationWindow {
                 anchors.fill: parent; anchors.margins: 20; spacing: 18
                 Label { text: "◐"; color: "#dfae77"; font.pixelSize: 28 }
                 Label { text: "luma"; color: "#f0f1f3"; font.pixelSize: 24; font.weight: Font.DemiBold; font.letterSpacing: 2 }
-                Label { text: "RAW WORKSPACE"; color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
-                Button { text: "Library"; highlighted: root.libraryMode; onClicked: root.libraryMode = true }
-                Button { text: "Develop"; highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
+                Label { visible: root.width > 1450; text: qsTranslate("Luma", "RAW WORKSPACE"); color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
+                Button { text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
+                Button { text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Item { Layout.fillWidth: true }
+                Button { objectName: "settingsButton"; text: "⚙"; Accessible.name: qsTranslate("Luma", "Settings"); onClicked: preferences.open() }
                 UpdateBell {}
                 Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
-                Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: "Undo" }
-                Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: "Redo" }
-                Button { text: "Экспорт"; enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
-                Button { text: "+  Открыть RAW"; enabled: !editor.busy; onClicked: fileDialog.open() }
+                Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
+                Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
+                Button { objectName: "exportButton"; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                Button { text: qsTranslate("Luma", "+  Open RAW"); enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
         Rectangle {
@@ -112,37 +114,37 @@ ApplicationWindow {
             Layout.fillWidth: true; Layout.preferredHeight: visible ? errorLayout.implicitHeight + 24 : 0; color: "#42282a"
             RowLayout {
                 id: errorLayout; anchors.fill: parent; anchors.margins: 12
-                Label { text: editor.error; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
-                Button { visible: editor.saving && !editor.busy; text: "Повторить запись"; onClicked: editor.retrySave() }
+                Label { text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
+                Button { visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
             }
         }
         RowLayout {
             visible: editor.exporting
             Layout.fillWidth: true; Layout.margins: visible ? 10 : 0
-            Label { text: "Экспорт"; color: "#dfae77" }
+            Label { text: qsTranslate("Luma", "Export"); color: "#dfae77" }
             ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
-            Button { text: "Отменить"; onClicked: editor.cancelExport() }
+            Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelExport() }
         }
         ColumnLayout {
             visible: exporter.working || exporter.status.length > 0 || exporter.error.length > 0
             Layout.fillWidth: true; Layout.margins: 10
             RowLayout {
-                Label { text: exporter.status; textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
+                Label { text: qsTranslate("Luma", exporter.status); textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
                 Label { text: exporter.completed + " / " + exporter.total }
-                Button { visible: exporter.working && !exporter.paused; text: exporter.pausePending ? "Пауза после файла…" : "Пауза"; enabled: !exporter.pausePending; onClicked: exporter.pause() }
-                Button { visible: exporter.paused; text: "Продолжить"; onClicked: exporter.resume() }
-                Button { visible: exporter.working; text: "Отменить"; onClicked: exporter.cancel() }
-                Button { text: "Настройки / ошибки"; onClicked: exportSettings.open() }
+                Button { visible: exporter.working && !exporter.paused; text: exporter.pausePending ? qsTranslate("Luma", "Pause after this file…") : qsTranslate("Luma", "Pause"); enabled: !exporter.pausePending; onClicked: exporter.pause() }
+                Button { visible: exporter.paused; text: qsTranslate("Luma", "Resume"); onClicked: exporter.resume() }
+                Button { visible: exporter.working; text: qsTranslate("Luma", "Cancel"); onClicked: exporter.cancel() }
+                Button { text: qsTranslate("Luma", "Settings / errors"); onClicked: exportSettings.open() }
             }
             Label { visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
             ProgressBar { visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
-            Label { visible: exporter.error.length > 0; text: exporter.error; textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ScrollView {
                 visible: exporter.failures.length > 0
                 Layout.fillWidth: true; Layout.preferredHeight: 65
                 TextArea { readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: "#ffc1bc" }
             }
-            Button { visible: exporter.waitingForSave && editor.saving && !editor.busy; text: "Повторить сохранение"; onClicked: editor.retrySave() }
+            Button { visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
         }
         LibraryPane { visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {
@@ -155,17 +157,17 @@ ApplicationWindow {
                 SplitView.preferredWidth: 214; SplitView.minimumWidth: 170; SplitView.maximumWidth: 350; color: "#191c22"
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 20; spacing: 18
-                    Label { text: "РАБОЧЕЕ ПРОСТРАНСТВО"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
+                    Label { text: qsTranslate("Luma", "WORKSPACE"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                     Rectangle {
                         Layout.fillWidth: true; implicitHeight: 42; radius: 6; color: "#302a25"
-                        Label { anchors.centerIn: parent; text: "Обработка RAW"; color: "#dfae77"; font.pixelSize: 12 }
+                        Label { anchors.centerIn: parent; text: qsTranslate("Luma", "RAW development"); color: "#dfae77"; font.pixelSize: 12 }
                     }
-                    Label { text: "ИСХОДНОЕ ФОТО"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
-                    Label { text: editor.hasPhoto ? editor.filename : "Фото не выбрано"; color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                    Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
+                    Label { text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
-                    Label { text: "Оригинал без изменений"; color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
+                    Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
                     PresetPanel { Layout.fillWidth: true; Layout.fillHeight: true }
-                    Label { text: "КАТАЛОГ"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
+                    Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                     Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                     Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
                 }
@@ -176,9 +178,9 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: editor.detailDiagnostic.length ? editor.detailDiagnostic : editor.original ? "ОРИГИНАЛЬНЫЙ RAW" : editor.presetPreview ? "PREVIEW ПРЕСЕТА" : "ПРЕДПРОСМОТР"; color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL RAW") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
-                        Label { text: "FIT"; color: "#777f8b"; font.pixelSize: 10 }
+                        Label { text: qsTranslate("Luma", "FIT"); color: "#777f8b"; font.pixelSize: 10 }
                     }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
@@ -214,25 +216,25 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy
                             Label { text: "◉"; font.pixelSize: 72; color: "#dfae77"; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: "Всё начинается с RAW."; color: "#ece8e2"; font.pixelSize: 25; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: "Откройте кадр. Найдите свой свет."; color: "#858c98"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
-                            Button { text: "Открыть фотографию"; Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
+                            Label { text: qsTranslate("Luma", "It starts with a RAW photo."); color: "#ece8e2"; font.pixelSize: 25; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "Open a photo. Find your light."); color: "#858c98"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
+                            Button { text: qsTranslate("Luma", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
                             Label { text: "Nikon NEF · Bayer DNG"; color: "#777f8b"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; visible: editor.busy; spacing: 16; width: Math.min(parent.width - 60, 300)
                             BusyIndicator { running: editor.busy; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: "Декодирование данных сенсора"; color: "#d4d8df"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "Decoding sensor data"); color: "#d4d8df"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
                             ProgressBar { value: editor.progress; Layout.fillWidth: true }
-                            Button { text: "Отменить"; onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
+                            Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
                         }
                     }
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter; spacing: 8
-                        Button { text: "Обработка"; checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
-                        Button { text: "Оригинал"; checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
+                        Button { text: qsTranslate("Luma", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
+                        Button { text: qsTranslate("Luma", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                     }
-                    Label { visible:editor.targetedTool!=="none";text:"Нажмите на тон или цвет и потяните вверх / вниз";color:"#dfae77";font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
+                    Label { visible:editor.targetedTool!=="none";text:qsTranslate("Luma", "Click a tone or color and drag up / down");color:"#dfae77";font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
                 }
             }
             Rectangle {
@@ -245,33 +247,34 @@ ApplicationWindow {
                     ColumnLayout {
                         width: parent.width
                         spacing: 14
-                        Label { text: "Коррекция"; font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
+                        Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
                         RowLayout {
                             CheckBox { checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
-                            Label { text: "БАЛАНС БЕЛОГО"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1 }
+                            Label { text: qsTranslate("Luma", "WHITE BALANCE"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1 }
                         }
                         ComboBox {
                             Layout.fillWidth: true
-                            model: ["As Shot","Daylight","Cloudy","Shade","Tungsten","Fluorescent","Custom"]
+                            textRole: "label"
+                            model: [{ value: "As Shot", label: qsTranslate("Luma", "As Shot") },{ value: "Daylight", label: qsTranslate("Luma", "Daylight") },{ value: "Cloudy", label: qsTranslate("Luma", "Cloudy") },{ value: "Shade", label: qsTranslate("Luma", "Shade") },{ value: "Tungsten", label: qsTranslate("Luma", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Luma", "Fluorescent") },{ value: "Custom", label: qsTranslate("Luma", "Custom") }]
                             currentIndex: editor.customWhiteBalance ? 6 : 0
                             enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
-                            onActivated: editor.setWhiteBalancePreset(currentText)
+                            onActivated: editor.setWhiteBalancePreset(model[currentIndex].value)
                         }
-                        DevelopSlider { parameter: "temperature"; label: "Temperature"; minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "tint"; label: "Tint"; minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        Label { visible: !editor.customWhiteBalance; text: "As Shot: WB из RAW. Kelvin доступен в Custom."; font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "temperature"; label: qsTranslate("Luma", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "tint"; label: qsTranslate("Luma", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot uses RAW white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: "СВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "exposure"; label: "Exposure"; minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "contrast"; label: "Contrast"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "highlights"; label: "Highlights"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "shadows"; label: "Shadows"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "whites"; label: "Whites"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "blacks"; label: "Blacks"; Layout.fillWidth: true }
+                        Label { text: qsTranslate("Luma", "LIGHT"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "exposure"; label: qsTranslate("Luma", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "contrast"; label: qsTranslate("Luma", "Contrast"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "highlights"; label: qsTranslate("Luma", "Highlights"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "shadows"; label: qsTranslate("Luma", "Shadows"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "whites"; label: qsTranslate("Luma", "Whites"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "blacks"; label: qsTranslate("Luma", "Blacks"); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: "ЦВЕТ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "vibrance"; label: "Vibrance"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "saturation"; label: "Saturation"; Layout.fillWidth: true }
+                        Label { text: qsTranslate("Luma", "COLOR"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "vibrance"; label: qsTranslate("Luma", "Vibrance"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "saturation"; label: qsTranslate("Luma", "Saturation"); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
                         CurvesPanel { Layout.fillWidth:true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
@@ -281,16 +284,16 @@ ApplicationWindow {
                         TransformPanel { Layout.fillWidth: true }
                         LensPanel { Layout.fillWidth: true }
                         DetailPanel { Layout.fillWidth:true }
-                        Button { text: "Сбросить все правки"; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
+                        Button { text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: "ДАННЫЕ СЪЁМКИ"; color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
-                        MetadataRow { label: "Камера"; value: editor.camera; Layout.fillWidth: true }
-                        MetadataRow { label: "Объектив"; value: editor.lens; Layout.fillWidth: true }
+                        Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
+                        MetadataRow { label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
+                        MetadataRow { label: qsTranslate("Luma", "Lens"); value: editor.lens; Layout.fillWidth: true }
                         MetadataRow { label: "ISO"; value: editor.iso; Layout.fillWidth: true }
-                        MetadataRow { label: "Выдержка"; value: editor.shutter; Layout.fillWidth: true }
-                        MetadataRow { label: "Диафрагма"; value: editor.aperture; Layout.fillWidth: true }
-                        MetadataRow { label: "Фокусное"; value: editor.focalLength; Layout.fillWidth: true }
-                        Label { text: editor.saving ? "Сохраняем изменения…" : "Изменения сохраняются автоматически"; color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        MetadataRow { label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
+                        MetadataRow { label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
+                        MetadataRow { label: qsTranslate("Luma", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
+                        Label { text: editor.saving ? qsTranslate("Luma", "Saving changes…") : qsTranslate("Luma", "Changes are saved automatically"); color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     }
                 }
             }
@@ -308,8 +311,8 @@ ApplicationWindow {
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
-                Label { text: editor.status; font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: "Правки не изменяют исходный RAW"; color: "#777f8b"; font.pixelSize: 10 }
+                Label { text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: qsTranslate("Luma", "Edits do not change the original RAW"); color: "#777f8b"; font.pixelSize: 10 }
             }
         }
     }

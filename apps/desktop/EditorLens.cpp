@@ -7,18 +7,33 @@ QVariantMap EditorController::lensState() const {
         return {};
     const auto &settings = history_.current().lens;
     const auto resolved = luma::resolveLens(session_->asset.metadata, settings);
+    const auto translate = [](const char *value) {
+        return QCoreApplication::translate("Luma", value);
+    };
+    auto status = QCoreApplication::translate("Luma", resolved.status.c_str());
+    if (resolved.status.starts_with("Lensfun 0.3.4")) {
+        status = QStringLiteral("Lensfun 0.3.4 · ") + translate("Distortion") +
+                 (resolved.distortion ? QStringLiteral(" ✓")
+                                      : QStringLiteral(": ") + translate("No calibration")) +
+                 QStringLiteral(" · CA") +
+                 (resolved.tca ? QStringLiteral(" ✓")
+                               : QStringLiteral(": ") + translate("No calibration")) +
+                 QStringLiteral(" · ") + translate("Vignetting") +
+                 (resolved.vignetting ? QStringLiteral(" ✓ · ") + translate("Distant focus")
+                                      : QStringLiteral(": ") + translate("No calibration"));
+    }
     return {{"profile", QString::fromStdString(settings.profile)},
             {"resolvedProfile",
              resolved.profile ? QString::fromUtf8(resolved.profile->name) : QStringLiteral("—")},
             {"camera",
              resolved.camera ? QString::fromUtf8(resolved.camera->name) : QStringLiteral("—")},
-            {"status", QString::fromStdString(resolved.status)},
+            {"status", status},
             {"distortionAvailable", resolved.distortion.has_value()},
             {"vignettingAvailable", resolved.vignetting.has_value()},
             {"caAvailable", resolved.tca.has_value()}};
 }
 QVariantList EditorController::lensOptions() const {
-    QVariantList result{QVariantMap{{"id", ""}, {"name", "Auto · по метаданным"}}};
+    QVariantList result{QVariantMap{{"id", ""}, {"name", "Auto · from metadata"}}};
     if (!session_)
         return result;
     const auto resolved = luma::resolveLens(session_->asset.metadata, history_.current().lens);
@@ -40,7 +55,7 @@ QVariantList EditorController::lensOptions() const {
     if (!selected.isEmpty() && std::none_of(result.begin(), result.end(), [&](const auto &entry) {
             return entry.toMap().value("id").toString() == selected;
         }))
-        result.append(QVariantMap{{"id", selected}, {"name", "Недоступный профиль · " + selected}});
+        result.append(QVariantMap{{"id", selected}, {"name", "Unavailable profile · " + selected}});
     return result;
 }
 void EditorController::setLensProfile(const QString &id) {

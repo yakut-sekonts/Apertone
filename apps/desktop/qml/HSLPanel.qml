@@ -17,10 +17,10 @@ ColumnLayout {
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("hsl", checked)
             padding: 0
-            Accessible.name: "Включить HSL"
+            Accessible.name: qsTranslate("Luma", "Enable HSL")
         }
         Label {
-            text: "HSL / COLOR MIXER"
+            text: qsTranslate("Luma", "HSL / COLOR MIXER")
             color: "#858c97"
             font.pixelSize: 9
             font.letterSpacing: 1
@@ -60,21 +60,21 @@ ColumnLayout {
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".hue"
-        label: "Hue"
+        label: qsTranslate("Luma", "Hue")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".saturation"
-        label: "Saturation"
+        label: qsTranslate("Luma", "Saturation")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".luminance"
-        label: "Luminance"
+        label: qsTranslate("Luma", "Luminance")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
@@ -82,12 +82,12 @@ ColumnLayout {
     RowLayout {
         ComboBox {
             id: targetMode
-            model: ["Hue", "Saturation", "Luminance"]
+            model: [qsTranslate("Luma", "Hue"), qsTranslate("Luma", "Saturation"), qsTranslate("Luma", "Luminance")]
             Layout.fillWidth: true
             enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.hsl
             onActivated: if (editor.targetedTool.startsWith("hsl."))
                              editor.targetedTool = "hsl." + panel.parameters[currentIndex]
-            Accessible.name: "Targeted HSL parameter"
+            Accessible.name: qsTranslate("Luma", "Targeted HSL parameter")
         }
         Button {
             text: "◎"
@@ -98,9 +98,9 @@ ColumnLayout {
             onClicked: editor.targetedTool = checked ? "hsl."
                                                        + panel.parameters[targetMode.currentIndex] :
                                                        "none"
-            Accessible.name: "Targeted HSL"
+            Accessible.name: qsTranslate("Luma", "Targeted HSL")
             ToolTip.visible: hovered
-            ToolTip.text: "Изменить цвет жестом по фотографии"
+            ToolTip.text: qsTranslate("Luma", "Adjust color with a photo gesture")
         }
     }
 }

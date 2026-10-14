@@ -10,12 +10,13 @@ QString importReport(const std::filesystem::path &catalog, const luma::ImportSum
     for (const auto &problem : luma::Catalog(catalog).importProblems(result.sessionID))
         lines.push_back(QString::fromStdString(problem));
     if (result.failed > 100)
-        lines.push_back(
-            QStringLiteral("Показаны первые 100 ошибок; остальные сохранены в журнале каталога."));
+        lines.push_back(QStringLiteral(
+            "Showing the first 100 errors; the rest are saved in the catalog journal."));
     return lines.join(QStringLiteral("\n\n"));
 }
-QString summary(const luma::ImportSummary &result) {
-    return QStringLiteral("Добавлено: %1 · дубликаты: %2 · ошибки: %3 · отменено: %4")
+LocalizedText summary(const luma::ImportSummary &result) {
+    return LocalizedText(
+               QStringLiteral("Imported: %1 · duplicates: %2 · errors: %3 · cancelled: %4"))
         .arg(result.added)
         .arg(result.duplicates)
         .arg(result.failed)
@@ -49,10 +50,16 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
                     self->writing_ = false;
                     self->importReport_ = report;
                     self->error_ = error;
-                    self->status_ = recovered.empty()
-                                        ? QStringLiteral("Library готова")
-                                        : QStringLiteral("Восстановлен прерванный импорт · ") +
-                                              summary(recovered.back());
+                    if (recovered.empty())
+                        self->status_ = QStringLiteral("Library ready");
+                    else
+                        self->status_ =
+                            LocalizedText(
+                                QStringLiteral(
+                                    "Import recovered · imported %1 · duplicates %2 · errors %3"))
+                                .arg(recovered.back().added)
+                                .arg(recovered.back().duplicates)
+                                .arg(recovered.back().failed);
                     self->reload(false);
                     emit self->stateChanged();
                     self->checkClose();
@@ -433,7 +440,7 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     std::vector<std::filesystem::path> sources;
     for (const auto &url : urls) {
         if (!url.isLocalFile()) {
-            error_ = QStringLiteral("Импорт поддерживает локальные файлы");
+            error_ = QStringLiteral("Import supports local files");
             emit stateChanged();
             return;
         }
@@ -448,7 +455,7 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     importing_ = true;
     progress_ = 0;
     error_.clear();
-    status_ = QStringLiteral("Поиск RAW и проверка контрольных сумм…");
+    status_ = QStringLiteral("Finding RAW photos and verifying checksums…");
     importCancellation_ = luma::CancellationSource{};
     const auto stop = importCancellation_.token();
     const auto path = catalog_;
@@ -456,7 +463,8 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     emit stateChanged();
     imports_.submit(luma::JobPriority::background, [self, path, sources, options,
                                                     stop](const auto &) {
-        QString error, message, report;
+        QString error, report;
+        LocalizedText message;
         auto last = std::chrono::steady_clock::now();
         try {
             const auto update = [self, &last](double value, const std::string &name) {
@@ -471,7 +479,8 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
                             if (!self)
                                 return;
                             self->progress_ = value;
-                            self->status_ = QString::fromStdString(name);
+                            self->status_ = LocalizedText(QStringLiteral("Importing %1"))
+                                                .arg(QString::fromStdString(name));
                             emit self->stateChanged();
                         },
                         Qt::QueuedConnection);
@@ -481,7 +490,7 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
             report = ::importReport(path, result);
         } catch (const std::exception &e) {
             if (stop.isCancelled())
-                message = QStringLiteral("Импорт отменён");
+                message = QStringLiteral("Import cancelled");
             else
                 error = QString::fromUtf8(e.what());
         }

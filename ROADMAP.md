@@ -82,6 +82,14 @@ macOS CI. Phase 0.4 implementation is complete; stop before 0.5 for human review
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 
+## Pre-0.5 extensions requested by the human
+
+- 0.4.11: English-first runtime language packages: en, ru, zh_CN, hy, de, es, it, fr;
+  persisted Settings choice, embedded catalogs and UI/data separation.
+- 0.4.12: ordinary photo/image import and editing alongside RAW; separate validation.
+
+Phase 0.5 remains on hold while these extensions are implemented.
+
 ## 0.5 — Local Adjustments
 
 🗓 Planned. Brush, linear/radial gradients, color/luminance ranges, mask boolean

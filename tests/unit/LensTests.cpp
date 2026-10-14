@@ -73,7 +73,7 @@ void identification() {
     metadata.aperture = 4;
     const auto ambiguous = luma::resolveLens(metadata, {});
     require(ambiguous.camera && !ambiguous.profile &&
-                ambiguous.status.find("Неоднозначный") != std::string::npos,
+                ambiguous.status.find("Ambiguous") != std::string::npos,
             "Duplicate compatible calibration profiles were guessed.");
     const auto chosen = std::find_if(luma::lensProfiles().begin(), luma::lensProfiles().end(),
                                      [&](const auto &profile) {

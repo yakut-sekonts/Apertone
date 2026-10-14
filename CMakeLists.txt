@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.10 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.11 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -44,6 +44,14 @@ target_link_libraries(luma_services PUBLIC luma_core luma_macos)
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
+add_library(luma_localization STATIC apps/desktop/LocalizationController.cpp apps/desktop/LocalizationController.h)
+target_include_directories(luma_localization PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_link_libraries(luma_localization PUBLIC Qt6::Core Qt6::Qml)
+target_compile_options(luma_localization PRIVATE -Wall -Wextra -Wpedantic -Werror)
+qt_add_resources(luma_localization luma_languages PREFIX "/luma/i18n" BASE "resources/i18n"
+    FILES resources/i18n/en.json resources/i18n/ru.json resources/i18n/zh_CN.json resources/i18n/hy.json
+          resources/i18n/de.json resources/i18n/es.json resources/i18n/it.json resources/i18n/fr.json)
+
 qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
@@ -51,8 +59,8 @@ qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
-target_link_libraries(Luma PRIVATE luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
+    QML_FILES apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
+target_link_libraries(Luma PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
 add_custom_command(TARGET Luma POST_BUILD
@@ -78,6 +86,11 @@ target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 include(CTest)
 if(BUILD_TESTING)
+    qt_add_executable(luma_localization_tests tests/unit/LocalizationTests.cpp)
+    target_link_libraries(luma_localization_tests PRIVATE luma_localization Qt6::Quick Qt6::QuickControls2)
+    target_compile_options(luma_localization_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME language-runtime-preferences COMMAND luma_localization_tests "${CMAKE_SOURCE_DIR}/apps/desktop/qml")
+    set_tests_properties(language-runtime-preferences PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     qt_add_executable(luma_update_tests tests/unit/UpdateTests.cpp apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h)
     target_include_directories(luma_update_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
@@ -140,6 +153,9 @@ if(BUILD_TESTING)
     add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
     set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME language-native-ui COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/languages.py" "$<TARGET_FILE:Luma>")
+    set_tests_properties(language-native-ui PROPERTIES TIMEOUT 180)
+    add_test(NAME language-catalog-coverage COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/check-translations.py")
     add_test(NAME export-settings-immutable-queue COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/export_queue.py" "$<TARGET_FILE:luma_batch_tests>" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Luma>")
     set_tests_properties(export-settings-immutable-queue PROPERTIES TIMEOUT 180)
     add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}

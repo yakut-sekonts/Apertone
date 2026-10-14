@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include "apps/shared/LibraryService.h"
 #include "core/jobs/JobManager.h"
 #include <QAbstractListModel>
@@ -65,7 +66,7 @@ class LibraryModel final : public QAbstractListModel {
         return progress_;
     }
     QString status() const {
-        return status_;
+        return status_.text();
     }
     QString error() const {
         return error_;
@@ -123,7 +124,8 @@ class LibraryModel final : public QAbstractListModel {
     bool importing_ = false, writing_ = true, closing_ = false, loading_ = false,
          selecting_ = false;
     double progress_ = 0;
-    QString status_ = QStringLiteral("Открываем каталог…"), error_, importReport_;
+    LocalizedText status_ = QStringLiteral("Opening catalog…");
+    QString error_, importReport_;
     void page(int number);
     void reload(bool clear);
     void selectionChanged();

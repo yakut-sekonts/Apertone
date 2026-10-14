@@ -34,7 +34,7 @@ Rectangle {
         interval: 1500; running: thumbnail.status === Image.Error && card.retryCount < 2; repeat: false
         onTriggered: card.retryCount++
     }
-    Label { anchors.centerIn: thumbnail; visible: thumbnail.status !== Image.Ready; text: thumbnail.status === Image.Error ? "Нет preview" : "…"; color: "#68717f"; font.pixelSize: 11 }
+    Label { anchors.centerIn: thumbnail; visible: thumbnail.status !== Image.Ready; text: thumbnail.status === Image.Error ? qsTranslate("Luma", "No preview") : "…"; color: "#68717f"; font.pixelSize: 11 }
     Column {
         id: caption
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10 }

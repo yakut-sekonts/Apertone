@@ -3,6 +3,7 @@
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
+#include "apps/desktop/LocalizationController.h"
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
@@ -11,6 +12,7 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QQuickItem>
 #include <QQuickStyle>
 #include <QStandardPaths>
 #include <QTimer>
@@ -21,7 +23,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.10-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.11-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -30,6 +32,9 @@ int main(int argc, char **argv) {
     parser.addOption(
         {QStringLiteral("catalog"), QStringLiteral("Catalog path"), QStringLiteral("file")});
     parser.addOption({QStringLiteral("smoke-test"), QStringLiteral("Verify QML shell then exit")});
+    parser.addOption({QStringLiteral("test-language"),
+                      QStringLiteral("Integration test: runtime language and settings"),
+                      QStringLiteral("code")});
     parser.addOption({QStringLiteral("test-edit"), QStringLiteral("Integration test: open RAW"),
                       QStringLiteral("raw")});
     parser.addOption({QStringLiteral("test-exposure"), QStringLiteral("Integration test: exposure"),
@@ -99,7 +104,19 @@ int main(int argc, char **argv) {
     QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
     QObject::connect(&editor, &EditorController::editsSaved, &library,
                      &LibraryModel::refreshThumbnails);
+    std::unique_ptr<LocalizationController> localizationOwner;
     QQmlApplicationEngine engine;
+    localizationOwner = std::make_unique<LocalizationController>(
+        QFileInfo(catalog).absolutePath() + QStringLiteral("/language.json"), engine);
+    auto &localization = *localizationOwner;
+    engine.rootContext()->setContextProperty(QStringLiteral("localization"), &localization);
+    if (parser.isSet(QStringLiteral("test-language")) &&
+        (!parser.isSet(QStringLiteral("smoke-test")) ||
+         !localization.selectLanguage(parser.value(QStringLiteral("test-language"))))) {
+        std::cerr << "Invalid language acceptance arguments: " << localization.error().toStdString()
+                  << '\n';
+        return 2;
+    }
     engine.addImageProvider(QStringLiteral("thumbnail"),
                             new ThumbnailProvider(std::filesystem::path(catalog.toStdString())));
     engine.addImageProvider(QStringLiteral("preview"), provider);
@@ -122,7 +139,51 @@ int main(int argc, char **argv) {
     }
     editor.setWindow(window);
     if (parser.isSet(QStringLiteral("smoke-test"))) {
-        QTimer::singleShot(300, &app, &QCoreApplication::quit);
+        if (parser.isSet(QStringLiteral("test-language"))) {
+            const auto code = localization.language();
+            const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
+            QTimer::singleShot(100, &app, [&, code, screenshot, window] {
+                auto *button = window->findChild<QObject *>(QStringLiteral("exportButton"));
+                auto *panel = window->findChild<QObject *>(QStringLiteral("preferencesPanel"));
+                if (!button || !panel) {
+                    std::cerr << "Language UI controls missing\n";
+                    app.exit(1);
+                    return;
+                }
+                for (const auto &language : {QStringLiteral("en"), code}) {
+                    if (!localization.selectLanguage(language) ||
+                        button->property("text").toString() !=
+                            QCoreApplication::translate("Luma", "Export")) {
+                        std::cerr << "Main UI did not retranslate\n";
+                        app.exit(1);
+                        return;
+                    }
+                }
+                for (const auto *name : {"batchSync", "batchUndo", "batchRedo", "libraryFlagFilter",
+                                         "libraryLabelFilter"}) {
+                    auto *item = window->findChild<QQuickItem *>(QString::fromLatin1(name));
+                    if (!item)
+                        continue;
+                    const auto position = item->mapToScene(QPointF(0, 0));
+                    if (item->isVisible() &&
+                        (position.x() < 0 || position.x() + item->width() > window->width() + 1)) {
+                        std::cerr << "Localized control outside window: " << name << '\n';
+                        app.exit(1);
+                        return;
+                    }
+                }
+                QMetaObject::invokeMethod(panel, "open");
+                QTimer::singleShot(150, &app, [&, screenshot, window] {
+                    if (!screenshot.isEmpty() && !window->grabWindow().save(screenshot)) {
+                        app.exit(1);
+                        return;
+                    }
+                    std::cout << "Native language switch verified\n";
+                    app.quit();
+                });
+            });
+        } else
+            QTimer::singleShot(300, &app, &QCoreApplication::quit);
     } else if (parser.isSet(QStringLiteral("test-library"))) {
         startLibraryAcceptance(app, window, editor, library,
                                parser.value(QStringLiteral("test-library")),

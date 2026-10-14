@@ -22,7 +22,7 @@ ColumnLayout {
             visible: control.allowDisable
             checked: editor.correctionStates[control.correction] ?? true
             enabled: control.available
-            Accessible.name: "Включить " + control.label
+            Accessible.name: qsTranslate("Luma", "Enable ") + control.label
             onToggled: editor.setCorrectionEnabled(control.correction, checked)
             padding: 0
         }

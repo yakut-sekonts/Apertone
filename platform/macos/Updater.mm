@@ -37,13 +37,13 @@
     (void)updater;
     (void)check;
     (void)error;
-    self.callbacks.status(true, QStringLiteral("Проверяем обновления…"));
+    self.callbacks.status(true, QStringLiteral("Checking for updates…"));
     return YES;
 }
 - (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item {
     (void)updater;
     self.callbacks.found(QString::fromUtf8(item.displayVersionString.UTF8String));
-    self.callbacks.status(false, QStringLiteral("Доступна новая версия Luma"));
+    self.callbacks.status(false, QStringLiteral("A new version of Luma is available"));
 }
 - (void)updater:(SPUUpdater *)updater
     didFinishUpdateCycleForUpdateCheck:(SPUUpdateCheck)check
@@ -53,15 +53,15 @@
     if (error && error.code == SUNoUpdateError) {
         self.callbacks.failed();
         self.callbacks.finished();
-        self.callbacks.status(false, QStringLiteral("Доступных обновлений нет"));
+        self.callbacks.status(false, QStringLiteral("No updates available"));
     } else if (error && error.code != SUInstallationCanceledError) {
         self.callbacks.failed();
-        self.callbacks.status(false, QStringLiteral("Не удалось обновить Luma: ") +
+        self.callbacks.status(false, QStringLiteral("Could not update Luma: ") +
                                          QString::fromUtf8(error.localizedDescription.UTF8String));
     } else {
         if (error)
             self.callbacks.failed();
-        self.callbacks.status(false, QStringLiteral("Проверка обновлений завершена"));
+        self.callbacks.status(false, QStringLiteral("Update check completed"));
     }
 }
 - (void)standardUserDriverWillFinishUpdateSession {

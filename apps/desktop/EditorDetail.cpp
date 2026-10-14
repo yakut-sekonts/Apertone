@@ -5,17 +5,17 @@
 QString EditorController::detailDiagnostic() const {
     switch (diagnostic_) {
     case luma::DetailDiagnostic::amount:
-        return QStringLiteral("Amount · яркость");
+        return QStringLiteral("Amount · luminance");
     case luma::DetailDiagnostic::radius:
-        return QStringLiteral("Radius · детали");
+        return QStringLiteral("Radius · detail");
     case luma::DetailDiagnostic::detail:
-        return QStringLiteral("Detail · детали после порога");
+        return QStringLiteral("Detail · detail above the threshold");
     case luma::DetailDiagnostic::masking:
-        return QStringLiteral("Masking · белое обрабатывается");
+        return QStringLiteral("Masking · white areas are processed");
     case luma::DetailDiagnostic::noiseLuminance:
-        return QStringLiteral("Luminance · яркость без цвета");
+        return QStringLiteral("Luminance · brightness without color");
     case luma::DetailDiagnostic::noiseColor:
-        return QStringLiteral("Color · цвет на нейтральной яркости");
+        return QStringLiteral("Color · color at neutral luminance");
     case luma::DetailDiagnostic::none:
         return {};
     }

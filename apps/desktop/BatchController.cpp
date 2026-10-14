@@ -82,12 +82,12 @@ void BatchController::start(Request request) {
     if (working() || closing_)
         return;
     if (library_.working() || library_.selecting() || !editor_.canPrepareBatch()) {
-        error_ = QStringLiteral("Дождитесь импорта, переключения фото или экспорта.");
+        error_ = QStringLiteral("Wait for import, photo switching or export.");
         emit changed();
         return;
     }
     if (request.action == Action::apply && request.ids.empty()) {
-        error_ = QStringLiteral("Выберите фотографии в Library.");
+        error_ = QStringLiteral("Select photos in Library.");
         emit changed();
         return;
     }
@@ -96,7 +96,7 @@ void BatchController::start(Request request) {
     phase_ = Phase::waiting;
     progress_ = 0;
     error_.clear();
-    status_ = QStringLiteral("Ожидаем сохранения активного фото…");
+    status_ = QStringLiteral("Waiting for the active photo to save…");
     library_.setExternalBusy(true);
     editor_.prepareExternalEdits();
     preparation_.start();
@@ -112,12 +112,14 @@ void BatchController::run() {
     const auto stop = cancellation_.token();
     const QPointer<BatchController> self(this);
     phase_ = Phase::running;
-    status_ = request.action == Action::apply
-                  ? QStringLiteral("%1 · %2 фото").arg(request.label).arg(request.ids.size())
-                  : QStringLiteral("Пакетный Undo/Redo…");
+    status_ = request.action == Action::apply ? LocalizedText(QStringLiteral("%1 · %2 photos"))
+                                                    .arg(request.label)
+                                                    .arg(request.ids.size())
+                                              : QStringLiteral("Batch Undo/Redo…");
     emit changed();
     jobs_.submit(luma::JobPriority::background, [this, self, request, active, stop](const auto &) {
-        QString error, status;
+        QString error;
+        LocalizedText status;
         std::optional<luma::EditDocument> updated;
         bool committedChanges = false;
         try {
@@ -142,14 +144,14 @@ void BatchController::run() {
                     : catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
             updated = result.active;
             committedChanges = result.changed > 0;
-            status = result.changed
-                         ? QStringLiteral("Готово · изменено %1 фото").arg(result.changed)
-                         : QStringLiteral("Настройки уже совпадают · фото не изменены");
+            status =
+                result.changed
+                    ? LocalizedText(QStringLiteral("Done · changed %1 photos")).arg(result.changed)
+                    : QStringLiteral("Settings already match · photos unchanged");
         } catch (const std::exception &exception) {
             error = stop.isCancelled() ? QString() : QString::fromUtf8(exception.what());
-            status = stop.isCancelled()
-                         ? QStringLiteral("Пакетная операция отменена · изменения откатились")
-                         : QStringLiteral("Пакетная операция не выполнена");
+            status = stop.isCancelled() ? QStringLiteral("Batch cancelled · changes rolled back")
+                                        : QStringLiteral("Batch operation failed");
         }
         const bool undo = catalog_ && catalog_->canUndoBatch();
         const bool redo = catalog_ && catalog_->canRedoBatch();
@@ -163,7 +165,7 @@ void BatchController::run() {
                 Qt::QueuedConnection);
     });
 }
-void BatchController::finish(QString error, QString status, bool undo, bool redo,
+void BatchController::finish(QString error, LocalizedText status, bool undo, bool redo,
                              std::optional<luma::EditDocument> active, bool committedChanges) {
     phase_ = Phase::idle;
     undo_ = undo;
@@ -192,9 +194,9 @@ void BatchController::cancel() {
     if (phase_ == Phase::waiting) {
         preparation_.stop();
         request_.reset();
-        finish({}, QStringLiteral("Пакетная операция отменена до записи"), undo_, redo_, {});
+        finish({}, QStringLiteral("Batch cancelled before writing"), undo_, redo_, {});
     } else {
-        status_ = QStringLiteral("Отмена и откат изменений…");
+        status_ = QStringLiteral("Cancelling and rolling back changes…");
         emit changed();
     }
 }

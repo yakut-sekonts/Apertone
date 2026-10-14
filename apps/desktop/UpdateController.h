@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include <QObject>
 #include <QTimer>
 #include <functional>
@@ -40,7 +41,7 @@ class UpdateController final : public QObject {
         return version_;
     }
     QString message() const {
-        return message_;
+        return message_.text();
     }
     bool checking() const {
         return checking_;
@@ -60,7 +61,8 @@ class UpdateController final : public QObject {
     void preparingRestart();
 
   private:
-    QString version_, message_ = QStringLiteral("Обновления ещё не проверялись");
+    QString version_;
+    LocalizedText message_ = QStringLiteral("Updates have not been checked");
     bool checking_ = false, restarting_ = false;
     std::unique_ptr<NativeUpdater> native_;
     std::function<bool()> ready_;

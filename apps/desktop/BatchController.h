@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include "apps/shared/PresetStore.h"
 #include "core/catalog/Catalog.h"
 #include "core/jobs/JobManager.h"
@@ -37,7 +38,7 @@ class BatchController final : public QObject {
         return progress_;
     }
     QString status() const {
-        return status_;
+        return status_.text();
     }
     QString error() const {
         return error_;
@@ -76,11 +77,12 @@ class BatchController final : public QObject {
     Phase phase_ = Phase::idle;
     bool undo_ = false, redo_ = false, closing_ = false;
     double progress_ = 0;
-    QString status_, error_;
+    LocalizedText status_;
+    QString error_;
     void apply(const luma::DevelopPreset &preset);
     void start(Request request);
     void run();
-    void finish(QString error, QString status, bool undo, bool redo,
+    void finish(QString error, LocalizedText status, bool undo, bool redo,
                 std::optional<luma::EditDocument> active, bool committedChanges = false);
     void failure(const std::exception &error);
 };

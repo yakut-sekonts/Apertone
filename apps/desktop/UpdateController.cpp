@@ -9,18 +9,18 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
             return;
         restartTimer_.stop();
         auto action = std::exchange(install_, {});
-        message_ = QStringLiteral("Устанавливаем обновление и перезапускаем Luma…");
+        message_ = QStringLiteral("Installing update and restarting Luma…");
         emit changed();
         action();
     });
     if (!enabled) {
-        message_ = QStringLiteral("Обновления отключены в режиме тестирования");
+        message_ = QStringLiteral("Updates are disabled in test mode");
         return;
     }
     native_ = makeNativeUpdater(
         {[this](QString version) {
              version_ = std::move(version);
-             message_ = QStringLiteral("Доступна новая версия Luma");
+             message_ = QStringLiteral("A new version of Luma is available");
              emit changed();
          },
          [this](bool checking, QString message) {
@@ -72,7 +72,7 @@ void UpdateController::postponeInstallation(std::function<void()> action) {
         return;
     restarting_ = true;
     install_ = std::move(action);
-    message_ = QStringLiteral("Ожидаем сохранения правок и завершения операций перед обновлением…");
+    message_ = QStringLiteral("Waiting for edits and active operations before updating…");
     emit preparingRestart();
     emit changed();
     restartTimer_.start();

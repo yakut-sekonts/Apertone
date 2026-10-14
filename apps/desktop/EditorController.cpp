@@ -39,7 +39,7 @@ QString EditorController::camera() const {
 QString EditorController::lens() const {
     return session_ && !session_->asset.metadata.lens.empty()
                ? QString::fromStdString(session_->asset.metadata.lens)
-               : QStringLiteral("Не указан в RAW");
+               : QStringLiteral("Not specified in RAW");
 }
 QString EditorController::iso() const {
     return session_ ? display(session_->asset.metadata.iso) : QStringLiteral("—");
@@ -49,15 +49,15 @@ QString EditorController::shutter() const {
         return QStringLiteral("—");
     }
     const double seconds = *session_->asset.metadata.shutterSeconds;
-    return seconds < 1 ? QStringLiteral("1/%1 с").arg(std::round(1 / seconds))
-                       : display(seconds, QStringLiteral(" с"));
+    return seconds < 1 ? QStringLiteral("1/%1 s").arg(std::round(1 / seconds))
+                       : display(seconds, QStringLiteral(" s"));
 }
 QString EditorController::aperture() const {
     return session_ ? QStringLiteral("f/") + display(session_->asset.metadata.aperture)
                     : QStringLiteral("—");
 }
 QString EditorController::focalLength() const {
-    return session_ ? display(session_->asset.metadata.focalLength, QStringLiteral(" мм"))
+    return session_ ? display(session_->asset.metadata.focalLength, QStringLiteral(" mm"))
                     : QStringLiteral("—");
 }
 QString EditorController::dimensions() const {
@@ -126,8 +126,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     busy_ = true;
     progress_ = 0;
     error_.clear();
-    status_ =
-        source ? QStringLiteral("Декодирование RAW…") : QStringLiteral("Восстановление сессии…");
+    status_ = source ? QStringLiteral("Decoding RAW…") : QStringLiteral("Restoring session…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
     loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, revision, stop](
@@ -166,10 +165,9 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             emit self->photoLoaded(
                                 QString::fromStdString(self->session_->asset.id));
                         }
-                        self->status_ =
-                            self->session_
-                                ? QStringLiteral("Сессия восстановлена · правки сохранены")
-                                : QStringLiteral("Откройте RAW, чтобы начать");
+                        self->status_ = self->session_
+                                            ? QStringLiteral("Session restored · edits saved")
+                                            : QStringLiteral("Open a RAW photo to begin");
                         emit self->stateChanged();
                         self->checkClose();
                     },
@@ -190,9 +188,9 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             self->error_ = message;
                         }
                         self->status_ =
-                            cancelled ? QStringLiteral("Операция отменена")
+                            cancelled ? QStringLiteral("Operation cancelled")
                                       : QStringLiteral(
-                                            "Не удалось открыть RAW; каталог и правки сохранены");
+                                            "Could not open RAW; catalog and edits are preserved");
                         if (self->session_) {
                             self->render();
                         }
@@ -278,7 +276,7 @@ void EditorController::editsChanged(bool renderPreview) {
     ++editRevision_;
     pendingSave_ = true;
     saveTimer_.start();
-    status_ = QStringLiteral("Сохраняем правку…");
+    status_ = QStringLiteral("Saving edit…");
     refreshDetailDiagnostic();
     emit stateChanged();
     if (renderPreview)
@@ -484,46 +482,45 @@ void EditorController::flushSave() {
     const auto revision = editRevision_;
     const QPointer<EditorController> self(this);
     emit stateChanged();
-    ioJobs_.submit(
-        luma::JobPriority::background, [this, self, id, edits, revision](const luma::JobContext &) {
-            QString error;
-            try {
-                service_.save(id, edits);
-            } catch (const std::exception &failure) {
-                error = QString::fromUtf8(failure.what());
-            }
-            if (self) {
-                QMetaObject::invokeMethod(
-                    self,
-                    [self, id, edits, revision, error] {
-                        if (!self) {
-                            return;
-                        }
-                        --self->pendingWrites_;
-                        if (!error.isEmpty()) {
-                            self->saveFailed_ = true;
-                            self->error_ = error;
-                            self->status_ =
-                                QStringLiteral("Правка ещё не сохранена. Повторите запись.");
-                            self->closing_ = false;
-                        } else if (self->editRevision_ == revision) {
-                            self->saveFailed_ = false;
-                            self->session_->asset.edits = edits;
-                            self->status_ = QStringLiteral("Правки сохранены автоматически");
-                        }
-                        if (error.isEmpty())
-                            emit self->editsSaved(QString::fromStdString(id));
-                        emit self->stateChanged();
-                        if (!self->saving() && !self->deferredOpen_.isEmpty()) {
-                            const auto url = self->deferredOpen_;
-                            self->deferredOpen_ = QUrl();
-                            self->openFile(url);
-                        }
-                        self->checkClose();
-                    },
-                    Qt::QueuedConnection);
-            }
-        });
+    ioJobs_.submit(luma::JobPriority::background, [this, self, id, edits,
+                                                   revision](const luma::JobContext &) {
+        QString error;
+        try {
+            service_.save(id, edits);
+        } catch (const std::exception &failure) {
+            error = QString::fromUtf8(failure.what());
+        }
+        if (self) {
+            QMetaObject::invokeMethod(
+                self,
+                [self, id, edits, revision, error] {
+                    if (!self) {
+                        return;
+                    }
+                    --self->pendingWrites_;
+                    if (!error.isEmpty()) {
+                        self->saveFailed_ = true;
+                        self->error_ = error;
+                        self->status_ = QStringLiteral("The edit is not saved yet. Retry saving.");
+                        self->closing_ = false;
+                    } else if (self->editRevision_ == revision) {
+                        self->saveFailed_ = false;
+                        self->session_->asset.edits = edits;
+                        self->status_ = QStringLiteral("Edits saved automatically");
+                    }
+                    if (error.isEmpty())
+                        emit self->editsSaved(QString::fromStdString(id));
+                    emit self->stateChanged();
+                    if (!self->saving() && !self->deferredOpen_.isEmpty()) {
+                        const auto url = self->deferredOpen_;
+                        self->deferredOpen_ = QUrl();
+                        self->openFile(url);
+                    }
+                    self->checkClose();
+                },
+                Qt::QueuedConnection);
+        }
+    });
 }
 void EditorController::retrySave() {
     if (!session_ || pendingWrites_ > 0) {
@@ -545,7 +542,7 @@ bool EditorController::requestClose() {
         return true;
     }
     if (saveFailed_) {
-        error_ = QStringLiteral("Последняя правка не сохранена. Повторите запись перед закрытием.");
+        error_ = QStringLiteral("The last edit is not saved. Retry saving before closing.");
         emit stateChanged();
         return false;
     }
@@ -585,7 +582,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     closeTransformTool();
     setCropMode(false);
     endEdit();
-    status_ = QStringLiteral("Экспорт фотографии…");
+    status_ = QStringLiteral("Exporting photo…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
     // Preserve the immediate cancel/close opportunity before admitting I/O work.
@@ -625,11 +622,10 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
                                 if (!self)
                                     return;
                                 self->exporting_ = false;
-                                self->status_ =
-                                    cancelled ? QStringLiteral("Экспорт отменён")
-                                    : error.isEmpty()
-                                        ? QStringLiteral("Фотография экспортирована")
-                                        : QStringLiteral("Не удалось экспортировать фотографию");
+                                self->status_ = cancelled ? QStringLiteral("Export cancelled")
+                                                : error.isEmpty()
+                                                    ? QStringLiteral("Photo exported")
+                                                    : QStringLiteral("Could not export photo");
                                 if (!cancelled)
                                     self->error_ = error;
                                 emit self->stateChanged();

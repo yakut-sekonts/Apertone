@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include "apps/shared/ExportSettings.h"
 #include "apps/shared/SessionService.h"
 #include "core/jobs/JobManager.h"
@@ -65,7 +66,7 @@ class ExportController final : public QObject {
         return current_;
     }
     QString status() const {
-        return status_;
+        return status_.text();
     }
     QString error() const {
         return error_;
@@ -121,7 +122,8 @@ class ExportController final : public QObject {
     bool pause_ = false, closing_ = false, editorHeld_ = false;
     int completed_ = 0, succeeded_ = 0, skipped_ = 0;
     double progress_ = 0;
-    QString current_, status_, error_;
+    QString current_, error_;
+    LocalizedText status_;
     QStringList failures_;
     void readStore();
     void writeStore();
