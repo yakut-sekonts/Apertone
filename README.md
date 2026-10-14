@@ -333,7 +333,7 @@ neutrally. Geometry is the eighth preset/Copy/Paste/Sync subset; schema-6 preset
 read older schemas without introducing absent groups.
 
 See [ADR 0015](docs/adr/0015-perspective-transform.md) and
-[Transform review](docs/TRANSFORM_REVIEW.md). Ready-made filters, edited thumbnails
+[Transform review](docs/TRANSFORM_REVIEW.md). Ready-made filters, edited thumbnails and advanced export/queue
 were completed in subsequent phase-0.4 substages; Local Adjustments remain phase 0.5.
 
 

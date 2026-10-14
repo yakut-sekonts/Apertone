@@ -42,7 +42,7 @@ Move, smart collections, advanced import templates, keywords and XMP remain late
 
 ## 0.4 — Professional Develop and presets
 
-🚧 In progress. The first substage implements point/parametric Curves, HSL and
+✅ Implemented and locally validated through 0.4.10. The first substage implements point/parametric Curves, HSL and
 targeted tools with atomic persistence, gesture Undo/Redo and reproducible exports.
 The user-preset substage implements versioned presets for Light/Color/Curve/HSL,
 flat folder organization, create/edit/rename/delete, JSON import/export,
@@ -70,7 +70,15 @@ transient hover, one Undo, batch application and redistributable photographic QA
 The edited-thumbnail substage renders saved settings with atomic snapshots,
 revision/fingerprint disk identities and grid/filmstrip invalidation after saved
 and batch changes, preserving selection and isolating late results.
-Remaining scope: advanced export/queue.
+The final substage adds reusable advanced export settings: JPEG/PNG/TIFF8/16
+with compression and real processed Linear RGB DNG; four named color spaces,
+seven resize modes, output sharpening, metadata/location policies, text/image
+watermark, destination/naming/conflicts. A sequential immutable snapshot queue
+coordinates autosave, progress/counts/errors, pause/resume/cancel and close/update.
+All 29 local tests, private Nikon full-resolution export, previous-app default
+compatibility and standalone bundle acceptance passed. See
+[phase-0.4 acceptance](docs/PHASE4_ACCEPTANCE.md). Integration requires exact-head
+macOS CI. Phase 0.4 implementation is complete; stop before 0.5 for human review.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 

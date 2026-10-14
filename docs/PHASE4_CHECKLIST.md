@@ -15,12 +15,12 @@ and stop before phase 0.5 for adjustments. Local Adjustments must not start.
   groups, representative distributable licensed image fixtures and validation.
 - [x] Edited thumbnails: correct edit-dependent cache identity, revision updates
   in grid/filmstrip after autosave/batch changes, stale-result isolation and restart.
-- [ ] Advanced export (§52): JPEG/PNG/TIFF 8/16/compression/DNG, named color spaces,
+- [x] Advanced export (§52): JPEG/PNG/TIFF 8/16/compression/DNG, named color spaces,
   resize modes, output sharpening, metadata/location control, text/image watermark,
   destination/naming/overwrite and reusable export settings.
-- [ ] Export queue (§53): filename, progress, completed/total, errors, pause/resume/
+- [x] Export queue (§53): filename, progress, completed/total, errors, pause/resume/
   cancel and source integrity; file writes remain atomic.
-- [ ] Final phase-0.4 validation and standalone macOS bundle; roadmap updated to
+- [x] Final phase-0.4 validation and standalone macOS bundle; roadmap updated to
   completed, no phase-0.5 implementation.
 
 Each implementation substage requires unit/integration/QML tests appropriate to
@@ -30,3 +30,5 @@ Old neutral renders and original RAW hashes must remain unchanged. Optional WebP
 AVIF, Metal/progressive rendering, AI and stabilization-scale catalogs are outside
 this boundary. A new public signed release requires its separate release gates;
 development bundles must not be represented as notarized releases.
+
+Validation evidence and development-package limits: [PHASE4_ACCEPTANCE.md](PHASE4_ACCEPTANCE.md).
