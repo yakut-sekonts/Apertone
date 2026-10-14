@@ -130,6 +130,21 @@ PhotoMetadata metadataFrom(const libraw_data_t &data) {
 }
 } // namespace
 
+bool RawDecoder::recognizes(const std::filesystem::path &path, CancellationToken stop) const {
+    checkCancellation(stop);
+    if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000)
+        throw std::runtime_error("Image is missing or exceeds the input budget.");
+    const auto decoder = std::make_unique<LibRaw>();
+    decoder->set_progress_handler(cancelRaw, &stop);
+    const auto result = decoder->open_file(path.c_str());
+    checkCancellation(stop);
+    // Recognition is independent of our supported sensor layout. Unsupported RAW
+    // must fail in inspect/decode rather than fall back to an embedded preview.
+    if (result == LIBRAW_FILE_UNSUPPORTED)
+        return false;
+    requireSuccess(result, "Read image container");
+    return true;
+}
 PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, CancellationToken stop) const {
     checkCancellation(stop);
     if (!std::filesystem::is_regular_file(path) || std::filesystem::file_size(path) > 512'000'000)

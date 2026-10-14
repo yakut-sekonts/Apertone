@@ -31,7 +31,7 @@ ColumnLayout {
         Accessible.name: qsTranslate("Luma", "Lens profile")
     }
     Label { text: panel.state.resolvedProfile || "—"; wrapMode: Text.Wrap; Layout.fillWidth: true; color: "#d9dde4"; font.pixelSize: 11 }
-    Label { objectName: "lensStatus"; text: qsTranslate("Luma", panel.state.status || "") || qsTranslate("Luma", "Open a RAW photo"); wrapMode: Text.Wrap; Layout.fillWidth: true; color: "#858c97"; font.pixelSize: 10 }
+    Label { objectName: "lensStatus"; text: qsTranslate("Luma", panel.state.status || "") || qsTranslate("Luma", "Open a photo"); wrapMode: Text.Wrap; Layout.fillWidth: true; color: "#858c97"; font.pixelSize: 10 }
     DevelopSlider { objectName: "lensDistortion"; parameter: "lens.distortion"; label: qsTranslate("Luma", "Distortion"); minimum: 0; maximum: 200; defaultValue: 100; correction: "lens"; allowDisable: false; enabled: panel.state.distortionAvailable || false }
     DevelopSlider { objectName: "lensVignetting"; parameter: "lens.vignetting"; label: qsTranslate("Luma", "Vignetting"); minimum: 0; maximum: 200; defaultValue: 100; correction: "lens"; allowDisable: false; enabled: panel.state.vignettingAvailable || false }
     CheckBox { objectName: "lensCA"; text: qsTranslate("Luma", "Chromatic aberration"); checked: !!editor.parameters["lens.chromaticAberration"]; enabled: editor.hasPhoto && !editor.busy && !!panel.state.caAvailable; onToggled: editor.setParameter("lens.chromaticAberration", checked ? 1 : 0) }

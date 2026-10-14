@@ -1,6 +1,6 @@
 #include "apps/shared/SessionService.h"
+#include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
-#include "core/raw/RawDecoder.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/ImageExporter.h"
@@ -14,10 +14,10 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     const auto originalSize = std::filesystem::file_size(path);
     const auto originalTime = std::filesystem::last_write_time(path);
     if (originalSize > 512'000'000) {
-        throw std::runtime_error("RAW exceeds the 512 MB input budget.");
+        throw std::runtime_error("Image exceeds the 512 MB input budget.");
     }
     const auto checksum = macos::sha256File(path, stop);
-    auto decoded = RawDecoder().decode(path, stop, progress);
+    auto decoded = PhotoDecoder().decode(path, stop, progress);
     auto preview = std::make_shared<FloatImage>(standardPreview(decoded.image, 2560, stop));
     checkCancellation(stop);
     if (originalSize != std::filesystem::file_size(path) ||
@@ -62,7 +62,7 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
         throw std::runtime_error("Export cannot replace the catalog.");
     if (source == target ||
         (std::filesystem::exists(target) && std::filesystem::equivalent(source, target)))
-        throw std::runtime_error("Export cannot replace the original RAW.");
+        throw std::runtime_error("Export cannot replace the original image.");
     if (Catalog(catalogPath_).originalAtPath(target, stop))
         throw std::runtime_error("Export cannot replace a catalog original.");
     for (const auto &name :
@@ -89,7 +89,7 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     const auto initialSize = std::filesystem::file_size(source);
     if (macos::sha256File(source, stop) != asset.checksum)
         throw std::runtime_error("Original changed; export refused.");
-    auto decoded = RawDecoder().decode(source, stop, [&](double value) {
+    auto decoded = PhotoDecoder().decode(source, stop, [&](double value) {
         if (progress)
             progress(value * 0.5);
     });

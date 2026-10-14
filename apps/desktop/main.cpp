@@ -23,10 +23,11 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.11-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.12-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
-    parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
+    parser.setApplicationDescription(
+        QStringLiteral("Luma — non-destructive photo editor for macOS"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption(
@@ -35,7 +36,7 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-language"),
                       QStringLiteral("Integration test: runtime language and settings"),
                       QStringLiteral("code")});
-    parser.addOption({QStringLiteral("test-edit"), QStringLiteral("Integration test: open RAW"),
+    parser.addOption({QStringLiteral("test-edit"), QStringLiteral("Integration test: open photo"),
                       QStringLiteral("raw")});
     parser.addOption({QStringLiteral("test-exposure"), QStringLiteral("Integration test: exposure"),
                       QStringLiteral("ev")});
@@ -498,7 +499,7 @@ int main(int argc, char **argv) {
                                 return;
                             }
                         }
-                        std::cout << "RAW viewer and Exposure persistence verified\n";
+                        std::cout << "Photo viewer and Exposure persistence verified\n";
                         window->close();
                     });
                 }

@@ -1,6 +1,6 @@
 #include "apps/shared/LibraryService.h"
+#include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
-#include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
 #include <algorithm>
 #include <array>
@@ -14,14 +14,6 @@
 
 namespace luma {
 namespace {
-bool rawExtension(const std::filesystem::path &path) {
-    auto extension = path.extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    static const std::set<std::string> extensions{".nef", ".dng", ".cr2", ".cr3",
-                                                  ".arw", ".rw2", ".orf", ".raf"};
-    return extensions.contains(extension);
-}
 std::vector<std::filesystem::path> discover(const std::vector<std::filesystem::path> &roots,
                                             bool recursive, CancellationToken stop) {
     std::set<std::filesystem::path> paths;
@@ -32,7 +24,7 @@ std::vector<std::filesystem::path> discover(const std::vector<std::filesystem::p
         else if (std::filesystem::is_directory(root)) {
             auto add = [&](const auto &entry) {
                 checkCancellation(stop);
-                if (entry.is_regular_file() && rawExtension(entry.path()))
+                if (entry.is_regular_file() && PhotoDecoder::supportedExtension(entry.path()))
                     paths.insert(std::filesystem::canonical(entry.path()));
             };
             if (recursive)
@@ -45,7 +37,7 @@ std::vector<std::filesystem::path> discover(const std::vector<std::filesystem::p
             throw std::runtime_error("Import source is missing: " + root.string());
     }
     if (paths.empty())
-        throw std::runtime_error("No RAW files found in the selected sources.");
+        throw std::runtime_error("No supported photos found in the selected sources.");
     return {paths.begin(), paths.end()};
 }
 class Descriptor {
@@ -156,9 +148,9 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
             const auto initialTime = std::filesystem::last_write_time(source);
             const auto size = std::filesystem::file_size(source);
             if (size > 512'000'000)
-                throw std::runtime_error("RAW exceeds the 512 MB import budget.");
+                throw std::runtime_error("Image exceeds the 512 MB import budget.");
             const auto checksum = macos::sha256File(source, stop);
-            const auto metadata = RawDecoder().inspect(source, stop);
+            const auto metadata = PhotoDecoder().inspect(source, stop);
             if (initialTime != std::filesystem::last_write_time(source) ||
                 size != std::filesystem::file_size(source))
                 throw std::runtime_error("Original changed while being inspected.");
@@ -257,7 +249,7 @@ std::vector<ImportSummary> LibraryService::recover(CancellationToken stop) const
                     macos::sha256File(item.target, stop) != item.checksum)
                     throw std::runtime_error(
                         "Interrupted item is incomplete or changed; published file preserved.");
-                const auto metadata = RawDecoder().inspect(item.target, stop);
+                const auto metadata = PhotoDecoder().inspect(item.target, stop);
                 const bool inserted = catalog.commitImport(item, metadata, journal.skipDuplicates);
                 if (!inserted && journal.mode == ImportMode::copy &&
                     (!std::filesystem::exists(item.source) ||

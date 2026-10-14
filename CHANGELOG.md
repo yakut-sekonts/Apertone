@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.12 / Source extension before Local Adjustments
+
+- Ordinary image Open/Add/Copy alongside RAW: JPEG, PNG, TIFF8/16, HEIC/HEIF,
+  WebP, BMP, GIF and native-codec AVIF.
+- ICC-aware full-image decode, EXIF orientation, metadata and alpha through Develop/export.
+- Shared Library, thumbnails, presets, batch/queue and durable restart; immutable originals.
+
+## 0.4.11 / Source extension before Local Adjustments
+
+- English default with runtime Russian, Simplified Chinese, Armenian, German,
+  Spanish, Italian and French language packages.
+- Atomic persisted preference and full retranslation without changing user data.
+
+These are source/development versions; the public release remains v0.3.0.
+
 ## 0.3.0 — 2026-10-12 / First macOS release and Library
 
 - Standalone macOS Apple Silicon DMG/ZIP, checksums, build provenance and release notes.

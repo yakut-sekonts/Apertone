@@ -19,11 +19,14 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
     if (maximumDimension < 1 || input.rgb.size() != pixelCount(input.width, input.height) * 3) {
         throw std::runtime_error("Invalid preview dimensions or input buffer.");
     }
+    input.validateCoverage();
     const double scale =
         std::min(1.0, static_cast<double>(maximumDimension) / std::max(input.width, input.height));
     const int width = std::max(1, static_cast<int>(std::round(input.width * scale)));
     const int height = std::max(1, static_cast<int>(std::round(input.height * scale)));
     FloatImage result(width, height);
+    if (!input.alpha.empty())
+        result.alpha.resize(pixelCount(width, height));
     // Area averaging prevents the aliasing produced by subsampling a Bayer-derived image.
     for (int y = 0; y < height; ++y) {
         checkCancellation(stop);
@@ -34,6 +37,23 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
             const int lastX = std::max(firstX + 1, (x + 1) * input.width / width);
             const float count = static_cast<float>((lastX - firstX) * (lastY - firstY));
             const auto output = (static_cast<std::size_t>(y) * width + x) * 3;
+            if (!input.alpha.empty()) {
+                double coverage = 0;
+                std::array<double, 3> sum{};
+                for (int sy = firstY; sy < lastY; ++sy)
+                    for (int sx = firstX; sx < lastX; ++sx) {
+                        const auto i = static_cast<std::size_t>(sy) * input.width + sx;
+                        const auto alpha = input.alpha[i];
+                        coverage += alpha;
+                        for (std::size_t c = 0; c < 3; ++c)
+                            sum[c] += input.rgb[i * 3 + c] * alpha;
+                    }
+                result.alpha[output / 3] = static_cast<float>(coverage / count);
+                for (std::size_t c = 0; c < 3; ++c)
+                    result.rgb[output + c] =
+                        coverage > 1e-8 ? static_cast<float>(sum[c] / coverage) : 0;
+                continue;
+            }
             for (int sy = firstY; sy < lastY; ++sy) {
                 for (int sx = firstX; sx < lastX; ++sx) {
                     const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
@@ -51,6 +71,7 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                        std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
                        RawColorCalibration calibration, DetailDiagnostic diagnostic,
                        double detailScale, PhotoMetadata metadata) {
+    source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const auto &input = optics.image();
     edits.validate();
@@ -70,14 +91,26 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     for (int y = 0; y < height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < width; ++x) {
-            const auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
+            auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
                 const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
                 const auto developed =
                     noise.active() ? noise.pixel({}, sx, sy)
                                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
                                                      input.rgb[offset + 2]});
-                return sharpening.pixel(developed, sx, sy);
+                auto color = sharpening.pixel(developed, sx, sy);
+                if (!input.alpha.empty())
+                    for (auto &value : color)
+                        value *= input.coverage(sx, sy);
+                return color;
             });
+            if (!input.alpha.empty()) {
+                const auto alpha = geometry.sample(x, y, [&](int sx, int sy) {
+                    const auto value = input.coverage(sx, sy);
+                    return std::array{value, value, value};
+                })[0];
+                for (auto &value : rgb)
+                    value = alpha > 1e-8F ? value / alpha : 0;
+            }
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }
@@ -85,7 +118,16 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                .subspan(static_cast<std::size_t>(y) * width * 4,
                                         static_cast<std::size_t>(width) * 4);
         transform.convert(row, destination);
-        if (!geometry.opaque())
+        if (!input.alpha.empty()) {
+            for (int x = 0; x < width; ++x) {
+                const auto alpha = geometry.sample(x, y, [&](int sx, int sy) {
+                    const auto value = input.coverage(sx, sy);
+                    return std::array{value, value, value};
+                })[0];
+                destination[static_cast<std::size_t>(x) * 4 + 3] =
+                    static_cast<std::uint8_t>(std::lround(std::clamp(alpha, 0.F, 1.F) * 255));
+            }
+        } else if (!geometry.opaque())
             for (int x = 0; x < width; ++x)
                 if (!geometry.covered(x, y))
                     destination[static_cast<std::size_t>(x) * 4 + 3] = 0;

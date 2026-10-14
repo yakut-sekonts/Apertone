@@ -152,6 +152,7 @@ LensCorrectionPass::LensCorrectionPass(const FloatImage &input, const EditDocume
                                        const PhotoMetadata &metadata, const CancellationToken &stop)
     : input_(input) {
     edits.validate();
+    input.validateCoverage();
     if (input.rgb.size() != pixelCount(input.width, input.height) * 3)
         throw std::runtime_error("Invalid lens correction image.");
     checkCancellation(stop);
@@ -162,6 +163,8 @@ LensCorrectionPass::LensCorrectionPass(const FloatImage &input, const EditDocume
     if (!mapping.geometryActive() && !mapping.vignetteActive())
         return;
     corrected_.emplace(input.width, input.height);
+    if (!input.alpha.empty())
+        corrected_->alpha.resize(pixelCount(input.width, input.height));
     for (int y = 0; y < input.height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < input.width; ++x)
@@ -175,12 +178,22 @@ LensCorrectionPass::LensCorrectionPass(const FloatImage &input, const EditDocume
                           y1 = std::min(y0 + 1, input.height - 1);
                 const double fx = sx - x0, fy = sy - y0;
                 const auto sample = [&](int px, int py) {
-                    return input.rgb[(static_cast<std::size_t>(py) * input.width + px) * 3 +
-                                     channel] *
-                           mapping.gain(px, py);
+                    const auto value =
+                        input.rgb[(static_cast<std::size_t>(py) * input.width + px) * 3 + channel] *
+                        mapping.gain(px, py);
+                    return input.alpha.empty() ? value : value * input.coverage(px, py);
                 };
-                const double value = std::lerp(std::lerp(sample(x0, y0), sample(x1, y0), fx),
-                                               std::lerp(sample(x0, y1), sample(x1, y1), fx), fy);
+                double value = std::lerp(std::lerp(sample(x0, y0), sample(x1, y0), fx),
+                                         std::lerp(sample(x0, y1), sample(x1, y1), fx), fy);
+                if (!input.alpha.empty()) {
+                    const double alpha = std::lerp(
+                        std::lerp(input.coverage(x0, y0), input.coverage(x1, y0), fx),
+                        std::lerp(input.coverage(x0, y1), input.coverage(x1, y1), fx), fy);
+                    if (channel == 1)
+                        corrected_->alpha[static_cast<std::size_t>(y) * input.width + x] =
+                            static_cast<float>(std::clamp(alpha, 0.0, 1.0));
+                    value = alpha > 1e-8 ? value / alpha : 0;
+                }
                 const auto offset = (static_cast<std::size_t>(y) * input.width + x) * 3 + channel;
                 corrected_->rgb[offset] = static_cast<float>(value);
                 if (!std::isfinite(corrected_->rgb[offset]))

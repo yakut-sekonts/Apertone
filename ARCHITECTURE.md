@@ -309,3 +309,20 @@ Only final atomic file installation holds a short catalog writer transaction,
 checking originals again to include photos registered during rendering. Source
 encoding/preview/MakerNote fields never override the destination codec settings.
 No edit/catalog schema migration is needed. See docs/EXPORT.md and ADR 0018.
+
+
+## Shared image ingestion
+
+ADR 0020 introduces `DecodedImage` (`DecodedRaw` remains a compatibility alias) and
+`PhotoDecoder`. Session/Library/recovery/thumbnails use this dispatcher. LibRaw
+recognizes camera RAW containers before native TIFF dispatch so an embedded preview
+cannot become the Develop source. Ordinary images use ImageIO primary full pixels,
+ICC-to-linear-sRGB float conversion, photographic metadata and EXIF orientation.
+No catalog/edit migration or runtime codec dependency is added.
+
+`FloatImage::alpha` is optional straight coverage; empty retains the exact opaque
+RAW path. Preview averaging, optics, noise reduction, sharpening and geometry
+normalize by coverage. PNG/TIFF preserve alpha; JPEG/DNG flatten against black.
+The native adapter validates header/decoded dimensions and completeness, and checks
+cancellation before/after native operations and during conversion. See
+[image support](docs/IMAGE_SUPPORT.md) for the user-visible format/limit contract.

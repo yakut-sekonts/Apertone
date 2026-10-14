@@ -1,6 +1,6 @@
 # Luma
 
-Open-source non-destructive RAW photo editor for macOS.
+Open-source non-destructive photo editor for macOS.
 
 Luma is a local-first photo workspace for Apple Silicon, built with C++20,
 Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
@@ -57,7 +57,10 @@ Luma develops **integer Bayer RAW**, including Nikon NEF and Bayer DNG, and
 reimports its own processed Linear RGB DNG output.
 LibRaw can decode other Bayer camera formats, but those are not claimed as
 verified until they have acceptance coverage. X-Trans, monochrome RAW,
-general floating-point/RGB DNG and JPEG/HEIF/TIFF ingestion are planned.
+general floating-point/RGB DNG remain planned.
+Source 0.4.12 also opens/imports JPEG, PNG, TIFF8/16, HEIC/HEIF, WebP, BMP, GIF
+and system-supported AVIF, with ICC color conversion, EXIF orientation and alpha.
+See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
 This is a foundation milestone, not a daily-use Lightroom replacement.
@@ -83,7 +86,7 @@ M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2), Develop Core in
 [PR #6](https://github.com/yakut-sekonts/Luma/pull/6). the first release includes all three stages.
 The commands above select the immutable release tag.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
-this option, the app uses its macOS application-data directory. Add keeps RAW files
+this option, the app uses its macOS application-data directory. Add keeps original image files
 at their original paths; Copy registers verified copies in the chosen destination. The catalog contains absolute paths and editing data;
 it is local user data and must not be committed.
 
@@ -397,3 +400,13 @@ Armenian, German, Spanish, Italian and French without restarting. English is the
 new-install default; an explicit choice persists. User photo/preset/collection
 names and processing IDs are unchanged. See [localization](docs/LOCALIZATION.md).
 This is a pre-phase-0.5 extension; Local Adjustments remain on hold.
+
+
+## Ordinary images / 0.4.12
+
+RAW and ordinary images share Library Add/Copy, Develop, edited thumbnails, presets,
+batch edits, export queue and restart. PNG/TIFF preserve transparency; JPEG/DNG
+flatten against black. Native ImageIO handles full-image color-managed decoding;
+RAW retains its sensor pipeline. See [supported formats and limits](docs/IMAGE_SUPPORT.md).
+This completes the requested pre-phase-0.5 extensions in source; public release
+v0.3.0 remains unchanged. Local Adjustments have not started.

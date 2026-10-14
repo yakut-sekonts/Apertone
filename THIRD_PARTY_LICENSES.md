@@ -29,8 +29,9 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   Generated calibration data retain CC BY-SA 3.0; Luma's independent profile
   reader and optical mathematics are original Apache-2.0 code. Lensfun's
   LGPL library, GPL applications and build system are not compiled or linked.
-- **Apple system frameworks** — CommonCrypto, AppKit and ColorSync from the
-  system SDK. Used for SHA-256 and monitor profiles; no Apple SDK or framework
+- **Apple system frameworks** — CommonCrypto, AppKit, ColorSync, ImageIO, CoreText and
+  UniformTypeIdentifiers from the system SDK. Used for hashing, color, image
+  decoding/encoding, text and native format identification; no Apple SDK or framework
   binary is redistributed.
 
 Build tools are not part of the app runtime. The locked toolchain includes
@@ -52,3 +53,8 @@ Luma's original processed Linear RGB DNG writer follows Adobe's published DNG
 specification. No Adobe SDK source or binaries are included.
 This product includes DNG technology under license by Adobe.
 DNG specification: https://download.adobe.com/pub/adobe/dng/DNG_Spec_1_7_1_0.pdf
+
+Original synthetic raster fixtures in `tests/assets/images` are Luma-owned
+Apache-2.0 test material. Their README documents generators and reference hashes.
+Pillow 11.3.0 is used only to regenerate those fixtures; it is not installed by CI
+or linked/redistributed as an application dependency.

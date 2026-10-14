@@ -7,9 +7,9 @@ namespace luma {
 namespace {
 // A separable joint bilateral approximation: range weights always use the
 // original guide in both directions. Chroma channels share those weights.
-std::vector<float> filter(const std::vector<float> &guide, int width, int height, int component,
-                          double sigma, double range, CancellationToken stop,
-                          const std::function<void(double)> &progress) {
+std::vector<float> filter(const std::vector<float> &guide, const std::vector<float> &alpha,
+                          int width, int height, int component, double sigma, double range,
+                          CancellationToken stop, const std::function<void(double)> &progress) {
     checkCancellation(stop);
     const int radius = static_cast<int>(std::ceil(3 * sigma));
     const int diameter = 2 * radius + 1;
@@ -35,7 +35,9 @@ std::vector<float> filter(const std::vector<float> &guide, int width, int height
                 distance += delta * delta / (range * range);
             }
         }
-        return spatial[static_cast<std::size_t>(k + radius)] * std::exp(-0.5 * distance);
+        const double result =
+            spatial[static_cast<std::size_t>(k + radius)] * std::exp(-0.5 * distance);
+        return alpha.empty() ? result : result * alpha[neighbor];
     };
     for (int y = 0; y < height; ++y) {
         checkCancellation(stop);
@@ -54,7 +56,9 @@ std::vector<float> filter(const std::vector<float> &guide, int width, int height
                     sum += w * guide[neighbor * 3 + static_cast<std::size_t>(component)];
                     total += w;
                 }
-                rows[static_cast<std::size_t>(slot) * width + x] = static_cast<float>(sum / total);
+                rows[static_cast<std::size_t>(slot) * width + x] =
+                    total > 1e-12 ? static_cast<float>(sum / total)
+                                  : guide[center * 3 + static_cast<std::size_t>(component)];
             }
             ids[static_cast<std::size_t>(slot)] = sy;
         }
@@ -68,7 +72,9 @@ std::vector<float> filter(const std::vector<float> &guide, int width, int height
                 sum += w * rows[static_cast<std::size_t>(sy % diameter) * width + x];
                 total += w;
             }
-            output[center] = static_cast<float>(sum / total);
+            output[center] = total > 1e-12
+                                 ? static_cast<float>(sum / total)
+                                 : guide[center * 3 + static_cast<std::size_t>(component)];
         }
         if (progress && (y % std::max(1, height / 200) == 0 || y + 1 == height))
             progress(static_cast<double>(y + 1) / height);
@@ -82,6 +88,7 @@ NoiseReductionPass::NoiseReductionPass(const FloatImage &input, const DevelopPip
                                        const std::function<void(double)> &progress)
     : width_(input.width), height_(input.height), diagnostic_(diagnostic) {
     edits.validate();
+    input.validateCoverage();
     const auto count = pixelCount(width_, height_);
     if (input.rgb.size() != count * 3 || !std::isfinite(scale) || scale < 1.0 / 20000 || scale > 1)
         throw std::runtime_error("Invalid noise reduction image or scale.");
@@ -119,9 +126,9 @@ NoiseReductionPass::NoiseReductionPass(const FloatImage &input, const DevelopPip
     if (color > 0) {
         const auto sigma = (0.5 + 2.5 * edits.noiseColorSmoothness / 100) * scale;
         const auto range = 0.02 + 0.6 * (1 - edits.noiseColorDetail / 100);
-        auto u = filter(components_, width_, height_, 1, sigma, range, stop,
+        auto u = filter(components_, input.alpha, width_, height_, 1, sigma, range, stop,
                         [&](double v) { report(0.1 + 0.3 * v); });
-        auto v = filter(components_, width_, height_, 2, sigma, range, stop,
+        auto v = filter(components_, input.alpha, width_, height_, 2, sigma, range, stop,
                         [&](double value) { report(0.4 + 0.3 * value); });
         for (int y = 0; y < height_; ++y) {
             checkCancellation(stop);
@@ -136,7 +143,7 @@ NoiseReductionPass::NoiseReductionPass(const FloatImage &input, const DevelopPip
     }
     if (luma > 0) {
         const auto range = 0.015 + 0.25 * (1 - edits.noiseLuminanceDetail / 100);
-        auto Y = filter(components_, width_, height_, 0, 1.5 * scale, range, stop,
+        auto Y = filter(components_, input.alpha, width_, height_, 0, 1.5 * scale, range, stop,
                         [&](double value) { report(0.7 + 0.25 * value); });
         for (int y = 0; y < height_; ++y) {
             checkCancellation(stop);

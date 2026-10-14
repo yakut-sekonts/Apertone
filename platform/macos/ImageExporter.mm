@@ -103,7 +103,7 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                 CancellationToken stop, const std::function<void(double)> &progress,
                 const std::filesystem::path &metadataSource,
                 const ExportInstallGuard &installGuard) {
-    if (options.advanced()) {
+    if (options.advanced() || !decoded.image.alpha.empty()) {
         writeAdvancedImage(decoded, edits, destination, options, stop, progress, metadataSource,
                            installGuard);
         return;

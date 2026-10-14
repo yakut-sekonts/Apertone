@@ -1,8 +1,8 @@
 #include "apps/desktop/ThumbnailProvider.h"
+#include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/PresetStore.h"
 #include "core/catalog/Catalog.h"
 #include "core/image/Bayer.h"
-#include "core/raw/RawDecoder.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include <QBuffer>
@@ -79,13 +79,21 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
     }
     if (luma::macos::sha256File(asset.path, stop) != asset.checksum)
         throw std::runtime_error("Original changed; thumbnail not regenerated.");
-    auto decoded = luma::RawDecoder().decode(asset.path, stop);
+    auto decoded = luma::PhotoDecoder().decode(asset.path, stop);
     auto small = luma::standardPreview(decoded.image, 384, stop);
     const double scale = std::min(static_cast<double>(small.width) / decoded.image.width,
                                   static_cast<double>(small.height) / decoded.image.height);
-    const auto pixels =
+    auto pixels =
         luma::renderCPU(small, asset.edits, asset.metadata.orientation, {}, stop,
                         decoded.calibration, luma::DetailDiagnostic::none, scale, asset.metadata);
+    if (!decoded.image.alpha.empty()) {
+        for (std::size_t i = 0; i < pixels.rgba.size(); i += 4) {
+            for (std::size_t c = 0; c < 3; ++c)
+                pixels.rgba[i + c] = static_cast<std::uint8_t>(
+                    (static_cast<unsigned>(pixels.rgba[i + c]) * pixels.rgba[i + 3] + 127) / 255);
+            pixels.rgba[i + 3] = 255;
+        }
+    }
     QImage image = QImage(pixels.rgba.data(), pixels.width, pixels.height,
                           static_cast<qsizetype>(pixels.width) * 4, QImage::Format_RGBA8888)
                        .copy();

@@ -455,7 +455,7 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     importing_ = true;
     progress_ = 0;
     error_.clear();
-    status_ = QStringLiteral("Finding RAW photos and verifying checksums…");
+    status_ = QStringLiteral("Finding photos and verifying checksums…");
     importCancellation_ = luma::CancellationSource{};
     const auto stop = importCancellation_.token();
     const auto path = catalog_;

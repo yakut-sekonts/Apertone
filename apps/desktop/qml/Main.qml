@@ -73,8 +73,8 @@ ApplicationWindow {
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     FileDialog {
         id: fileDialog
-        title: qsTranslate("Luma", "Open RAW")
-        nameFilters: ["Bayer RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", qsTranslate("Luma", "All files (*)")]
+        title: qsTranslate("Luma", "Open photo")
+        nameFilters: [qsTranslate("Luma", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Luma", "All files (*)")]
         onAccepted: editor.openFile(selectedFile)
     }
     PreferencesPanel { id: preferences }
@@ -96,7 +96,7 @@ ApplicationWindow {
                 anchors.fill: parent; anchors.margins: 20; spacing: 18
                 Label { text: "◐"; color: "#dfae77"; font.pixelSize: 28 }
                 Label { text: "luma"; color: "#f0f1f3"; font.pixelSize: 24; font.weight: Font.DemiBold; font.letterSpacing: 2 }
-                Label { visible: root.width > 1450; text: qsTranslate("Luma", "RAW WORKSPACE"); color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
+                Label { visible: root.width > 1450; text: qsTranslate("Luma", "PHOTO WORKSPACE"); color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
                 Button { text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
                 Button { text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Item { Layout.fillWidth: true }
@@ -106,7 +106,7 @@ ApplicationWindow {
                 Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
                 Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
                 Button { objectName: "exportButton"; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
-                Button { text: qsTranslate("Luma", "+  Open RAW"); enabled: !editor.busy; onClicked: fileDialog.open() }
+                Button { text: qsTranslate("Luma", "+  Open photo"); enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
         Rectangle {
@@ -160,7 +160,7 @@ ApplicationWindow {
                     Label { text: qsTranslate("Luma", "WORKSPACE"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                     Rectangle {
                         Layout.fillWidth: true; implicitHeight: 42; radius: 6; color: "#302a25"
-                        Label { anchors.centerIn: parent; text: qsTranslate("Luma", "RAW development"); color: "#dfae77"; font.pixelSize: 12 }
+                        Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: "#dfae77"; font.pixelSize: 12 }
                     }
                     Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
                     Label { text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
@@ -178,7 +178,7 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL RAW") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
                         Label { text: qsTranslate("Luma", "FIT"); color: "#777f8b"; font.pixelSize: 10 }
                     }
@@ -216,15 +216,15 @@ ApplicationWindow {
                         ColumnLayout {
                             anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy
                             Label { text: "◉"; font.pixelSize: 72; color: "#dfae77"; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "It starts with a RAW photo."); color: "#ece8e2"; font.pixelSize: 25; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "It starts with a photo."); color: "#ece8e2"; font.pixelSize: 25; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
                             Label { text: qsTranslate("Luma", "Open a photo. Find your light."); color: "#858c98"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
                             Button { text: qsTranslate("Luma", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
-                            Label { text: "Nikon NEF · Bayer DNG"; color: "#777f8b"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "RAW and common images"); color: "#777f8b"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; visible: editor.busy; spacing: 16; width: Math.min(parent.width - 60, 300)
                             BusyIndicator { running: editor.busy; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "Decoding sensor data"); color: "#d4d8df"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "Decoding image pixels"); color: "#d4d8df"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
                             ProgressBar { value: editor.progress; Layout.fillWidth: true }
                             Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
                         }
@@ -240,12 +240,13 @@ ApplicationWindow {
             Rectangle {
                 SplitView.preferredWidth: 290; SplitView.minimumWidth: 250; SplitView.maximumWidth: 400; color: "#191c22"
                 ScrollView {
+                    id: adjustmentsScroll
                     anchors.fill: parent
                     anchors.margins: 18
                     clip: true
                     contentWidth: availableWidth
                     ColumnLayout {
-                        width: parent.width
+                        width: adjustmentsScroll.availableWidth
                         spacing: 14
                         Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
                         RowLayout {
@@ -262,7 +263,7 @@ ApplicationWindow {
                         }
                         DevelopSlider { parameter: "temperature"; label: qsTranslate("Luma", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
                         DevelopSlider { parameter: "tint"; label: qsTranslate("Luma", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot uses RAW white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: qsTranslate("Luma", "LIGHT"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
                         DevelopSlider { parameter: "exposure"; label: qsTranslate("Luma", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
@@ -288,7 +289,7 @@ ApplicationWindow {
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
                         MetadataRow { label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
-                        MetadataRow { label: qsTranslate("Luma", "Lens"); value: editor.lens; Layout.fillWidth: true }
+                        MetadataRow { label: qsTranslate("Luma", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
                         MetadataRow { label: "ISO"; value: editor.iso; Layout.fillWidth: true }
                         MetadataRow { label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
                         MetadataRow { label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
@@ -312,7 +313,7 @@ ApplicationWindow {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
                 Label { text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: qsTranslate("Luma", "Edits do not change the original RAW"); color: "#777f8b"; font.pixelSize: 10 }
+                Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: "#777f8b"; font.pixelSize: 10 }
             }
         }
     }

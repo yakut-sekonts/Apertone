@@ -62,7 +62,7 @@ def main():
         for arguments in [("--test-edit", str(source), "--test-exposure", "-0.75"), ("--test-restore", "-0.75")]:
             result = subprocess.run([str(gui), "--catalog", str(catalog), *arguments], env=env, capture_output=True, text=True, timeout=100)
             assert result.returncode == 0, f"exit={result.returncode}: {result.stdout} {result.stderr}"
-            assert "RAW viewer and Exposure persistence verified" in result.stdout
+            assert "Photo viewer and Exposure persistence verified" in result.stdout
         assert run("restore")["exposure"] == -0.75
         assert before == hashlib.sha256(source.read_bytes()).hexdigest(), "Original was modified"
         assert run("catalog", "verify")["integrity"] == "ok"

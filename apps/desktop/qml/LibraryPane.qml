@@ -20,8 +20,8 @@ Rectangle {
         Item { required property int index; Shortcut { sequence: index.toString(); enabled: pane.visible && pane.allowShortcut(); onActivated: library.rate(index) } }
     }
     Shortcut { sequences: [StandardKey.SelectAll]; enabled: pane.visible && !(search.activeFocus); onActivated: library.selectAll() }
-    FileDialog { id: files; title: qsTranslate("Luma", "Import RAW"); fileMode: FileDialog.OpenFiles; nameFilters: ["RAW (*.NEF *.nef *.DNG *.dng *.CR2 *.cr2 *.CR3 *.cr3 *.ARW *.arw *.RW2 *.rw2 *.ORF *.orf)", qsTranslate("Luma", "All files (*)")]; onAccepted: pane.sources = selectedFiles }
-    FolderDialog { id: folder; title: qsTranslate("Luma", "RAW folder"); onAccepted: pane.sources = [selectedFolder] }
+    FileDialog { id: files; title: qsTranslate("Luma", "Import photos"); fileMode: FileDialog.OpenFiles; nameFilters: [qsTranslate("Luma", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Luma", "All files (*)")]; onAccepted: pane.sources = selectedFiles }
+    FolderDialog { id: folder; title: qsTranslate("Luma", "Photo folder"); onAccepted: pane.sources = [selectedFolder] }
     FolderDialog { id: copyFolder; title: qsTranslate("Luma", "Where to copy originals"); onAccepted: pane.destination = selectedFolder }
     Dialog {
         id: importDialog; title: qsTranslate("Luma", "Import photos"); modal: true; anchors.centerIn: parent; width: 550
@@ -116,7 +116,7 @@ Rectangle {
                     delegate: PhotoCard { width: grid.cellWidth - 12; height: grid.cellHeight - 12 }
                     ScrollBar.vertical: ScrollBar {}
                 }
-                Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import RAW photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
+                Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
             }
             RowLayout {
                 enabled: library.selectedCount > 0 && !library.working; Layout.fillWidth: true; spacing: 6

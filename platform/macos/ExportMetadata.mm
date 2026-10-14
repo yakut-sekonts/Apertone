@@ -75,7 +75,8 @@ CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &
     CFHandle input(url ? CGImageSourceCreateWithURL(url.get(), nullptr) : nullptr);
     if (!input || CGImageSourceGetCount(input.get()) == 0)
         throw std::runtime_error("ImageIO cannot read source metadata.");
-    CFHandle metadata(CGImageSourceCopyMetadataAtIndex(input.get(), 0, nullptr));
+    CFHandle metadata(CGImageSourceCopyMetadataAtIndex(
+        input.get(), CGImageSourceGetPrimaryImageIndex(input.get()), nullptr));
     if (metadata) {
         result =
             CFHandle<CGMutableImageMetadataRef>(CGImageMetadataCreateMutableCopy(metadata.get()));

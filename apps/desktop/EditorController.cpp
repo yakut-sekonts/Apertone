@@ -39,7 +39,7 @@ QString EditorController::camera() const {
 QString EditorController::lens() const {
     return session_ && !session_->asset.metadata.lens.empty()
                ? QString::fromStdString(session_->asset.metadata.lens)
-               : QStringLiteral("Not specified in RAW");
+               : QCoreApplication::translate("Luma", "Not specified");
 }
 QString EditorController::iso() const {
     return session_ ? display(session_->asset.metadata.iso) : QStringLiteral("—");
@@ -126,7 +126,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     busy_ = true;
     progress_ = 0;
     error_.clear();
-    status_ = source ? QStringLiteral("Decoding RAW…") : QStringLiteral("Restoring session…");
+    status_ = source ? QStringLiteral("Decoding image…") : QStringLiteral("Restoring session…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
     loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, revision, stop](
@@ -167,7 +167,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                         }
                         self->status_ = self->session_
                                             ? QStringLiteral("Session restored · edits saved")
-                                            : QStringLiteral("Open a RAW photo to begin");
+                                            : QStringLiteral("Open a photo to begin");
                         emit self->stateChanged();
                         self->checkClose();
                     },
@@ -188,9 +188,10 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             self->error_ = message;
                         }
                         self->status_ =
-                            cancelled ? QStringLiteral("Operation cancelled")
-                                      : QStringLiteral(
-                                            "Could not open RAW; catalog and edits are preserved");
+                            cancelled
+                                ? QStringLiteral("Operation cancelled")
+                                : QStringLiteral(
+                                      "Could not open image; catalog and edits are preserved");
                         if (self->session_) {
                             self->render();
                         }

@@ -20,6 +20,7 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
                                 CancellationToken stop,
                                 const std::function<void(double)> &progress) {
     edits.validate();
+    decoded.image.validateCoverage();
     const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
     const auto &input = optics.image();
     const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, edits);
@@ -40,18 +41,30 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
     for (int y = 0; y < result.height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < result.width; ++x) {
-            const auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
+            auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
                 const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
                 const auto developed =
                     noise.active() ? noise.pixel({}, sx, sy)
                                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
                                                      input.rgb[offset + 2]});
-                return sharpening.pixel(developed, sx, sy);
+                auto color = sharpening.pixel(developed, sx, sy);
+                if (!input.alpha.empty())
+                    for (auto &value : color)
+                        value *= input.coverage(sx, sy);
+                return color;
             });
+            const float alpha = input.alpha.empty() ? (geometry.covered(x, y) ? 1.F : 0.F)
+                                                    : geometry.sample(x, y, [&](int sx, int sy) {
+                                                          const auto value = input.coverage(sx, sy);
+                                                          return std::array{value, value, value};
+                                                      })[0];
+            if (!input.alpha.empty())
+                for (auto &value : rgb)
+                    value = alpha > 1e-8F ? value / alpha : 0;
             const auto target = (static_cast<std::size_t>(y) * result.width + x) * 4;
             for (std::size_t c = 0; c < 3; ++c)
                 result.rgba[target + c] = rgb[c];
-            result.rgba[target + 3] = geometry.covered(x, y) ? 1 : 0;
+            result.rgba[target + 3] = alpha;
         }
         if (progress)
             progress(0.4 + 0.6 * (y + 1.0) / result.height);

@@ -72,6 +72,7 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
       detail_(edits.sharpenDetail / 100), masking_(edits.sharpenMasking / 100),
       diagnostic_(diagnostic) {
     edits.validate();
+    input.validateCoverage();
     const auto count = pixelCount(width_, height_);
     if (input.rgb.size() != count * 3 || !std::isfinite(scale) || scale < 1.0 / 20000 ||
         scale > 1 || diagnostic < DetailDiagnostic::none ||
@@ -101,7 +102,20 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
         if (progress && (y % std::max(1, height_ / 200) == 0 || y + 1 == height_))
             progress(0.5 * static_cast<double>(y + 1) / height_);
     }
-    blurred_ = gaussian(luminance_, width_, height_, edits.sharpenRadius * scale, stop, progress);
+    if (input.alpha.empty()) {
+        blurred_ =
+            gaussian(luminance_, width_, height_, edits.sharpenRadius * scale, stop, progress);
+    } else {
+        std::vector<float> weighted(count);
+        for (std::size_t i = 0; i < count; ++i)
+            weighted[i] = luminance_[i] * input.alpha[i];
+        blurred_ = gaussian(weighted, width_, height_, edits.sharpenRadius * scale, stop, progress);
+        std::vector<float>().swap(weighted);
+        const auto coverage =
+            gaussian(input.alpha, width_, height_, edits.sharpenRadius * scale, stop, {});
+        for (std::size_t i = 0; i < count; ++i)
+            blurred_[i] = coverage[i] > 1e-8F ? blurred_[i] / coverage[i] : luminance_[i];
+    }
     checkCancellation(stop);
 }
 double SharpeningPass::mask(int x, int y) const {

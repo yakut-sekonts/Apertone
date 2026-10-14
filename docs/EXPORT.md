@@ -12,7 +12,9 @@ JPEG quality 1–100, PNG, TIFF 8/16 bit with None/LZW/ZIP compression, and proc
 Linear RGB DNG are available. Output uses embedded sRGB, Display P3, Adobe RGB
 (1998), or ProPhoto RGB profiles from the operating system. DNG stores the selected
 linear primaries with D50 calibration and an sRGB rendered preview. JPEG and DNG
-flatten transparent Transform corners against black; PNG/TIFF preserve coverage.
+flatten transparent Transform corners and source-image transparency against black;
+PNG/TIFF preserve coverage. These exports also accept ordinary image sources in
+0.4.12; see [image support](IMAGE_SUPPORT.md).
 DNG is uncompressed 16-bit LinearRaw with edits baked into samples. It is not a
 copy of camera sensor data, does not retain an editable Luma adjustment stack,
 and is not an archival replacement for the original. Luma reimports its own

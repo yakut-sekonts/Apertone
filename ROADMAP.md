@@ -84,11 +84,13 @@ hidden irreversible effects. Preset application is one Undo operation.
 
 ## Pre-0.5 extensions requested by the human
 
-- 0.4.11: English-first runtime language packages: en, ru, zh_CN, hy, de, es, it, fr;
+- ✅ 0.4.11: English-first runtime language packages: en, ru, zh_CN, hy, de, es, it, fr;
   persisted Settings choice, embedded catalogs and UI/data separation.
-- 0.4.12: ordinary photo/image import and editing alongside RAW; separate validation.
+- ✅ 0.4.12: JPEG/PNG/TIFF8/16/HEIC/HEIF/WebP/BMP/GIF and system-supported AVIF
+  alongside RAW; shared Develop, alpha/ICC/orientation, Library and export acceptance.
 
-Phase 0.5 remains on hold while these extensions are implemented.
+Both extensions are implemented separately; validation and exact-head CI gate
+integration. Phase 0.5 remains on hold for the requested human review.
 
 ## 0.5 — Local Adjustments
 
