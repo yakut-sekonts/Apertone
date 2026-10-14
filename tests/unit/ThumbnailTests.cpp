@@ -116,7 +116,7 @@ void snapshots(const std::filesystem::path &catalog, const std::string &id) {
     luma::Catalog(catalog).saveEdits(id, first);
     std::atomic<bool> done{false};
     std::exception_ptr failure;
-    std::jthread writer([&] {
+    std::thread writer([&] {
         try {
             luma::Catalog db(catalog);
             for (int i = 0; i < 60; ++i)
@@ -126,6 +126,13 @@ void snapshots(const std::filesystem::path &catalog, const std::string &id) {
         }
         done = true;
     });
+    struct JoinThread {
+        std::thread &thread;
+        ~JoinThread() {
+            if (thread.joinable())
+                thread.join();
+        }
+    } join{writer};
     luma::Catalog reader(catalog);
     for (int i = 0; i < 120 || !done; ++i) {
         const auto snapshot = reader.assetSnapshot(id);
