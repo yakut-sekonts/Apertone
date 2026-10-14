@@ -62,8 +62,10 @@ geometry, targeted inverse mapping and preset/batch integration.
 The Optics substage adds calibrated automatic/manual lens profiles, distortion/
 vignetting amounts and lateral CA before Develop/Detail, shared preview/export,
 neutral catalog migration and preset/batch integration.
-Remaining scope: perspective Transform,
-ready-made filters, edited thumbnails and advanced export.
+The Transform substage adds manual projective controls, asynchronous Auto with
+confidence refusal, Guided vertical/horizontal line pairs and shared inverse
+geometry/coverage, with neutral migration and a Geometry settings subset.
+Remaining scope: ready-made filters, edited thumbnails and advanced export/queue.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 

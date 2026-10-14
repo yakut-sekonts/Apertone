@@ -20,7 +20,7 @@ ColumnLayout {
         editDialog.copyMode = false
         nameField.text = create ? "" : selected.name
         folderField.text = create ? "" : selected.folder
-        editDialog.groups = create ? 127 : selected.groups
+        editDialog.groups = create ? 255 : selected.groups
         capture.checked = create
         editDialog.open()
     }
@@ -86,7 +86,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true; spacing: 4
         Button { implicitWidth: 80; Layout.minimumWidth: 0; text: "Copy…"; enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
-            onClicked: { presets.clearPreview(); editDialog.copyMode = true; editDialog.groups = 127; editDialog.open() }
+            onClicked: { presets.clearPreview(); editDialog.copyMode = true; editDialog.groups = 255; editDialog.open() }
         }
         Button { implicitWidth: 80; Layout.minimumWidth: 0; text: "Paste"; enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
     }
@@ -95,7 +95,7 @@ ColumnLayout {
         objectName: "presetEditor"
         property string presetId: ""
         property bool copyMode: false
-        property int groups: 127
+        property int groups: 255
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
@@ -106,7 +106,7 @@ ColumnLayout {
             TextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: "Папка (необязательно)"; maximumLength: 80; Layout.fillWidth: true }
             Label { text: "Группы настроек"; color: "#d5d8de" }
             Repeater {
-                model: ["Light", "Color", "Curve", "HSL", "Detail", "Crop", "Optics"]
+                model: ["Light", "Color", "Curve", "HSL", "Detail", "Crop", "Optics", "Geometry"]
                 CheckBox {
                     required property string modelData
                     required property int index

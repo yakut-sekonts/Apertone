@@ -85,6 +85,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                .subspan(static_cast<std::size_t>(y) * width * 4,
                                         static_cast<std::size_t>(width) * 4);
         transform.convert(row, destination);
+        if (!geometry.opaque())
+            for (int x = 0; x < width; ++x)
+                if (!geometry.covered(x, y))
+                    destination[static_cast<std::size_t>(x) * 4 + 3] = 0;
     }
     return result;
 }

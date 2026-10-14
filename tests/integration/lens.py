@@ -39,8 +39,8 @@ with tempfile.TemporaryDirectory(prefix="luma-lens-") as temporary:
     with sqlite3.connect(catalog) as db:
         db.execute("PRAGMA foreign_keys=OFF")
         columns = [item[1] for item in db.execute("PRAGMA table_info(edit_documents)")
-                   if not item[1].startswith("lens_")]
-        selection = ",".join("6 AS schema_version" if name == "schema_version" else name
+                   if not item[1].startswith(("lens_", "transform_"))]
+        selection = ",".join("6 AS schema_version" if name == "schema_version" else "enabled & 32767 AS enabled" if name == "enabled" else name
                              for name in columns)
         db.execute("CREATE TABLE old_edits AS SELECT " + selection + " FROM edit_documents")
         db.execute("DROP TABLE edit_documents")
@@ -52,8 +52,8 @@ with tempfile.TemporaryDirectory(prefix="luma-lens-") as temporary:
                     for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Neutral migration changed old settings or selection"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 8
-        assert db.execute("SELECT schema_version,lens_profile,lens_distortion,lens_vignetting,lens_ca FROM edit_documents").fetchone() == (7,"",100,100,1)
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 9
+        assert db.execute("SELECT schema_version,lens_profile,lens_distortion,lens_vignetting,lens_ca FROM edit_documents").fetchone() == (8,"",100,100,1)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == durable
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4
         for index, table in enumerate(("edit_curve_points", "edit_hsl_bands")):

@@ -4,8 +4,7 @@ from pathlib import Path
 
 
 def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens=None,
-               focal=35, aperture=2.8) -> None:
-    width, height = 128, 96
+               focal=35, aperture=2.8, width=128, height=96, sample=None) -> None:
     entries = []
 
     def tag(identifier, kind, values):
@@ -64,6 +63,7 @@ def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens
         for x in range(width):
             # A smooth luminance ramp plus a slight per-channel tint.
             color = [0, 1, 1, 2][(y & 1) * 2 + (x & 1)]
-            value = 512 + int((0.08 + 0.55 * x / (width - 1)) * (16383 - 512) * [1, 0.95, 0.9][color])
+            brightness = 0.08 + 0.55 * x / (width - 1) if sample is None else sample(x, y)
+            value = 512 + int(brightness * (16383 - 512) * [1, 0.95, 0.9][color])
             samples.extend(struct.pack("<H", value))
     path.write_bytes(b"II" + struct.pack("<HIH", 42, 8, len(entries)) + table + b"\0" * 4 + extra + samples)

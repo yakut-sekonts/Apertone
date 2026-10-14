@@ -62,7 +62,7 @@ LibRaw open/unpack (integer sensor samples)
 → luminance tone and color corrections, Curves and HSL
 → manual luminance/color noise reduction
 → luminance sharpening
-→ Crop / rotate / flip / straighten geometry
+→ upright perspective Transform + Crop / rotate / flip / straighten geometry
 → monitor ICC through LittleCMS
 → oriented 8-bit RGBA display raster
 ```
@@ -246,3 +246,20 @@ invalid calibration produces an explicit render/export failure. Correction
 strength 0 or a disabled profile bypasses all resampling/copying. Missing or
 ambiguous data remain unavailable and preserve source pixels. Camera matching,
 mount compatibility and manual profile IDs never use a guessed sensor crop factor.
+
+
+## Perspective Transform
+
+ADR 0015 adds a bounded typed homography and manual controls, composed in upright
+coordinates with EXIF/Crop before a single bilinear sample. CropGeometry exposes
+coverage to preview/export; transparent exterior never replicates source edges.
+Constrain Crop uses inverse-pole exclusion and convex-corner containment. Targeted
+tools use the same inverse map. Neutral/disabled geometry preserves exact pixels.
+
+Guided line endpoints are transient. Two vertical/horizontal pairs solve vanishing
+directions and projective/affine rectification; only the matrix is stored. Auto
+runs bounded Gaussian/Sobel/polarity-Hough line detection in a separate cancellable
+worker, then uses the same solver with coverage, noise and safety checks. Revision
+guards prevent stale results. Tool modes only enable pointers on matching renders.
+Catalog 9/edit 8/preset 6 add Geometry as an eighth independent settings subset;
+compound matrices are validated atomically in editor, persistence and batch paths.

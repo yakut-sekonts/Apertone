@@ -60,6 +60,13 @@ void printSession(const luma::PhotoSession &session) {
                   << ",\"saturation\":" << band.saturation << ",\"luminance\":" << band.luminance
                   << '}';
     }
+    std::cout << "},\"geometry\":{";
+    for (std::size_t i = 0; i < luma::transformParameters.size(); ++i) {
+        if (i)
+            std::cout << ',';
+        const auto name = luma::transformParameters[i];
+        std::cout << quoted(std::string(name)) << ':' << asset.edits.transform.parameter(name);
+    }
     std::cout << "},\"sharpening\":{\"amount\":" << asset.edits.sharpenAmount
               << ",\"radius\":" << asset.edits.sharpenRadius
               << ",\"detail\":" << asset.edits.sharpenDetail

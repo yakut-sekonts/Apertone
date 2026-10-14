@@ -22,6 +22,7 @@
 #include <source_location>
 
 void cropEditorTests(const QString &source, const QString &root, const QString &qmlPath);
+void transformEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void lensEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 namespace {
 void require(bool result, const char *message) {
@@ -88,6 +89,16 @@ luma::EditDocument sample() {
     doc.setEnabled(luma::Correction::colorNoise, false);
     doc.lens = {"0123456789abcdef0123456789abcdef", 75, 125, false};
     doc.setEnabled(luma::Correction::lens, true);
+    doc.transform.rotate = 7;
+    doc.transform.horizontal = 12;
+    doc.transform.vertical = -9;
+    doc.transform.aspect = 15;
+    doc.transform.scale = 130;
+    doc.transform.xOffset = 5;
+    doc.transform.yOffset = 3;
+    doc.transform.guided = true;
+    doc.transform.guide = {1, 0.02, 0, -0.01, 1, 0, 0.03, -0.04};
+    doc.setEnabled(luma::Correction::transform, false);
     return doc;
 }
 void documentTests() {
@@ -96,7 +107,7 @@ void documentTests() {
     current.setParameter("exposure", -0.75);
     current.setParameter("temperature", 7800);
     current.setParameter("hsl.red.hue", 35);
-    for (std::uint32_t groups = 1; groups <= 127; ++groups) {
+    for (std::uint32_t groups = 1; groups <= 255; ++groups) {
         const luma::DevelopPreset preset{QStringLiteral("Мягкий портрет"),
                                          QStringLiteral("Портреты"), source, groups};
         const auto encoded = luma::encodePreset(preset);
@@ -166,12 +177,22 @@ void documentTests() {
         QJsonDocument::fromJson(luma::encodePreset({"Illegal Optics", {}, source, 64})).object();
     illegalOptics["schemaVersion"] = 4;
     throws([&] { luma::decodePreset(QJsonDocument(illegalOptics).toJson()); });
+    auto legacy5 =
+        QJsonDocument::fromJson(luma::encodePreset({"Legacy 5", {}, source, 127})).object();
+    legacy5["schemaVersion"] = 5;
+    const auto old5 = luma::decodePreset(QJsonDocument(legacy5).toJson());
+    require(luma::mergeSettings(current, old5.settings, old5.groups).transform == current.transform,
+            "Schema 5 introduced absent Geometry settings.");
+    auto illegalGeometry =
+        QJsonDocument::fromJson(luma::encodePreset({"Illegal Geometry", {}, source, 128})).object();
+    illegalGeometry["schemaVersion"] = 5;
+    throws([&] { luma::decodePreset(QJsonDocument(illegalGeometry).toJson()); });
     const auto change = [&](const std::function<void(QJsonObject &)> &mutation) {
         auto root = QJsonDocument::fromJson(bytes).object();
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 6; });
+    change([](auto &root) { root["schemaVersion"] = 7; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
@@ -205,12 +226,12 @@ void documentTests() {
     });
     throws([&] { luma::decodePreset(QByteArray(1024 * 1024 + 1, ' ')); });
     throws([&] { luma::mergeSettings(current, source, 0); });
-    throws([&] { luma::mergeSettings(current, source, 128); });
+    throws([&] { luma::mergeSettings(current, source, 256); });
 }
 void storeTests(const QString &root) {
     const auto path = root + "/store.json";
     luma::PresetStore a(path), b(path);
-    const luma::DevelopPreset preset{"Test", "Folder", sample(), 127};
+    const luma::DevelopPreset preset{"Test", "Folder", sample(), 255};
     const auto first = a.put(preset), second = b.put(preset);
     require(a.load().size() == 2 && first != second, "A second writer erased existing presets.");
     auto renamed = preset;
@@ -248,7 +269,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 6;
+    future["schemaVersion"] = 7;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -322,14 +343,14 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     child("presetGroup0")->setProperty("checked", false);
     require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
             "Cannot select subset group.");
-    require(child("presetEditor")->property("groups").toInt() == 126,
+    require(child("presetEditor")->property("groups").toInt() == 254,
             "Group checkbox ignored subset.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot update from QML dialog.");
     for (const auto &item : presets.items())
         if (item.toMap()["id"].toString() == id)
             require(item.toMap()["name"].toString() == "QML renamed" &&
-                        item.toMap()["groups"].toInt() == 126,
+                        item.toMap()["groups"].toInt() == 254,
                     "QML update lost name or group selection.");
     QCoreApplication::processEvents();
     require(child("presetTitle")->property("textFormat").toInt() == Qt::PlainText &&
@@ -631,7 +652,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("Basic");
     try {
-        require(argc == 4, "Expected synthetic RAW and QML fixture paths.");
+        require(argc == 5, "Expected synthetic RAW and QML fixture paths.");
         QTemporaryDir temporary;
         require(temporary.isValid(), "Cannot create preset test directory.");
         documentTests();
@@ -641,6 +662,8 @@ int main(int argc, char **argv) {
                         QString::fromLocal8Bit(argv[2]));
         lensEditorTests(QString::fromLocal8Bit(argv[3]), temporary.path(),
                         QString::fromLocal8Bit(argv[2]));
+        transformEditorTests(QString::fromLocal8Bit(argv[4]), temporary.path(),
+                             QString::fromLocal8Bit(argv[2]));
         detailEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         std::cout
             << "Preset subsets, JSON validation, atomic storage, hover, Undo and restart passed.\n";

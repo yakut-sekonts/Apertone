@@ -5,8 +5,10 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
     if (!editable())
         return;
     try {
+        closeTransformTool();
         setCropMode(false);
         const auto next = luma::mergeSettings(history_.current(), settings, groups);
+        validateGeometry(next);
         endEdit();
         if (next == history_.current())
             return;
@@ -20,8 +22,10 @@ void EditorController::previewSettings(const luma::EditDocument &settings, std::
     if (!editable() || original_)
         return;
     try {
+        closeTransformTool();
         setCropMode(false);
         const auto next = luma::mergeSettings(history_.current(), settings, groups);
+        validateGeometry(next);
         if (presetPreview_ == next)
             return;
         endEdit();
@@ -41,12 +45,14 @@ void EditorController::clearPreviewSettings() {
 }
 
 bool EditorController::canPrepareBatch() const {
-    return !busy_ && !exporting_ && !closing_ && !editingLocked_ && deferredOpen_.isEmpty();
+    return !transformAutoBusy_ && !busy_ && !exporting_ && !closing_ && !editingLocked_ &&
+           deferredOpen_.isEmpty();
 }
 QString EditorController::photoID() const {
     return session_ ? QString::fromStdString(session_->asset.id) : QString();
 }
 void EditorController::prepareExternalEdits() {
+    closeTransformTool();
     setCropMode(false);
     endEdit();
     editingLocked_ = true;

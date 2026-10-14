@@ -26,6 +26,7 @@ void EditorController::advancedFailure(const std::exception &failure) {
 void EditorController::applyAdvanced(luma::EditDocument next) {
     clearPreviewSettings();
     next.validate();
+    validateGeometry(next);
     if (next != history_.current()) {
         history_.apply(std::move(next));
         editsChanged();
@@ -115,6 +116,7 @@ QVariantList EditorController::curveSamples(const QString &channel, bool paramet
     return values;
 }
 void EditorController::setTargetedTool(const QString &tool) {
+    closeTransformTool();
     setCropMode(false);
     if (tool == targetedTool_)
         return;
@@ -133,7 +135,8 @@ void EditorController::setTargetedTool(const QString &tool) {
     }
 }
 bool EditorController::beginTargeted(double x, double y) {
-    if (!editable() || original_ || cropMode_ || targetedTool_ == QStringLiteral("none"))
+    if (!editable() || original_ || cropMode_ || guidedMode_ ||
+        targetedTool_ == QStringLiteral("none"))
         return false;
     try {
         if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || x > 1 || y < 0 || y > 1)
@@ -148,6 +151,8 @@ bool EditorController::beginTargeted(double x, double y) {
                                           session_->asset.metadata.orientation, history_.current());
         const int px = std::min(static_cast<int>(x * geometry.width()), geometry.width() - 1);
         const int py = std::min(static_cast<int>(y * geometry.height()), geometry.height() - 1);
+        if (!geometry.covered(px, py))
+            return false;
         const auto mapped = geometry.source(px, py);
         const int sx = std::clamp(static_cast<int>(std::lround(mapped[0])), 0, image.width - 1);
         const int sy = std::clamp(static_cast<int>(std::lround(mapped[1])), 0, image.height - 1);

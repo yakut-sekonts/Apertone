@@ -25,6 +25,8 @@ EditorController::~EditorController() {
     QGuiApplication::instance()->removeEventFilter(this);
     exportCancellation_.cancel();
     loadCancellation_.cancel();
+    transformJob_.cancel();
+    transformJobs_.shutdown();
     ioJobs_.shutdown();
     renderJobs_.shutdown();
 }
@@ -110,6 +112,8 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    closeTransformTool();
+    guides_.clear();
     cropMode_ = false;
     clearDetailDiagnostic();
     endEdit();
@@ -241,13 +245,16 @@ QVariantMap EditorController::parameters() const {
           "crop.quarterTurns", "crop.flipHorizontal", "crop.flipVertical", "lens.distortion",
           "lens.vignetting", "lens.chromaticAberration"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
+    for (auto name : luma::transformParameters)
+        values.insert(QString::fromUtf8(name), history_.current().parameter(name));
     return values;
 }
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
-    for (const auto *name : {"whiteBalance", "exposure", "contrast", "highlights", "shadows",
-                             "whites", "blacks", "vibrance", "saturation", "curves", "hsl",
-                             "sharpening", "luminanceNoise", "colorNoise", "crop", "lens"})
+    for (const auto *name :
+         {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
+          "vibrance", "saturation", "curves", "hsl", "sharpening", "luminanceNoise", "colorNoise",
+          "crop", "lens", "transform"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -266,6 +273,7 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    cancelAutoTransform();
     presetPreview_.reset();
     ++editRevision_;
     pendingSave_ = true;
@@ -283,6 +291,9 @@ void EditorController::setParameter(const QString &name, double value) {
     try {
         auto next = history_.current();
         next.setParameter(name.toStdString(), value);
+        validateGeometry(next);
+        if (name.startsWith(QStringLiteral("transform.")))
+            error_.clear();
         if (next == history_.current())
             return;
         history_.apply(next);
@@ -302,6 +313,9 @@ void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
     try {
         auto next = history_.current();
         next.setEnabled(luma::EditDocument::correction(name.toStdString()), enabled);
+        validateGeometry(next);
+        if (name == QStringLiteral("transform") && !enabled)
+            closeTransformTool();
         if (name == QStringLiteral("crop") && !enabled)
             cropMode_ = false;
         if (next == history_.current())
@@ -366,6 +380,7 @@ void EditorController::resetEdits() {
     }
 }
 void EditorController::setOriginal(bool value) {
+    closeTransformTool();
     if (original_ == value || !session_) {
         return;
     }
@@ -387,6 +402,10 @@ void EditorController::render() {
         cropCanvasReady_ = false;
         emit stateChanged();
     }
+    if (guidedMode_ && guidedCanvasReady_) {
+        guidedCanvasReady_ = false;
+        emit stateChanged();
+    }
     const auto image = session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
@@ -397,6 +416,10 @@ void EditorController::render() {
         edits.crop.width = 1;
         edits.crop.height = 1;
         edits.crop.aspect = 0;
+    }
+    if (guidedMode_) {
+        edits.setEnabled(luma::Correction::transform, false);
+        edits.setEnabled(luma::Correction::crop, false);
     }
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
@@ -424,6 +447,7 @@ void EditorController::render() {
                                                self->provider_->update(std::move(owned));
                                                ++self->imageRevision_;
                                                self->cropCanvasReady_ = self->cropMode_;
+                                               self->guidedCanvasReady_ = self->guidedMode_;
                                                emit self->stateChanged();
                                            },
                                            Qt::QueuedConnection);
@@ -512,6 +536,7 @@ void EditorController::cancelLoad() {
     loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
+    closeTransformTool();
     if (editingLocked_)
         return false;
     if (!busy_ && !saving() && !exporting_) {
@@ -555,6 +580,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     exporting_ = true;
     exportProgress_ = 0;
     error_.clear();
+    closeTransformTool();
     setCropMode(false);
     endEdit();
     status_ = QStringLiteral("Экспорт фотографии…");

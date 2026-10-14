@@ -1,6 +1,7 @@
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/render/TransformMapping.h"
 #include <array>
 #include <chrono>
 #include <iomanip>
@@ -67,6 +68,23 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     edits.lens.setParameter("lens.distortion", query.value(51));
     edits.lens.setParameter("lens.vignetting", query.value(52));
     edits.lens.setParameter("lens.chromaticAberration", query.value(53));
+    edits.transform.setParameters({{"transform.rotate", query.value(54)},
+                                   {"transform.horizontal", query.value(55)},
+                                   {"transform.vertical", query.value(56)},
+                                   {"transform.aspect", query.value(57)},
+                                   {"transform.scale", query.value(58)},
+                                   {"transform.xOffset", query.value(59)},
+                                   {"transform.yOffset", query.value(60)},
+                                   {"transform.constrainCrop", query.value(61)},
+                                   {"transform.guided", query.value(62)},
+                                   {"transform.m11", query.value(63)},
+                                   {"transform.m12", query.value(64)},
+                                   {"transform.m13", query.value(65)},
+                                   {"transform.m21", query.value(66)},
+                                   {"transform.m22", query.value(67)},
+                                   {"transform.m23", query.value(68)},
+                                   {"transform.m31", query.value(69)},
+                                   {"transform.m32", query.value(70)}});
     const bool stored = query.value(30) != 0;
     if (stored)
         for (auto &curve : edits.curves)
@@ -97,6 +115,9 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (stored && count != edits.hsl.size())
         throw std::runtime_error("Missing stored HSL bands.");
     edits.validate();
+    if (edits.enabled(Correction::transform) && !edits.transform.neutral())
+        (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
+                               edits.transform, true);
     return {query.string(0), query.string(1), query.string(2), metadata, edits};
 }
 constexpr auto selectFields =
@@ -109,7 +130,11 @@ constexpr auto selectFields =
     "e.noise_luminance,e.noise_luminance_detail,e.noise_luminance_contrast,e.noise_color,e.noise_"
     "color_detail,e.noise_color_smoothness,"
     "e.crop_x,e.crop_y,e.crop_width,e.crop_height,e.crop_angle,e.crop_aspect,e.crop_quarter_turns,"
-    "e.crop_flip_h,e.crop_flip_v,e.lens_profile,e.lens_distortion,e.lens_vignetting,e.lens_ca "
+    "e.crop_flip_h,e.crop_flip_v,e.lens_profile,e.lens_distortion,e.lens_vignetting,e.lens_ca,"
+    "e.transform_rotate,e.transform_horizontal,e.transform_vertical,e.transform_aspect,e.transform_"
+    "scale,e.transform_x_offset,e.transform_y_offset,e.transform_constrain_crop,e.transform_guided,"
+    "e.transform_m11,e.transform_m12,e.transform_m13,e.transform_m21,e.transform_m22,e.transform_"
+    "m23,e.transform_m31,e.transform_m32 "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
@@ -157,12 +182,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 8)
+        if (current == 9)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 8) {
+        if (current > 9) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -301,8 +326,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             migrateCrop();
             current = 7;
         }
-        if (current == 7)
+        if (current == 7) {
             migrateLens();
+            current = 8;
+        }
+        if (current == 8)
+            migrateTransform();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -418,6 +447,16 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
     }
 }
 void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) {
+    if (edits.enabled(Correction::transform) && !edits.transform.neutral()) {
+        Statement dimensions(db_, "SELECT width,height,orientation FROM assets WHERE id=?1");
+        dimensions.text(1, assetID);
+        if (!dimensions.row())
+            throw std::runtime_error("Cannot save geometry: photo is missing.");
+        (void)TransformMapping(static_cast<int>(dimensions.integer(0)),
+                               static_cast<int>(dimensions.integer(1)),
+                               static_cast<int>(dimensions.integer(2)), edits.transform, true);
+    }
+
     Statement query(
         db_,
         "UPDATE edit_documents SET exposure=?1,temperature=?2,tint=?3,custom_wb=?4,"
@@ -428,7 +467,11 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
         "25,noise_color_detail=?26,noise_color_smoothness=?27,"
         "crop_x=?28,crop_y=?29,crop_width=?30,crop_height=?31,crop_angle=?32,crop_aspect=?33,crop_"
         "quarter_turns=?34,crop_flip_h=?35,crop_flip_v=?36,lens_profile=?37,lens_distortion=?38,"
-        "lens_vignetting=?39,lens_ca=?40,"
+        "lens_vignetting=?39,lens_ca=?40,transform_rotate=?41,transform_horizontal=?42,transform_"
+        "vertical=?43,transform_aspect=?44,transform_scale=?45,transform_x_offset=?46,transform_y_"
+        "offset=?47,transform_constrain_crop=?48,transform_guided=?49,transform_m11=?50,transform_"
+        "m12=?51,transform_m13=?52,transform_m21=?53,transform_m22=?54,transform_m23=?55,transform_"
+        "m31=?56,transform_m32=?57,"
         "advanced_saved=1,revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE asset_id=?13");
     query.number(1, edits.exposure);
     query.number(2, edits.temperature);
@@ -470,6 +513,8 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
     query.number(38, edits.lens.distortion);
     query.number(39, edits.lens.vignetting);
     query.number(40, edits.lens.chromaticAberration);
+    for (std::size_t i = 0; i < transformParameters.size(); ++i)
+        query.number(static_cast<int>(41 + i), edits.transform.parameter(transformParameters[i]));
     query.row();
     if (sqlite3_changes(db_) != 1)
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");

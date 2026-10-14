@@ -126,9 +126,12 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
         std::size_t size;
         if (options.format == ExportFormat::tiff16) {
             bits = 16;
-            bytesPerPixel = 6;
-            bitmap = static_cast<CGBitmapInfo>(kCGImageAlphaNone) | kCGBitmapByteOrder16Little;
-            rgb16.resize(pixelCount(width, height) * 3);
+            const int channels = geometry.opaque() ? 3 : 4;
+            bytesPerPixel = channels * 2;
+            bitmap =
+                static_cast<CGBitmapInfo>(channels == 3 ? kCGImageAlphaNone : kCGImageAlphaLast) |
+                kCGBitmapByteOrder16Little;
+            rgb16.resize(pixelCount(width, height) * channels);
             const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
             const auto &input = optics.image();
             const DevelopPipeline pipeline(edits, decoded.calibration);
@@ -158,9 +161,11 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                                                   input.rgb[offset + 2]});
                         return sharpening.pixel(developed, sx, sy);
                     });
-                    const auto target = (static_cast<std::size_t>(y) * width + x) * 3;
+                    const auto target = (static_cast<std::size_t>(y) * width + x) * channels;
                     for (std::size_t c = 0; c < 3; ++c)
                         rgb16[target + c] = encode16(pixel[c]);
+                    if (channels == 4)
+                        rgb16[target + 3] = geometry.covered(x, y) ? 65535 : 0;
                 }
                 if (progress)
                     progress((sharpening.active() ? spatialEnd : spatialStart) +
@@ -173,6 +178,9 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
             auto rendered = renderCPU(input, edits, orientation, {}, stop, decoded.calibration,
                                       DetailDiagnostic::none, 1, decoded.metadata);
             rgba = std::move(rendered.rgba);
+            if (options.format == ExportFormat::jpeg)
+                for (std::size_t offset = 3; offset < rgba.size(); offset += 4)
+                    rgba[offset] = 255;
             bytes = rgba.data();
             size = rgba.size();
             if (progress)

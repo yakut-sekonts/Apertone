@@ -28,6 +28,8 @@ std::uint32_t settingsCorrections(std::uint32_t groups) {
         mask |= flag(Correction::crop);
     if (groups & 64)
         mask |= flag(Correction::lens);
+    if (groups & 128)
+        mask |= flag(Correction::transform);
     return mask;
 }
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,
@@ -76,6 +78,8 @@ EditDocument mergeSettings(const EditDocument &current, const EditDocument &sour
         result.crop = source.crop;
     if (groups & 64)
         result.lens = source.lens;
+    if (groups & 128)
+        result.transform = source.transform;
     result.enabledCorrections =
         (current.enabledCorrections & ~mask) | (source.enabledCorrections & mask);
     result.validate();

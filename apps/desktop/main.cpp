@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.6-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.7-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -45,6 +45,8 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: Curves, HSL and targeted gestures")});
     parser.addOption({QStringLiteral("test-lens"),
                       QStringLiteral("Integration test: calibrated Lens Corrections")});
+    parser.addOption({QStringLiteral("test-transform"),
+                      QStringLiteral("Integration test: perspective geometry and history")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
     parser.addOption({QStringLiteral("test-cancel-export"),
@@ -74,8 +76,8 @@ int main(int argc, char **argv) {
                          parser.isSet(QStringLiteral("test-library"));
     UpdateController updates(
         [&] {
-            return !editor.busy() && !editor.saving() && !editor.exporting() &&
-                   !library.working() && !batch.working();
+            return !editor.transformAutoBusy() && !editor.busy() && !editor.saving() &&
+                   !editor.exporting() && !library.working() && !batch.working();
         },
         !testing);
     QObject::connect(&updates, &UpdateController::preparingRestart, &editor,
@@ -131,14 +133,15 @@ int main(int argc, char **argv) {
         const bool develop = parser.isSet(QStringLiteral("test-develop"));
         const bool advanced = parser.isSet(QStringLiteral("test-advanced"));
         const bool lens = parser.isSet(QStringLiteral("test-lens"));
+        const bool transform = parser.isSet(QStringLiteral("test-transform"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
         QObject::connect(
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
-             exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced,
-             lens] {
+             exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced, lens,
+             transform] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -157,6 +160,29 @@ int main(int argc, char **argv) {
                                 return;
                             }
                             editor.setCorrectionEnabled(QStringLiteral("lens"), true);
+                        }
+                        if (transform) {
+                            const auto before = editor.parameters();
+                            editor.beginEdit();
+                            editor.setParameter(QStringLiteral("transform.rotate"), 8);
+                            editor.setParameter(QStringLiteral("transform.horizontal"), 24);
+                            editor.setParameter(QStringLiteral("transform.vertical"), -18);
+                            editor.setParameter(QStringLiteral("transform.aspect"), 12);
+                            editor.setParameter(QStringLiteral("transform.xOffset"), 5);
+                            editor.endEdit();
+                            const auto after = editor.parameters();
+                            editor.undo();
+                            if (editor.parameters() != before || after == before) {
+                                std::cerr << "Transform gesture Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            if (editor.parameters() != after) {
+                                std::cerr << "Transform gesture Redo failed\n";
+                                app.exit(1);
+                                return;
+                            }
                         }
                         if (develop) {
                             editor.beginEdit();

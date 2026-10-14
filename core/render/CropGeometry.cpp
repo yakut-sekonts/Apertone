@@ -6,7 +6,9 @@ namespace luma {
 CropGeometry::CropGeometry(int sourceWidth, int sourceHeight, int orientation,
                            const EditDocument &edits)
     : sourceWidth_(sourceWidth), sourceHeight_(sourceHeight), orientation_(orientation),
-      crop_(edits.enabled(Correction::crop) ? edits.crop : CropSettings{}) {
+      crop_(edits.enabled(Correction::crop) ? edits.crop : CropSettings{}),
+      transform_(sourceWidth, sourceHeight, orientation, edits.transform,
+                 edits.enabled(Correction::transform)) {
     pixelCount(sourceWidth, sourceHeight);
     edits.validate();
     if (orientation < 0 || orientation > 7)
@@ -85,6 +87,6 @@ std::array<double, 2> CropGeometry::source(double x, double y) const {
         sx = sourceWidth_ - 1 - sx;
     if (orientation_ & 2)
         sy = sourceHeight_ - 1 - sy;
-    return {sx, sy};
+    return transform_.sourceFromSensorCanvas(sx, sy);
 }
 } // namespace luma

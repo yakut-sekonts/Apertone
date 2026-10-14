@@ -3,6 +3,7 @@
 #include "apps/shared/SessionService.h"
 #include "core/edits/EditHistory.h"
 #include "core/jobs/JobManager.h"
+#include "core/render/PerspectiveCorrection.h"
 #include "core/render/Sharpening.h"
 #include <QObject>
 #include <QQuickWindow>
@@ -12,6 +13,11 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantMap transformState READ transformState NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList transformGuides READ transformGuides NOTIFY stateChanged)
+    Q_PROPERTY(bool guidedMode READ guidedMode WRITE setGuidedMode NOTIFY stateChanged)
+    Q_PROPERTY(bool guidedCanvasReady READ guidedCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool transformAutoBusy READ transformAutoBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap lensState READ lensState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList lensOptions READ lensOptions NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap cropState READ cropState NOTIFY stateChanged)
@@ -71,6 +77,24 @@ class EditorController final : public QObject {
     double progress() const {
         return progress_;
     }
+    QVariantMap transformState() const;
+    QVariantList transformGuides() const;
+    bool guidedMode() const {
+        return guidedMode_;
+    }
+    bool guidedCanvasReady() const {
+        return guidedMode_ && guidedCanvasReady_;
+    }
+    bool transformAutoBusy() const {
+        return transformAutoBusy_;
+    }
+    void setGuidedMode(bool enabled);
+    Q_INVOKABLE void setGuideLayout(int layout);
+    Q_INVOKABLE void moveGuidePoint(int line, int endpoint, double x, double y);
+    Q_INVOKABLE void applyGuides();
+    Q_INVOKABLE void autoTransform();
+    Q_INVOKABLE void cancelAutoTransform();
+    Q_INVOKABLE void resetTransform();
     QVariantMap lensState() const;
     QVariantList lensOptions() const;
     Q_INVOKABLE void setLensProfile(const QString &id);
@@ -184,6 +208,11 @@ class EditorController final : public QObject {
     PreviewProvider *provider_;
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;
+    luma::JobManager transformJobs_;
+    luma::JobHandle transformJob_;
+    bool guidedMode_ = false, guidedCanvasReady_ = false, transformAutoBusy_ = false;
+    std::uint64_t transformAutoRevision_ = 0;
+    std::vector<luma::PerspectiveGuide> guides_;
     luma::JobHandle loadJob_;
     luma::CancellationSource loadCancellation_;
     luma::JobHandle exportJob_;
@@ -228,6 +257,9 @@ class EditorController final : public QObject {
     };
     std::optional<TargetGesture> targeted_;
     void applyAdvanced(luma::EditDocument next);
+    void validateGeometry(const luma::EditDocument &edits) const;
+    void closeTransformTool();
+    void applyTransform(luma::TransformSettings settings);
     void advancedFailure(const std::exception &failure);
     void load(std::optional<std::filesystem::path> source);
     void render();

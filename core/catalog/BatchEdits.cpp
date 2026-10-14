@@ -49,7 +49,24 @@ constexpr std::array columns{"schema_version",
                              "lens_profile",
                              "lens_distortion",
                              "lens_vignetting",
-                             "lens_ca"};
+                             "lens_ca",
+                             "transform_rotate",
+                             "transform_horizontal",
+                             "transform_vertical",
+                             "transform_aspect",
+                             "transform_scale",
+                             "transform_x_offset",
+                             "transform_y_offset",
+                             "transform_constrain_crop",
+                             "transform_guided",
+                             "transform_m11",
+                             "transform_m12",
+                             "transform_m13",
+                             "transform_m21",
+                             "transform_m22",
+                             "transform_m23",
+                             "transform_m31",
+                             "transform_m32"};
 class InterruptibleSQL {
   public:
     InterruptibleSQL(sqlite3 *db, CancellationToken stop) : db_(db), stop_(std::move(stop)) {

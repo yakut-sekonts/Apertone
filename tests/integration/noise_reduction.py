@@ -56,8 +56,8 @@ with tempfile.TemporaryDirectory(prefix="luma-noise-") as temporary:
                     for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Migration changed existing settings/selection"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 8
-        assert db.execute("SELECT schema_version,noise_luminance,noise_luminance_detail,noise_luminance_contrast,noise_color,noise_color_detail,noise_color_smoothness FROM edit_documents").fetchone() == (7,0,50,0,0,50,50)
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 9
+        assert db.execute("SELECT schema_version,noise_luminance,noise_luminance_detail,noise_luminance_contrast,noise_color,noise_color_detail,noise_color_smoothness FROM edit_documents").fetchone() == (8,0,50,0,0,50,50)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == revision
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4
         assert db.execute("SELECT COUNT(*) FROM collections").fetchone()[0] == 1

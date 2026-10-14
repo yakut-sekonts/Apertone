@@ -81,10 +81,11 @@ void EditDocument::validate() const {
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)
             throw std::runtime_error("Invalid edit parameter: " + std::string(parameter.name));
     }
-    if ((enabledCorrections & ~65535U) != 0)
+    if ((enabledCorrections & ~131071U) != 0)
         throw std::runtime_error("Unknown enabled correction flags.");
     crop.validate();
     lens.validate();
+    transform.validate();
     for (const auto &curve : curves)
         curve.validate();
     for (const auto &band : hsl) {
@@ -94,6 +95,8 @@ void EditDocument::validate() const {
     }
 }
 double EditDocument::parameter(std::string_view name) const {
+    if (name.starts_with("transform."))
+        return transform.parameter(name);
     if (name.starts_with("lens."))
         return lens.parameter(name);
     if (name.starts_with("crop."))
@@ -109,9 +112,11 @@ void EditDocument::setParameter(std::string_view name, double value) {
 }
 void EditDocument::setParameters(const std::vector<std::pair<std::string, double>> &values) {
     auto next = *this;
-    std::vector<std::pair<std::string, double>> cropValues;
+    std::vector<std::pair<std::string, double>> cropValues, transformValues;
     for (const auto &[name, value] : values) {
-        if (name.starts_with("lens."))
+        if (name.starts_with("transform."))
+            transformValues.emplace_back(name, value);
+        else if (name.starts_with("lens."))
             next.lens.setParameter(name, value);
         else if (name.starts_with("crop."))
             cropValues.emplace_back(name, value);
@@ -124,10 +129,17 @@ void EditDocument::setParameters(const std::vector<std::pair<std::string, double
             next.customWhiteBalance = true;
     }
     next.crop.setParameters(cropValues);
+    next.transform.setParameters(transformValues);
     next.validate();
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
+    if (name == "transform")
+        return Correction::transform;
+    if (name.starts_with("transform.")) {
+        TransformSettings{}.parameter(name);
+        return Correction::transform;
+    }
     if (name == "lens")
         return Correction::lens;
     if (name.starts_with("lens.")) {

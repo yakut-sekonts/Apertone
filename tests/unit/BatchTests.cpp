@@ -81,6 +81,9 @@ Fixture fixture(const std::filesystem::path &source, const std::filesystem::path
         edits.setEnabled(luma::Correction::crop, i % 3 == 0);
         edits.lens = {"0123456789abcdef0123456789abcdef", static_cast<double>(i), 80, i % 2 == 0};
         edits.setEnabled(luma::Correction::lens, i % 3 == 0);
+        edits.transform.rotate = static_cast<double>(i % 15);
+        edits.transform.scale = 110 + static_cast<double>(i % 50);
+        edits.setEnabled(luma::Correction::transform, i % 3 == 0);
         edits.noiseLuminance = static_cast<double>(i % 100);
         edits.noiseColor = 15 + static_cast<double>(i % 80);
         edits.setEnabled(luma::Correction::colorNoise, i % 3 == 0);
@@ -235,6 +238,26 @@ void coreTests(const std::filesystem::path &source, const std::filesystem::path 
     require(documents(f) == cropped, "Optics batch Undo lost settings.");
     db.restoreBatchEdits(true);
     require(documents(f) == corrected, "Optics batch Redo lost settings.");
+    auto geometrySource = opticsSource;
+    geometrySource.transform.rotate = 8;
+    geometrySource.transform.horizontal = 25;
+    geometrySource.transform.vertical = -15;
+    geometrySource.transform.scale = 120;
+    geometrySource.transform.guided = true;
+    geometrySource.transform.guide = {1, 0.02, 0, -0.01, 1, 0, 0.03, -0.02};
+    geometrySource.setEnabled(luma::Correction::transform, true);
+    require(db.applyBatchEdits({f.ids[1], f.ids[3]}, geometrySource, 128).changed == 2,
+            "Geometry batch missed selected targets.");
+    const auto transformed = documents(f);
+    for (std::size_t i = 0; i < transformed.size(); ++i)
+        require(transformed[i] == (i == 1 || i == 3
+                                       ? luma::mergeSettings(corrected[i], geometrySource, 128)
+                                       : corrected[i]),
+                "Geometry batch changed excluded groups/photos.");
+    db.restoreBatchEdits(false);
+    require(documents(f) == corrected, "Geometry batch Undo lost matrix/parameters.");
+    db.restoreBatchEdits(true);
+    require(documents(f) == transformed, "Geometry batch Redo changed matrix/parameters.");
 }
 void qmlTests(EditorController &editor, LibraryModel &library, PresetController &presets,
               BatchController &batch, const QString &qmlPath) {
@@ -265,7 +288,7 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
     require(QMetaObject::invokeMethod(button, "clicked"), "Cannot open Sync dialog.");
     auto *dialog = window->findChild<QObject *>("batchSyncDialog");
     require(dialog && dialog->property("visible").toBool(), "Sync dialog did not open.");
-    dialog->setProperty("groups", 2 | 8 | 16 | 32 | 64);
+    dialog->setProperty("groups", 2 | 8 | 16 | 32 | 64 | 128);
     auto *confirm = window->findChild<QObject *>("batchSyncConfirm");
     require(confirm && QMetaObject::invokeMethod(confirm, "clicked"),
             "Cannot apply Sync from QML.");
@@ -345,6 +368,9 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
                     synced[i].crop == editor.currentSettings().crop &&
                     synced[i].enabled(luma::Correction::crop) ==
                         editor.currentSettings().enabled(luma::Correction::crop) &&
+                    synced[i].transform == editor.currentSettings().transform &&
+                    synced[i].enabled(luma::Correction::transform) ==
+                        editor.currentSettings().enabled(luma::Correction::transform) &&
                     synced[i].noiseColor == editor.currentSettings().noiseColor &&
                     synced[i].noiseLuminance == editor.currentSettings().noiseLuminance &&
                     synced[i].enabled(luma::Correction::colorNoise) ==

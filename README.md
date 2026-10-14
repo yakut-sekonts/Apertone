@@ -43,7 +43,8 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - 🚧 Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
 - 🚧 Crop, ratios, straighten, flips and guide overlays in source.
 - 🚧 Calibrated Lens Corrections with automatic/manual profiles in source.
-- 🗓 Optics, perspective Transform, local masks and Metal image processing.
+- 🚧 Manual, Auto and Guided perspective Transform in source.
+- 🗓 Local masks and Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -156,7 +157,7 @@ The current source includes RGB and per-channel point curves,
 parametric Shadows/Darks/Lights/Highlights, an eight-band HSL mixer and targeted
 photo gestures. These use the same processing in preview and export, and save
 atomically with edit schema 7 / catalog schema 8. Neutral curves and HSL preserve
-the preceding Develop output. Sharpening and Noise Reduction are described below; Crop is described below; Perspective Transform remains later 0.4 work.
+the preceding Develop output. Sharpening and Noise Reduction are described below; Crop is described below; Perspective Transform is described below.
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
@@ -277,7 +278,7 @@ schemas 1/2/3 without adding absent Crop groups; batch Undo/conflicts include al
 geometry fields. See [scope and checks](docs/CROP_REVIEW.md) and
 [ADR 0013](docs/adr/0013-crop-geometry.md).
 
-Perspective/auto/guided Transform, lens corrections, higher-quality resampling and
+Higher-quality resampling and
 Metal remain separate work. This development build does not publish a public
 release or change the frozen 0.4.0 signing requirement.
 
@@ -311,3 +312,23 @@ Optics groups. Selection/amounts/CA persist and participate in batch Undo/confli
 Database data retain CC BY-SA 3.0; original XML, generated data and notices ship
 in the bundle. See [ADR 0014](docs/adr/0014-lens-profiles.md) and
 [Lens review](docs/LENS_REVIEW.md). This development version is not a public release.
+
+
+## In development: Perspective Transform / 0.4.7
+
+Transform adds Rotate, Horizontal/Vertical, Aspect, Scale, X/Y Offset and Constrain
+Crop. Auto detects sufficiently supported perspective lines asynchronously and
+refuses uncertain scenes; Guided uses two vertical/horizontal line pairs with
+draggable endpoints. Either application is one Undo. Manual controls compose
+with the solved matrix; Reset clears both. The effective inward scale is shown.
+
+Transform and Crop compose in upright coordinates before one linear-RGB bilinear
+sample. Constrain Crop avoids empty edges; otherwise PNG/TIFF retain transparency
+and JPEG uses black. Invalid matrices and inverse poles are refused. Neutral or
+disabled Transform retains exact previous pixels. Catalog 8→9/edit 7→8 migrate
+neutrally. Geometry is the eighth preset/Copy/Paste/Sync subset; schema-6 presets
+read older schemas without introducing absent groups.
+
+See [ADR 0015](docs/adr/0015-perspective-transform.md) and
+[Transform review](docs/TRANSFORM_REVIEW.md). Ready-made filters, edited thumbnails
+and advanced export/queue remain in phase 0.4; Local Adjustments remain phase 0.5.
