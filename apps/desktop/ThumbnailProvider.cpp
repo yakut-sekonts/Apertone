@@ -1,4 +1,5 @@
 #include "apps/desktop/ThumbnailProvider.h"
+#include "apps/shared/PresetStore.h"
 #include "core/catalog/Catalog.h"
 #include "core/image/Bayer.h"
 #include "core/raw/RawDecoder.h"
@@ -6,11 +7,11 @@
 #include "platform/macos/FileHasher.h"
 #include <QBuffer>
 #include <QColorSpace>
+#include <QCryptographicHash>
 #include <QImageReader>
 #include <QQuickTextureFactory>
 #include <QRunnable>
 #include <QSaveFile>
-#include <QTransform>
 #include <algorithm>
 #include <mutex>
 #include <vector>
@@ -21,27 +22,6 @@ struct ThumbnailState {
     bool shuttingDown = false;
 };
 namespace {
-QImage orientImage(const QImage &input, int orientation) {
-    if (orientation < 0 || orientation > 7)
-        throw std::runtime_error("Invalid thumbnail orientation.");
-    Qt::Orientations flips;
-    if (orientation & 1)
-        flips |= Qt::Horizontal;
-    if (orientation & 2)
-        flips |= Qt::Vertical;
-    QImage image = input.flipped(flips);
-    if (orientation & 4) {
-        // LibRaw flip bits swap source x/y; transpose after source-axis mirrors.
-        const auto output = QImage(image.height(), image.width(), QImage::Format_RGBA8888);
-        QImage result = output;
-        result.setColorSpace(input.colorSpace());
-        for (int y = 0; y < image.height(); ++y)
-            for (int x = 0; x < image.width(); ++x)
-                result.setPixelColor(y, x, image.pixelColor(x, y));
-        return result;
-    }
-    return image;
-}
 void trimCache(const std::filesystem::path &cache) {
     std::vector<std::filesystem::directory_entry> entries;
     std::uintmax_t size = 0;
@@ -65,68 +45,71 @@ void trimCache(const std::filesystem::path &cache) {
     }
 }
 QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
-                 const std::shared_ptr<ThumbnailState> &state, luma::CancellationToken stop) {
+                 const std::shared_ptr<ThumbnailState> &state,
+                 const luma::CancellationToken &stop) {
     luma::checkCancellation(stop);
     luma::Catalog connection(catalog);
-    const auto asset = connection.assetByID(id.toStdString());
-    if (!asset)
+    const auto snapshot = connection.assetSnapshot(id.toStdString());
+    if (!snapshot)
         throw std::runtime_error("Photo is not in the catalog.");
+    const auto &asset = snapshot->asset;
+    const auto encoded =
+        luma::encodePreset({"Thumbnail", {}, asset.edits, luma::allSettingsGroups});
+    const auto identity = QByteArray::fromStdString(asset.checksum) + "|" +
+                          QByteArray::number(snapshot->revision) + "|" + encoded;
+    const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     const auto directory =
         catalog.parent_path() / (catalog.filename().string() + ".luma-cache") / "thumbnails";
-    const auto cached = directory / (asset->checksum + "-original-v1.jpg");
+    const auto cached = directory / (fingerprint.toStdString() + "-edited-v2.jpg");
     {
         std::lock_guard lock(state->cacheMutex);
-        QImage image(QString::fromStdString(cached.string()));
+        QImageReader reader(QString::fromStdString(cached.string()), "JPEG");
+        const auto dimensions = reader.size();
+        const QImage image =
+            dimensions.isValid() && dimensions.width() <= 384 && dimensions.height() <= 384
+                ? reader.read()
+                : QImage();
         if (!image.isNull()) {
             std::error_code error;
             std::filesystem::last_write_time(cached, std::filesystem::file_time_type::clock::now(),
                                              error);
+            luma::checkCancellation(stop);
             return image;
         }
     }
-    if (luma::macos::sha256File(asset->path, stop) != asset->checksum)
+    if (luma::macos::sha256File(asset.path, stop) != asset.checksum)
         throw std::runtime_error("Original changed; thumbnail not regenerated.");
-    const auto bytes = luma::RawDecoder().embeddedJPEG(asset->path, stop);
-    QImage image;
-    if (!bytes.empty()) {
-        QByteArray encoded(reinterpret_cast<const char *>(bytes.data()),
-                           static_cast<qsizetype>(bytes.size()));
-        QBuffer buffer(&encoded);
-        buffer.open(QIODevice::ReadOnly);
-        QImageReader reader(&buffer, "JPEG");
-        const auto dimensions = reader.size();
-        if (dimensions.isValid() && dimensions.width() <= 30000 && dimensions.height() <= 30000) {
-            reader.setScaledSize(dimensions.scaled(384, 384, Qt::KeepAspectRatio));
-            image = reader.read();
-        }
-        if (!image.isNull()) {
-            image = orientImage(image, asset->metadata.orientation);
-            if (image.colorSpace().isValid())
-                image.convertToColorSpace(QColorSpace::SRgb);
-            else
-                image.setColorSpace(QColorSpace::SRgb);
-        }
-    }
-    if (image.isNull()) {
-        auto decoded = luma::RawDecoder().decode(asset->path, stop);
-        auto small = luma::standardPreview(decoded.image, 384, stop);
-        const auto pixels =
-            luma::renderCPU(small, {}, decoded.metadata.orientation, {}, stop, decoded.calibration);
-        image = QImage(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
-                       QImage::Format_RGBA8888)
-                    .copy();
-        image.setColorSpace(QColorSpace::SRgb);
-    }
+    auto decoded = luma::RawDecoder().decode(asset.path, stop);
+    auto small = luma::standardPreview(decoded.image, 384, stop);
+    const double scale = std::min(static_cast<double>(small.width) / decoded.image.width,
+                                  static_cast<double>(small.height) / decoded.image.height);
+    const auto pixels =
+        luma::renderCPU(small, asset.edits, asset.metadata.orientation, {}, stop,
+                        decoded.calibration, luma::DetailDiagnostic::none, scale, asset.metadata);
+    QImage image = QImage(pixels.rgba.data(), pixels.width, pixels.height,
+                          static_cast<qsizetype>(pixels.width) * 4, QImage::Format_RGBA8888)
+                       .copy();
+    image.setColorSpace(QColorSpace::SRgb);
+    if (luma::macos::sha256File(asset.path, stop) != asset.checksum)
+        throw std::runtime_error("Original changed while generating its thumbnail.");
+    luma::checkCancellation(stop);
+    QByteArray jpeg;
+    QBuffer encodedImage(&jpeg);
+    if (!encodedImage.open(QIODevice::WriteOnly) || !image.save(&encodedImage, "JPEG", 85))
+        throw std::runtime_error("Cannot encode thumbnail cache.");
+    QImage compressed = QImage::fromData(jpeg, "JPEG");
+    if (compressed.isNull())
+        throw std::runtime_error("Cannot verify encoded thumbnail cache.");
     luma::checkCancellation(stop);
     {
         std::lock_guard lock(state->cacheMutex);
         std::filesystem::create_directories(directory);
         QSaveFile file(QString::fromStdString(cached.string()));
-        if (!file.open(QIODevice::WriteOnly) || !image.save(&file, "JPEG", 85) || !file.commit())
+        if (!file.open(QIODevice::WriteOnly) || file.write(jpeg) != jpeg.size() || !file.commit())
             throw std::runtime_error("Cannot write thumbnail cache.");
         trimCache(directory);
     }
-    return image;
+    return compressed;
 }
 class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
   public:
@@ -154,7 +137,8 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
                 throw std::runtime_error("Thumbnail queue busy.");
             image_ = thumbnail(catalog_, id_, state_, cancellation_.token());
             if (size_.isValid())
-                image_ = image_.scaled(size_, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                image_ = image_.scaled(size_.boundedTo(QSize(384, 384)).boundedTo(image_.size()),
+                                       Qt::KeepAspectRatio, Qt::SmoothTransformation);
         } catch (const std::exception &error) {
             error_ = QString::fromUtf8(error.what());
         }
@@ -169,7 +153,7 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
             if (iterator != active.end())
                 active.erase(iterator);
         }
-        emit finished();
+        QMetaObject::invokeMethod(this, [this] { emit finished(); }, Qt::QueuedConnection);
     }
 
   private:

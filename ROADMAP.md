@@ -67,7 +67,10 @@ confidence refusal, Guided vertical/horizontal line pairs and shared inverse
 geometry/coverage, with neutral migration and a Geometry settings subset.
 The ready-made filter substage adds eight immutable declarative Curve/HSL looks,
 transient hover, one Undo, batch application and redistributable photographic QA.
-Remaining scope: edited thumbnails and advanced export/queue.
+The edited-thumbnail substage renders saved settings with atomic snapshots,
+revision/fingerprint disk identities and grid/filmstrip invalidation after saved
+and batch changes, preserving selection and isolating late results.
+Remaining scope: advanced export/queue.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 

@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral("0.4.8-dev"));
+    app.setApplicationVersion(QStringLiteral("0.4.9-dev"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("Luma — non-destructive RAW editor for macOS"));
@@ -89,6 +89,8 @@ int main(int argc, char **argv) {
                      &BatchController::cancel);
     QObject::connect(&library, &LibraryModel::openRequested, &editor, &EditorController::openFile);
     QObject::connect(&editor, &EditorController::photoLoaded, &library, &LibraryModel::photoOpened);
+    QObject::connect(&editor, &EditorController::editsSaved, &library,
+                     &LibraryModel::refreshThumbnails);
     QQmlApplicationEngine engine;
     engine.addImageProvider(QStringLiteral("thumbnail"),
                             new ThumbnailProvider(std::filesystem::path(catalog.toStdString())));

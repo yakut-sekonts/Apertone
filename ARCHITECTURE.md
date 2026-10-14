@@ -111,13 +111,13 @@ than overwritten. Automated backups and crash recovery UI are planned for 0.9.
 
 Inputs are capped at 512 MB and 100 MP; LibRaw's raw allocation budget is 512 MB.
 One Develop/export decode runs on the editor I/O lane; at most two independent
-Library thumbnail jobs can decode RAW when embedded previews are unavailable. Full Float32 data is released after generation of
+Library thumbnail jobs independently decode RAW for saved-edit renders. Full Float32 data is released after generation of
 the current 2560 px floating-point preview. At 1:1 the future viewer will request
 a full render; M0 exposes Fit only. Library has a 512 MiB disk thumbnail cache, oldest-use eviction, two workers and
-a 96-request admission limit. Its key is source checksum plus original pipeline
-version; thumbnails are bounded to 384 px. The metadata LRU has 16×128 rows.
-Edited render-cache keys will additionally include edit revision, resolution and
-ICC profile hash.
+a 96-request admission limit. Thumbnail keys include source checksum, saved edit
+revision, canonical full edit fingerprint and edited-pipeline version; output is
+bounded to 384 px in sRGB. The metadata LRU has 16×128 rows. Future full-size render
+cache keys will also include requested resolution and display ICC profile hash.
 
 ## AI providers
 
@@ -274,3 +274,19 @@ batch snapshots and refuses mutations. User storage and preset schemas are
 unchanged. JSON import creates an editable UUID copy. The shared renderer handles
 all processing; photographic fixtures and reviewed spatial metrics complement
 sensor/QML/history/batch acceptance.
+
+
+## Edited thumbnail snapshots
+
+ADR 0017 uses a dedicated read transaction for parent/Curve/HSL edits and saved
+revision. Canonical full preset JSON, source checksum and pipeline version identify
+cache entries; duplicate source bytes and restored revision numbers cannot alias
+different edits. Bounded shared CPU rendering includes calibration/metadata and
+Detail preview scale. Initial and cached responses return the same encoded JPEG.
+
+Successful autosaves emit editsSaved independently of active-photo revision;
+BatchController invalidates cached rows after successful apply/Undo/Redo. A model
+URL nonce invalidates Qt's image cache without model resets or full-catalog scans.
+Snapshot cache identities and Qt source replacement isolate late results. PhotoCard
+retries remain declarative bindings and reset with each new URL. Existing worker,
+admission and disk budgets remain; phase-0.6 optimization is separate.

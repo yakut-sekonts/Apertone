@@ -426,6 +426,24 @@ std::optional<AssetRecord> Catalog::assetByID(const std::string &id) const {
     query.text(1, id);
     return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
 }
+std::optional<AssetSnapshot> Catalog::assetSnapshot(const std::string &id) {
+    execute("BEGIN;");
+    try {
+        std::optional<AssetSnapshot> result;
+        if (auto asset = assetByID(id)) {
+            Statement revision(db_, "SELECT revision FROM edit_documents WHERE asset_id=?1");
+            revision.text(1, id);
+            if (!revision.row() || revision.integer(0) < 0)
+                throw std::runtime_error("Missing or invalid saved edit revision.");
+            result = AssetSnapshot{std::move(*asset), revision.integer(0)};
+        }
+        execute("COMMIT;");
+        return result;
+    } catch (...) {
+        sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+        throw;
+    }
+}
 std::optional<AssetRecord> Catalog::duplicate(const std::string &checksum,
                                               std::int64_t size) const {
     Statement query(db_, (std::string(selectFields) +

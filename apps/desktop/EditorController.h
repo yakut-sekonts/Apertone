@@ -200,6 +200,7 @@ class EditorController final : public QObject {
   signals:
     void stateChanged();
     void photoLoaded(const QString &id);
+    void editsSaved(const QString &id);
     void closeReady();
 
   private:

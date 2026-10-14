@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.8 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.9 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -81,7 +81,7 @@ if(BUILD_TESTING)
     target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
-    qt_add_executable(luma_batch_tests tests/unit/BatchTests.cpp apps/desktop/BatchController.cpp
+    qt_add_executable(luma_batch_tests tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
@@ -137,6 +137,8 @@ if(BUILD_TESTING)
     add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/batch.py" "$<TARGET_FILE:luma_batch_tests>")
     set_tests_properties(batch-settings-atomic-history PROPERTIES TIMEOUT 180)
+    add_test(NAME edited-thumbnail-snapshot-cache COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/thumbnails.py" "$<TARGET_FILE:luma_batch_tests>")
+    set_tests_properties(edited-thumbnail-snapshot-cache PROPERTIES TIMEOUT 180)
     add_test(NAME presets-storage-preview-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/presets.py" "$<TARGET_FILE:luma_preset_tests>")
     set_tests_properties(presets-storage-preview-history PROPERTIES TIMEOUT 180)

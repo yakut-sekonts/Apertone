@@ -80,6 +80,7 @@ class LibraryModel final : public QAbstractListModel {
         return pages_.size();
     }
     void photoOpened(const QString &id);
+    void refreshThumbnails(const QString &id = {});
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void filter(const QString &search, int rating, int flag, const QString &label,
                             const QString &collection);
@@ -117,7 +118,7 @@ class LibraryModel final : public QAbstractListModel {
     QTimer filterTimer_;
     QVariantList collections_;
     int count_ = 0, anchor_ = -1;
-    std::uint64_t revision_ = 0, selectionRevision_ = 0;
+    std::uint64_t revision_ = 0, selectionRevision_ = 0, thumbnailGeneration_ = 0;
     bool externalBusy_ = false;
     bool importing_ = false, writing_ = true, closing_ = false, loading_ = false,
          selecting_ = false;

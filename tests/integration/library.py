@@ -78,7 +78,7 @@ def main():
             assert db.execute("SELECT COUNT(*) FROM collection_assets").fetchone()[0] == 2
             assert db.execute("SELECT exposure FROM edit_documents JOIN session ON session.asset_id=edit_documents.asset_id").fetchone()[0] == 1.75
         thumbnails = list((root / "gui.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-        assert len(thumbnails) == 2, "Lazy thumbnail provider did not create both previews"
+        assert len(thumbnails) >= 3 and all(p.name.endswith("-edited-v2.jpg") for p in thumbnails), "Saved-edit thumbnails did not include both photos and the edited revision"
         close_catalog = root / "close.sqlite"
         result = subprocess.run([str(gui), "--catalog", str(close_catalog), "--test-library", str(sources), "--test-close-import"], capture_output=True, text=True, env=env, timeout=100)
         assert result.returncode == 0, result.stdout + result.stderr

@@ -4,7 +4,7 @@ from pathlib import Path
 
 
 def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens=None,
-               focal=35, aperture=2.8, width=128, height=96, sample=None) -> None:
+               focal=35, aperture=2.8, width=128, height=96, sample=None, orientation=1) -> None:
     entries = []
 
     def tag(identifier, kind, values):
@@ -21,7 +21,7 @@ def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens
 
     for identifier, value in [(256, width), (257, height), (273, 0), (278, height), (279, width * height * 2), (50717, 16383)]:
         tag(identifier, 4, [value])
-    for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, 1), (277, 1), (284, 1), (50711, 1), (50778, 21), (34855, 100)]:
+    for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, orientation), (277, 1), (284, 1), (50711, 1), (50778, 21), (34855, 100)]:
         tag(identifier, 3, [value])
     tag(271, 2, maker)
     tag(272, 2, model)

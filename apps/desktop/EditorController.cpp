@@ -495,7 +495,7 @@ void EditorController::flushSave() {
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
-                    [self, edits, revision, error] {
+                    [self, id, edits, revision, error] {
                         if (!self) {
                             return;
                         }
@@ -511,6 +511,8 @@ void EditorController::flushSave() {
                             self->session_->asset.edits = edits;
                             self->status_ = QStringLiteral("Правки сохранены автоматически");
                         }
+                        if (error.isEmpty())
+                            emit self->editsSaved(QString::fromStdString(id));
                         emit self->stateChanged();
                         if (!self->saving() && !self->deferredOpen_.isEmpty()) {
                             const auto url = self->deferredOpen_;

@@ -20,6 +20,7 @@
 std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) {
     return {};
 }
+void thumbnailTests(const QString &source, const QString &root, const QString &qmlPath);
 namespace {
 void require(bool value, const char *message) {
     if (!value)
@@ -470,9 +471,17 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("Basic");
     try {
-        require(argc == 3, "Expected synthetic RAW and QML directory.");
+        require(argc == 3 || (argc == 4 && std::string_view(argv[3]) == "--thumbnails"),
+                "Expected synthetic RAW and QML directory.");
         QTemporaryDir temporary;
         require(temporary.isValid(), "Cannot create batch test directory.");
+        if (argc == 4) {
+            thumbnailTests(QString::fromUtf8(argv[1]), temporary.path(),
+                           QString::fromUtf8(argv[2]));
+            std::cout << "Edited thumbnails: snapshots, cache, QML updates, batch/restart and "
+                         "source integrity passed.\n";
+            return 0;
+        }
         coreTests(argv[1], std::filesystem::path(temporary.path().toStdString()) / "core");
         controllerTests(argv[1],
                         std::filesystem::path(temporary.path().toStdString()) / "controller",

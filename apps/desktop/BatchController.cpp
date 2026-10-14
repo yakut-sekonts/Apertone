@@ -119,6 +119,7 @@ void BatchController::run() {
     jobs_.submit(luma::JobPriority::background, [this, self, request, active, stop](const auto &) {
         QString error, status;
         std::optional<luma::EditDocument> updated;
+        bool committedChanges = false;
         try {
             if (!catalog_)
                 catalog_ = std::make_unique<luma::Catalog>(path_);
@@ -140,6 +141,7 @@ void BatchController::run() {
                                                 progress, active)
                     : catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
             updated = result.active;
+            committedChanges = result.changed > 0;
             status = result.changed
                          ? QStringLiteral("Готово · изменено %1 фото").arg(result.changed)
                          : QStringLiteral("Настройки уже совпадают · фото не изменены");
@@ -154,15 +156,15 @@ void BatchController::run() {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, error, status, undo, redo, updated] {
+                [self, error, status, undo, redo, updated, committedChanges] {
                     if (self)
-                        self->finish(error, status, undo, redo, updated);
+                        self->finish(error, status, undo, redo, updated, committedChanges);
                 },
                 Qt::QueuedConnection);
     });
 }
 void BatchController::finish(QString error, QString status, bool undo, bool redo,
-                             std::optional<luma::EditDocument> active) {
+                             std::optional<luma::EditDocument> active, bool committedChanges) {
     phase_ = Phase::idle;
     undo_ = undo;
     redo_ = redo;
@@ -170,6 +172,8 @@ void BatchController::finish(QString error, QString status, bool undo, bool redo
     status_ = std::move(status);
     progress_ = 1;
     editor_.finishExternalEdits(active);
+    if (committedChanges)
+        library_.refreshThumbnails();
     library_.setExternalBusy(false);
     emit changed();
     if (closing_)

@@ -18,6 +18,11 @@ struct AssetRecord {
     EditDocument edits;
 };
 
+struct AssetSnapshot {
+    AssetRecord asset;
+    std::int64_t revision = 0;
+};
+
 struct BatchEditResult {
     std::size_t changed = 0;
     std::optional<EditDocument> active;
@@ -49,6 +54,8 @@ class Catalog {
     bool batchAffects(const std::string &id) const;
     void saveExposure(const std::string &assetID, double ev);
     std::optional<AssetRecord> assetByID(const std::string &id) const;
+    // Owns a read transaction; use on a dedicated reader connection.
+    std::optional<AssetSnapshot> assetSnapshot(const std::string &id);
     std::optional<AssetRecord> duplicate(const std::string &checksum, std::int64_t size) const;
     std::int64_t libraryCount(const LibraryFilter &filter = {}) const;
     std::vector<LibraryItem> libraryPage(const LibraryFilter &filter, int offset, int limit) const;

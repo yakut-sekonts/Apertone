@@ -3,6 +3,7 @@
 #include "apps/desktop/LibraryModel.h"
 #include <QElapsedTimer>
 #include <QGuiApplication>
+#include <QQuickItem>
 #include <QTimer>
 #include <iostream>
 
@@ -13,6 +14,7 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
         int phase = 0;
         QElapsedTimer clock;
         qint64 captureAfter = 0;
+        QString thumbnailBeforeEdit;
     };
     auto state = std::make_shared<State>();
     state->clock.start();
@@ -93,11 +95,34 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                 if (editor.busy() || !editor.hasPhoto())
                     return;
                 state->phase = 9;
+                state->thumbnailBeforeEdit =
+                    library.data(library.index(0), LibraryModel::Thumbnail).toString();
                 editor.setExposure(1.75);
                 break;
             case 9:
                 if (editor.busy() || editor.saving() || editor.previewUrl().isEmpty())
                     return;
+                {
+                    const auto current =
+                        library.data(library.index(0), LibraryModel::Thumbnail).toString();
+                    if (current == state->thumbnailBeforeEdit)
+                        return;
+                    const std::function<bool(QQuickItem *)> ready = [&](QQuickItem *item) {
+                        if (item->objectName() == QStringLiteral("photoThumbnail")) {
+                            const auto url = item->property("source").toUrl().toString();
+                            if ((url == current ||
+                                 url.startsWith(current + QStringLiteral("&retry="))) &&
+                                item->property("status").toInt() == 1)
+                                return true;
+                        }
+                        for (auto *child : item->childItems())
+                            if (ready(child))
+                                return true;
+                        return false;
+                    };
+                    if (!ready(window->contentItem()))
+                        return;
+                }
                 state->phase = 10;
                 std::cout << "Library GUI acceptance passed\n";
                 window->close();

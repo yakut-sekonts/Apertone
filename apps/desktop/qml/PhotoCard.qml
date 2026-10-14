@@ -13,23 +13,26 @@ Rectangle {
     required property bool selected
     required property bool activePhoto
     property bool compact: false
+    property int retryCount: 0
+    onThumbnailURLChanged: retryCount = 0
     color: selected ? "#393027" : "#1b1e24"
     radius: 6
     border.width: selected || activePhoto ? 2 : 1
     border.color: selected ? "#dfae77" : activePhoto ? "#859ec1" : "#2a2f38"
     Image {
         id: thumbnail
+        objectName: "photoThumbnail"
         anchors { left: parent.left; right: parent.right; top: parent.top; bottom: caption.top; margins: 10 }
-        source: card.thumbnailURL
+        source: card.thumbnailURL + (card.retryCount ? (card.thumbnailURL.indexOf("?") >= 0 ? "&" : "?") + "retry=" + card.retryCount : "")
         sourceSize: Qt.size(384,384)
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         cache: true
     }
     Timer {
-        interval: 1500; running: thumbnail.status === Image.Error && retries < 2; repeat: false
-        property int retries: 0
-        onTriggered: { retries++; thumbnail.source = card.thumbnailURL + "?retry=" + retries }
+        objectName: "thumbnailRetryTimer"
+        interval: 1500; running: thumbnail.status === Image.Error && card.retryCount < 2; repeat: false
+        onTriggered: card.retryCount++
     }
     Label { anchors.centerIn: thumbnail; visible: thumbnail.status !== Image.Ready; text: thumbnail.status === Image.Error ? "Нет preview" : "…"; color: "#68717f"; font.pixelSize: 11 }
     Column {

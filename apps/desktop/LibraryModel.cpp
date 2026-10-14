@@ -106,7 +106,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     case Path:
         return QUrl::fromLocalFile(QString::fromStdString(item.path.string()));
     case Thumbnail:
-        return QStringLiteral("image://thumbnail/") + id;
+        return QStringLiteral("image://thumbnail/") + id + QStringLiteral("?generation=") +
+               QString::number(thumbnailGeneration_);
     case Rating:
         return item.rating;
     case Flag:
@@ -122,6 +123,15 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     default:
         return {};
     }
+}
+void LibraryModel::refreshThumbnails(const QString &id) {
+    ++thumbnailGeneration_;
+    for (const auto &[number, rows] : pages_)
+        for (std::size_t offset = 0; offset < rows.size(); ++offset)
+            if (id.isEmpty() || QString::fromStdString(rows[offset].id) == id) {
+                const int row = number * pageSize + static_cast<int>(offset);
+                emit dataChanged(index(row), index(row), {Thumbnail});
+            }
 }
 void LibraryModel::page(int number) {
     if (closing_ || loading_ || pageJobs_.contains(number) || pageJobs_.size() >= maximumPages)

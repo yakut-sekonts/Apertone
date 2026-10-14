@@ -35,7 +35,7 @@ checksums accompany the release. Professional Develop and presets remain 0.4.
 - ✅ Shared core used by desktop, CLI and tests.
 - ✅ Nikon D7500 restart acceptance, unit/integration tests and public macOS CI.
 - ✅ Add/Copy import of files and folders, duplicate detection and per-file journal checkpoints.
-- ✅ Lazy original thumbnails, virtualized grid/filmstrip and bounded metadata paging.
+- ✅ Lazy thumbnails, virtualized grid/filmstrip and bounded metadata paging.
 - ✅ Single/multi/range selection, ratings, Pick/Reject, color labels and manual collections.
 - ✅ Basic search and combined metadata/collection filters.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
@@ -350,3 +350,20 @@ Three redistributable photographic fixtures, provenance and reviewed spatial/col
 regressions supplement RAW acceptance; see [fixture notes](tests/assets/filters/README.md),
 [ADR 0016](docs/adr/0016-ready-made-filters.md) and [review](docs/FILTERS_REVIEW.md).
 These are authored starting points, not commercial film/camera emulations.
+
+
+## In development: Edited thumbnails / 0.4.9
+
+Grid and filmstrip now render saved Develop, Detail, Optics, Transform and Crop
+settings through the shared calibrated renderer. Autosave and batch apply/Undo/Redo
+refresh affected thumbnails without resetting selection or scrolling. Hover and
+unsaved gestures do not enter the saved thumbnail cache. Retry keeps its model
+binding, so a prior loading error cannot prevent later edits from appearing.
+
+Each worker reads an atomic saved-edit snapshot. Disk keys include source checksum,
+saved revision, full canonical edit fingerprint and pipeline version, preventing
+collisions between duplicate sources or reused revisions. New/loaded cache entries
+use identical JPEG bytes; corrupt or oversized entries are regenerated. Source
+hashes are checked around decoding. Two workers, 96 admitted requests, 384px output
+and the existing 512MB atomic disk cache remain; performance at scale is phase 0.6.
+See [ADR 0017](docs/adr/0017-edited-thumbnails.md).

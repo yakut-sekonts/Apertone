@@ -13,7 +13,7 @@ and stop before phase 0.5 for adjustments. Local Adjustments must not start.
   X/Y Offset, Auto with confidence refusal, Guided vertical/horizontal line pairs.
 - [x] Ready-made filters: declarative presets, hover, one Undo, preserve excluded
   groups, representative distributable licensed image fixtures and validation.
-- [ ] Edited thumbnails: correct edit-dependent cache identity, revision updates
+- [x] Edited thumbnails: correct edit-dependent cache identity, revision updates
   in grid/filmstrip after autosave/batch changes, stale-result isolation and restart.
 - [ ] Advanced export (§52): JPEG/PNG/TIFF 8/16/compression/DNG, named color spaces,
   resize modes, output sharpening, metadata/location control, text/image watermark,
