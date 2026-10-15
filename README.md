@@ -9,14 +9,14 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Current release: v0.4.13
+## Current release: v0.4.14
 
-[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.4.13) ·
-[Release notes / known issues](docs/releases/v0.4.13.md)
+[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.4.14) ·
+[Release notes / known issues](docs/releases/v0.4.14.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. The release includes all completed phase 0.4 work, runtime languages and ordinary images.
+checksums accompany the release. The release includes all completed phase 0.4 work, runtime languages, ordinary images and XMP preset import.
 
 ## Included in source: phase 0.4
 
@@ -193,7 +193,7 @@ Settings are available in Library as described below. See [preset workflow and v
 
 Presets and the subsequent phase 0.4 features are included in release 0.4.13.
 
-## Source extension: XMP preset import / 0.4.14
+## Included: XMP preset import / 0.4.14
 
 Develop → Presets → Import accepts Lightroom / Camera Raw `.xmp` alongside Luma
 JSON. Recognized Light/Color/Curves/HSL/Detail parameters remain sparse: absent
