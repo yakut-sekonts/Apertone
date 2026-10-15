@@ -60,6 +60,24 @@ try:
             assert "ReferenceError" not in result.stderr and "Unable to assign" not in result.stderr, result.stderr
         assert (folder / "first.png").read_bytes() == (folder / "second.png").read_bytes()
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
+        xmp_folder = folder / "xmp"; xmp_folder.mkdir()
+        xmp_file = xmp_folder / "Sparse.XMP"
+        xmp_file.write_text("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF "
+                            "xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
+                            "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
+                            "crs:Exposure2012='1.3' crs:Texture='30'/></rdf:RDF></x:xmpmeta>")
+        xmp_catalog = xmp_folder / "catalog.sqlite"
+        for arguments in (["--test-edit", str(raw), "--test-exposure", "0.2", "--test-xmp-preset", str(xmp_file), "--test-export", str(xmp_folder / "first.png")],
+                          ["--test-restore", "1.3", "--test-export", str(xmp_folder / "repeat.png")]):
+            result = subprocess.run([str(executable), "--catalog", str(xmp_catalog), *arguments], env=env, capture_output=True, text=True, timeout=120)
+            assert result.returncode == 0, result.stdout + result.stderr
+            assert not any(token in result.stderr for token in ("ReferenceError", "Unable to assign", "Binding loop")), result.stderr
+        assert (xmp_folder / "first.png").read_bytes() == (xmp_folder / "repeat.png").read_bytes()
+        with sqlite3.connect(xmp_catalog) as db:
+            assert db.execute("SELECT exposure, contrast FROM edit_documents").fetchone() == (1.3, 37.0)
+        imported = json.loads((xmp_folder / "presets.json").read_text())
+        assert imported["schemaVersion"] == 7 and imported["presets"][0]["preset"]["parameters"] == ["exposure"]
+        assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
         thumbnails = list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))
         assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v2.jpg") for p in thumbnails)
         lens_source = folder / "calibrated.DNG"
@@ -134,7 +152,7 @@ try:
         image_run("--test-edit", image_pair / "rgba.png", "--test-export-queue", image_queue)
         assert next(image_queue.glob("*.dng")).stat().st_size > 1000
         assert all(hashlib.sha256(path.read_bytes()).hexdigest() == checksum for path, checksum in hashes.items())
-        print(f"Standalone Luma {version}: Library, Develop, Lens Corrections, Transform/Filter/Undo, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
+        print(f"Standalone Luma {version}: Library, Develop, Lens Corrections, Transform/Filter/Undo, sparse XMP import/apply/Undo/restart/export, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
 finally:
     for source, destination in reversed(sparkle_sources):
         destination.rename(source)

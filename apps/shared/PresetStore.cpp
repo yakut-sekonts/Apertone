@@ -80,7 +80,7 @@ int header(const QJsonObject &root, const QString &format) {
             "Unsupported preset format.");
     const auto version = number(root.value("schemaVersion"));
     require(version == 1 || version == 2 || version == 3 || version == 4 || version == 5 ||
-                version == 6,
+                version == 6 || version == 7,
             "Unsupported preset schema version.");
     return static_cast<int>(version);
 }
@@ -112,15 +112,25 @@ QJsonObject toJson(const DevelopPreset &preset) {
         }
         settings.insert(groupNames()[group], values);
     }
-    return {{"format", "luma.develop-preset"},
-            {"schemaVersion", 6},
-            {"name", preset.name},
-            {"folder", preset.folder},
-            {"settings", settings}};
+    QJsonObject result{{"format", "luma.develop-preset"},
+                       {"schemaVersion", preset.parameters.empty() ? 6 : 7},
+                       {"name", preset.name},
+                       {"folder", preset.folder},
+                       {"settings", settings}};
+    if (!preset.parameters.empty()) {
+        QJsonArray selection;
+        for (const auto &name : preset.parameters)
+            selection.append(QString::fromStdString(name));
+        result.insert("parameters", selection);
+    }
+    return result;
 }
 DevelopPreset fromJson(const QJsonObject &root) {
-    keys(root, {"format", "schemaVersion", "name", "folder", "settings"});
     const auto version = header(root, "luma.develop-preset");
+    QStringList fields{"format", "schemaVersion", "name", "folder", "settings"};
+    if (version == 7)
+        fields.append("parameters");
+    keys(root, fields);
     require(root.value("name").isString() && root.value("folder").isString(),
             "Preset name and folder must be strings.");
     DevelopPreset preset{root.value("name").toString(), root.value("folder").toString(), {}, 0};
@@ -183,6 +193,16 @@ DevelopPreset fromJson(const QJsonObject &root) {
             }
         }
     }
+    if (version == 7) {
+        require(root.value("parameters").isArray(), "Sparse preset parameters must be an array.");
+        const auto selection = root.value("parameters").toArray();
+        require(!selection.isEmpty() && selection.size() <= 128,
+                "Invalid sparse preset parameter count.");
+        for (const auto &name : selection) {
+            require(name.isString(), "Sparse preset parameter must be a string.");
+            preset.parameters.push_back(name.toString().toStdString());
+        }
+    }
     preset.validate();
     return preset;
 }
@@ -214,6 +234,9 @@ void prepare(const QString &path) {
 void DevelopPreset::validate() const {
     validateSettingsGroups(groups);
     settings.validate();
+    if (!parameters.empty())
+        require(parameterSelectionGroups(parameters) == groups,
+                "Sparse preset parameters do not match its settings groups.");
     const auto validText = [](const QString &text, bool empty) {
         return (empty || !text.isEmpty()) && text == text.trimmed() && text.size() <= 80 &&
                std::none_of(text.begin(), text.end(),
@@ -257,8 +280,11 @@ void PresetStore::save(const std::vector<StoredPreset> &presets) const {
     QJsonArray entries;
     for (const auto &entry : presets)
         entries.append(QJsonObject{{"id", entry.id}, {"preset", toJson(entry.preset)}});
+    const bool sparse = std::any_of(presets.begin(), presets.end(), [](const auto &entry) {
+        return !entry.preset.parameters.empty();
+    });
     write(path_, QJsonDocument(QJsonObject{{"format", "luma.preset-library"},
-                                           {"schemaVersion", 6},
+                                           {"schemaVersion", sparse ? 7 : 6},
                                            {"presets", entries}})
                      .toJson());
 }
@@ -291,7 +317,13 @@ void PresetStore::remove(const QString &id) {
     save(presets);
 }
 DevelopPreset PresetStore::importFile(const QString &path) {
-    return decodePreset(read(path));
+    return inspectImport(path).preset;
+}
+PresetImport PresetStore::inspectImport(const QString &path) {
+    const auto bytes = read(path);
+    if (QFileInfo(path).suffix().compare(QStringLiteral("xmp"), Qt::CaseInsensitive) == 0)
+        return decodeXmpPreset(bytes, QFileInfo(path).completeBaseName());
+    return {decodePreset(bytes), {}, false};
 }
 void PresetStore::exportFile(const QString &path, const DevelopPreset &preset) {
     write(path, encodePreset(preset));

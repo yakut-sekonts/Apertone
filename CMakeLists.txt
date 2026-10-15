@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.4.13 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.4.14 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -55,7 +55,7 @@ qt_add_resources(luma_localization luma_languages PREFIX "/luma/i18n" BASE "reso
 qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
-    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp
+    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
@@ -102,12 +102,12 @@ if(BUILD_TESTING)
     qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
-        apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
+        apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
         apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp
+    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
         apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
@@ -121,7 +121,7 @@ if(BUILD_TESTING)
     target_link_libraries(luma_export_tests PRIVATE luma_services)
     target_compile_options(luma_export_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME advanced-export-options-color-resize COMMAND luma_export_tests)
-    add_executable(luma_filter_tests tests/unit/FilterTests.cpp apps/shared/PresetStore.cpp apps/shared/BuiltinPresets.cpp)
+    add_executable(luma_filter_tests tests/unit/FilterTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
     target_link_libraries(luma_filter_tests PRIVATE luma_services Qt6::Gui)
     target_compile_options(luma_filter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME builtin-filter-photographic-quality COMMAND luma_filter_tests "${CMAKE_SOURCE_DIR}/tests/assets/filters" "${CMAKE_BINARY_DIR}/qa/filters")

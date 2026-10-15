@@ -62,7 +62,7 @@ ColumnLayout {
         visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; spacing: 4
         Button { objectName: "presetCreate"; implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Luma", "Save current settings") }
-        Button { text: qsTranslate("Luma", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
+        Button { objectName: "presetImport"; text: qsTranslate("Luma", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
         Button { implicitWidth: 36; text: "⋯"; onClicked: actions.open()
             Menu {
                 id: actions
@@ -109,11 +109,13 @@ ColumnLayout {
         ScrollBar.vertical: ScrollBar {}
         Label {
             anchors.centerIn: parent; width: parent.width
-            visible: list.count === 0; text: qsTranslate("Luma", "Save your settings or import a JSON preset.")
+            visible: list.count === 0; text: qsTranslate("Luma", "Save your settings or import a JSON/XMP preset.")
             color: "#858c97"; wrapMode: Text.Wrap; font.pixelSize: 11
         }
     }
     Label { text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
+    Label { objectName: "presetImportNotice"; text: presets.importNotice; textFormat: Text.PlainText; visible: text.length > 0; color: "#dfae77"; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
+    Button { objectName: "presetImportDetails"; visible: presets.importNotice.length > 0; text: qsTranslate("Luma", "XMP compatibility"); Layout.fillWidth: true; onClicked: compatibilityDialog.open() }
     RowLayout {
         Layout.fillWidth: true; spacing: 4
         Button { implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Luma", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
@@ -180,7 +182,31 @@ ColumnLayout {
         Label { textFormat: Text.PlainText; text: panel.selected ? panel.selected.name : ""; color: "#d5d8de" }
         onAccepted: presets.remove(presetId)
     }
-    FileDialog { id: importDialog; title: qsTranslate("Luma", "Import Luma preset"); nameFilters: ["Luma preset (*.json)"]; onAccepted: presets.importPreset(selectedFile) }
+    Dialog {
+        id: compatibilityDialog
+        objectName: "xmpCompatibilityDialog"
+        parent: Overlay.overlay; anchors.centerIn: parent; modal: true
+        width: Math.min(520, parent.width - 32); height: Math.min(460, parent.height - 32)
+        title: qsTranslate("Luma", "XMP compatibility")
+        contentItem: ColumnLayout {
+            Label { text: presets.importNotice; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: presets.importUnsupported.length > 0; text: qsTranslate("Luma", "These XMP settings were not imported. Other recognized settings remain available in the preset."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ListView {
+                objectName: "xmpUnsupportedList"; model: presets.importUnsupported
+                clip: true; Layout.fillWidth: true; Layout.fillHeight: true
+                delegate: Label { required property string modelData; text: modelData; textFormat: Text.PlainText; width: ListView.view.width; wrapMode: Text.Wrap; padding: 6 }
+                ScrollBar.vertical: ScrollBar {}
+            }
+        }
+        footer: DialogButtonBox {
+            Button { text: qsTranslate("Luma", "Close"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: compatibilityDialog.close() }
+        }
+    }
+    FileDialog {
+        id: importDialog; objectName: "presetImportDialog"; title: qsTranslate("Luma", "Import preset")
+        nameFilters: [qsTranslate("Luma", "Preset files (*.json *.xmp)"), "Luma preset (*.json)", "XMP (*.xmp)"]
+        onAccepted: if (presets.importPreset(selectedFile)) { panel.selectedId = presets.importedId; presetTabs.currentIndex = 1 }
+    }
     FileDialog {
         id: exportDialog; property string presetId: ""
         title: qsTranslate("Luma", "Export Luma preset"); fileMode: FileDialog.SaveFile

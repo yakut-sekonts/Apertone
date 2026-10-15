@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/LocalizedText.h"
 #include "apps/shared/PresetStore.h"
 #include <QObject>
 #include <QUrl>
@@ -10,6 +11,9 @@ class PresetController final : public QObject {
     Q_PROPERTY(QVariantList items READ items NOTIFY itemsChanged)
     Q_PROPERTY(QVariantList builtinItems READ builtinItems CONSTANT)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
+    Q_PROPERTY(QString importNotice READ importNotice NOTIFY stateChanged)
+    Q_PROPERTY(QStringList importUnsupported READ importUnsupported NOTIFY stateChanged)
+    Q_PROPERTY(QString importedId READ importedId NOTIFY stateChanged)
     Q_PROPERTY(bool hasCopiedSettings READ hasCopiedSettings NOTIFY stateChanged)
   public:
     PresetController(QString path, EditorController &editor, QObject *parent = nullptr);
@@ -17,6 +21,15 @@ class PresetController final : public QObject {
     QVariantList builtinItems() const;
     QString error() const {
         return error_;
+    }
+    QString importNotice() const {
+        return importNotice_.text();
+    }
+    QStringList importUnsupported() const {
+        return importUnsupported_;
+    }
+    QString importedId() const {
+        return importedId_;
     }
     bool hasCopiedSettings() const {
         return copied_.has_value();
@@ -49,6 +62,9 @@ class PresetController final : public QObject {
     std::vector<luma::StoredPreset> presets_;
     std::optional<luma::DevelopPreset> copied_;
     QString error_;
+    LocalizedText importNotice_;
+    QStringList importUnsupported_;
+    QString importedId_;
     const luma::DevelopPreset &find(const QString &id) const;
     bool failure(const std::exception &error);
 };

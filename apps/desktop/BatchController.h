@@ -63,6 +63,7 @@ class BatchController final : public QObject {
         luma::EditDocument source;
         std::uint32_t groups = 0;
         QString label;
+        std::vector<std::string> parameters{};
     };
     std::filesystem::path path_;
     EditorController &editor_;

@@ -196,6 +196,10 @@ documents. ADR 0011 extends it to schema 2 with the Detail group and legacy read
 extends it to schema 3 with noise parameters, accepting schema 1/2. ADR 0013 extends it to schema 4
 with an optional sixth Crop group, accepting schema 1/2/3. ADR 0014 extends it to schema 5
 with an optional seventh Optics group, accepting schema 1–4.
+ADR 0023 adds bounded offline Camera Raw XMP import. Sparse parameter selections
+use preset/library schema 7 and travel through merge, preview, batch and JSON
+round-trips; legacy whole-group documents retain schema 6. Unsupported XMP
+settings are reported without flattening nested looks. Catalog/edit schemas do not change.
 
 ## Batch settings
 

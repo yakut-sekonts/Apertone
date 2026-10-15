@@ -83,8 +83,14 @@ bool PresetController::save(const QString &id, const QString &name, const QStrin
         preset.name = name.trimmed();
         preset.folder = folder.trimmed();
         preset.groups = static_cast<std::uint32_t>(groups);
-        if (captureCurrent)
+        if (captureCurrent) {
             preset.settings = editor_.currentSettings();
+            preset.parameters.clear();
+        } else {
+            std::erase_if(preset.parameters, [&](const auto &name) {
+                return !(luma::settingsParameterGroup(name) & preset.groups);
+            });
+        }
         store_.put(preset, id);
         return refresh();
     } catch (const std::exception &error) {
@@ -102,11 +108,31 @@ bool PresetController::remove(const QString &id) {
     }
 }
 bool PresetController::importPreset(const QUrl &url) {
+    importNotice_ = {};
+    importUnsupported_.clear();
+    importedId_.clear();
     try {
         if (!url.isLocalFile())
-            throw std::runtime_error("Select a local preset JSON file.");
-        store_.put(luma::PresetStore::importFile(url.toLocalFile()));
-        return refresh();
+            throw std::runtime_error("Select a local preset JSON or XMP file.");
+        const auto imported = luma::PresetStore::inspectImport(url.toLocalFile());
+        const auto id = store_.put(imported.preset);
+        if (!refresh())
+            return false;
+        importedId_ = id;
+        if (imported.xmp) {
+            importNotice_ =
+                LocalizedText(QStringLiteral("XMP imported. Luma rendering may differ from "
+                                             "Lightroom. Absent settings are preserved."));
+            if (!imported.unsupported.isEmpty())
+                importNotice_ =
+                    LocalizedText(
+                        QStringLiteral("XMP imported with partial compatibility. Luma rendering "
+                                       "may differ from Lightroom. Unsupported settings: %1"))
+                        .arg(imported.unsupported.size());
+            importUnsupported_ = imported.unsupported;
+        }
+        emit stateChanged();
+        return true;
     } catch (const std::exception &error) {
         return failure(error);
     }
@@ -141,7 +167,7 @@ bool PresetController::exportPreset(const QString &id, const QUrl &url) {
 void PresetController::apply(const QString &id) {
     try {
         const auto &preset = find(id);
-        editor_.applySettings(preset.settings, preset.groups);
+        editor_.applySettings(preset.settings, preset.groups, preset.parameters);
     } catch (const std::exception &error) {
         failure(error);
     }
@@ -149,7 +175,7 @@ void PresetController::apply(const QString &id) {
 void PresetController::preview(const QString &id) {
     try {
         const auto &preset = find(id);
-        editor_.previewSettings(preset.settings, preset.groups);
+        editor_.previewSettings(preset.settings, preset.groups, preset.parameters);
     } catch (const std::exception &error) {
         failure(error);
     }

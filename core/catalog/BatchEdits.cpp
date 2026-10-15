@@ -109,9 +109,12 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
                                          const EditDocument &source, std::uint32_t groups,
                                          CancellationToken stop,
                                          const std::function<void(double)> &progress,
-                                         const std::string &activeID) {
+                                         const std::string &activeID,
+                                         std::span<const std::string> parameters) {
     validateSettingsGroups(groups);
     source.validate();
+    if (!parameters.empty())
+        parameterSelectionGroups(parameters);
     if (ids.empty())
         throw std::runtime_error("Select photographs before applying settings.");
     check(stop);
@@ -149,7 +152,7 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
             const auto asset = assetByID(ids[index]);
             if (!asset)
                 throw std::runtime_error("Batch target is missing from the catalog.");
-            const auto next = mergeSettings(asset->edits, source, groups);
+            const auto next = mergeSettings(asset->edits, source, groups, parameters);
             if (next != asset->edits) {
                 writeEdits(ids[index], next);
                 Statement changed(db_, "INSERT INTO temp.batch_changed VALUES(?1)");

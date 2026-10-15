@@ -1,4 +1,5 @@
 #include "core/presets/SettingsSubset.h"
+#include <set>
 #include <stdexcept>
 
 namespace luma {
@@ -32,12 +33,67 @@ std::uint32_t settingsCorrections(std::uint32_t groups) {
         mask |= flag(Correction::transform);
     return mask;
 }
+std::uint32_t settingsParameterGroup(std::string_view name) {
+    if (name.starts_with("points.")) {
+        EditDocument::curveChannel(name.substr(7));
+        return 4;
+    }
+    if (name == "whiteBalance")
+        return 2;
+    // Sparse presets currently support Light/Color/Curves/HSL/Detail only.
+    EditDocument{}.parameter(name);
+    const auto correction = static_cast<std::uint32_t>(EditDocument::correction(name));
+    for (std::uint32_t group = 1; group <= 16; group <<= 1)
+        if (settingsCorrections(group) & correction)
+            return group;
+    throw std::invalid_argument("Unsupported sparse preset parameter.");
+}
+std::uint32_t parameterSelectionGroups(std::span<const std::string> parameters) {
+    if (parameters.empty() || parameters.size() > 128)
+        throw std::invalid_argument("Invalid sparse preset parameter count.");
+    std::set<std::string> unique;
+    std::uint32_t groups = 0;
+    for (const auto &name : parameters) {
+        if (!unique.insert(name).second)
+            throw std::invalid_argument("Duplicate sparse preset parameter.");
+        groups |= settingsParameterGroup(name);
+    }
+    return groups;
+}
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,
-                           std::uint32_t groups) {
+                           std::uint32_t groups, std::span<const std::string> parameters) {
     const auto mask = settingsCorrections(groups);
     current.validate();
     source.validate();
     auto result = current;
+    if (!parameters.empty()) {
+        parameterSelectionGroups(parameters);
+        std::vector<std::pair<std::string, double>> values;
+        std::uint32_t selectedCorrections = 0;
+        bool whiteBalance = false;
+        for (const auto &name : parameters) {
+            if (!(settingsParameterGroup(name) & groups))
+                continue;
+            if (name.starts_with("points.")) {
+                const auto channel = EditDocument::curveChannel(std::string_view(name).substr(7));
+                result.curves[channel] = source.curves[channel];
+                selectedCorrections |= static_cast<std::uint32_t>(Correction::curves);
+            } else if (name == "whiteBalance") {
+                whiteBalance = true;
+                selectedCorrections |= static_cast<std::uint32_t>(Correction::whiteBalance);
+            } else {
+                values.emplace_back(name, source.parameter(name));
+                selectedCorrections |= static_cast<std::uint32_t>(EditDocument::correction(name));
+            }
+        }
+        result.setParameters(values);
+        if (whiteBalance)
+            result.customWhiteBalance = source.customWhiteBalance;
+        result.enabledCorrections = (current.enabledCorrections & ~selectedCorrections) |
+                                    (source.enabledCorrections & selectedCorrections);
+        result.validate();
+        return result;
+    }
     if (groups & 1) {
         result.exposure = source.exposure;
         result.contrast = source.contrast;

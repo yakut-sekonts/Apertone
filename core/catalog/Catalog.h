@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <span>
 #include <string>
 
 struct sqlite3;
@@ -42,7 +43,8 @@ class Catalog {
     BatchEditResult applyBatchEdits(const std::vector<std::string> &ids, const EditDocument &source,
                                     std::uint32_t groups, CancellationToken stop = {},
                                     const std::function<void(double)> &progress = {},
-                                    const std::string &activeID = {});
+                                    const std::string &activeID = {},
+                                    std::span<const std::string> parameters = {});
     BatchEditResult restoreBatchEdits(bool redo, CancellationToken stop = {},
                                       const std::string &activeID = {});
     bool canUndoBatch() const {

@@ -2,6 +2,7 @@
 #include "core/presets/SettingsSubset.h"
 #include <QByteArray>
 #include <QString>
+#include <QStringList>
 #include <vector>
 
 namespace luma {
@@ -10,6 +11,7 @@ struct DevelopPreset {
     QString folder;
     EditDocument settings;
     std::uint32_t groups = allSettingsGroups;
+    std::vector<std::string> parameters{};
     void validate() const;
 };
 struct StoredPreset {
@@ -18,6 +20,12 @@ struct StoredPreset {
 };
 QByteArray encodePreset(const DevelopPreset &preset);
 DevelopPreset decodePreset(const QByteArray &json);
+struct PresetImport {
+    DevelopPreset preset;
+    QStringList unsupported;
+    bool xmp = false;
+};
+PresetImport decodeXmpPreset(const QByteArray &xml, const QString &fallbackName);
 
 // A bounded collection shared by catalogs in the same directory. Mutations reload
 // under a lock and replace the complete file atomically, preserving other writers.
@@ -28,6 +36,7 @@ class PresetStore {
     QString put(const DevelopPreset &preset, const QString &id = {});
     void remove(const QString &id);
     static DevelopPreset importFile(const QString &path);
+    static PresetImport inspectImport(const QString &path);
     static void exportFile(const QString &path, const DevelopPreset &preset);
 
   private:

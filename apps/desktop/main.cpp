@@ -60,6 +60,9 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-filter"),
                       QStringLiteral("Integration test: built-in filter and Undo"),
                       QStringLiteral("id")});
+    parser.addOption({QStringLiteral("test-xmp-preset"),
+                      QStringLiteral("Integration test: sparse XMP import, apply and Undo"),
+                      QStringLiteral("file")});
     parser.addOption({QStringLiteral("test-export"), QStringLiteral("Integration test: export PNG"),
                       QStringLiteral("png")});
     parser.addOption({QStringLiteral("test-export-queue"),
@@ -309,6 +312,7 @@ int main(int argc, char **argv) {
         const bool lens = parser.isSet(QStringLiteral("test-lens"));
         const bool transform = parser.isSet(QStringLiteral("test-transform"));
         const auto filter = parser.value(QStringLiteral("test-filter"));
+        const auto xmp = parser.value(QStringLiteral("test-xmp-preset"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
@@ -316,7 +320,7 @@ int main(int argc, char **argv) {
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
              exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced, lens,
-             transform, &presets, filter] {
+             transform, &presets, filter, xmp] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -326,6 +330,39 @@ int main(int argc, char **argv) {
                     *applied = true;
                     if (editing) {
                         editor.setExposure(target);
+                        if (!xmp.isEmpty()) {
+                            editor.setParameter(QStringLiteral("contrast"), 37);
+                            const auto before = editor.currentSettings();
+                            if (!presets.importPreset(QUrl::fromLocalFile(xmp)) ||
+                                presets.importedId().isEmpty() ||
+                                presets.importUnsupported() !=
+                                    QStringList{QStringLiteral("Texture")} ||
+                                editor.currentSettings() != before) {
+                                std::cerr << "XMP import or compatibility report failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            presets.apply(presets.importedId());
+                            auto expected = before;
+                            expected.exposure = 1.3;
+                            if (editor.currentSettings() != expected) {
+                                std::cerr << "XMP apply changed absent parameters\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.undo();
+                            if (editor.currentSettings() != before) {
+                                std::cerr << "XMP Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            if (editor.currentSettings() != expected) {
+                                std::cerr << "XMP Redo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                        }
                         if (lens) {
                             if (!editor.lensState().value("distortionAvailable").toBool() ||
                                 !editor.lensState().value("vignettingAvailable").toBool() ||
@@ -515,6 +552,17 @@ int main(int argc, char **argv) {
                         return;
                     }
                     *finished = true;
+                    if (!xmp.isEmpty() && !screenshot.isEmpty()) {
+                        auto *tabs = window->findChild<QObject *>(QStringLiteral("presetTabs"));
+                        auto *details =
+                            window->findChild<QObject *>(QStringLiteral("presetImportDetails"));
+                        if (!tabs || !tabs->setProperty("currentIndex", 1) || !details ||
+                            !QMetaObject::invokeMethod(details, "clicked")) {
+                            std::cerr << "Cannot show XMP compatibility UI\n";
+                            app.exit(1);
+                            return;
+                        }
+                    }
                     QTimer::singleShot(120, &app, [window, &app, screenshot] {
                         if (!screenshot.isEmpty()) {
                             const auto frame = window->grabWindow();

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.14 / XMP preset import
+
+- Offline Lightroom / Camera Raw XMP import with explicit compatibility report.
+- Sparse Light/Color/Curves/HSL/Detail settings preserve absent controls.
+- Preview, Undo/Redo, batch, durable storage and JSON round-trip keep sparse behavior.
+- Bounded XML validation, atomic failures and preset schema 7; no catalog migration.
+
 ## 0.4.13 / Branded macOS release
 
 - Original Luma ICNS application and DMG volume icons.

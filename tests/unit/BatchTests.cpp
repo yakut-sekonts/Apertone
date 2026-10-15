@@ -7,6 +7,7 @@
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
 #include <QElapsedTimer>
+#include <QFile>
 #include <QGuiApplication>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -395,6 +396,41 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     batch.redo();
     wait([&] { return !batch.working(); });
     require(documents(f) == filtered, "Built-in batch Redo changed target settings.");
+    batch.undo();
+    wait([&] { return !batch.working(); });
+    const auto sparseBaseline = documents(f);
+    const auto sparseFile = QString::fromStdString((root / "batch.xmp").string());
+    {
+        QFile file(sparseFile);
+        const QByteArray xml =
+            "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
+            "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
+            "crs:Name='Sparse XMP' crs:Exposure2012='1.4'/></rdf:RDF>";
+        require(file.open(QIODevice::WriteOnly) && file.write(xml) == xml.size(),
+                "Cannot prepare sparse XMP batch fixture.");
+    }
+    require(presets.importPreset(QUrl::fromLocalFile(sparseFile)), "Cannot import batch XMP.");
+    QString sparseID;
+    for (const auto &entry : presets.items())
+        if (entry.toMap()["name"].toString() == "Sparse XMP")
+            sparseID = entry.toMap()["id"].toString();
+    require(!sparseID.isEmpty(), "Imported batch XMP is missing.");
+    batch.applyPreset(sparseID);
+    wait([&] { return !batch.working(); });
+    require(batch.error().isEmpty(), "Sparse XMP batch failed.");
+    const auto sparseApplied = documents(f);
+    for (std::size_t i = 0; i < sparseApplied.size(); ++i) {
+        auto expected = sparseBaseline[i];
+        expected.exposure = 1.4;
+        expected.setEnabled(luma::Correction::exposure, true);
+        require(sparseApplied[i] == expected, "Batch XMP reset per-photo absent settings.");
+    }
+    batch.undo();
+    wait([&] { return !batch.working(); });
+    require(documents(f) == sparseBaseline, "Batch XMP Undo did not restore each photo.");
+    batch.redo();
+    wait([&] { return !batch.working(); });
+    require(documents(f) == sparseApplied, "Batch XMP Redo changed its snapshot.");
     batch.undo();
     wait([&] { return !batch.working(); });
     qmlTests(editor, library, presets, batch, qmlPath);

@@ -25,6 +25,7 @@ void filterEditorTests(const QString &source, const QString &root, const QString
 void cropEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void transformEditorTests(const QString &source, const QString &root, const QString &qmlPath);
 void lensEditorTests(const QString &source, const QString &root, const QString &qmlPath);
+void xmpPresetTests(const QString &source, const QString &root, const QString &qmlPath);
 namespace {
 void require(bool result, const char *message) {
     if (!result)
@@ -193,7 +194,7 @@ void documentTests() {
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 7; });
+    change([](auto &root) { root["schemaVersion"] = 8; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
@@ -270,7 +271,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 7;
+    future["schemaVersion"] = 8;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -660,6 +661,7 @@ int main(int argc, char **argv) {
         require(temporary.isValid(), "Cannot create preset test directory.");
         documentTests();
         storeTests(temporary.path());
+        xmpPresetTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         filterEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         cropEditorTests(QString::fromLocal8Bit(argv[1]), temporary.path(),

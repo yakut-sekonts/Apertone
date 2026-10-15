@@ -1,6 +1,8 @@
 #pragma once
 #include "core/edits/EditDocument.h"
 #include <cstdint>
+#include <span>
+#include <string>
 
 namespace luma {
 enum class SettingsGroup : std::uint32_t {
@@ -16,6 +18,8 @@ enum class SettingsGroup : std::uint32_t {
 constexpr std::uint32_t allSettingsGroups = 255;
 void validateSettingsGroups(std::uint32_t groups);
 std::uint32_t settingsCorrections(std::uint32_t groups);
+std::uint32_t settingsParameterGroup(std::string_view name);
+std::uint32_t parameterSelectionGroups(std::span<const std::string> parameters);
 EditDocument mergeSettings(const EditDocument &current, const EditDocument &source,
-                           std::uint32_t groups);
+                           std::uint32_t groups, std::span<const std::string> parameters = {});
 } // namespace luma

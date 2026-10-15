@@ -146,7 +146,7 @@ and a 512 MiB disk cache in `<catalog>.luma-cache/thumbnails`. Embedded JPEGs ar
 used only for Library previews; Develop always reads sensor data. The 100k-row
 metadata fixture verifies bounded paging and selection, not performance of
 100,000 real photos. Edited thumbnails, Move, smart collections, import naming/
-backup templates, keywords, XMP and missing-file relinking remain later work.
+backup templates, keywords, photo-sidecar XMP sync and missing-file relinking remain later work.
 
 ```bash
 build/bin/luma import add /path/to/raw-folder --catalog /path/to/catalog.sqlite
@@ -192,6 +192,15 @@ and lasts only for the current application session. Batch paste/presets and Sync
 Settings are available in Library as described below. See [preset workflow and validation](docs/PRESETS_REVIEW.md).
 
 Presets and the subsequent phase 0.4 features are included in release 0.4.13.
+
+## Source extension: XMP preset import / 0.4.14
+
+Develop → Presets → Import accepts Lightroom / Camera Raw `.xmp` alongside Luma
+JSON. Recognized Light/Color/Curves/HSL/Detail parameters remain sparse: absent
+controls keep their existing values. Hover, one-step Undo/Redo, batch, restart and
+JSON export/reimport preserve this behavior. Import reports unsupported settings;
+Adobe profiles/LUTs/masks and other unsupported effects are skipped. Rendering
+can differ from Lightroom. See [XMP compatibility and validation](docs/XMP_PRESETS.md).
 
 ## Included: batch settings / 0.4.2
 

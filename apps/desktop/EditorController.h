@@ -170,8 +170,10 @@ class EditorController final : public QObject {
     }
     QString detailDiagnostic() const;
     Q_INVOKABLE void setDetailControl(const QString &parameter);
-    void applySettings(const luma::EditDocument &settings, std::uint32_t groups);
-    void previewSettings(const luma::EditDocument &settings, std::uint32_t groups);
+    void applySettings(const luma::EditDocument &settings, std::uint32_t groups,
+                       std::span<const std::string> parameters = {});
+    void previewSettings(const luma::EditDocument &settings, std::uint32_t groups,
+                         std::span<const std::string> parameters = {});
     void clearPreviewSettings();
     bool editingLocked() const {
         return editingLocked_;

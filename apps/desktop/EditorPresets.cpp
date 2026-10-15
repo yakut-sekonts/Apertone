@@ -1,13 +1,14 @@
 #include "apps/desktop/EditorController.h"
 #include "core/presets/SettingsSubset.h"
 
-void EditorController::applySettings(const luma::EditDocument &settings, std::uint32_t groups) {
+void EditorController::applySettings(const luma::EditDocument &settings, std::uint32_t groups,
+                                     std::span<const std::string> parameters) {
     if (!editable())
         return;
     try {
         closeTransformTool();
         setCropMode(false);
-        const auto next = luma::mergeSettings(history_.current(), settings, groups);
+        const auto next = luma::mergeSettings(history_.current(), settings, groups, parameters);
         validateGeometry(next);
         endEdit();
         if (next == history_.current())
@@ -18,13 +19,14 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
         advancedFailure(failure);
     }
 }
-void EditorController::previewSettings(const luma::EditDocument &settings, std::uint32_t groups) {
+void EditorController::previewSettings(const luma::EditDocument &settings, std::uint32_t groups,
+                                       std::span<const std::string> parameters) {
     if (!editable() || original_)
         return;
     try {
         closeTransformTool();
         setCropMode(false);
-        const auto next = luma::mergeSettings(history_.current(), settings, groups);
+        const auto next = luma::mergeSettings(history_.current(), settings, groups, parameters);
         validateGeometry(next);
         if (presetPreview_ == next)
             return;

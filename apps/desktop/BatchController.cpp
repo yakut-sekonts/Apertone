@@ -37,7 +37,8 @@ void BatchController::failure(const std::exception &error) {
 }
 void BatchController::apply(const luma::DevelopPreset &preset) {
     preset.validate();
-    start({Action::apply, library_.selectionIDs(), preset.settings, preset.groups, preset.name});
+    start({Action::apply, library_.selectionIDs(), preset.settings, preset.groups, preset.name,
+           preset.parameters});
 }
 void BatchController::applyPreset(const QString &id) {
     try {
@@ -140,7 +141,7 @@ void BatchController::run() {
             const auto result =
                 request.action == Action::apply
                     ? catalog_->applyBatchEdits(request.ids, request.source, request.groups, stop,
-                                                progress, active)
+                                                progress, active, request.parameters)
                     : catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
             updated = result.active;
             committedChanges = result.changed > 0;
