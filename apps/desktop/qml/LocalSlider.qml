@@ -9,7 +9,7 @@ ColumnLayout {
     property real minimum: -100
     property real maximum: 100
     property real step: 1
-    Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: Infinity
+    Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: parent.width
     spacing: 2
     RowLayout {
         Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width

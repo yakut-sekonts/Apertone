@@ -5,7 +5,7 @@ ColumnLayout {
     id: panel
     objectName: "localPanel"
     Layout.preferredWidth: 250
-    Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: Infinity
+    Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: parent.width
     property bool selected: !!editor.localState.id
     Button {
         objectName: "localPanelToggle"

@@ -625,6 +625,12 @@ int main(int argc, char **argv) {
                         if (localMasks && !screenshot.isEmpty()) {
                             auto *panel =
                                 window->findChild<QQuickItem *>(QStringLiteral("localPanel"));
+                            if (!panel || panel->mapToScene(QPointF(panel->width(), 0)).x() >
+                                              window->width()) {
+                                std::cerr << "Local panel escaped the window\n";
+                                app.exit(1);
+                                return;
+                            }
                             for (const auto *name :
                                  {"localPanelToggle", "localMaskChoice", "localMaskName",
                                   "localEditOnPhoto", "local_exposure", "local_opacity",
