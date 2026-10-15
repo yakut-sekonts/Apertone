@@ -25,8 +25,14 @@ Its value is the private seed from the project's Sparkle Keychain item, not a
 GitHub token. Transfer it yourself using Keychain Access or Sparkle's export tool;
 never put it into an Issue, PR, tracked file or command argument.
 
+The repository's existing `LUMA_SECRET` is supported as an alias. If both secrets
+are set, `SPARKLE_PRIVATE_KEY` takes precedence. The workflow passes only the chosen
+value to the signing step under the internal `SPARKLE_PRIVATE_KEY` environment name.
+
 Release candidate branches report whether the signing secret is configured.
-When it is present, the candidate build signs and verifies the exact archive too;
+When it is present, a temporary public probe is signed and independently verified
+against the embedded public key before compiling. Invalid or unrelated keys fail
+early without exposing the value. The candidate then signs and verifies the exact archive too;
 missing secrets allow candidate QA but refuse tagged release builds before packaging.
 The release workflow packages and verifies the app, signs the exact ZIP using
 Sparkle's sign_update with the secret on stdin, and independently checks that

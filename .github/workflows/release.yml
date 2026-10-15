@@ -18,7 +18,7 @@ jobs:
       - name: Check signing availability without exposing the key
         id: configuration
         env:
-          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' || secrets.LUMA_SECRET != '' }}
         run: echo "configured=$SIGNING_CONFIGURED" >> "$GITHUB_OUTPUT"
       - name: Sparkle signing key is configured
         if: steps.configuration.outputs.configured == 'true'
@@ -29,10 +29,10 @@ jobs:
           RELEASE_REF: ${{ github.ref }}
         run: |
           if [[ "$RELEASE_REF" == refs/tags/* ]]; then
-            echo 'Configure repository secret SPARKLE_PRIVATE_KEY before publishing updater-enabled releases.' >&2
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY (or LUMA_SECRET) before publishing updater-enabled releases.' >&2
             exit 1
           fi
-          echo '::notice::Candidate QA can continue, but publication requires SPARKLE_PRIVATE_KEY.'
+          echo '::notice::Candidate QA can continue, but publication requires SPARKLE_PRIVATE_KEY or LUMA_SECRET.'
   build-package:
     needs: signing-configuration
     runs-on: macos-15
@@ -56,10 +56,16 @@ jobs:
           fi
       - name: Install fixed toolchain and Qt
         run: ./scripts/bootstrap.sh
-      - name: Configure and build
+      - name: Configure
         run: |
           .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
-          .tools/venv/bin/cmake --build build --parallel 3
+      - name: Validate signing key before building
+        if: needs.signing-configuration.outputs.configured == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
+        run: .tools/venv/bin/python scripts/create-appcast.py --check-key --signer build/_deps/sparkle-src/bin/sign_update
+      - name: Build
+        run: .tools/venv/bin/cmake --build build --parallel 3
       - name: Tests and static analysis
         run: |
           .tools/venv/bin/ctest --test-dir build --output-on-failure
@@ -76,10 +82,10 @@ jobs:
       - name: Sign update archive and prepare appcast
         if: needs.signing-configuration.outputs.configured == 'true'
         env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
         run: |
           if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
-            echo 'Configure repository secret SPARKLE_PRIVATE_KEY before publishing updater-enabled releases.' >&2
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY (or LUMA_SECRET) before publishing updater-enabled releases.' >&2
             exit 1
           fi
           .tools/venv/bin/python scripts/create-appcast.py --signer build/_deps/sparkle-src/bin/sign_update

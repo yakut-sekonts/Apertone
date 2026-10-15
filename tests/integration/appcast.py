@@ -84,6 +84,25 @@ class AppcastTests(unittest.TestCase):
         self.assertEqual(options["input"], fixture_seed)
         self.assertNotIn("SPARKLE_PRIVATE_KEY", options["env"])
         self.assertNotIn("SPARKLE_PRIVATE_KEY", self.calls[1][1]["env"])
+    def check_key(self):
+        with patch.object(appcast, "ROOT", self.root), patch.object(appcast.subprocess, "run", self.run_command):
+            appcast.check_key(Path("test-signer"))
+    def test_probe_verifies_key_without_creating_feed(self):
+        self.check_key()
+        probe = Path(self.calls[0][0][-1])
+        self.assertFalse(probe.exists())
+        self.assertFalse((self.root / "appcast.xml").exists())
+    def test_probe_rejects_invalid_secret_before_signing(self):
+        with patch.dict(os.environ, {"SPARKLE_PRIVATE_KEY": "not-a-base64-key"}):
+            with self.assertRaises(ValueError):
+                self.check_key()
+        self.assertFalse(self.calls)
+    def test_probe_rejects_unrelated_key(self):
+        with (self.root / "platform/macos/Info.plist.in").open("wb") as file:
+            plistlib.dump({"SUPublicEDKey": base64.b64encode(bytes(32)).decode()}, file)
+        with self.assertRaisesRegex(RuntimeError, "public key"):
+            self.check_key()
+        self.assertFalse(Path(self.calls[0][0][-1]).exists())
     def test_unsafe_manifest_path_rejected(self):
         with (self.root / "SHA256SUMS").open("a") as file:
             file.write("a" * 64 + "  ../outside.zip\n")

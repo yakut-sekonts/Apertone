@@ -14,33 +14,14 @@ from pathlib import Path
 import plistlib
 import re
 import subprocess
+import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMESPACE = "http://www.andymatuschak.org/xml-namespaces/sparkle"
 ET.register_namespace("sparkle", NAMESPACE)
 
-def create(folder, signer):
-    info = json.loads((folder / "BUILD_INFO.json").read_text())
-    version = info["version"]
-    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
-        raise ValueError("A stable semantic version is required")
-    if not re.fullmatch(r"[0-9a-f]{40}", info["source_commit"]):
-        raise ValueError("A full source commit is required")
-    archive = folder / f"Luma-{version}-macos-arm64.zip"
-    expected = {archive.name, f"Luma-{version}-macos-arm64.dmg", "BUILD_INFO.json"}
-    manifest = {}
-    for line in (folder / "SHA256SUMS").read_text().splitlines():
-        digest, name = line.split("  ", 1)
-        if name in manifest or name not in expected or not re.fullmatch(r"[0-9a-f]{64}", digest):
-            raise ValueError("Unexpected or duplicate checksum entry")
-        manifest[name] = digest
-    if set(manifest) != expected:
-        raise ValueError("Incomplete release manifest")
-    for name, digest in manifest.items():
-        with (folder / name).open("rb") as file:
-            if hashlib.file_digest(file, "sha256").hexdigest() != digest:
-                raise ValueError("Release checksum mismatch")
+def sign_archive(archive, signer):
     with (ROOT / "platform/macos/Info.plist.in").open("rb") as file:
         public_key = plistlib.load(file)["SUPublicEDKey"]
     secret = os.environ.get("SPARKLE_PRIVATE_KEY")
@@ -64,6 +45,38 @@ def create(folder, signer):
         str(archive.resolve()), public_key, signature], capture_output=True, env=safe_env, timeout=120)
     if verification.returncode:
         raise RuntimeError("Signature does not match Luma's embedded public key")
+    return signature
+
+def check_key(signer):
+    # A public, empty probe uses the same signer and verifier as release ZIPs.
+    with tempfile.TemporaryDirectory(prefix="luma-signing-check-") as temporary:
+        probe = Path(temporary) / "probe"
+        probe.write_bytes(b"")
+        sign_archive(probe, signer)
+    print("Signing key matches Luma's embedded public key")
+
+def create(folder, signer):
+    info = json.loads((folder / "BUILD_INFO.json").read_text())
+    version = info["version"]
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise ValueError("A stable semantic version is required")
+    if not re.fullmatch(r"[0-9a-f]{40}", info["source_commit"]):
+        raise ValueError("A full source commit is required")
+    archive = folder / f"Luma-{version}-macos-arm64.zip"
+    expected = {archive.name, f"Luma-{version}-macos-arm64.dmg", "BUILD_INFO.json"}
+    manifest = {}
+    for line in (folder / "SHA256SUMS").read_text().splitlines():
+        digest, name = line.split("  ", 1)
+        if name in manifest or name not in expected or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("Unexpected or duplicate checksum entry")
+        manifest[name] = digest
+    if set(manifest) != expected:
+        raise ValueError("Incomplete release manifest")
+    for name, digest in manifest.items():
+        with (folder / name).open("rb") as file:
+            if hashlib.file_digest(file, "sha256").hexdigest() != digest:
+                raise ValueError("Release checksum mismatch")
+    signature = sign_archive(archive, signer)
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
     ET.SubElement(channel, "title").text = "Luma updates"
@@ -92,5 +105,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--folder", type=Path, default=ROOT / "dist/release")
     parser.add_argument("--signer", type=Path, required=True)
+    parser.add_argument("--check-key", action="store_true")
     args = parser.parse_args()
-    create(args.folder, args.signer)
+    if args.check_key:
+        check_key(args.signer)
+    else:
+        create(args.folder, args.signer)
