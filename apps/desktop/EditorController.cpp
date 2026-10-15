@@ -116,6 +116,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     guides_.clear();
     localMode_ = false;
     localSelected_.clear();
+    localComponentSelected_.clear();
     localGesture_.reset();
     cropMode_ = false;
     clearDetailDiagnostic();
@@ -268,6 +269,7 @@ void EditorController::beginEdit() {
         history_.begin();
 }
 void EditorController::endEdit() {
+    cancelLocalSample();
     clearDetailDiagnostic();
     clearPreviewSettings();
     targeted_.reset();
@@ -276,6 +278,7 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    cancelLocalSample();
     cancelAutoTransform();
     presetPreview_.reset();
     ++editRevision_;

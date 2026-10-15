@@ -82,7 +82,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const CropGeometry geometry(input.width, input.height, orientation, edits);
     const int width = geometry.width(), height = geometry.height();
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
-    const LocalAdjustmentPass local(edits.localMasks);
+    const double sourceAspect = metadata.width > 0 && metadata.height > 0
+                                    ? static_cast<double>(metadata.width) / metadata.height
+                                    : static_cast<double>(input.width) / input.height;
+    const LocalAdjustmentPass local(edits.localMasks, sourceAspect);
     const auto selected = std::find_if(edits.localMasks.begin(), edits.localMasks.end(),
                                        [&](const auto &mask) { return mask.id == overlay.id; });
     if (!std::isfinite(overlay.opacity) || overlay.opacity < 0 || overlay.opacity > 1 ||
@@ -93,18 +96,21 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic);
     const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
                                     &noise);
+    const auto referencePixel = [&](int sx, int sy) {
+        const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
+        const auto developed =
+            noise.active()
+                ? noise.pixel({}, sx, sy)
+                : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
+        return sharpening.pixel(developed, sx, sy);
+    };
     DisplayTransform transform(displayProfile);
     std::vector<float> row(static_cast<std::size_t>(width) * 3);
     for (int y = 0; y < height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < width; ++x) {
             auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
-                const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-                const auto developed =
-                    noise.active() ? noise.pixel({}, sx, sy)
-                                   : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
-                                                     input.rgb[offset + 2]});
-                auto color = sharpening.pixel(developed, sx, sy);
+                auto color = referencePixel(sx, sy);
                 if (diagnostic == DetailDiagnostic::none)
                     color = local.pixel(color, (sx + 0.5) / input.width, (sy + 0.5) / input.height);
                 if (!input.alpha.empty())
@@ -145,8 +151,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                 if (destination[static_cast<std::size_t>(x) * 4 + 3] == 0)
                     continue;
                 const auto maskSample = geometry.sample(x, y, [&](int sx, int sy) {
-                    const auto a = static_cast<float>(
-                        selected->coverage((sx + 0.5) / input.width, (sy + 0.5) / input.height));
+                    const auto a = static_cast<float>(local.coverage(
+                        static_cast<std::size_t>(selected - edits.localMasks.begin()),
+                        (sx + 0.5) / input.width, (sy + 0.5) / input.height,
+                        referencePixel(sx, sy)));
                     const auto alpha = input.coverage(sx, sy);
                     return std::array{a * alpha, alpha, 0.F};
                 });

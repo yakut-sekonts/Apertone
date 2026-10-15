@@ -94,19 +94,25 @@ integration. The human has resumed phase 0.5.
 
 ## 0.5 — Local Adjustments
 
-🚧 In progress. **0.5.0** implements persistent ordered linear/radial gradients,
-eight local Light/Color controls, on-photo gestures, enable/reorder/rename/delete,
-Invert, Feather and Mask opacity. The transient colored overlay never enters
-export/thumbnails. Full-document Undo/Redo, atomic catalog 9→10 migration,
-restart, preview/export parity and edited-thumbnail identities include masks.
-Global presets and batch operations preserve target masks; transfer is deferred.
-See [local mask acceptance and limits](docs/LOCAL_ADJUSTMENTS.md),
-[ADR 0022](docs/adr/0022-local-gradient-adjustments.md) and
-[Issue #40](https://github.com/yakut-sekonts/Luma/issues/40).
+✅ Implemented in source 0.5.1. Persistent ordered Linear, Radial, Brush,
+Luminance Range and Color Range selections support eight local Light/Color
+controls. Brush has size, feather, stroke opacity and erase; continuous strokes
+remain anchored through Crop/Transform/EXIF. Ordered Add/Subtract/Intersect
+components have independent enable/invert and order controls. Range sampling
+uses the image before local layers and refuses stale asynchronous results.
 
-Remaining phase-0.5 increments: Brush; color/luminance range masks; boolean mask
-composition. Depth Range depends on actual depth ingestion. Metal and AI remain
-0.6/0.7. This increment does not mark the whole phase complete.
+Full-document Undo/Redo, atomic catalog 10→11 migration, restart, shared
+preview/export/thumbnail rendering and all eight language packs include the
+complete mask document. Global presets and batch operations preserve target
+masks. See [phase acceptance](docs/PHASE5_ACCEPTANCE.md),
+[workflow and limits](docs/LOCAL_ADJUSTMENTS.md),
+[ADR 0024](docs/adr/0024-complete-local-masks.md) and
+[Issue #44](https://github.com/yakut-sekonts/Luma/issues/44).
+
+Depth Range is conditional on an actual source depth channel; the current
+pipeline has none, so no synthetic Depth control is exposed. Metal and AI remain
+0.6/0.7. Full release publication and the separate regression campaign follow
+phase completion; the public download remains 0.4.14 until then.
 
 ## 0.6 — Performance
 

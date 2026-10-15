@@ -185,12 +185,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 10)
+        if (current == 11)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 10) {
+        if (current > 11) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -337,8 +337,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             migrateTransform();
             current = 9;
         }
-        if (current == 9)
+        if (current == 9) {
             migrateLocalMasks();
+            current = 10;
+        }
+        if (current == 10)
+            migrateMaskComponents();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

@@ -103,6 +103,7 @@ class Catalog {
     void migrateLens();
     void migrateTransform();
     void migrateLocalMasks();
+    void migrateMaskComponents();
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;

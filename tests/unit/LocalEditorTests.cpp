@@ -66,7 +66,7 @@ void localEditorTests(const QString &source, const QString &root, const QString 
         return item;
     };
     require(child("localPanelToggle")->setProperty("checked", true), "Cannot expand local panel.");
-    require(QMetaObject::invokeMethod(child("addLinearMask"), "clicked"),
+    require(QMetaObject::invokeMethod(child("localNewMask"), "clicked"),
             "Cannot add mask through QML.");
     require(editor.currentSettings().localMasks.size() == 1 && editor.localMode(),
             "QML add failed.");

@@ -25,7 +25,11 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
     const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
     const auto &input = optics.image();
     const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, edits);
-    const LocalAdjustmentPass local(edits.localMasks);
+    const double sourceAspect =
+        decoded.metadata.width > 0 && decoded.metadata.height > 0
+            ? static_cast<double>(decoded.metadata.width) / decoded.metadata.height
+            : static_cast<double>(input.width) / input.height;
+    const LocalAdjustmentPass local(edits.localMasks, sourceAspect);
     const DevelopPipeline pipeline(edits, decoded.calibration);
     const NoiseReductionPass noise(input, pipeline, edits, stop, 1, DetailDiagnostic::none,
                                    [&](double value) {

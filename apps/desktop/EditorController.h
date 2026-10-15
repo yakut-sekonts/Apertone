@@ -16,6 +16,15 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)
+    Q_PROPERTY(bool localSampling READ localSampling NOTIFY stateChanged)
+    Q_PROPERTY(bool localGestureActive READ localGestureActive NOTIFY stateChanged)
+    Q_PROPERTY(
+        double localBrushSize READ localBrushSize WRITE setLocalBrushSize NOTIFY stateChanged)
+    Q_PROPERTY(double localBrushOpacity READ localBrushOpacity WRITE setLocalBrushOpacity NOTIFY
+                   stateChanged)
+    Q_PROPERTY(
+        bool localBrushErase READ localBrushErase WRITE setLocalBrushErase NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localMasks READ localMasks NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap localState READ localState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localHandles READ localHandles NOTIFY stateChanged)
@@ -91,6 +100,35 @@ class EditorController final : public QObject {
         return progress_;
     }
     QVariantList localMasks() const;
+    QVariantList localComponents() const;
+    bool localGestureActive() const {
+        return localGesture_.has_value();
+    }
+    bool localSampling() const {
+        return localSampling_;
+    }
+    double localBrushSize() const {
+        return localBrushSize_;
+    }
+    double localBrushOpacity() const {
+        return localBrushOpacity_;
+    }
+    bool localBrushErase() const {
+        return localBrushErase_;
+    }
+    void setLocalBrushSize(double value);
+    void setLocalBrushOpacity(double value);
+    void setLocalBrushErase(bool value);
+    Q_INVOKABLE QString addLocalComponent(const QString &shape, const QString &operation);
+    Q_INVOKABLE void selectLocalComponent(const QString &id);
+    Q_INVOKABLE void removeLocalComponent();
+    Q_INVOKABLE void moveLocalComponent(int direction);
+    Q_INVOKABLE void setLocalComponentEnabled(bool value);
+    Q_INVOKABLE void setLocalComponentInverted(bool value);
+    Q_INVOKABLE void setLocalComponentOperation(const QString &value);
+    Q_INVOKABLE void clearLocalBrush();
+    Q_INVOKABLE void pickLocalRange(double x, double y);
+    Q_INVOKABLE QVariantList localBrushOutline(double x, double y) const;
     QVariantMap localState() const;
     QVariantList localHandles() const;
     bool localMode() const {
@@ -254,11 +292,23 @@ class EditorController final : public QObject {
     bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
     QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
     double localOverlayOpacity_ = 0.45;
+    QString localComponentSelected_;
+    double localBrushSize_ = 8, localBrushOpacity_ = 100;
+    bool localBrushErase_ = false, localSampling_ = false;
+    luma::JobHandle localSampleJob_;
+    std::uint64_t localSampleRevision_ = 0;
+    void cancelLocalSample();
+    int localComponentIndex(const luma::LocalMask &mask) const;
+    luma::MaskGeometry &localGeometry(luma::LocalMask &mask) const;
+    const luma::MaskGeometry &localGeometry(const luma::LocalMask &mask) const;
+    static QString localShapeKey(luma::MaskShape shape);
+    static luma::MaskGeometry makeLocalGeometry(const QString &shape);
     struct LocalGesture {
         luma::LocalMask base;
         luma::CropGeometry geometry;
         int handle;
         std::array<double, 2> anchor;
+        std::optional<luma::BrushStroke> stroke;
     };
     std::optional<LocalGesture> localGesture_;
     int localIndex() const;

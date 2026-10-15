@@ -331,18 +331,34 @@ The native adapter validates header/decoded dimensions and completeness, and che
 cancellation before/after native operations and during conversion. See
 [image support](docs/IMAGE_SUPPORT.md) for the user-visible format/limit contract.
 
-## Local gradients
+## Local adjustments
 
-ADR 0022 adds ordered linear/radial masks to the complete EditDocument value.
-Catalog 10 stores a mandatory bounded version-1 child per asset, atomically with
-global edit schema 8 and saved revision. Global preset merges preserve masks;
-batch journals include them for conflict detection and Undo. Thumbnail identity
-includes canonical mask bytes and uses edited-v3.
+ADRs 0022/0024 add ordered local adjustment layers to the complete EditDocument.
+Catalog 11 stores a mandatory bounded version-2 mask child per asset, atomically
+with global edit schema 8 and saved revision. Catalog 10→11 validates and upgrades
+all version-1 gradients in one transaction, including rollback on a later corrupt
+row; older apps refuse catalog 11. Global preset merges preserve target masks;
+batch journals include the entire mask document for conflict detection and Undo.
+Thumbnail identity includes canonical mask bytes and uses edited-v4.
+
+A mask contains a base Linear/Radial/Brush/Luminance/Color primitive plus ordered
+Add/Subtract/Intersect operands. Composition uses a+b−ab, a(1−b), ab; operand
+inversion applies before composition, final inversion/opacity after it. Brush
+stores bounded vector centerlines with stroke radius/opacity/erase. Continuous
+capsules are unioned within a stroke and composited across strokes; a segment
+BVH avoids full-size coverage images and per-pixel heap allocation.
 
 LocalAdjustmentPass applies eight pointwise Light/Color operators after global
-Develop/Detail in scene-linear sRGB and before the existing geometry sample.
-Preview and LinearOutput share this pass; optically corrected source coordinates
-are normalized before EXIF/Crop/Transform. CropGeometry's forward/inverse pair
-projects editing handles and gestures. The display-only coverage overlay is
-excluded from export/thumbnail paths. Tool/selection/overlay state is transient.
-See [local mask workflow, limits and acceptance](docs/LOCAL_ADJUSTMENTS.md).
+Develop/Detail in scene-linear sRGB and before geometry sampling. Range selectors
+reference this pre-local image, independent of layer order or display ICC.
+Luminance uses clamped encoded linear-Y; Color uses normalized Euclidean distance
+in clamped encoded sRGB. This is not Adobe matching or a perceptual Delta E claim.
+The asynchronous source sampler shares reference passes and rejects stale jobs.
+
+Preview and LinearOutput share coverage and adjustments; optically corrected
+source coordinates are normalized before EXIF/Crop/Transform. Brush radius uses
+the original source aspect, independent of rounded preview dimensions. The
+CropGeometry forward/inverse pair projects editing handles, cursor and gestures.
+The alpha-aware coverage overlay is excluded from export/thumbnail paths.
+Tool/selection/overlay state is transient. See
+[local mask workflow, limits and acceptance](docs/LOCAL_ADJUSTMENTS.md).

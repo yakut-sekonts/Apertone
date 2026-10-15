@@ -1,5 +1,7 @@
 #pragma once
 #include "core/render/DevelopPipeline.h"
+#include "core/render/MaskCoverage.h"
+#include <optional>
 namespace luma {
 struct MaskOverlay {
     std::string id;
@@ -8,13 +10,14 @@ struct MaskOverlay {
 };
 class LocalAdjustmentPass {
   public:
-    explicit LocalAdjustmentPass(const std::vector<LocalMask> &masks);
+    explicit LocalAdjustmentPass(const std::vector<LocalMask> &masks, double aspect = 1);
     std::array<float, 3> pixel(std::array<float, 3> color, double x, double y) const;
+    double coverage(std::size_t mask, double x, double y, std::array<float, 3> reference) const;
 
   private:
     struct Layer {
-        LocalMask mask;
-        DevelopPipeline pipeline;
+        MaskCoverage coverage;
+        std::optional<DevelopPipeline> pipeline;
     };
     std::vector<Layer> layers_;
 };

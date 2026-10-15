@@ -3,6 +3,7 @@
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryAcceptance.h"
 #include "apps/desktop/LibraryModel.h"
+#include "apps/desktop/LocalMaskAcceptance.h"
 #include "apps/desktop/LocalizationController.h"
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
@@ -57,6 +58,8 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: calibrated Lens Corrections")});
     parser.addOption({QStringLiteral("test-transform"),
                       QStringLiteral("Integration test: perspective geometry and history")});
+    parser.addOption({QStringLiteral("test-complete-masks"),
+                      QStringLiteral("Integration test: complete phase-0.5 mask workflow")});
     parser.addOption({QStringLiteral("test-local-masks"),
                       QStringLiteral("Integration test: local masks, history and restart")});
     parser.addOption({QStringLiteral("test-filter"),
@@ -293,6 +296,19 @@ int main(int argc, char **argv) {
             app.exit(1);
         });
         editor.openFile(QUrl::fromLocalFile(parser.value(QStringLiteral("test-edit"))));
+    } else if (parser.isSet(QStringLiteral("test-complete-masks"))) {
+        const bool restore = parser.isSet(QStringLiteral("test-restore"));
+        bool valid = false;
+        const double target =
+            parser.value(restore ? QStringLiteral("test-restore") : QStringLiteral("test-exposure"))
+                .toDouble(&valid);
+        if (!valid || parser.value(QStringLiteral("test-export")).isEmpty()) {
+            std::cerr << "Invalid complete mask acceptance arguments\n";
+            return 2;
+        }
+        startLocalMaskAcceptance(app, window, editor, parser.value(QStringLiteral("test-edit")),
+                                 restore, target, parser.value(QStringLiteral("test-export")),
+                                 parser.value(QStringLiteral("test-screenshot")));
     } else if (parser.isSet(QStringLiteral("test-edit")) ||
                parser.isSet(QStringLiteral("test-restore"))) {
         const bool editing = parser.isSet(QStringLiteral("test-edit"));

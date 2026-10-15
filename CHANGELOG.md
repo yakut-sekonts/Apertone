@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.1 / Complete local masks — source, not yet released
+
+- Brush with size, feather, per-stroke opacity, continuous painting and erase.
+- Luminance/Color Range with asynchronous on-photo sampling and stable pre-local references.
+- Ordered Add/Subtract/Intersect components with independent enable/invert and reordering.
+- Full-document gesture Undo/Redo, shared preview/export/thumbnail rendering and eight languages.
+- Atomic catalog 10→11 migration, bounded version-2 mask data and legacy gradient compatibility.
+- Depth Range requires a source depth channel; no synthetic depth or AI masks are claimed.
+- Release publication and the separate regression campaign remain the next step.
+
 ## 0.5.0 / Local gradient adjustments
 
 - Persistent ordered linear/radial masks with eight local Light/Color controls.

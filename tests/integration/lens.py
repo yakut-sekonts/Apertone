@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix="luma-lens-") as temporary:
                     for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Neutral migration changed old settings or selection"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 10
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 11
         assert db.execute("SELECT schema_version,lens_profile,lens_distortion,lens_vignetting,lens_ca FROM edit_documents").fetchone() == (8,"",100,100,1)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == durable
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4

@@ -60,6 +60,17 @@ try:
             assert "ReferenceError" not in result.stderr and "Unable to assign" not in result.stderr, result.stderr
         assert (folder / "first.png").read_bytes() == (folder / "second.png").read_bytes()
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
+        mask_folder=folder/"complete-masks";mask_folder.mkdir()
+        for arguments in (["--test-edit",str(raw),"--test-exposure","0.35","--test-complete-masks","--test-export",str(mask_folder/"first.png")],
+                          ["--test-restore","0.35","--test-complete-masks","--test-export",str(mask_folder/"second.png")]):
+            result=subprocess.run([str(executable),"--catalog",str(mask_folder/"catalog.sqlite"),*arguments],env=env,capture_output=True,text=True,timeout=130)
+            assert result.returncode==0,result.stdout+result.stderr
+            assert not any(token in result.stderr for token in ("ReferenceError","Unable to assign","Binding loop","TypeError")),result.stderr
+        assert (mask_folder/"first.png").read_bytes()==(mask_folder/"second.png").read_bytes()
+        with sqlite3.connect(mask_folder/"catalog.sqlite") as db:
+            assert db.execute("PRAGMA user_version").fetchone()==(11,)
+            assert db.execute("SELECT document FROM edit_local_masks").fetchone()[0].startswith("LUMA_LOCAL_MASKS 2 2\n")
+        assert hashlib.sha256(raw.read_bytes()).hexdigest()==checksum
         xmp_folder = folder / "xmp"; xmp_folder.mkdir()
         xmp_file = xmp_folder / "Sparse.XMP"
         xmp_file.write_text("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF "
@@ -79,7 +90,7 @@ try:
         assert imported["schemaVersion"] == 7 and imported["presets"][0]["preset"]["parameters"] == ["exposure"]
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
         thumbnails = list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v3.jpg") for p in thumbnails)
+        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v4.jpg") for p in thumbnails)
         lens_source = folder / "calibrated.DNG"
         create_dng(lens_source, maker="NIKON CORPORATION", model="NIKON D7500",
                    lens="AF-S DX Nikkor 18-140mm f/3.5-5.6G ED VR", focal=18, aperture=5.6)
@@ -152,7 +163,7 @@ try:
         image_run("--test-edit", image_pair / "rgba.png", "--test-export-queue", image_queue)
         assert next(image_queue.glob("*.dng")).stat().st_size > 1000
         assert all(hashlib.sha256(path.read_bytes()).hexdigest() == checksum for path, checksum in hashes.items())
-        print(f"Standalone Luma {version}: Library, Develop, Lens Corrections, Transform/Filter/Undo, sparse XMP import/apply/Undo/restart/export, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
+        print(f"Standalone Luma {version}: complete Brush/Erase/range/boolean masks, Library, Develop, Lens Corrections, Transform/Filter/Undo, sparse XMP import/apply/Undo/restart/export, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
 finally:
     for source, destination in reversed(sparkle_sources):
         destination.rename(source)

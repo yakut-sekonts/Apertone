@@ -73,9 +73,9 @@ void documents() {
     const auto encoded = luma::encodeLocalMasks({m});
     require(luma::decodeLocalMasks(encoded) == std::vector{m},
             "Canonical Unicode roundtrip failed.");
-    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 1 0\n", "Neutral document changed.");
+    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 2 0\n", "Neutral document changed.");
     for (auto text :
-         {encoded + " ", std::string("LUMA_LOCAL_MASKS 2 0\n"),
+         {encoded + " ", std::string("LUMA_LOCAL_MASKS 3 0\n"),
           std::string("LUMA_LOCAL_MASKS 1 129\n"), encoded.substr(0, encoded.size() - 2)})
         rejects([&] { luma::decodeLocalMasks(text); });
     rejects([&] { luma::encodeLocalMasks({m, m}); });
@@ -165,7 +165,22 @@ void pixels() {
     require(luma::LocalAdjustmentPass({m, second}).pixel(color, .7, .5) !=
                 luma::LocalAdjustmentPass({second, m}).pixel(color, .7, .5),
             "Layer order was ignored.");
-    edit.localMasks = {m, second};
+    auto composite = m;
+    composite.id = luma::newID();
+    composite.shape = luma::MaskShape::brush;
+    composite.strokes = {{false, .3, 80, {{.1, .2}, {.9, .8}}}, {true, .05, 50, {{.5, .5}}}};
+    luma::MaskComponent selector;
+    selector.id = luma::newID();
+    selector.geometry.shape = luma::MaskShape::luminance;
+    selector.geometry.rangeLow = .1;
+    selector.geometry.rangeHigh = .9;
+    selector.operation = luma::MaskOperation::intersect;
+    composite.components = {selector};
+    auto colors = second;
+    colors.id = luma::newID();
+    colors.shape = luma::MaskShape::color;
+    colors.colorTolerance = .6;
+    edit.localMasks = {m, second, composite, colors};
     edit.exposure = .25;
     edit.crop.angle = 8;
     edit.crop.x = .1;
@@ -249,13 +264,19 @@ void persistence(const std::filesystem::path &root) {
         db.saveEdits(id, edits);
     }
     sql(path, "DROP TRIGGER initialize_local_masks;DROP TABLE edit_local_masks;DELETE FROM "
-              "schema_migrations WHERE version=10;PRAGMA user_version=9;");
+              "schema_migrations WHERE version>=10;PRAGMA user_version=9;");
     {
         luma::Catalog db(path);
         auto snap = db.assetSnapshot(id);
         require(snap && snap->revision == 1 && snap->asset.edits == edits,
                 "Schema 9 migration changed global edits or revision.");
-        edits.localMasks = {mask()};
+        auto composed = mask();
+        luma::MaskComponent brush;
+        brush.id = luma::newID();
+        brush.geometry.shape = luma::MaskShape::brush;
+        brush.geometry.strokes = {{false, .1, 75, {{.25, .5}, {.75, .5}}}};
+        composed.components = {brush};
+        edits.localMasks = {composed};
         edits.localMasks[0].setParameter("exposure", .75);
         db.saveEdits(id, edits);
     }
@@ -271,7 +292,7 @@ void persistence(const std::filesystem::path &root) {
         require(db.assetByID(id)->edits == edits, "Batch Undo lost masks.");
         db.restoreBatchEdits(true);
         auto changed = db.assetByID(id)->edits;
-        changed.localMasks[0].opacity = 45;
+        changed.localMasks[0].components[0].geometry.strokes[0].points[0].x = .35;
         db.saveEdits(id, changed);
         rejects([&] { db.restoreBatchEdits(false); });
     }
@@ -296,7 +317,7 @@ void persistence(const std::filesystem::path &root) {
         db.addAndSelect(root / "other.dng", "other", metadata);
     }
     sql(bad, "DROP TRIGGER initialize_local_masks;DROP TABLE edit_local_masks;DELETE FROM "
-             "schema_migrations WHERE version=10;PRAGMA user_version=9;PRAGMA "
+             "schema_migrations WHERE version>=10;PRAGMA user_version=9;PRAGMA "
              "ignore_check_constraints=ON;UPDATE edit_documents SET schema_version=99;");
     rejects([&] { luma::Catalog db(bad); });
     sql(bad, "PRAGMA ignore_check_constraints=ON;UPDATE edit_documents SET schema_version=8;");
@@ -306,11 +327,13 @@ void persistence(const std::filesystem::path &root) {
     }
 }
 } // namespace
+void completeMaskTests();
 int main() {
     const auto root =
         std::filesystem::temp_directory_path() / ("luma-local-" + std::to_string(getpid()));
     try {
         std::filesystem::create_directories(root);
+        completeMaskTests();
         coverage();
         documents();
         geometry();

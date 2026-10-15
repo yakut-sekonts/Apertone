@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.5.0 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.5.1 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -21,7 +21,7 @@ include(cmake/Dependencies.cmake)
 include(cmake/Sparkle.cmake)
 
 add_library(luma_core STATIC
-    core/edits/LocalMasks.cpp core/render/LocalAdjustments.cpp core/catalog/LocalMaskStorage.cpp
+    core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
     "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
     core/math/Homography.cpp core/edits/TransformSettings.cpp core/render/TransformMapping.cpp core/render/PerspectiveCorrection.cpp
     core/lens/LensProfiles.cpp core/lens/LensCorrection.cpp core/edits/LensSettings.cpp
@@ -58,9 +58,9 @@ qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
     apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
-    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp)
+    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/LocalPanel.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
+    QML_FILES apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Luma PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
@@ -104,15 +104,15 @@ if(BUILD_TESTING)
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
+    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/LocalCompleteEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
-    target_link_libraries(luma_preset_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
+    target_link_libraries(luma_preset_tests PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_preset_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_executable(luma_raster_tests tests/unit/RasterTests.mm)
     target_link_libraries(luma_raster_tests PRIVATE luma_services)
@@ -127,7 +127,7 @@ if(BUILD_TESTING)
     target_compile_options(luma_filter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME builtin-filter-photographic-quality COMMAND luma_filter_tests "${CMAKE_SOURCE_DIR}/tests/assets/filters" "${CMAKE_BINARY_DIR}/qa/filters")
     set_tests_properties(builtin-filter-photographic-quality PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 90)
-    add_executable(luma_local_mask_tests tests/unit/LocalMaskTests.cpp)
+    add_executable(luma_local_mask_tests tests/unit/LocalMaskTests.cpp tests/unit/LocalCompleteTests.cpp)
     target_link_libraries(luma_local_mask_tests PRIVATE luma_services)
     target_compile_options(luma_local_mask_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME local-mask-render-storage COMMAND luma_local_mask_tests)
@@ -196,6 +196,9 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" synthetic)
     add_test(NAME develop-export-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/develop.py" "$<TARGET_FILE:luma_cli>")
+    add_test(NAME complete-mask-native-restart COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/complete_masks.py" "$<TARGET_FILE:Luma>")
+    set_tests_properties(complete-mask-native-restart PROPERTIES TIMEOUT 240)
     add_test(NAME local-mask-native-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/local_masks.py" "$<TARGET_FILE:Luma>")
     set_tests_properties(local-mask-native-restart PROPERTIES TIMEOUT 240)

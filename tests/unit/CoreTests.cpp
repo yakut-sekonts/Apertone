@@ -272,7 +272,7 @@ void catalogTests() {
         }
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
                 "Cannot reopen future schema fixture.");
-        require(sqlite3_exec(db, "PRAGMA user_version=11", nullptr, nullptr, nullptr) == SQLITE_OK,
+        require(sqlite3_exec(db, "PRAGMA user_version=12", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });

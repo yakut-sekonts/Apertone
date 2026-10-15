@@ -18,7 +18,7 @@ DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed
 The build is ad-hoc signed and not notarized. Installation instructions and
 checksums accompany the release. The release includes all completed phase 0.4 work, runtime languages, ordinary images and XMP preset import.
 
-## Included in source: phase 0.4
+## Included in source: phases 0.4–0.5
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
@@ -46,7 +46,8 @@ checksums accompany the release. The release includes all completed phase 0.4 wo
 - ✅ Manual, Auto and Guided perspective Transform in source.
 - ✅ Eight ready-made Curve/HSL filters with hover and Undo in source.
 - ✅ Advanced JPEG/PNG/TIFF8/16/DNG export, color/resize/metadata/watermark settings and sequential queue.
-- 🗓 Local masks and Metal image processing.
+- ✅ Linear/Radial/Brush/Luminance/Color local masks, boolean composition and shared persistent rendering.
+- 🗓 Metal image processing.
 
 Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
 Linux are outside the current scope.
@@ -415,7 +416,7 @@ batch edits, export queue and restart. PNG/TIFF preserve transparency; JPEG/DNG
 flatten against black. Native ImageIO handles full-image color-managed decoding;
 RAW retains its sensor pipeline. See [supported formats and limits](docs/IMAGE_SUPPORT.md).
 These requested pre-phase-0.5 extensions are included in release 0.4.13.
-Local gradients are implemented in the 0.5.0 source; see the section below.
+The complete local mask workflow is implemented in the 0.5.1 source; see below.
 
 
 ## macOS installer and version / 0.4.13
@@ -425,15 +426,20 @@ window title, status bar, Finder and --version share CMake's release version.
 The latest GitHub Release provides a matching DMG, ZIP, SHA256SUMS, BUILD_INFO.json
 and signed Sparkle appcast. See [release notes](docs/releases/v0.4.13.md).
 
-## Local gradients / 0.5.0 source
+## Local adjustments / 0.5.1 source
 
-Local adjustments adds persistent linear/radial masks with Exposure, Contrast,
-Highlights, Shadows, Whites, Blacks, Vibrance and Saturation. Edit geometry on the
-photo; control Feather, Mask opacity, Invert and layer order. The colored overlay
-is transient. Undo/Redo, export, restart and edited Library thumbnails retain
-masks. Global presets, XMP, Paste and Sync preserve existing masks.
+Local adjustments provides Linear/Radial gradients, Brush with erase and stroke
+opacity, Luminance Range and Color Range. Combine selections with ordered
+Add/Subtract/Intersect operands; sample ranges on the photo, invert selections
+and control feather, mask opacity and layer order. All selections support the
+eight local Light/Color controls. The colored overlay is transient.
 
-Catalog 10 is newer than 0.4.x: back up the catalog before upgrading if you need
-to roll back. Brush/ranges/boolean composition remain later phase-0.5 work.
-See [workflow and acceptance](docs/LOCAL_ADJUSTMENTS.md). The current published
-download above remains 0.4.14 until the next release is verified and published.
+Undo/Redo, export, restart and edited Library thumbnails retain complete masks.
+Global presets, XMP, Paste and Sync preserve existing masks. Catalog 11 upgrades
+legacy gradients atomically; older apps refuse this catalog. Back it up before
+upgrading if rollback is needed. Depth Range requires a real depth channel and
+is not exposed without one; AI/Metal remain later roadmap phases.
+
+See [workflow and limits](docs/LOCAL_ADJUSTMENTS.md) and
+[phase acceptance](docs/PHASE5_ACCEPTANCE.md). The current published download
+above remains 0.4.14 until the next release is verified and published.
