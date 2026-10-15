@@ -8,7 +8,8 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr std::array tables{"edit_documents", "edit_curve_points", "edit_hsl_bands"};
+constexpr std::array tables{"edit_documents", "edit_curve_points", "edit_hsl_bands",
+                            "edit_local_masks"};
 constexpr std::array columns{"schema_version",
                              "exposure",
                              "temperature",
@@ -247,7 +248,7 @@ BatchEditResult Catalog::restoreBatchEdits(bool redo, CancellationToken stop,
                  ",revision=revision+1,updated_at=CURRENT_TIMESTAMP"
                  " WHERE asset_id IN (SELECT asset_id FROM temp.batch_changed);")
                     .c_str());
-        for (const auto *table : {"edit_curve_points", "edit_hsl_bands"}) {
+        for (const auto *table : {"edit_curve_points", "edit_hsl_bands", "edit_local_masks"}) {
             execute(("DELETE FROM main." + std::string(table) +
                      " WHERE asset_id IN (SELECT asset_id FROM temp.batch_changed);")
                         .c_str());

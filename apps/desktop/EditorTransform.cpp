@@ -51,6 +51,7 @@ void EditorController::setGuidedMode(bool enabled) {
     cancelAutoTransform();
     endEdit();
     if (enabled) {
+        setLocalMode(false);
         setCropMode(false);
         targetedTool_ = QStringLiteral("none");
     }

@@ -114,6 +114,9 @@ void EditorController::openFile(const QUrl &url) {
 void EditorController::load(std::optional<std::filesystem::path> source) {
     closeTransformTool();
     guides_.clear();
+    localMode_ = false;
+    localSelected_.clear();
+    localGesture_.reset();
     cropMode_ = false;
     clearDetailDiagnostic();
     endEdit();
@@ -268,6 +271,7 @@ void EditorController::endEdit() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     targeted_.reset();
+    localGesture_.reset();
     history_.end();
     emit stateChanged();
 }
@@ -355,6 +359,7 @@ void EditorController::undo() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canUndo()) {
+        localGesture_.reset();
         targeted_.reset();
         history_.undo();
         editsChanged();
@@ -364,12 +369,14 @@ void EditorController::redo() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canRedo()) {
+        localGesture_.reset();
         targeted_.reset();
         history_.redo();
         editsChanged();
     }
 }
 void EditorController::resetEdits() {
+    setLocalMode(false);
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.current() != luma::EditDocument{}) {
@@ -379,6 +386,7 @@ void EditorController::resetEdits() {
     }
 }
 void EditorController::setOriginal(bool value) {
+    setLocalMode(false);
     closeTransformTool();
     if (original_ == value || !session_) {
         return;
@@ -405,6 +413,11 @@ void EditorController::render() {
         guidedCanvasReady_ = false;
         emit stateChanged();
     }
+    if (localCanvasReady_) {
+        localCanvasReady_ = false;
+        emit stateChanged();
+    }
+    const auto overlay = localRenderOverlay();
     const auto image = session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
@@ -425,50 +438,51 @@ void EditorController::render() {
     const auto diagnostic = diagnostic_;
     const auto detailScale = session_->previewScale;
     const QPointer<EditorController> self(this);
-    renderJob_ =
-        renderJobs_.submit(luma::JobPriority::interactive,
-                           [self, image, orientation, edits, calibration, profile, revision,
-                            diagnostic, detailScale, metadata](const luma::JobContext &context) {
-                               try {
-                                   const auto pixels = luma::renderCPU(
-                                       *image, edits, orientation, profile, context.stopToken(),
-                                       calibration, diagnostic, detailScale, metadata);
-                                   QImage output(pixels.rgba.data(), pixels.width, pixels.height,
-                                                 pixels.width * 4, QImage::Format_RGBA8888);
-                                   auto owned = output.copy();
-                                   if (self) {
-                                       QMetaObject::invokeMethod(
-                                           self,
-                                           [self, revision, owned = std::move(owned)]() mutable {
-                                               if (!self || self->renderRevision_ != revision) {
-                                                   return;
-                                               }
-                                               self->provider_->update(std::move(owned));
-                                               ++self->imageRevision_;
-                                               self->cropCanvasReady_ = self->cropMode_;
-                                               self->guidedCanvasReady_ = self->guidedMode_;
-                                               emit self->stateChanged();
-                                           },
-                                           Qt::QueuedConnection);
-                                   }
-                               } catch (const std::exception &error) {
-                                   if (context.stopToken().isCancelled()) {
-                                       return;
-                                   }
-                                   const auto message = QString::fromUtf8(error.what());
-                                   if (self) {
-                                       QMetaObject::invokeMethod(
-                                           self,
-                                           [self, revision, message] {
-                                               if (self && self->renderRevision_ == revision) {
-                                                   self->error_ = message;
-                                                   emit self->stateChanged();
-                                               }
-                                           },
-                                           Qt::QueuedConnection);
-                                   }
-                               }
-                           });
+    renderJob_ = renderJobs_.submit(
+        luma::JobPriority::interactive,
+        [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
+         metadata, overlay](const luma::JobContext &context) {
+            try {
+                const auto pixels =
+                    luma::renderCPU(*image, edits, orientation, profile, context.stopToken(),
+                                    calibration, diagnostic, detailScale, metadata, overlay);
+                QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
+                              QImage::Format_RGBA8888);
+                auto owned = output.copy();
+                if (self) {
+                    QMetaObject::invokeMethod(
+                        self,
+                        [self, revision, owned = std::move(owned)]() mutable {
+                            if (!self || self->renderRevision_ != revision) {
+                                return;
+                            }
+                            self->provider_->update(std::move(owned));
+                            ++self->imageRevision_;
+                            self->cropCanvasReady_ = self->cropMode_;
+                            self->guidedCanvasReady_ = self->guidedMode_;
+                            self->localCanvasReady_ = self->localMode_;
+                            emit self->stateChanged();
+                        },
+                        Qt::QueuedConnection);
+                }
+            } catch (const std::exception &error) {
+                if (context.stopToken().isCancelled()) {
+                    return;
+                }
+                const auto message = QString::fromUtf8(error.what());
+                if (self) {
+                    QMetaObject::invokeMethod(
+                        self,
+                        [self, revision, message] {
+                            if (self && self->renderRevision_ == revision) {
+                                self->error_ = message;
+                                emit self->stateChanged();
+                            }
+                        },
+                        Qt::QueuedConnection);
+                }
+            }
+        });
 }
 void EditorController::flushSave() {
     saveTimer_.stop();
@@ -582,6 +596,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     error_.clear();
     closeTransformTool();
     setCropMode(false);
+    setLocalMode(false);
     endEdit();
     status_ = QStringLiteral("Exporting photo…");
     emit stateChanged();

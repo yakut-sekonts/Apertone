@@ -35,6 +35,7 @@ class CropGeometry {
                point[1] <= sourceHeight_ - 1 + 1e-8;
     }
     std::array<double, 4> frame() const;
+    std::array<double, 2> output(double x, double y) const;
     std::array<double, 2> source(double x, double y) const;
     template <class Pixel> std::array<float, 3> sample(int x, int y, const Pixel &pixel) const {
         const auto point = source(x, y);

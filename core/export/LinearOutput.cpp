@@ -3,6 +3,7 @@
 #include "core/lens/LensCorrection.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
+#include "core/render/LocalAdjustments.h"
 #include "core/render/NoiseReduction.h"
 #include <algorithm>
 #include <cmath>
@@ -24,6 +25,7 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
     const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
     const auto &input = optics.image();
     const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, edits);
+    const LocalAdjustmentPass local(edits.localMasks);
     const DevelopPipeline pipeline(edits, decoded.calibration);
     const NoiseReductionPass noise(input, pipeline, edits, stop, 1, DetailDiagnostic::none,
                                    [&](double value) {
@@ -47,7 +49,8 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
                     noise.active() ? noise.pixel({}, sx, sy)
                                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
                                                      input.rgb[offset + 2]});
-                auto color = sharpening.pixel(developed, sx, sy);
+                auto color = local.pixel(sharpening.pixel(developed, sx, sy),
+                                         (sx + 0.5) / input.width, (sy + 0.5) / input.height);
                 if (!input.alpha.empty())
                     for (auto &value : color)
                         value *= input.coverage(sx, sy);

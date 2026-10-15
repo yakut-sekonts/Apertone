@@ -32,7 +32,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
 - `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
-- `core/edits`: validated typed Develop document; schema version 7.
+- `core/edits`: validated typed Develop document; global schema version 8.
 - `core/presets`: validated subset merge of implemented settings groups.
 - `core/catalog`: SQLite connection per worker operation and migrations through 8.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
@@ -330,3 +330,19 @@ normalize by coverage. PNG/TIFF preserve alpha; JPEG/DNG flatten against black.
 The native adapter validates header/decoded dimensions and completeness, and checks
 cancellation before/after native operations and during conversion. See
 [image support](docs/IMAGE_SUPPORT.md) for the user-visible format/limit contract.
+
+## Local gradients
+
+ADR 0022 adds ordered linear/radial masks to the complete EditDocument value.
+Catalog 10 stores a mandatory bounded version-1 child per asset, atomically with
+global edit schema 8 and saved revision. Global preset merges preserve masks;
+batch journals include them for conflict detection and Undo. Thumbnail identity
+includes canonical mask bytes and uses edited-v3.
+
+LocalAdjustmentPass applies eight pointwise Light/Color operators after global
+Develop/Detail in scene-linear sRGB and before the existing geometry sample.
+Preview and LinearOutput share this pass; optically corrected source coordinates
+are normalized before EXIF/Crop/Transform. CropGeometry's forward/inverse pair
+projects editing handles and gestures. The display-only coverage overlay is
+excluded from export/thumbnail paths. Tool/selection/overlay state is transient.
+See [local mask workflow, limits and acceptance](docs/LOCAL_ADJUSTMENTS.md).

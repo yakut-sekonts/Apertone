@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 / Local gradient adjustments
+
+- Persistent ordered linear/radial masks with eight local Light/Color controls.
+- On-photo geometry, feather, opacity, inversion, enable/reorder and one-gesture Undo/Redo.
+- Transient colored overlay; shared preview, export and saved thumbnail rendering.
+- Atomic catalog 9→10 migration and strict bounded mask storage; global presets preserve masks.
+- Local panel translated in all eight language packages. Brush/ranges/boolean remain later 0.5 work.
+
 ## 0.4.14 / XMP preset import
 
 - Offline Lightroom / Camera Raw XMP import with explicit compatibility report.

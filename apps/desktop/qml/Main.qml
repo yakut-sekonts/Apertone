@@ -21,7 +21,7 @@ ApplicationWindow {
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
-    onLibraryModeChanged: {if(libraryMode) editor.cropMode=false}
+    onLibraryModeChanged: {if(libraryMode) { editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     Connections {
         target: updates
@@ -203,6 +203,11 @@ ApplicationWindow {
                                 onCanceled: { adjusting=false;editor.endTargeted() }
                             }
                         }
+                        LocalOverlay {
+                            x: (previewImage.width-previewImage.paintedWidth)/2
+                            y: (previewImage.height-previewImage.paintedHeight)/2
+                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                        }
                         TransformOverlay {
                             x: (previewImage.width-previewImage.paintedWidth)/2
                             y: (previewImage.height-previewImage.paintedHeight)/2
@@ -248,6 +253,7 @@ ApplicationWindow {
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
                         spacing: 14
+                        LocalPanel { Layout.fillWidth: true }
                         Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
                         RowLayout {
                             CheckBox { checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }

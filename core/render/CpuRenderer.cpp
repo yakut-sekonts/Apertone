@@ -70,7 +70,7 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
 DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orientation,
                        std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
                        RawColorCalibration calibration, DetailDiagnostic diagnostic,
-                       double detailScale, PhotoMetadata metadata) {
+                       double detailScale, PhotoMetadata metadata, MaskOverlay overlay) {
     source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const auto &input = optics.image();
@@ -82,6 +82,13 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const CropGeometry geometry(input.width, input.height, orientation, edits);
     const int width = geometry.width(), height = geometry.height();
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
+    const LocalAdjustmentPass local(edits.localMasks);
+    const auto selected = std::find_if(edits.localMasks.begin(), edits.localMasks.end(),
+                                       [&](const auto &mask) { return mask.id == overlay.id; });
+    if (!std::isfinite(overlay.opacity) || overlay.opacity < 0 || overlay.opacity > 1 ||
+        std::any_of(overlay.color.begin(), overlay.color.end(),
+                    [](double v) { return !std::isfinite(v) || v < 0 || v > 1; }))
+        throw std::runtime_error("Invalid mask overlay settings.");
     const DevelopPipeline pipeline(edits, calibration);
     const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic);
     const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
@@ -98,6 +105,8 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
                                                      input.rgb[offset + 2]});
                 auto color = sharpening.pixel(developed, sx, sy);
+                if (diagnostic == DetailDiagnostic::none)
+                    color = local.pixel(color, (sx + 0.5) / input.width, (sy + 0.5) / input.height);
                 if (!input.alpha.empty())
                     for (auto &value : color)
                         value *= input.coverage(sx, sy);
@@ -131,6 +140,26 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
             for (int x = 0; x < width; ++x)
                 if (!geometry.covered(x, y))
                     destination[static_cast<std::size_t>(x) * 4 + 3] = 0;
+        if (selected != edits.localMasks.end() && diagnostic == DetailDiagnostic::none)
+            for (int x = 0; x < width; ++x) {
+                if (destination[static_cast<std::size_t>(x) * 4 + 3] == 0)
+                    continue;
+                const auto maskSample = geometry.sample(x, y, [&](int sx, int sy) {
+                    const auto a = static_cast<float>(
+                        selected->coverage((sx + 0.5) / input.width, (sy + 0.5) / input.height));
+                    const auto alpha = input.coverage(sx, sy);
+                    return std::array{a * alpha, alpha, 0.F};
+                });
+                const double coverage =
+                    maskSample[1] > 1e-8F
+                        ? std::clamp(maskSample[0] / maskSample[1], 0.F, 1.F) * overlay.opacity
+                        : 0;
+                for (std::size_t c = 0; c < 3; ++c) {
+                    auto &value = destination[static_cast<std::size_t>(x) * 4 + c];
+                    value = static_cast<std::uint8_t>(
+                        std::lround(value * (1 - coverage) + 255 * overlay.color[c] * coverage));
+                }
+            }
     }
     return result;
 }

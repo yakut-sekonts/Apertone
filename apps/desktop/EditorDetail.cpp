@@ -75,6 +75,8 @@ bool EditorController::eventFilter(QObject *watched, QEvent *event) {
             refreshDetailDiagnostic();
         }
     } else if (event->type() == QEvent::ApplicationDeactivate) {
+        if (localGesture_)
+            endEdit();
         optionHeld_ = false;
         clearDetailDiagnostic();
     }

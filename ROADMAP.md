@@ -78,7 +78,7 @@ coordinates autosave, progress/counts/errors, pause/resume/cancel and close/upda
 All 29 local tests, private Nikon full-resolution export, previous-app default
 compatibility and standalone bundle acceptance passed. See
 [phase-0.4 acceptance](docs/PHASE4_ACCEPTANCE.md). Integration requires exact-head
-macOS CI. Phase 0.4 implementation is complete; stop before 0.5 for human review.
+macOS CI. Phase 0.4 implementation is complete. The human resumed phase 0.5 after review.
 Ready-to-use filters must have representative licensed image tests and no
 hidden irreversible effects. Preset application is one Undo operation.
 
@@ -90,12 +90,23 @@ hidden irreversible effects. Preset application is one Undo operation.
   alongside RAW; shared Develop, alpha/ICC/orientation, Library and export acceptance.
 
 Both extensions are implemented separately; validation and exact-head CI gate
-integration. Phase 0.5 remains on hold for the requested human review.
+integration. The human has resumed phase 0.5.
 
 ## 0.5 — Local Adjustments
 
-🗓 Planned. Brush, linear/radial gradients, color/luminance ranges, mask boolean
-operations, overlay, feathering and per-mask controls.
+🚧 In progress. **0.5.0** implements persistent ordered linear/radial gradients,
+eight local Light/Color controls, on-photo gestures, enable/reorder/rename/delete,
+Invert, Feather and Mask opacity. The transient colored overlay never enters
+export/thumbnails. Full-document Undo/Redo, atomic catalog 9→10 migration,
+restart, preview/export parity and edited-thumbnail identities include masks.
+Global presets and batch operations preserve target masks; transfer is deferred.
+See [local mask acceptance and limits](docs/LOCAL_ADJUSTMENTS.md),
+[ADR 0022](docs/adr/0022-local-gradient-adjustments.md) and
+[Issue #40](https://github.com/yakut-sekonts/Luma/issues/40).
+
+Remaining phase-0.5 increments: Brush; color/luminance range masks; boolean mask
+composition. Depth Range depends on actual depth ingestion. Metal and AI remain
+0.6/0.7. This increment does not mark the whole phase complete.
 
 ## 0.6 — Performance
 

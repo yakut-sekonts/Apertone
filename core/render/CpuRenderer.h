@@ -4,6 +4,7 @@
 #include "core/image/FloatImage.h"
 #include "core/jobs/Cancellation.h"
 #include "core/metadata/PhotoMetadata.h"
+#include "core/render/LocalAdjustments.h"
 #include "core/render/Sharpening.h"
 #include <cstdint>
 #include <span>
@@ -20,6 +21,6 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                        std::span<const std::uint8_t> displayProfile = {},
                        luma::CancellationToken stop = {}, RawColorCalibration calibration = {},
                        DetailDiagnostic diagnostic = DetailDiagnostic::none, double detailScale = 1,
-                       PhotoMetadata metadata = {});
+                       PhotoMetadata metadata = {}, MaskOverlay overlay = {});
 float applyExposure(float linearValue, double ev);
 } // namespace luma

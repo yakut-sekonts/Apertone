@@ -420,6 +420,24 @@
     "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.": "XMP импортирован. Результат Luma может отличаться от Lightroom. Отсутствующие настройки сохранены.",
     "Y Offset": "Смещение Y",
     "Yellow": "Жёлтая",
-    "© Author": "© Автор"
+    "© Author": "© Автор",
+    "Add a mask to adjust part of the photo.": "Добавьте маску для обработки части снимка.",
+    "Delete mask": "Удалить маску",
+    "Drag empty photo to redraw; drag handles to move or resize.": "Потяните свободную область снимка, чтобы перерисовать маску; маркеры — для перемещения и размера.",
+    "Edit mask on photo": "Редактировать маску на снимке",
+    "Enabled": "Включена",
+    "Feather": "Растушёвка",
+    "Invert": "Инвертировать",
+    "Linear gradient": "Линейный градиент",
+    "Local adjustments": "Локальная обработка",
+    "Mask name": "Имя маски",
+    "Mask opacity": "Непрозрачность маски",
+    "Move mask down": "Переместить маску вниз",
+    "Move mask up": "Переместить маску вверх",
+    "Overlay color": "Цвет наложения",
+    "Overlay opacity": "Непрозрачность наложения",
+    "Radial gradient": "Радиальный градиент",
+    "Rotation": "Поворот",
+    "Show mask overlay": "Показать наложение маски"
   }
 }

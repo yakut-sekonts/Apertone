@@ -652,6 +652,7 @@ void detailEditorTests(const QString &source, const QString &root, const QString
         throw std::runtime_error(warnings.join('\n').toStdString());
 }
 } // namespace
+void localEditorTests(const QString &, const QString &, const QString &);
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("Basic");
@@ -670,6 +671,7 @@ int main(int argc, char **argv) {
                         QString::fromLocal8Bit(argv[2]));
         transformEditorTests(QString::fromLocal8Bit(argv[4]), temporary.path(),
                              QString::fromLocal8Bit(argv[2]));
+        localEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         detailEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         std::cout
             << "Preset subsets, JSON validation, atomic storage, hover, Undo and restart passed.\n";

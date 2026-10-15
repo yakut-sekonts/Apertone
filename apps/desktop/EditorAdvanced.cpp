@@ -116,6 +116,8 @@ QVariantList EditorController::curveSamples(const QString &channel, bool paramet
     return values;
 }
 void EditorController::setTargetedTool(const QString &tool) {
+    if (tool != QStringLiteral("none"))
+        setLocalMode(false);
     closeTransformTool();
     setCropMode(false);
     if (tool == targetedTool_)

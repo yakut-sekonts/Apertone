@@ -102,6 +102,8 @@ class Catalog {
     void migrateCrop();
     void migrateLens();
     void migrateTransform();
+    void migrateLocalMasks();
+    void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;
     AssetRecord addAssetRecord(const std::filesystem::path &source, const std::string &checksum,

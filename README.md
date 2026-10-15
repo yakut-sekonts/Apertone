@@ -405,7 +405,7 @@ Settings (gear) switches the UI between English, Russian, Simplified Chinese,
 Armenian, German, Spanish, Italian and French without restarting. English is the
 new-install default; an explicit choice persists. User photo/preset/collection
 names and processing IDs are unchanged. See [localization](docs/LOCALIZATION.md).
-This is a pre-phase-0.5 extension; Local Adjustments remain on hold.
+This extension preceded phase 0.5; local gradients are now implemented.
 
 
 ## Ordinary images / 0.4.12
@@ -424,3 +424,16 @@ The application and mounted DMG use the original Luma half-disc logo. Settings,
 window title, status bar, Finder and --version share CMake's release version.
 The latest GitHub Release provides a matching DMG, ZIP, SHA256SUMS, BUILD_INFO.json
 and signed Sparkle appcast. See [release notes](docs/releases/v0.4.13.md).
+
+## Local gradients / 0.5.0 source
+
+Local adjustments adds persistent linear/radial masks with Exposure, Contrast,
+Highlights, Shadows, Whites, Blacks, Vibrance and Saturation. Edit geometry on the
+photo; control Feather, Mask opacity, Invert and layer order. The colored overlay
+is transient. Undo/Redo, export, restart and edited Library thumbnails retain
+masks. Global presets, XMP, Paste and Sync preserve existing masks.
+
+Catalog 10 is newer than 0.4.x: back up the catalog before upgrading if you need
+to roll back. Brush/ranges/boolean composition remain later phase-0.5 work.
+See [workflow and acceptance](docs/LOCAL_ADJUSTMENTS.md). The current published
+download above remains 0.4.14 until the next release is verified and published.

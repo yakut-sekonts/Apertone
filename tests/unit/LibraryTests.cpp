@@ -115,6 +115,7 @@ void catalogTests(const std::filesystem::path &root, const std::filesystem::path
                 revision INTEGER NOT NULL DEFAULT 0,updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             INSERT INTO historical_edits(asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled,revision,updated_at)
                 SELECT asset_id,exposure,temperature,tint,custom_wb,contrast,highlights,shadows,whites,blacks,vibrance,saturation,enabled&511,revision,updated_at FROM edit_documents;
+            DROP TRIGGER initialize_local_masks; DROP TABLE edit_local_masks;
             DROP TABLE edit_documents; ALTER TABLE historical_edits RENAME TO edit_documents;
 DROP TABLE edit_curve_points;DROP TABLE edit_hsl_bands;DROP TABLE collection_assets;DROP TABLE collections;DROP TABLE import_items;DROP TABLE import_sessions;DROP INDEX assets_filename;DROP INDEX assets_flag;DELETE FROM schema_migrations WHERE version>=3;PRAGMA user_version=2;)sql");
     luma::Catalog migrated(path);

@@ -420,6 +420,24 @@
     "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.": "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.",
     "Y Offset": "Y Offset",
     "Yellow": "Yellow",
-    "© Author": "© Author"
+    "© Author": "© Author",
+    "Add a mask to adjust part of the photo.": "Add a mask to adjust part of the photo.",
+    "Delete mask": "Delete mask",
+    "Drag empty photo to redraw; drag handles to move or resize.": "Drag empty photo to redraw; drag handles to move or resize.",
+    "Edit mask on photo": "Edit mask on photo",
+    "Enabled": "Enabled",
+    "Feather": "Feather",
+    "Invert": "Invert",
+    "Linear gradient": "Linear gradient",
+    "Local adjustments": "Local adjustments",
+    "Mask name": "Mask name",
+    "Mask opacity": "Mask opacity",
+    "Move mask down": "Move mask down",
+    "Move mask up": "Move mask up",
+    "Overlay color": "Overlay color",
+    "Overlay opacity": "Overlay opacity",
+    "Radial gradient": "Radial gradient",
+    "Rotation": "Rotation",
+    "Show mask overlay": "Show mask overlay"
   }
 }

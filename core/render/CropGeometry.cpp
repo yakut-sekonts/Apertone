@@ -90,3 +90,38 @@ std::array<double, 2> CropGeometry::source(double x, double y) const {
     return transform_.sourceFromSensorCanvas(sx, sy);
 }
 } // namespace luma
+
+namespace luma {
+std::array<double, 2> CropGeometry::output(double x, double y) const {
+    if (!std::isfinite(x) || !std::isfinite(y))
+        throw std::runtime_error("Invalid geometry source point.");
+    const auto transformed = transform_.sensorCanvasFromSource(x, y);
+    double sx = orientation_ & 1 ? sourceWidth_ - 1 - transformed[0] : transformed[0];
+    double sy = orientation_ & 2 ? sourceHeight_ - 1 - transformed[1] : transformed[1];
+    const double ux = orientation_ & 4 ? sy : sx, uy = orientation_ & 4 ? sx : sy;
+    double bx = ux, by = uy;
+    switch (crop_.quarterTurns) {
+    case 1:
+        bx = uprightHeight_ - 1 - uy;
+        by = ux;
+        break;
+    case 2:
+        bx = uprightWidth_ - 1 - ux;
+        by = uprightHeight_ - 1 - uy;
+        break;
+    case 3:
+        bx = uy;
+        by = uprightWidth_ - 1 - ux;
+        break;
+    default:
+        break;
+    }
+    if (crop_.flipHorizontal)
+        bx = baseWidth_ - 1 - bx;
+    if (crop_.flipVertical)
+        by = baseHeight_ - 1 - by;
+    const double dx = bx - baseWidth_ / 2.0 + 0.5, dy = by - baseHeight_ / 2.0 + 0.5;
+    return {cosine_ * dx - sine_ * dy + canvasWidth_ / 2.0 - 0.5 - left_,
+            sine_ * dx + cosine_ * dy + canvasHeight_ / 2.0 - 0.5 - top_};
+}
+} // namespace luma

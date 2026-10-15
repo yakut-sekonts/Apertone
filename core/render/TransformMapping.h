@@ -7,6 +7,7 @@ class TransformMapping {
     TransformMapping(int width, int height, int orientation, const TransformSettings &settings,
                      bool enabled);
     std::array<double, 2> sourceFromSensorCanvas(double x, double y) const;
+    std::array<double, 2> sensorCanvasFromSource(double x, double y) const;
     bool active() const {
         return active_;
     }

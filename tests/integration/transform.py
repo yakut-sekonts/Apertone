@@ -39,6 +39,8 @@ with tempfile.TemporaryDirectory(prefix="luma-transform-") as temporary:
         columns = [row[1] for row in db.execute("PRAGMA table_info(edit_documents)") if not row[1].startswith("transform_")]
         selection = ",".join("7 AS schema_version" if name == "schema_version" else
                              "enabled & 65535 AS enabled" if name == "enabled" else name for name in columns)
+        db.execute("DROP TABLE edit_local_masks")
+        db.execute("DROP TRIGGER initialize_local_masks")
         db.execute("CREATE TABLE old_edits AS SELECT " + selection + " FROM edit_documents")
         db.execute("DROP TABLE edit_documents")
         db.execute("ALTER TABLE old_edits RENAME TO edit_documents")
@@ -48,7 +50,7 @@ with tempfile.TemporaryDirectory(prefix="luma-transform-") as temporary:
         children = [db.execute(f"SELECT * FROM {table}").fetchall() for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Neutral Transform migration changed prior settings"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 9
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 10
         assert db.execute("SELECT schema_version,transform_rotate,transform_scale,transform_constrain_crop,transform_guided FROM edit_documents").fetchone() == (8, 0, 100, 1, 0)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == durable
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4

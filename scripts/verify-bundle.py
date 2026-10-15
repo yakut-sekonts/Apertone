@@ -51,8 +51,8 @@ try:
         catalog = folder / "catalog.sqlite"
         for arguments in (
             ["--test-library", str(sources)],
-            ["--test-edit", str(raw), "--test-exposure", "0.65", "--test-develop", "--test-advanced", "--test-export", str(folder / "first.png")],
-            ["--test-restore", "0.65", "--test-develop", "--test-advanced", "--test-export", str(folder / "second.png")],
+            ["--test-edit", str(raw), "--test-exposure", "0.65", "--test-develop", "--test-advanced", "--test-local-masks", "--test-export", str(folder / "first.png")],
+            ["--test-restore", "0.65", "--test-develop", "--test-advanced", "--test-local-masks", "--test-export", str(folder / "second.png")],
         ):
             result = subprocess.run([str(executable), "--catalog", str(catalog), *arguments], env=env, capture_output=True, text=True, timeout=120)
             if result.returncode:
@@ -79,7 +79,7 @@ try:
         assert imported["schemaVersion"] == 7 and imported["presets"][0]["preset"]["parameters"] == ["exposure"]
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
         thumbnails = list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v2.jpg") for p in thumbnails)
+        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v3.jpg") for p in thumbnails)
         lens_source = folder / "calibrated.DNG"
         create_dng(lens_source, maker="NIKON CORPORATION", model="NIKON D7500",
                    lens="AF-S DX Nikkor 18-140mm f/3.5-5.6G ED VR", focal=18, aperture=5.6)

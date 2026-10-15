@@ -76,6 +76,7 @@ void PointCurve::validate() const {
     }
 }
 void EditDocument::validate() const {
+    validateLocalMasks(localMasks);
     for (const auto &parameter : parameters) {
         const auto value = this->*parameter.member;
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)

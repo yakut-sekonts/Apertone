@@ -83,7 +83,7 @@ with tempfile.TemporaryDirectory(prefix="luma-images-") as temporary:
     gui_catalog = root / "gui.sqlite"
     assert "Library GUI acceptance passed" in call(app, "--catalog", gui_catalog, "--test-library", pair)
     thumbs = list((root / "gui.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-    assert len(thumbs) >= 3 and all(p.name.endswith("-edited-v2.jpg") for p in thumbs)
+    assert len(thumbs) >= 3 and all(p.name.endswith("-edited-v3.jpg") for p in thumbs)
     first, second = root / "first.png", root / "second.png"
     call(app, "--catalog", gui_catalog, "--test-edit", sources / "rgba.png", "--test-exposure", ".65", "--test-export", first)
     call(app, "--catalog", gui_catalog, "--test-restore", ".65", "--test-export", second)

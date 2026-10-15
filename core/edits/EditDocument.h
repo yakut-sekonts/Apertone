@@ -1,6 +1,7 @@
 #pragma once
 #include "core/edits/CropSettings.h"
 #include "core/edits/LensSettings.h"
+#include "core/edits/LocalMasks.h"
 #include "core/edits/TransformSettings.h"
 #include <array>
 #include <cmath>
@@ -81,6 +82,7 @@ struct EditDocument {
     double curveHighlights = 0;
     std::array<PointCurve, 4> curves{};
     std::array<HSLBand, 8> hsl{};
+    std::vector<LocalMask> localMasks{};
     bool operator==(const EditDocument &) const = default;
     bool enabled(Correction correction) const {
         return (enabledCorrections & static_cast<std::uint32_t>(correction)) != 0;

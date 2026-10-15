@@ -57,6 +57,8 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: calibrated Lens Corrections")});
     parser.addOption({QStringLiteral("test-transform"),
                       QStringLiteral("Integration test: perspective geometry and history")});
+    parser.addOption({QStringLiteral("test-local-masks"),
+                      QStringLiteral("Integration test: local masks, history and restart")});
     parser.addOption({QStringLiteral("test-filter"),
                       QStringLiteral("Integration test: built-in filter and Undo"),
                       QStringLiteral("id")});
@@ -311,6 +313,7 @@ int main(int argc, char **argv) {
         const bool advanced = parser.isSet(QStringLiteral("test-advanced"));
         const bool lens = parser.isSet(QStringLiteral("test-lens"));
         const bool transform = parser.isSet(QStringLiteral("test-transform"));
+        const bool localMasks = parser.isSet(QStringLiteral("test-local-masks"));
         const auto filter = parser.value(QStringLiteral("test-filter"));
         const auto xmp = parser.value(QStringLiteral("test-xmp-preset"));
         const auto exportPath = parser.value(QStringLiteral("test-export"));
@@ -320,7 +323,7 @@ int main(int argc, char **argv) {
             &editor, &EditorController::stateChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
              exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced, lens,
-             transform, &presets, filter, xmp] {
+             transform, localMasks, &presets, filter, xmp] {
                 if (!editor.error().isEmpty()) {
                     std::cerr << editor.error().toStdString() << '\n';
                     app.exit(1);
@@ -362,6 +365,37 @@ int main(int argc, char **argv) {
                                 app.exit(1);
                                 return;
                             }
+                        }
+                        if (localMasks) {
+                            const auto before = editor.currentSettings();
+                            if (editor.addLocalMask(QStringLiteral("linear")).isEmpty()) {
+                                std::cerr << "Cannot add local gradient\n";
+                                app.exit(1);
+                                return;
+                            }
+                            const auto added = editor.currentSettings();
+                            editor.beginEdit();
+                            editor.setLocalParameter(QStringLiteral("exposure"), 0.4);
+                            editor.setLocalParameter(QStringLiteral("exposure"), 0.7);
+                            editor.endEdit();
+                            const auto adjusted = editor.currentSettings();
+                            editor.undo();
+                            if (editor.currentSettings() != added || adjusted == added) {
+                                std::cerr << "Local gesture Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
+                            if (editor.currentSettings() != adjusted ||
+                                before.localMasks.size() + 1 != adjusted.localMasks.size()) {
+                                std::cerr << "Local gesture Redo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.addLocalMask(QStringLiteral("radial"));
+                            editor.setLocalParameter(QStringLiteral("exposure"), -0.4);
+                            editor.setLocalParameter(QStringLiteral("angle"), 25);
+                            editor.setLocalMode(false);
                         }
                         if (lens) {
                             if (!editor.lensState().value("distortionAvailable").toBool() ||
@@ -513,6 +547,17 @@ int main(int argc, char **argv) {
                         return;
                     }
                 }
+                if (*applied && localMasks && !editing && !editor.busy() && editor.hasPhoto()) {
+                    const auto &masks = editor.currentSettings().localMasks;
+                    if (masks.size() != 2 || masks[0].parameter("exposure") != 0.7 ||
+                        masks[1].shape != luma::MaskShape::radial ||
+                        masks[1].parameter("exposure") != -0.4 || masks[1].angle != 25 ||
+                        editor.localMode()) {
+                        std::cerr << "Local mask restoration mismatch\n";
+                        app.exit(1);
+                        return;
+                    }
+                }
                 if (*applied && develop && !editing && !editor.busy() && editor.hasPhoto()) {
                     if (editor.parameters().value(QStringLiteral("temperature")).toDouble() !=
                             5100 ||
@@ -552,6 +597,19 @@ int main(int argc, char **argv) {
                         return;
                     }
                     *finished = true;
+                    if (localMasks && !screenshot.isEmpty()) {
+                        auto *panel =
+                            window->findChild<QObject *>(QStringLiteral("localPanelToggle"));
+                        if (!panel || !panel->setProperty("checked", true)) {
+                            std::cerr << "Cannot expand local mask UI\n";
+                            app.exit(1);
+                            return;
+                        }
+                        const auto masks = editor.localMasks();
+                        if (!masks.isEmpty())
+                            editor.selectLocalMask(masks[0].toMap().value("id").toString());
+                        editor.setLocalMode(true);
+                    }
                     if (!xmp.isEmpty() && !screenshot.isEmpty()) {
                         auto *tabs = window->findChild<QObject *>(QStringLiteral("presetTabs"));
                         auto *details =
@@ -563,7 +621,27 @@ int main(int argc, char **argv) {
                             return;
                         }
                     }
-                    QTimer::singleShot(120, &app, [window, &app, screenshot] {
+                    QTimer::singleShot(120, &app, [window, &app, screenshot, localMasks] {
+                        if (localMasks && !screenshot.isEmpty()) {
+                            auto *panel =
+                                window->findChild<QQuickItem *>(QStringLiteral("localPanel"));
+                            for (const auto *name :
+                                 {"localPanelToggle", "localMaskChoice", "localMaskName",
+                                  "localEditOnPhoto", "local_exposure", "local_opacity",
+                                  "local_feather"}) {
+                                auto *item =
+                                    window->findChild<QQuickItem *>(QString::fromLatin1(name));
+                                if (!panel || !item || item->width() < 150 ||
+                                    item->mapToItem(panel, QPointF(0, 0)).x() < -1 ||
+                                    item->mapToItem(panel, QPointF(item->width(), 0)).x() >
+                                        panel->width() + 1) {
+                                    std::cerr << "Local control escaped the sidebar: " << name
+                                              << '\n';
+                                    app.exit(1);
+                                    return;
+                                }
+                            }
+                        }
                         if (!screenshot.isEmpty()) {
                             const auto frame = window->grabWindow();
                             if (frame.isNull() || !frame.save(screenshot)) {

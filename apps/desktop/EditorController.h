@@ -4,6 +4,8 @@
 #include "apps/shared/SessionService.h"
 #include "core/edits/EditHistory.h"
 #include "core/jobs/JobManager.h"
+#include "core/render/CropGeometry.h"
+#include "core/render/LocalAdjustments.h"
 #include "core/render/PerspectiveCorrection.h"
 #include "core/render/Sharpening.h"
 #include <QObject>
@@ -14,6 +16,16 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantList localMasks READ localMasks NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap localState READ localState NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList localHandles READ localHandles NOTIFY stateChanged)
+    Q_PROPERTY(bool localMode READ localMode WRITE setLocalMode NOTIFY stateChanged)
+    Q_PROPERTY(bool localCanvasReady READ localCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool localOverlay READ localOverlay WRITE setLocalOverlay NOTIFY stateChanged)
+    Q_PROPERTY(QString localOverlayColor READ localOverlayColor WRITE setLocalOverlayColor NOTIFY
+                   stateChanged)
+    Q_PROPERTY(double localOverlayOpacity READ localOverlayOpacity WRITE setLocalOverlayOpacity
+                   NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap transformState READ transformState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList transformGuides READ transformGuides NOTIFY stateChanged)
     Q_PROPERTY(bool guidedMode READ guidedMode WRITE setGuidedMode NOTIFY stateChanged)
@@ -78,6 +90,38 @@ class EditorController final : public QObject {
     double progress() const {
         return progress_;
     }
+    QVariantList localMasks() const;
+    QVariantMap localState() const;
+    QVariantList localHandles() const;
+    bool localMode() const {
+        return localMode_;
+    }
+    bool localCanvasReady() const {
+        return localMode_ && localCanvasReady_;
+    }
+    bool localOverlay() const {
+        return localOverlay_;
+    }
+    QString localOverlayColor() const {
+        return localOverlayColor_;
+    }
+    double localOverlayOpacity() const {
+        return localOverlayOpacity_;
+    }
+    void setLocalMode(bool value);
+    void setLocalOverlay(bool value);
+    void setLocalOverlayColor(const QString &value);
+    void setLocalOverlayOpacity(double value);
+    Q_INVOKABLE QString addLocalMask(const QString &shape);
+    Q_INVOKABLE void selectLocalMask(const QString &id);
+    Q_INVOKABLE void removeLocalMask();
+    Q_INVOKABLE void moveLocalMask(int direction);
+    Q_INVOKABLE void renameLocalMask(const QString &name);
+    Q_INVOKABLE void setLocalEnabled(bool enabled);
+    Q_INVOKABLE void setLocalInverted(bool inverted);
+    Q_INVOKABLE void setLocalParameter(const QString &name, double value);
+    Q_INVOKABLE bool beginLocalGesture(int handle, double x, double y);
+    Q_INVOKABLE void adjustLocalGesture(double x, double y);
     QVariantMap transformState() const;
     QVariantList transformGuides() const;
     bool guidedMode() const {
@@ -207,6 +251,18 @@ class EditorController final : public QObject {
     void closeReady();
 
   private:
+    bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
+    QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
+    double localOverlayOpacity_ = 0.45;
+    struct LocalGesture {
+        luma::LocalMask base;
+        luma::CropGeometry geometry;
+        int handle;
+        std::array<double, 2> anchor;
+    };
+    std::optional<LocalGesture> localGesture_;
+    int localIndex() const;
+    luma::MaskOverlay localRenderOverlay() const;
     std::filesystem::path catalog_;
     luma::SessionService service_;
     PreviewProvider *provider_;

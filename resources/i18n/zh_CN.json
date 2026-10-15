@@ -420,6 +420,24 @@
     "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.": "XMP 已导入。Luma 的渲染结果可能与 Lightroom 不同。未包含的设置保持不变。",
     "Y Offset": "Y 偏移",
     "Yellow": "黄色",
-    "© Author": "© 作者"
+    "© Author": "© 作者",
+    "Add a mask to adjust part of the photo.": "添加蒙版以调整照片的局部。",
+    "Delete mask": "删除蒙版",
+    "Drag empty photo to redraw; drag handles to move or resize.": "在照片空白处拖动以重绘；拖动控制点以移动或调整大小。",
+    "Edit mask on photo": "在照片上编辑蒙版",
+    "Enabled": "启用",
+    "Feather": "羽化",
+    "Invert": "反转",
+    "Linear gradient": "线性渐变",
+    "Local adjustments": "局部调整",
+    "Mask name": "蒙版名称",
+    "Mask opacity": "蒙版不透明度",
+    "Move mask down": "下移蒙版",
+    "Move mask up": "上移蒙版",
+    "Overlay color": "叠加颜色",
+    "Overlay opacity": "叠加不透明度",
+    "Radial gradient": "径向渐变",
+    "Rotation": "旋转",
+    "Show mask overlay": "显示蒙版叠加"
   }
 }

@@ -1,5 +1,6 @@
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
+#include "core/catalog/LocalMaskStorage.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
 #include "core/render/TransformMapping.h"
@@ -115,6 +116,7 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     }
     if (stored && count != edits.hsl.size())
         throw std::runtime_error("Missing stored HSL bands.");
+    edits.localMasks = detail::readLocalMasks(db, query.string(0));
     edits.validate();
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
@@ -183,12 +185,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 9)
+        if (current == 10)
             return;
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 9) {
+        if (current > 10) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -331,8 +333,12 @@ Catalog::Catalog(const std::filesystem::path &path) {
             migrateLens();
             current = 8;
         }
-        if (current == 8)
+        if (current == 8) {
             migrateTransform();
+            current = 9;
+        }
+        if (current == 9)
+            migrateLocalMasks();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -568,6 +574,7 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
     query.row();
     if (sqlite3_changes(db_) != 1)
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
+    writeLocalMasks(assetID, edits.localMasks);
     for (const auto *sql : {"DELETE FROM edit_curve_points WHERE asset_id=?1",
                             "DELETE FROM edit_hsl_bands WHERE asset_id=?1"}) {
         Statement clear(db_, sql);

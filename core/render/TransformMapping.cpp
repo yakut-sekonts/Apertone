@@ -85,3 +85,19 @@ std::array<double, 2> TransformMapping::sourceFromSensorCanvas(double x, double 
     return {orientation_ & 1 ? width_ - 1 - fx : fx, orientation_ & 2 ? height_ - 1 - fy : fy};
 }
 } // namespace luma
+
+namespace luma {
+std::array<double, 2> TransformMapping::sensorCanvasFromSource(double x, double y) const {
+    if (!active_)
+        return {x, y};
+    double fx = orientation_ & 1 ? width_ - 1 - x : x, fy = orientation_ & 2 ? height_ - 1 - y : y;
+    const double ux = orientation_ & 4 ? fy : fx, uy = orientation_ & 4 ? fx : fy;
+    const auto point =
+        forward_.point(2 * ux / (uprightWidth_ - 1) - 1, 2 * uy / (uprightHeight_ - 1) - 1);
+    const double sx = (point[0] * zoom_ + 1) * (uprightWidth_ - 1) / 2,
+                 sy = (point[1] * zoom_ + 1) * (uprightHeight_ - 1) / 2;
+    fx = orientation_ & 4 ? sy : sx;
+    fy = orientation_ & 4 ? sx : sy;
+    return {orientation_ & 1 ? width_ - 1 - fx : fx, orientation_ & 2 ? height_ - 1 - fy : fy};
+}
+} // namespace luma

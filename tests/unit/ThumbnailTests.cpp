@@ -104,6 +104,11 @@ luma::EditDocument look(double exposure) {
                        {"transform.rotate", 7},
                        {"transform.horizontal", 18},
                        {"transform.aspect", 10}});
+    luma::LocalMask mask;
+    mask.id = "01234567-89ab-cdef-0123-456789abcdef";
+    mask.name = "Thumbnail gradient";
+    mask.setParameter("exposure", 0.7);
+    doc.localMasks = {mask};
     doc.customWhiteBalance = true;
     doc.setEnabled(luma::Correction::lens, true);
     doc.curves[0] = {{{0, 0.02}, {0.4, 0.46}, {1, 0.97}}};

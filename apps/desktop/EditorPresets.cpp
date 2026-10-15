@@ -6,6 +6,7 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
     if (!editable())
         return;
     try {
+        setLocalMode(false);
         closeTransformTool();
         setCropMode(false);
         const auto next = luma::mergeSettings(history_.current(), settings, groups, parameters);
@@ -24,6 +25,7 @@ void EditorController::previewSettings(const luma::EditDocument &settings, std::
     if (!editable() || original_)
         return;
     try {
+        setLocalMode(false);
         closeTransformTool();
         setCropMode(false);
         const auto next = luma::mergeSettings(history_.current(), settings, groups, parameters);
@@ -54,6 +56,7 @@ QString EditorController::photoID() const {
     return session_ ? QString::fromStdString(session_->asset.id) : QString();
 }
 void EditorController::prepareExternalEdits() {
+    setLocalMode(false);
     closeTransformTool();
     setCropMode(false);
     endEdit();

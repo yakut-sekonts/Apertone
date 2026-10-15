@@ -420,6 +420,24 @@
     "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.": "XMP-ը ներմուծված է։ Luma-ի պատկերը կարող է տարբերվել Lightroom-ից։ Բացակայող կարգավորումները պահպանվում են։",
     "Y Offset": "Y տեղաշարժ",
     "Yellow": "Դեղին",
-    "© Author": "© Հեղինակ"
+    "© Author": "© Հեղինակ",
+    "Add a mask to adjust part of the photo.": "Ավելացրեք դիմակ՝ լուսանկարի մի մասը մշակելու համար։",
+    "Delete mask": "Ջնջել դիմակը",
+    "Drag empty photo to redraw; drag handles to move or resize.": "Քաշեք լուսանկարի ազատ հատվածը՝ նորից գծելու համար, բռնակները՝ տեղափոխելու կամ չափը փոխելու համար։",
+    "Edit mask on photo": "Խմբագրել դիմակը լուսանկարի վրա",
+    "Enabled": "Միացված է",
+    "Feather": "Եզրերի փափկեցում",
+    "Invert": "Շրջել",
+    "Linear gradient": "Գծային գրադիենտ",
+    "Local adjustments": "Տեղային մշակում",
+    "Mask name": "Դիմակի անունը",
+    "Mask opacity": "Դիմակի անթափանցիկություն",
+    "Move mask down": "Տեղափոխել դիմակը ներքև",
+    "Move mask up": "Տեղափոխել դիմակը վերև",
+    "Overlay color": "Վերադրման գույնը",
+    "Overlay opacity": "Վերադրման անթափանցիկություն",
+    "Radial gradient": "Շառավղային գրադիենտ",
+    "Rotation": "Պտույտ",
+    "Show mask overlay": "Ցույց տալ դիմակի վերադրումը"
   }
 }

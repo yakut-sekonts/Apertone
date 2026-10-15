@@ -54,7 +54,7 @@ def main():
         run("collection", "delete", collection)
         assert run("restore")["exposure"] == 1.25
         with sqlite3.connect(catalog) as db:
-            assert db.execute("PRAGMA user_version").fetchone()[0] == 9
+            assert db.execute("PRAGMA user_version").fetchone()[0] == 10
             assert db.execute("SELECT schema_version FROM edit_documents LIMIT 1").fetchone()[0] == 8
         destination = root / "copy"
         destination.mkdir()
@@ -78,7 +78,7 @@ def main():
             assert db.execute("SELECT COUNT(*) FROM collection_assets").fetchone()[0] == 2
             assert db.execute("SELECT exposure FROM edit_documents JOIN session ON session.asset_id=edit_documents.asset_id").fetchone()[0] == 1.75
         thumbnails = list((root / "gui.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-        assert len(thumbnails) >= 3 and all(p.name.endswith("-edited-v2.jpg") for p in thumbnails), "Saved-edit thumbnails did not include both photos and the edited revision"
+        assert len(thumbnails) >= 3 and all(p.name.endswith("-edited-v3.jpg") for p in thumbnails), "Saved-edit thumbnails did not include both photos and the edited revision"
         close_catalog = root / "close.sqlite"
         result = subprocess.run([str(gui), "--catalog", str(close_catalog), "--test-library", str(sources), "--test-close-import"], capture_output=True, text=True, env=env, timeout=100)
         assert result.returncode == 0, result.stdout + result.stderr

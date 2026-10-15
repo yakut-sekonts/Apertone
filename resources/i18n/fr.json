@@ -420,6 +420,24 @@
     "XMP imported. Luma rendering may differ from Lightroom. Absent settings are preserved.": "XMP importé. Le rendu Luma peut différer de Lightroom. Les réglages absents sont conservés.",
     "Y Offset": "Décalage Y",
     "Yellow": "Jaune",
-    "© Author": "© Auteur"
+    "© Author": "© Auteur",
+    "Add a mask to adjust part of the photo.": "Ajoutez un masque pour ajuster une partie de la photo.",
+    "Delete mask": "Supprimer le masque",
+    "Drag empty photo to redraw; drag handles to move or resize.": "Glissez sur une zone libre pour redessiner ; utilisez les poignées pour déplacer ou redimensionner.",
+    "Edit mask on photo": "Modifier le masque sur la photo",
+    "Enabled": "Activé",
+    "Feather": "Contour progressif",
+    "Invert": "Inverser",
+    "Linear gradient": "Dégradé linéaire",
+    "Local adjustments": "Réglages locaux",
+    "Mask name": "Nom du masque",
+    "Mask opacity": "Opacité du masque",
+    "Move mask down": "Descendre le masque",
+    "Move mask up": "Monter le masque",
+    "Overlay color": "Couleur de superposition",
+    "Overlay opacity": "Opacité de superposition",
+    "Radial gradient": "Dégradé radial",
+    "Rotation": "Rotation",
+    "Show mask overlay": "Afficher la superposition du masque"
   }
 }

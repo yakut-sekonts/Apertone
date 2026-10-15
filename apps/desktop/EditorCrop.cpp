@@ -39,8 +39,10 @@ void EditorController::setCropMode(bool value) {
     if (value == cropMode_ || (value && (!editable() || original_ ||
                                          !history_.current().enabled(luma::Correction::crop))))
         return;
-    if (value)
+    if (value) {
+        setLocalMode(false);
         closeTransformTool();
+    }
     endEdit();
     cropMode_ = value;
     cropCanvasReady_ = false;
