@@ -395,8 +395,8 @@ DNG has edits baked into 16-bit LinearRaw samples; it is not sensor archival.
 General RGB/float DNG ingestion remains unsupported. See [export behavior,
 limits and CLI options](docs/EXPORT.md) and [ADR 0018](docs/adr/0018-advanced-export.md).
 The macOS bundle is ad-hoc signed, without notarization. Release 0.4.13 includes
-these completed features. Phase 0.5 starts
-only after the requested roadmap review.
+these completed features. After the requested roadmap review, phase 0.5 resumed
+with local gradients; Brush, ranges and boolean composition remain later increments.
 
 
 ## Language packages / 0.4.11
@@ -415,7 +415,7 @@ batch edits, export queue and restart. PNG/TIFF preserve transparency; JPEG/DNG
 flatten against black. Native ImageIO handles full-image color-managed decoding;
 RAW retains its sensor pipeline. See [supported formats and limits](docs/IMAGE_SUPPORT.md).
 These requested pre-phase-0.5 extensions are included in release 0.4.13.
-Local Adjustments have not started.
+Local gradients are implemented in the 0.5.0 source; see the section below.
 
 
 ## macOS installer and version / 0.4.13
