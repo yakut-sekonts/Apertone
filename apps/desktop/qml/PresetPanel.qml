@@ -114,7 +114,7 @@ ColumnLayout {
         }
     }
     Label { text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
-    Label { objectName: "presetImportNotice"; text: presets.importNotice; textFormat: Text.PlainText; visible: text.length > 0; color: "#dfae77"; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
+    Label { objectName: "presetImportNotice"; text: qsTranslate("Luma", presets.importNotice); textFormat: Text.PlainText; visible: text.length > 0; color: "#dfae77"; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
     Button { objectName: "presetImportDetails"; visible: presets.importNotice.length > 0; text: qsTranslate("Luma", "XMP compatibility"); Layout.fillWidth: true; onClicked: compatibilityDialog.open() }
     RowLayout {
         Layout.fillWidth: true; spacing: 4
@@ -189,7 +189,7 @@ ColumnLayout {
         width: Math.min(520, parent.width - 32); height: Math.min(460, parent.height - 32)
         title: qsTranslate("Luma", "XMP compatibility")
         contentItem: ColumnLayout {
-            Label { text: presets.importNotice; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", presets.importNotice); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { visible: presets.importUnsupported.length > 0; text: qsTranslate("Luma", "These XMP settings were not imported. Other recognized settings remain available in the preset."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ListView {
                 objectName: "xmpUnsupportedList"; model: presets.importUnsupported
