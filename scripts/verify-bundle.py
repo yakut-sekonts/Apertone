@@ -109,7 +109,7 @@ try:
         assert "This product includes DNG technology under license by Adobe." in (app / "Contents/Resources/ThirdParty/THIRD_PARTY_LICENSES.md").read_text()
         for language in ("en", "ru", "zh_CN", "hy", "de", "es", "it", "fr"):
             locale_catalog = folder / language / "catalog.sqlite"
-            result = subprocess.run([str(executable), "--smoke-test", "--test-language", language, "--catalog", str(locale_catalog)], env=env, capture_output=True, text=True, timeout=30)
+            result = subprocess.run([str(executable), "--smoke-test", "--test-window-width", "1000", "--test-language", language, "--catalog", str(locale_catalog)], env=env, capture_output=True, text=True, timeout=30)
             assert result.returncode == 0, result.stdout + result.stderr
             assert not any(error in result.stderr for error in ("ReferenceError", "TypeError", "Binding loop", "Unable to assign")), result.stderr
             assert json.loads((locale_catalog.parent / "language.json").read_text())["language"] == language

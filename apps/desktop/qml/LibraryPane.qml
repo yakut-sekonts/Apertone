@@ -83,10 +83,10 @@ Rectangle {
             }
         }
         ColumnLayout {
-            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 18; spacing: 12
+            Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: 18; spacing: 12
             RowLayout {
-                Layout.fillWidth: true
-                TextField { id: search; placeholderTextColor: "#858c97"; placeholderText: qsTranslate("Luma", "Search: name, path, camera, lens"); selectByMouse: true; maximumLength: 1024; Layout.fillWidth: true; onTextChanged: pane.applyFilter() }
+                Layout.minimumWidth: 0; Layout.fillWidth: true
+                TextField { id: search; Layout.minimumWidth: 0; placeholderTextColor: "#858c97"; placeholderText: qsTranslate("Luma", "Search: name, path, camera, lens"); selectByMouse: true; maximumLength: 1024; Layout.fillWidth: true; onTextChanged: pane.applyFilter() }
                 ComboBox { id: ratingFilter; Layout.minimumWidth: 0; Layout.maximumWidth: 110; model: [qsTranslate("Luma", "All ★"), "≥ 1 ★", "≥ 2 ★", "≥ 3 ★", "≥ 4 ★", "5 ★"]; onActivated: pane.applyFilter() }
                 ComboBox { id: flagFilter; objectName: "libraryFlagFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All flags"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged"), qsTranslate("Luma", "Pick")]; onActivated: pane.applyFilter() }
                 ComboBox { id: labelFilter; objectName: "libraryLabelFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All labels"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: pane.applyFilter() }
@@ -98,7 +98,7 @@ Rectangle {
             }
             Label { visible: library.error.length > 0; text: qsTranslate("Luma", library.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             RowLayout {
-                Layout.fillWidth: true
+                Layout.minimumWidth: 0; Layout.fillWidth: true
                 Button { visible: library.importReport.length > 0; text: qsTranslate("Luma", "Import errors"); onClicked: reportDialog.open() }
                 Label { text: library.loading ? qsTranslate("Luma", "Loading…") : library.count + qsTranslate("Luma", " photos · selected ") + library.selectedCount; color: "#98a3b3"; Layout.fillWidth: true }
                 Button { text: qsTranslate("Luma", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
@@ -119,7 +119,7 @@ Rectangle {
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
             }
             RowLayout {
-                enabled: library.selectedCount > 0 && !library.working; Layout.fillWidth: true; spacing: 6
+                enabled: library.selectedCount > 0 && !library.working; Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
                 Label { Layout.maximumWidth: 80; elide: Text.ElideRight; text: qsTranslate("Luma", "Rating"); font.pixelSize: 11 }
                 Repeater { model: 6; Button { required property int index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
                 ComboBox { Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }

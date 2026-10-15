@@ -36,6 +36,9 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-language"),
                       QStringLiteral("Integration test: runtime language and settings"),
                       QStringLiteral("code")});
+    parser.addOption({QStringLiteral("test-window-width"),
+                      QStringLiteral("Integration test: responsive window width"),
+                      QStringLiteral("pixels")});
     parser.addOption({QStringLiteral("test-edit"), QStringLiteral("Integration test: open photo"),
                       QStringLiteral("raw")});
     parser.addOption({QStringLiteral("test-exposure"), QStringLiteral("Integration test: exposure"),
@@ -138,6 +141,15 @@ int main(int argc, char **argv) {
     if (!window) {
         return 1;
     }
+    if (parser.isSet(QStringLiteral("test-window-width"))) {
+        bool valid = false;
+        const auto width = parser.value(QStringLiteral("test-window-width")).toInt(&valid);
+        if (!valid || width < 1000 || width > 2560) {
+            std::cerr << "Invalid integration window width\n";
+            return 2;
+        }
+        window->setWidth(width);
+    }
     editor.setWindow(window);
     if (parser.isSet(QStringLiteral("smoke-test"))) {
         if (parser.isSet(QStringLiteral("test-language"))) {
@@ -160,21 +172,31 @@ int main(int argc, char **argv) {
                         return;
                     }
                 }
-                for (const auto *name : {"batchSync", "batchUndo", "batchRedo", "libraryFlagFilter",
-                                         "libraryLabelFilter"}) {
-                    auto *item = window->findChild<QQuickItem *>(QString::fromLatin1(name));
-                    if (!item)
-                        continue;
-                    const auto position = item->mapToScene(QPointF(0, 0));
-                    if (item->isVisible() &&
-                        (position.x() < 0 || position.x() + item->width() > window->width() + 1)) {
-                        std::cerr << "Localized control outside window: " << name << '\n';
-                        app.exit(1);
-                        return;
-                    }
-                }
                 QMetaObject::invokeMethod(panel, "open");
+                // Retranslation schedules a layout polish; inspect settled geometry.
                 QTimer::singleShot(150, &app, [&, screenshot, window] {
+                    for (const auto *name : {"batchSync", "batchUndo", "batchRedo",
+                                             "libraryFlagFilter", "libraryLabelFilter"}) {
+                        auto *item = window->findChild<QQuickItem *>(QString::fromLatin1(name));
+                        if (!item)
+                            continue;
+                        const auto position = item->mapToScene(QPointF(0, 0));
+                        if (item->isVisible() && (position.x() < 0 || position.x() + item->width() >
+                                                                          window->width() + 1)) {
+                            std::cerr << "Localized control outside window: " << name
+                                      << " x=" << position.x() << " width=" << item->width()
+                                      << " window=" << window->width() << '\n';
+                            for (auto *parent = item->parentItem(); parent;
+                                 parent = parent->parentItem())
+                                std::cerr << parent->metaObject()->className()
+                                          << " x=" << parent->x() << " width=" << parent->width()
+                                          << '\n';
+                            if (!screenshot.isEmpty())
+                                window->grabWindow().save(screenshot);
+                            app.exit(1);
+                            return;
+                        }
+                    }
                     if (!screenshot.isEmpty() && !window->grabWindow().save(screenshot)) {
                         app.exit(1);
                         return;

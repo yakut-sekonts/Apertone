@@ -8,7 +8,9 @@ CMake PROJECT_VERSION now drives the binary, bundle, Settings, window title and
 status bar. The original Luma half-disc logo is embedded as a multi-resolution
 ICNS app icon and a portable custom DMG volume icon. Volume flags are set on a
 mounted writable image before compression, rather than relying on staging-folder
-attributes that do not survive image creation.
+attributes that do not survive image creation. Batch controls wrap on narrow
+native windows, Library rows shrink to their available width, and retranslation
+checks cover minimum/default window sizes after QML layout settles.
 
 Release verification checks the actual read-only mounted installer: version,
 icons/custom flag, Applications symlink, notes, provenance, strict signature and
