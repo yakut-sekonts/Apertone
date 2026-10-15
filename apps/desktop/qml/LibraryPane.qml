@@ -118,16 +118,23 @@ Rectangle {
                 }
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
             }
-            RowLayout {
-                enabled: library.selectedCount > 0 && !library.working; Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
-                Label { Layout.maximumWidth: 80; elide: Text.ElideRight; text: qsTranslate("Luma", "Rating"); font.pixelSize: 11 }
-                Repeater { model: 6; Button { required property int index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
-                ComboBox { Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }
-                ComboBox { Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Label…"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: { if (currentIndex > 0) library.label(["","","red","yellow","green","blue","purple"][currentIndex]); currentIndex = 0 } }
-                Item { Layout.fillWidth: true }
-                ComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections; textRole: "name"; Layout.maximumWidth: 145 }
-                Button { text: "+"; enabled: library.collections.length > 0; onClicked: library.collectionMembership(library.collections[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
-                Button { text: "−"; enabled: !!pane.currentCollection; onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
+            GridLayout {
+                Layout.minimumWidth: 0; Layout.fillWidth: true
+                columns: width < 900 ? 1 : 2; columnSpacing: 12; rowSpacing: 6
+                enabled: library.selectedCount > 0 && !library.working
+                RowLayout {
+                    Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
+                    Label { Layout.maximumWidth: 80; elide: Text.ElideRight; text: qsTranslate("Luma", "Rating"); font.pixelSize: 11 }
+                    Repeater { model: 6; Button { required property int index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
+                    ComboBox { Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }
+                    ComboBox { Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Label…"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: { if (currentIndex > 0) library.label(["","","red","yellow","green","blue","purple"][currentIndex]); currentIndex = 0 } }
+                }
+                RowLayout {
+                    Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
+                    ComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections; textRole: "name"; Layout.maximumWidth: 145 }
+                    Button { objectName: "libraryAddToCollection"; implicitWidth: 36; text: "+"; enabled: library.collections.length > 0; onClicked: library.collectionMembership(library.collections[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
+                    Button { objectName: "libraryRemoveFromCollection"; implicitWidth: 36; text: "−"; enabled: !!pane.currentCollection; onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
+                }
             }
             Label { text: qsTranslate("Luma", library.status); font.pixelSize: 10; color: "#8290a1"; elide: Text.ElideRight; Layout.fillWidth: true }
         }

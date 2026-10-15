@@ -175,8 +175,11 @@ int main(int argc, char **argv) {
                 QMetaObject::invokeMethod(panel, "open");
                 // Retranslation schedules a layout polish; inspect settled geometry.
                 QTimer::singleShot(150, &app, [&, screenshot, window] {
-                    for (const auto *name : {"batchSync", "batchUndo", "batchRedo",
-                                             "libraryFlagFilter", "libraryLabelFilter"}) {
+                    for (const auto *name :
+                         {"batchSync", "batchUndo", "batchRedo", "libraryFlagFilter",
+                          "libraryLabelFilter", "libraryAddToCollection",
+                          "libraryRemoveFromCollection", "settingsButton", "exportButton",
+                          "openPhotoButton"}) {
                         auto *item = window->findChild<QQuickItem *>(QString::fromLatin1(name));
                         if (!item)
                             continue;

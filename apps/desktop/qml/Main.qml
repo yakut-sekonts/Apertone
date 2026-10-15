@@ -93,20 +93,20 @@ ApplicationWindow {
         Rectangle {
             Layout.fillWidth: true; Layout.preferredHeight: 64; color: "#191c22"
             RowLayout {
-                anchors.fill: parent; anchors.margins: 20; spacing: 18
+                anchors.fill: parent; anchors.margins: 20; spacing: root.width < 1200 ? 8 : 18
                 Label { text: "◐"; color: "#dfae77"; font.pixelSize: 28 }
                 Label { text: "luma"; color: "#f0f1f3"; font.pixelSize: 24; font.weight: Font.DemiBold; font.letterSpacing: 2 }
                 Label { visible: root.width > 1450; text: qsTranslate("Luma", "PHOTO WORKSPACE"); color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
                 Button { text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
                 Button { text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Item { Layout.fillWidth: true }
-                Button { objectName: "settingsButton"; text: "⚙"; Accessible.name: qsTranslate("Luma", "Settings"); onClicked: preferences.open() }
+                Button { objectName: "settingsButton"; implicitWidth: 36; text: "⚙"; Accessible.name: qsTranslate("Luma", "Settings"); onClicked: preferences.open() }
                 UpdateBell {}
-                Label { text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
-                Button { text: "↶"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
-                Button { text: "↷"; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
-                Button { objectName: "exportButton"; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
-                Button { text: qsTranslate("Luma", "+  Open photo"); enabled: !editor.busy; onClicked: fileDialog.open() }
+                Label { Layout.minimumWidth: 0; text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
+                Button { text: "↶"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
+                Button { text: "↷"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
+                Button { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                Button { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "+  Open photo"); enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
         Rectangle {
