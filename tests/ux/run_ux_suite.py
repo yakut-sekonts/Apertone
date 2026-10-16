@@ -35,6 +35,7 @@ NATIVE = {
 }
 NATIVE.update(f'UX-KEY-{i:03}' for i in (7, 8, 9, 10, 11, 16, 17))
 NATIVE.update(f'UX-FLT-{i:03}' for i in (7, 11, 14, 15))
+NATIVE.update(f'UX-NAV-{i:03}' for i in (5, 6, 7, 10, 11, 12, 14, 15))
 NATIVE.update(f'UX-TRN-{i:03}' for i in (2, 5, 9, 10, 11, 12, 13, 14))
 
 NATIVE.update(f'UX-MSK-{i:03}' for i in (1,2,3,4,6,7,9,10,11,13,14,15,16,17,19,20,21,22,24,26,27,28,29,31,32,33,34,35,36,37,38))
@@ -73,6 +74,8 @@ NATIVE.update(('UX-KEY-012', 'UX-KEY-013', 'UX-KEY-014'))
 NATIVE.update(('UX-LIB-012', 'UX-FLT-002'))
 NATIVE.update(f'UX-SEL-{i:03}' for i in (6,13,14,15,16,17,18,19))
 NATIVE.update(('UX-KEY-004', 'UX-KEY-006'))
+NATIVE.update(('UX-UND-007', 'UX-UND-008', 'UX-UND-009', 'UX-PRV-004'))
+NATIVE.update(f'UX-PRS-{i:03}' for i in (7, 8, 14, 15, 16))
 GLOBAL = {'UX-UND-018'}
 
 
@@ -133,6 +136,20 @@ def fixtures(folder, count=1000):
         specification.loader.exec_module(generator)
         generator.create_dng(lens, maker='NIKON CORPORATION', model='NIKON D7500',
                              lens='AF-S DX Nikkor 18-140mm f/3.5-5.6G ED VR', focal=18, aperture=5.6)
+    building = stress / 'Building.DNG'
+    if not building.exists():
+        specification = importlib.util.spec_from_file_location('luma_ux_geometry_dng', ROOT / 'tests/assets/generate_dng.py')
+        generator = importlib.util.module_from_spec(specification)
+        specification.loader.exec_module(generator)
+        # Public calibrated projective building, also used by transform acceptance.
+        def facade(x, y):
+            u, v = 2*x/319-1, 2*y/239-1
+            a, b, c, d = 0.85-u*0.13, -0.06+u*0.12, 0.04-v*0.13, 0.85+v*0.12
+            sx, sy = (u*d-b*v)/(a*d-b*c), (a*v-u*c)/(a*d-b*c)
+            edge = ((abs(abs(sx)-0.55) < 0.014 and abs(sy) < 0.8)
+                    or (abs(abs(sy)-0.5) < 0.014 and abs(sx) < 0.8))
+            return 0.02 if edge else 0.7
+        generator.create_dng(building, width=320, height=240, sample=facade)
     return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.rglob('*')
             if p.is_file() and p.suffix.lower() in ('.png', '.dng')}
 

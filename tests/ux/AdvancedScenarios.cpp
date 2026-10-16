@@ -26,11 +26,28 @@ void target(Context &c, bool hsl) {
 bool advancedScenario(Context &c, const QString &id) {
     static const QSet<QString> supported{"UX-ADV-001", "UX-ADV-002", "UX-ADV-004", "UX-ADV-005",
                                          "UX-ADV-006", "UX-ADV-007", "UX-ADV-008", "UX-ADV-010",
-                                         "UX-ADV-011", "UX-ADV-014"};
+                                         "UX-ADV-011", "UX-ADV-014", "UX-UND-009"};
     if (!supported.contains(id))
         return false;
     auto &d = *c.driver;
     c.openFirst();
+    if (id == "UX-UND-009") {
+        for (const bool hsl : {false, true}) {
+            target(c, hsl);
+            const auto before = c.editor.currentSettings();
+            d.drag("develop.targetedArea", {.5, .5}, {.5, .35});
+            const auto after = c.editor.currentSettings();
+            auto expected = before;
+            if (hsl)
+                expected.hsl = after.hsl;
+            else
+                expected.curves[0] = after.curves[0];
+            require(after != before && after == expected,
+                    "Targeted history fixture changed an unexpected group");
+            undoRedo(c, before, after);
+        }
+        return true;
+    }
     if (id == "UX-ADV-001" || id == "UX-ADV-002" || id == "UX-ADV-014") {
         c.reveal("curves.graph");
         const auto before = c.editor.currentSettings();

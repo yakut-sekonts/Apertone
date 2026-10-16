@@ -265,3 +265,35 @@ are tracked separately and are not counted as application failures or hidden ret
   original hashes passed. Full CTest: 38 PASS, one optional private Nikon SKIP;
   clang-format and focused clang-tidy passed. Separate idle-host Auto measurements
   passed three repeats in MEASURE_ONLY mode (`transform-auto-perf-report`).
+
+## LUMA-UX-015 — Update notifications ignore Escape
+
+- Severity: P2. Scope: CURRENT. Subsystem: update notification popup.
+- Regression: `UX-NAV-012`, edit Exposure, open the bell, press Escape.
+- Expected: the declared CloseOnEscape policy dismisses the popup without changing edits.
+- Actual: the popup stays visible; its focus and activeFocus are both false while
+  the old Library grid retains keyboard focus.
+- Evidence: `navigation-repro-report`, run `20261016T144555Z-61460`, three failures;
+  `update_popup_focus`, key actions and screenshots retain the original results.
+- Fix: request keyboard focus when opening notifications.
+- Verification: `navigation-presets-final-report` passed 19 scenarios three times
+  (57 Metal results), including 20 bell open/Escape cycles per NAV-012 run and
+  the 255-byte filename at minimum window size in NAV-007. Source consistency,
+  build provenance, original hashes and SQL integrity passed.
+
+## LUMA-UX-016 — Long filenames displace Open photo beyond the window
+
+- Severity: P2. Scope: CURRENT. Subsystem: toolbar layout.
+- Regression: `UX-NAV-007`, open a valid PNG with a 255-byte filename, resize to
+  the supported minimum 1000 × 640 logical pixels.
+- Expected: filename elides while every toolbar control stays inside the window.
+- Actual: the filename elides at its maximum width, but Open photo moves beyond
+  the right edge and cannot be clicked.
+- Evidence: `navigation-repro-report`, run `20261016T144555Z-61460`, three failures
+  and original screenshots; the image is decoded successfully.
+- Fix: allow the filename label to participate in flexible width distribution,
+  retaining its zero minimum and 350 px maximum.
+- Verification: `navigation-presets-final-report` passed 19 scenarios three times
+  (57 Metal results), including 20 bell open/Escape cycles per NAV-012 run and
+  the 255-byte filename at minimum window size in NAV-007. Source consistency,
+  build provenance, original hashes and SQL integrity passed.

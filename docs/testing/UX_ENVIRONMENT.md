@@ -85,3 +85,49 @@ build directory; explicit paths are preserved. The runner unit suite tests both
 CLI variants so CI uploads the evidence it actually generated.
 The lock file is scoped by a context manager and closed on return or exception;
 the CLI test also checks that it does not retain screen ownership after returning.
+
+### Native file-panel cancel input remains unqualified
+
+`navigation-first-report`, `navigation-repro-report` and
+`native-cancel-input-report` retain unsuccessful harness experiments for NAV-004.
+The panel is an own-process NSOpenPanel with NSRemoteView as first responder;
+synthetic NSEvent dispatch did not dismiss it. Its public accessibilityCancelButton
+was unavailable. This is not evidence that a real Cancel click fails in Luma.
+No direct cancel:/reject call is counted as native user input. NAV-004 remains
+unadapted, and the experimental helper is not linked into the application or tests.
+The native opening check KEY-001 still uses reject only for fixture cleanup.
+
+Navigation harness corrections are separate from production fixes: QFile::copy
+uses temporary names and could not prepare a 255-byte destination, so the fixture
+now writes that public PNG directly. Unsupported-image tests recover by dropping
+the valid original after verifying the visible error and preserved catalog; this
+lets the harness's final successful-save check run without an expected error.
+Repeated outside clicks may legitimately close/reopen a Dialog. The 200-click
+scenario verifies balanced popup lifecycle and usable input after dismissal,
+without assuming every eight-click burst leaves the popup open.
+
+
+### Thumbnail unit-fixture completion and error observation
+
+`navigation-presets-final-ctest.log` retains a failure of
+`edited-thumbnail-snapshot-cache`: the old unit fixture timed out while polling
+Image.Error after directly completing a controlled response from the GUI thread.
+The initial cause is not proven. Fifteen diagnostic repeats passed; Qt 6.10.3
+already has a finished-before-connect guard, so no lost-signal production defect
+is asserted. An initial added Connections observer also failed to count the
+transition; its handler now names the observed thumbnail explicitly.
+
+The unit fixture now queues its controlled completion to the response's owning
+image-reader thread, after request registration, and records the exact Error
+transition and source URL. It first asserts the production retry interval is
+1500 ms, then lengthens that interval only in the fixture because this test
+already invokes the retry signal manually to check the source binding. This
+separates that binding test from automatic retry timing. The production thumbnail
+provider, PhotoCard timer and retry behavior are unchanged. Original failed runs
+remain retained; repeat verification does not retroactively turn them into PASS.
+
+The final serialized-completion fixture passed 30 consecutive targeted repeats
+(`thumbnail-serialized-run.log`), followed by full CTest with 38 PASS and one
+optional private Nikon SKIP (`navigation-presets-clean-ctest.log`, 91.02 s).
+This is verification of the normalized fixture; it does not prove the cause of
+the initial timeout.

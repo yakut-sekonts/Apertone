@@ -64,12 +64,32 @@ void editTransformControls(Context &c) {
     }
 }
 bool transformScenario(Context &c, const QString &id) {
-    static const QSet<QString> supported{"UX-TRN-001", "UX-TRN-003", "UX-TRN-004",
-                                         "UX-TRN-006", "UX-TRN-007", "UX-TRN-008"};
+    static const QSet<QString> supported{"UX-TRN-001", "UX-TRN-003", "UX-TRN-004", "UX-TRN-006",
+                                         "UX-TRN-007", "UX-TRN-008", "UX-UND-007"};
     if (!supported.contains(id))
         return false;
     c.openFirst();
     auto &d = *c.driver;
+    if (id == "UX-UND-007") {
+        guided(c, false);
+        c.saved();
+        // Fixture selection only; application, completion and history use real controls.
+        c.editor.openFile(QUrl::fromLocalFile(c.fixture + "/stress/Building.DNG"));
+        c.loaded();
+        const auto before = c.editor.currentSettings();
+        c.reveal("transformAuto");
+        d.click("transformAuto");
+        d.wait([&] { return !c.editor.transformAutoBusy(); }, "calibrated Auto completed");
+        const auto after = c.editor.currentSettings();
+        auto expected = before;
+        expected.transform = after.transform;
+        expected.setEnabled(luma::Correction::transform, true);
+        require(after != before && after.transform.guided && after == expected &&
+                    c.editor.error().isEmpty(),
+                "Auto history fixture did not successfully solve the public building image");
+        undoRedo(c, before, after);
+        return true;
+    }
     if (id == "UX-TRN-001") {
         for (const auto &control : controls) {
             const auto selector = "develop.transform." + control + "Slider";

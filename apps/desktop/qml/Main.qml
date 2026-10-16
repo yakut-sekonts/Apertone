@@ -111,7 +111,7 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
                 Button { objectName: "settingsButton"; implicitWidth: 36; text: "⚙"; Accessible.name: qsTranslate("Luma", "Settings"); onClicked: preferences.open() }
                 UpdateBell {}
-                Label { Layout.minimumWidth: 0; text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
+                Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
                 Button { objectName: "main.undoButton"; text: "↶"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
                 Button { objectName: "main.redoButton"; text: "↷"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
                 Button { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
@@ -123,7 +123,7 @@ ApplicationWindow {
             Layout.fillWidth: true; Layout.preferredHeight: visible ? errorLayout.implicitHeight + 24 : 0; color: "#42282a"
             RowLayout {
                 id: errorLayout; anchors.fill: parent; anchors.margins: 12
-                Label { text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
+                Label { objectName: "main.editorError"; text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
                 Button { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
             }
         }
@@ -329,12 +329,13 @@ ApplicationWindow {
             ScrollBar.horizontal: ScrollBar {}
         }
         Rectangle {
+            objectName: "main.footer"
             Layout.fillWidth: true; implicitHeight: 34; color: "#191c22"
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
                 Label { objectName: "applicationVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 10; color: "#a9adb5" }
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
-                Label { text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { objectName: "main.editorStatus"; text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
                 Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: "#777f8b"; font.pixelSize: 10 }
             }
         }

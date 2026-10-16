@@ -49,6 +49,8 @@ Button {
     }
     Popup {
         id: notifications
+        objectName: "updates.popup"
+        focus: true
         x: bell.width - width
         y: bell.height + 8
         width: 340

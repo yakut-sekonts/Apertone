@@ -12,12 +12,15 @@ bool libraryScaleScenario(Context &, const QString &);
 bool accessibilityScenario(Context &, const QString &);
 bool cropScenario(Context &, const QString &);
 bool keyboardScenario(Context &, const QString &);
+bool navigationScenario(Context &, const QString &);
 bool transformExtraScenario(Context &, const QString &);
 bool filterExtraScenario(Context &, const QString &);
+bool presetExtraScenario(Context &, const QString &);
 void basicScenario(Context &c, const QString &id) {
     auto &d = *c.driver;
-    if (transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
-        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
+        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
+        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;

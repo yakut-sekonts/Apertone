@@ -3,7 +3,8 @@
 
 namespace ux {
 bool presetScenario(Context &c, const QString &id) {
-    if (id != "UX-PRS-001" && id != "UX-PRS-004" && id != "UX-PRS-005")
+    if (id != "UX-PRS-001" && id != "UX-PRS-004" && id != "UX-PRS-005" && id != "UX-UND-008" &&
+        id != "UX-PRS-008")
         return false;
     auto &d = *c.driver;
     c.openFirst();
@@ -12,7 +13,7 @@ bool presetScenario(Context &c, const QString &id) {
     d.drag(ids::exposure, d.sliderThumb(ids::exposure), {.65, .5});
     c.saved();
     const auto document = c.editor.currentSettings();
-    if (id == "UX-PRS-001") {
+    if (id == "UX-PRS-001" || id == "UX-UND-008" || id == "UX-PRS-008") {
         d.click("preset.tabs.presets");
         d.click("presetCreate");
         d.wait([&] { return d.object("presetEditor")->property("opened").toBool(); },
