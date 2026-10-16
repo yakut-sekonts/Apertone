@@ -21,7 +21,7 @@ ColumnLayout {
         visible: editor.guidedMode
         Layout.fillWidth: true
         Label { text: qsTranslate("Luma", "Align guides with straight lines in the original photo."); wrapMode: Text.Wrap; color: "#c9d2dd"; font.pixelSize: 11; Layout.fillWidth: true }
-        ComboBox { objectName: "transformGuideLayout"; Layout.fillWidth: true; model: [qsTranslate("Luma", "2 vertical"), qsTranslate("Luma", "2 horizontal"), qsTranslate("Luma", "Vertical + horizontal")]; onActivated: function(index) { editor.setGuideLayout(index) }; Accessible.name: qsTranslate("Luma", "Guided correction directions") }
+        ComboBox { objectName: "transformGuideLayout"; Layout.fillWidth: true; model: [qsTranslate("Luma", "2 vertical"), qsTranslate("Luma", "2 horizontal"), qsTranslate("Luma", "Vertical + horizontal")]; currentIndex: editor.transformGuideLayout; onActivated: function(index) { editor.setGuideLayout(index) }; Accessible.name: qsTranslate("Luma", "Guided correction directions") }
         Button { objectName: "transformGuideApply"; text: qsTranslate("Luma", "Apply guides"); enabled: editor.guidedCanvasReady; Layout.fillWidth: true; onClicked: editor.applyGuides() }
     }
     ColumnLayout {

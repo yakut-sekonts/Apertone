@@ -37,6 +37,7 @@ class EditorController final : public QObject {
                    NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap transformState READ transformState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList transformGuides READ transformGuides NOTIFY stateChanged)
+    Q_PROPERTY(int transformGuideLayout READ transformGuideLayout NOTIFY stateChanged)
     Q_PROPERTY(bool guidedMode READ guidedMode WRITE setGuidedMode NOTIFY stateChanged)
     Q_PROPERTY(bool guidedCanvasReady READ guidedCanvasReady NOTIFY stateChanged)
     Q_PROPERTY(bool transformAutoBusy READ transformAutoBusy NOTIFY stateChanged)
@@ -162,6 +163,9 @@ class EditorController final : public QObject {
     Q_INVOKABLE void adjustLocalGesture(double x, double y);
     QVariantMap transformState() const;
     QVariantList transformGuides() const;
+    int transformGuideLayout() const {
+        return guideLayout_;
+    }
     bool guidedMode() const {
         return guidedMode_;
     }
@@ -324,6 +328,7 @@ class EditorController final : public QObject {
     bool guidedMode_ = false, guidedCanvasReady_ = false, transformAutoBusy_ = false;
     std::uint64_t transformAutoRevision_ = 0;
     std::vector<luma::PerspectiveGuide> guides_;
+    int guideLayout_ = 0;
     luma::JobHandle loadJob_;
     luma::CancellationSource loadCancellation_;
     luma::JobHandle exportJob_;

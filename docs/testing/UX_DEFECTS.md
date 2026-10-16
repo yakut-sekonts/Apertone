@@ -243,3 +243,25 @@ are tracked separately and are not counted as application failures or hidden ret
   scenarios three times using Metal. Coverage includes one clicked signal per
   Space/Return/Enter, held-Enter repeats, text/ComboBox input isolation and the
   focused Cancel button inside a modal dialog. Original failures remain retained.
+
+## LUMA-UX-014 — Leaving Guided retains unapplied endpoint changes
+
+- Severity: P1. Scope: CURRENT. Subsystem: Transform transient tools.
+- Regression: `UX-TRN-009`, hold a guide endpoint, move it, press Backslash to
+  leave Guided for Original, release the pointer, return to Processed and reopen
+  Guided. This is real keyboard/pointer input, without controller mode injection.
+- Expected: leaving the tool discards transient endpoints, retaining the chosen
+  guide layout and the unchanged persisted edit document/history.
+- Actual: Guided reopens with the unfinished endpoint movement. The image edit
+  document remains unchanged, but the cancelled draft leaks into the next session.
+- Evidence: `transform-extra-report`, run `20261016T142532Z-56189`, TRN-009
+  `guided_leave_while_pointer_held`, first failure screenshot/actions/catalog.
+- Fix: clear draft endpoints when Guided closes. Store the selected layout as
+  explicit transient controller state and bind its ComboBox to that state so
+  reopening regenerates the correct vertical/horizontal/combined defaults.
+- Verification: `transform-draft-fixed-report` passed 13 functional scenarios
+  three times (39 Metal results), including all three Guided layouts and 100
+  Auto/Cancel cycles per repetition. Source consistency, build provenance and
+  original hashes passed. Full CTest: 38 PASS, one optional private Nikon SKIP;
+  clang-format and focused clang-tidy passed. Separate idle-host Auto measurements
+  passed three repeats in MEASURE_ONLY mode (`transform-auto-perf-report`).

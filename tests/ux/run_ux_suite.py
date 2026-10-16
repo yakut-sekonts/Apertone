@@ -35,6 +35,7 @@ NATIVE = {
 }
 NATIVE.update(f'UX-KEY-{i:03}' for i in (7, 8, 9, 10, 11, 16, 17))
 NATIVE.update(f'UX-FLT-{i:03}' for i in (7, 11, 14, 15))
+NATIVE.update(f'UX-TRN-{i:03}' for i in (2, 5, 9, 10, 11, 12, 13, 14))
 
 NATIVE.update(f'UX-MSK-{i:03}' for i in (1,2,3,4,6,7,9,10,11,13,14,15,16,17,19,20,21,22,24,26,27,28,29,31,32,33,34,35,36,37,38))
 
