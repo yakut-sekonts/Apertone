@@ -33,8 +33,8 @@ ColumnLayout {
         objectName: "presetTabs"
         Layout.fillWidth: true
         onCurrentIndexChanged: presets.clearPreview()
-        TabButton { text: qsTranslate("Luma", "Filters"); implicitWidth: 80; font.pixelSize: 11 }
-        TabButton { text: qsTranslate("Luma", "Presets"); implicitWidth: 80; font.pixelSize: 11 }
+        TabButton { objectName: "preset.tabs.filters"; text: qsTranslate("Luma", "Filters"); implicitWidth: 80; font.pixelSize: 11 }
+        TabButton { objectName: "preset.tabs.presets"; text: qsTranslate("Luma", "Presets"); implicitWidth: 80; font.pixelSize: 11 }
     }
     ListView {
         id: builtinList
@@ -61,9 +61,9 @@ ColumnLayout {
     RowLayout {
         visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; spacing: 4
-        Button { objectName: "presetCreate"; implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Luma", "Save current settings") }
+        Button { objectName: "presetCreate"; Accessible.name: qsTranslate("Luma", "Save current settings"); implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Luma", "Save current settings") }
         Button { objectName: "presetImport"; text: qsTranslate("Luma", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
-        Button { implicitWidth: 36; text: "⋯"; onClicked: actions.open()
+        Button { objectName: "preset.actions"; Accessible.name: qsTranslate("Luma", "Preset actions"); implicitWidth: 36; text: "⋯"; onClicked: actions.open()
             Menu {
                 id: actions
                 MenuItem { text: qsTranslate("Luma", "Edit / rename"); enabled: panel.selected !== null; onTriggered: panel.openEditor(false) }
@@ -90,6 +90,7 @@ ColumnLayout {
         delegate: ItemDelegate {
             id: presetRow
             required property var modelData
+            objectName: "preset." + modelData.id
             width: list.width; height: 34; hoverEnabled: true
             contentItem: Label {
                 objectName: "presetTitle"

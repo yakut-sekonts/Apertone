@@ -130,6 +130,7 @@ class LibraryModel final : public QAbstractListModel {
     void reload(bool clear);
     void selectionChanged();
     void selectRange(int offset, int length, bool toggle);
-    void mutate(std::function<void(luma::Catalog &)> work);
+    void mutate(std::function<void(luma::Catalog &)> work, std::function<bool()> updateView = {});
+    bool refreshMetadata(const std::vector<std::string> &ids, int role, const QVariant &value);
     void checkClose();
 };

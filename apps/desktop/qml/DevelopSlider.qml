@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: control
+    Layout.minimumWidth: 0
     required property string parameter
     required property string label
     property real minimum: -100
@@ -17,8 +18,10 @@ ColumnLayout {
     property bool available: editor.hasPhoto && !editor.busy
     spacing: 2
     RowLayout {
+        Layout.minimumWidth: 0
         Layout.fillWidth: true
         CheckBox {
+            objectName: "develop." + control.parameter + ".enabled"
             visible: control.allowDisable
             checked: editor.correctionStates[control.correction] ?? true
             enabled: control.available
@@ -26,15 +29,16 @@ ColumnLayout {
             onToggled: editor.setCorrectionEnabled(control.correction, checked)
             padding: 0
         }
-        Label { text: control.label; color: "#d7dce3"; font.pixelSize: 12; Layout.fillWidth: true }
+        Label { text: control.label; color: "#d7dce3"; font.pixelSize: 12; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight }
         Label {
             text: Number(editor.parameters[control.parameter]).toFixed(control.step < 1 ? 2 : 0) + control.suffix
             color: "#dfae77"; font.pixelSize: 12
         }
     }
     Slider {
-        objectName: control.detailDiagnostic ? control.parameter + "Slider" : ""
+        objectName: control.detailDiagnostic ? control.parameter + "Slider" : "develop." + control.parameter + "Slider"
         Layout.fillWidth: true
+        Layout.minimumWidth: 0
         from: control.minimum; to: control.maximum; stepSize: control.step
         value: editor.parameters[control.parameter]
         enabled: control.available && (editor.correctionStates[control.correction] ?? true)

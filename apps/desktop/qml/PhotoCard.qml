@@ -3,6 +3,7 @@ import QtQuick.Controls
 
 Rectangle {
     id: card
+    objectName: (compact ? "filmstrip.card." : "library.card.") + assetID
     required property int index
     required property string assetID
     required property string filename
@@ -51,6 +52,7 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         onClicked: function(mouse) {
+            card.forceActiveFocus(Qt.MouseFocusReason)
             library.select(card.index, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0, (mouse.modifiers & Qt.ShiftModifier) !== 0)
             if (card.compact && mouse.modifiers === Qt.NoModifier && !editor.busy) library.activate(card.index)
         }

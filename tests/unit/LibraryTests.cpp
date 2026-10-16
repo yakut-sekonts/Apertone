@@ -263,14 +263,26 @@ void modelTests(const std::filesystem::path &root) {
     wait([&] { return model.selectedCount() == 6; });
     model.select(0, true, false);
     require(model.selectedCount() == 5, "Toggle selection failed.");
+    int metadataResets = 0;
+    QObject::connect(&model, &QAbstractItemModel::modelReset, &model, [&] { ++metadataResets; });
     model.rate(5);
     wait([&] { return !model.working() && !model.loading(); });
+    require(metadataResets == 0,
+            "Metadata update unnecessarily reset the unchanged Library model.");
+    require(model.data(model.index(1), LibraryModel::Rating).toInt() == 5,
+            "Metadata update left cached rating data stale.");
     luma::LibraryFilter rated;
     rated.minimumRating = 5;
     require(db.libraryCount(rated) == 5, "Model bulk edit lost selected assets.");
     model.filter("00000", 5, -2, "any", "");
     wait([&] { return model.count() == 5 && !model.loading(); });
     require(model.error().isEmpty(), "Model reported an error.");
+    model.data(model.index(0), LibraryModel::AssetID);
+    wait([&] { return !model.data(model.index(0), LibraryModel::AssetID).toString().isEmpty(); });
+    model.select(0);
+    model.rate(0);
+    wait([&] { return !model.working() && !model.loading() && model.count() == 4; });
+    require(metadataResets > 0, "A metadata filter retained an asset that no longer matches.");
     std::cout
         << "100k metadata rows: <=16 cached pages (2048 rows); selection and filters passed\n";
 }

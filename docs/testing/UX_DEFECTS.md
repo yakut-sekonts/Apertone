@@ -1,0 +1,245 @@
+# UX defect register
+
+These entries refer to reproducible application defects. Harness setup corrections
+are tracked separately and are not counted as application failures or hidden retries.
+
+## LUMA-UX-001 — Original shortcut changes state while decoding
+
+- Severity: P1. Scope: CURRENT. Subsystem: Develop / input / asynchronous loading.
+- Regression: `UX-NAV-013`; deterministic generated 6000×4000 PNG, no random seed.
+- Steps: open photo A; start loading the large photo B; while `editor.busy` is
+  true, press the Original shortcut (`\`).
+- Expected: the disabled comparison action leaves Original and transient tools
+  unchanged until decoding finishes.
+- Actual before fix: `editor.original` became true while the previous session
+  remained bound and B was decoding. Toolbar comparison buttons were disabled,
+  but the global shortcut and controller setter allowed the transition.
+- Reproducer: `tests/ux/run_ux_suite.py --case UX-NAV-013`.
+- First-failure artifacts: run `20261016T071927Z/UX-NAV-013/repeat-1` under
+  `build-verify/ux-artifacts`: result, actions, metrics, app log and failure PNG.
+- Recorded metrics: max main-loop interval 383 ms; catalog integrity passed;
+  no original-file mutation. The defect is state handling, not a hard hang.
+- Fix: guard the comparison shortcut and `setOriginal` while decoding. The
+  existing regression must pass without removing the busy-window assertion.
+- Verification: three consecutive PASS runs in `20261016T072702Z`; the large
+  decode regression recorded main-loop maxima of 105, 108 and 109 ms. Original
+  hashes and catalog integrity passed in all three runs.
+
+## LUMA-UX-002 — Decode progress starves the UI event loop
+
+- Severity: P0 hard hang. Scope: CURRENT. Subsystem: decode progress / QML bindings.
+- Reproducer: `UX-NAV-013` proceeds through the generated 24 MP decode after the
+  comparison-state fix. Three consecutive runs lost main-loop heartbeat for >5 s.
+- Expected: background decoding keeps the UI heartbeat and Cancel path live.
+- Actual: every raster scanline enqueued `stateChanged`; a 4000-row input queued
+  thousands of complete editor property/binding reevaluations on the UI thread.
+- First repeat artifacts: `20261016T072146Z/UX-NAV-013/repeat-1`; independent
+  diagnostic run: `20261016T072501Z/UX-NAV-013/repeat-1/thread-sample.txt`.
+- Stack evidence: all sampled main-thread stacks were in Qt posted-event/QML
+  binding evaluation, repeatedly constructing `parameters`/`correctionStates`.
+  The worker decoded in the background; sampled footprint peaked at ~1 GB.
+- Original SHA and catalog integrity remained valid in the failed runs.
+- Fix: bounded progress publication and a dedicated progress notification, so
+  progress does not invalidate all editor settings. Keep the 5 s watchdog and
+  record the 2 s UI-stall gate; do not increase timeouts.
+- Verification: three consecutive PASS runs in `20261016T072702Z`; the large
+  decode regression recorded main-loop maxima of 105, 108 and 109 ms. Original
+  hashes and catalog integrity passed in all three runs.
+
+
+## LUMA-UX-003 — New metadata briefly displays the previous asset preview
+
+- Severity: P0. Scope: ALL. Subsystem: asynchronous preview / asset switching.
+- Regression: `UX-PRV-013`, real filmstrip click from a generated small image to
+  a generated 24 MP image. A frame observer checks the visible QML Image source,
+  Ready status, current metadata path and actual preview provider pixels.
+- Expected: metadata B is never paired with visible pixels of A.
+- Actual before fix: accepting the decoded session replaced the metadata and
+  cleared busy before the first render of B finished; the previous preview URL
+  remained visible for at least one polish/frame cycle.
+- First-failure evidence: `20261016T073414Z-94501/UX-PRV-013/repeat-1`.
+  Max main-loop interval 143 ms; original hashes and catalog integrity passed.
+- Fix: invalidate preview readiness when accepting a new session, publish its
+  URL only after that session's revision-guarded render completes. Keep the
+  monotonic image revision and retain the current preview during same-photo edits.
+- Verification: three consecutive PASS runs in `preview-fixed-report`; the busy
+  shortcut/decode regression also passed three times. Full qualification remains
+  incomplete; these focused runs do not authorize a release by themselves.
+
+## LUMA-UX-004 — Modal batch dialog blocks the Quit shortcut
+
+- Severity: P1. Scope: CURRENT. Subsystem: shortcuts / lifecycle.
+- Regressions: `UX-APP-010`, `UX-BAT-012`. Select 1000 generated photos, apply a
+  preset, wait for the batch modal to open in the active window, send Cmd+Q.
+- Expected: coordinated close cancels/waits and leaves batch atomic.
+- Actual: the modal overlay blocks WindowShortcut; the application stays open
+  after batch finishes. The heartbeat remains live; this is not a hard hang.
+- First failure: `20261016T075141Z-97963/UX-APP-010/repeat-1`; strengthened
+  reproducer: `20261016T075413Z-98981`, both `UX-APP-010` and `UX-BAT-012`.
+  The `quit_batch_state` action records an active window and opened modal.
+- Qt 6.10.3 source confirms modal popups block the WindowShortcut context.
+- Fix: ApplicationShortcut for Quit only; retain the restart guard and existing
+  coordinated onClosing persistence/cancellation handler.
+- Verification: three PASS runs each for `UX-APP-010` and `UX-BAT-012` in
+  `quit-fixed-report`; idle Quit and autosave/process-restart Quit also passed
+  three times each. Full qualification remains pending.
+
+## LUMA-UX-005 — Photo click leaves search keyboard focus behind
+
+- Severity: P1. Scope: CURRENT. Subsystem: Library focus / selection shortcuts.
+- Regressions: `UX-SEL-007`, `UX-SEL-010`, `UX-KEY-003`.
+- Steps: enter a filename filter, click a visible photo, press Cmd+A or P/X/U.
+- Expected: clicking the photo transfers keyboard focus out of text editing;
+  shortcuts apply to the visible Library selection. Typing the same keys inside
+  Search continues to edit text without changing metadata.
+- Actual: PhotoCard selected the asset but never took focus. Search remained
+  active, suppressing Library shortcuts or consuming them as text commands.
+- Reproducer artifacts: `20261016T082636Z-10639`, all three focus cases.
+  `UX-SEL-011` passed with real letter key events in the same run.
+- Fix: give the clicked PhotoCard mouse focus before changing selection.
+- Verification: the focus cases and real-key typing suppression passed three
+  times each in `focus-fixed-report`. Its unrelated slider failure was retained
+  and diagnosed separately as LUMA-UX-006.
+
+## LUMA-UX-006 — Maximum slider handle is covered by the adjustment ScrollBar
+
+- Severity: P1. Scope: CURRENT. Subsystem: Develop panel width / pointer input.
+- Regression: strengthened `UX-SLD-001`, actual minimum→maximum→center drags.
+- Expected: the whole slider fits its viewport and its maximum handle remains
+  draggable. Pointer-pixel quantization is distinct from the default reset value.
+- Actual: at the default panel width, the slider was 268 px wide in a 254 px
+  viewport. Its maximum handle overlapped the vertical ScrollBar. A press at the
+  actual handle center gave the mouse grab to `develop.adjustmentsBar`; Slider
+  pressed stayed false and Exposure remained 5 throughout the attempted drag.
+- Evidence: `20261016T083403Z-11617/UX-SLD-001/repeat-1`, actions
+  `maximum_thumb_press` and `slider_zero_geometry`, failure PNG and metrics.
+- Fix: constrain Develop controls/panel roots to available width and allow their
+  layouts to shrink; elide a long slider label while preserving the numeric value.
+- Verification: `slider-layout-report` passed 18 checks: three runs each of
+  SLD-001/003/004, DSC-001/003 and CRP-001. `narrow-fixed-report` additionally
+  passed 21 checks of DSC-007, Basic, Crop and Detail at 250/400/250 px.
+  Final full qualification remains incomplete.
+- Extended reproducer: `UX-DSC-007` drags the real SplitView separator through
+  250/400/250 px. Run `20261016T084602Z-13068` found the nested Transform sliders
+  still 268 px wide in a 214 px viewport. Basic and Crop controls fit correctly.
+- Extended fix: allow the nested Transform layout to shrink and wrap the
+  Constrain Crop checkbox label within its actual available width.
+
+## LUMA-UX-007 — Adjustment scrolling steals curve point drags
+
+- Severity: P1. Scope: CURRENT. Subsystem: Curves / pointer capture.
+- Regression: `UX-ADV-001`, a real paced add-and-move gesture on the curve graph.
+- Expected: the point follows the pointer through the final position, in one Undo.
+- Actual: the parent Flickable took the mouse grab midway through the drag;
+  curve dragging became false and the point stopped at x≈0.484/y=0.5 instead
+  of the requested x≈0.65/y≈0.75.
+- Evidence: `20261016T092043Z-16097/UX-ADV-001/repeat-1`, actions
+  `curve_pointer_owner` (grabber QQuickFlickable) and `curve_final_points`.
+- Fix: preserve the curve MouseArea grab during its editing gesture.
+- Verification: three clean repeats in `curve-state-fixed-report`; the complete
+  release qualification remains pending.
+
+## LUMA-UX-009 — Curve point selection crosses the photo boundary
+
+- Severity: P1. Scope: CURRENT. Subsystem: Curves transient view state.
+- Regression: `UX-ADV-014`, select/move an interior point, save, click another
+  filmstrip photo and wait for its own preview.
+- Expected: the new photo has no transient curve point selected.
+- Actual: the Curves panel kept selected index 1 from the previous photo.
+  Three consecutive repeats failed after the pointer-capture fix made the full
+  fixture gesture possible.
+- Evidence: `advanced-fixed-report`, `UX-ADV-014/repeat-1..3`, including the
+  selected-point assertion after the source/preview switch.
+- Fix: clear curve selection and dragging when a new photo is accepted.
+- Verification: three clean repeats in `curve-state-fixed-report`; the complete
+  release qualification remains pending.
+
+## LUMA-UX-008 — Original permits an already active targeted gesture to edit
+
+- Severity: P1. Scope: CURRENT. Subsystem: targeted tools / comparison transitions.
+- Regression: `UX-ADV-011`. Start a targeted curve drag, activate Original with
+  backslash while holding the mouse, continue moving, then release.
+- Expected: Original finalizes the prior gesture and suppresses further targeted
+  mutation; Undo restores the state before that gesture.
+- Actual: Original was true but the same targeted point changed from y≈0.810
+  to y=1 while dragging continued. The controller retained its active target.
+- Evidence: `20261016T092043Z-16097/UX-ADV-011/repeat-1`, actions
+  `targeted_original_boundary` and `targeted_original_after_pointer`.
+- Fix: end the current edit on comparison transition; reject targeted adjustment
+  while Original is active, including when a disabled MouseArea retains its grab.
+- Verification: three clean repeats in `curve-state-fixed-report`; the complete
+  release qualification remains pending.
+
+## LUMA-UX-010 — Export expands tokens inside a literal source filename
+
+- Severity: P1. Scope: CURRENT. Subsystem: export naming / filename data.
+- Regression: `UX-LOC-005`, import/open/export a generated PNG named
+  `Снимок-%{filename}-{sequence}-{date}-🌅.png` with the `{filename}` template.
+- Expected: PNG output keeps that exact literal basename.
+- Actual: all three runs produced `Снимок-%{filename}-0001-undated-🌅.png`.
+  The sequential replacements interpreted source filename data as further tokens.
+- Evidence: `pixel-clipboard-locale-report`, run `20261016T123028Z-30978`,
+  `UX-LOC-005/repeat-1..3`, actions, failure screenshots and actual output names.
+- Fix: expand only tokens found in the original template, preserving source/date
+  replacement values as literal data. Add unit coverage for repeated tokens and
+  tokens embedded in both source names and date replacement values.
+- Verification: LOC-005 passed three native repetitions in `locale-complete-report`;
+  all 39 CTests completed with 38 PASS / one optional private Nikon fixture SKIP /
+  zero failures. Focused clang-tidy passed for the naming code and its unit tests.
+
+## LUMA-UX-011 — Symbol-only controls lack descriptive accessible names
+
+- Severity: P2. Scope: ALL. Subsystem: accessibility / primary editing controls.
+- Regression: `UX-KEY-012`, activate Qt accessibility locally and inspect actual
+  accessible names in Develop, Presets, Local and Library states.
+- Expected: icon/numeric controls describe their action or setting.
+- Actual: preset creation/actions were named `+`/`⋯`, crop rotations only arrow/
+  degrees, White Balance's checkbox had no name, and rating buttons only digits/
+  stars. Slider value/range and primary AX tree checks passed separately.
+- Evidence: `accessibility-report`, run `20261016T125017Z-35715`, KEY-012 actions
+  `accessible_icon_names`, screenshot and the complete first failure list.
+- Fix: add localized action/setting names to the controls and all eight language
+  catalogs; inspect every language through the public Qt AX interface.
+- Verification: `accessibility-fixed-report` passed KEY-012/013/014 three times
+  (nine native results). KEY-012 inspects all eight runtime languages in each run;
+  language catalog coverage/placeholder checks and focused clang-tidy passed.
+
+## LUMA-UX-012 — Rating/flag changes reset Library scroll
+
+- Severity: P1. Scope: CURRENT. Subsystem: Library metadata/model updates.
+- Regression: `UX-SEL-013`, import 1,000 public PNGs, scroll to 60%, select a
+  visible card and press `5` to set its rating.
+- Expected: the same selected asset and viewport remain visible when the filter
+  and filename ordering are unaffected by the metadata change.
+- Actual: `contentY` changed from 31,290 to 0; selection stayed intact.
+- Evidence: `selection-scroll-repro-report`, run `20261016T132729Z-38728`,
+  `metadata_scroll_result`, the first failure screenshot and catalog snapshot.
+- Fix: update cached metadata rows without modelReset when membership/order are
+  stable; preserve reloads for matching filters and pending query/selection work.
+  Cancel/reissue pending pages with a new revision so late old metadata cannot
+  overwrite the committed values. Add unit coverage for reset-free updates and
+  removal from a rating-filtered result.
+- Verification: `metadata-scroll-fixed-report` passed 14 selection/metadata/keyboard
+  scenarios three times (42 native results), including reset-free viewport updates.
+  Source consistency, build provenance and original hashes passed. Focused clang-tidy
+  passed; the rating-filter membership regression is covered by LibraryTests.
+
+## LUMA-UX-013 — Enter/Return does not activate a focused button
+
+- Severity: P1. Scope: ALL. Subsystem: keyboard navigation.
+- Regression: `UX-KEY-010`, navigate by Tab to Library's Select all button,
+  press Space, Return and keypad Enter while observing the real clicked signal.
+- Expected: each key activates the focused button exactly once, as specified.
+- Actual: Space emits one clicked signal; Return and Enter emit none. Reproduced
+  in all three runs of `keyboard-focus-repro-report`; exact key/focus/click counts
+  are retained in `button_key_activation` actions. Build provenance and source
+  consistency passed. Qt 6.10.3's default ButtonPressKeys contains Space/Select,
+  so the application needs an explicit Enter binding to meet this requirement.
+- Fix: a non-repeating application shortcut for Return/Enter, enabled only while the
+  active window has a visible, enabled Button in keyboard focus. Text inputs and
+  ComboBox popups retain their own key handling; activation uses Button.click().
+- Verification: `keyboard-modal-report` passed three repeats with software;
+  `filter-keyboard-native-report` passed KEY-010 and seven related keyboard
+  scenarios three times using Metal. Coverage includes one clicked signal per
+  Space/Return/Enter, held-Enter repeats, text/ComboBox input isolation and the
+  focused Cancel button inside a modal dialog. Original failures remain retained.

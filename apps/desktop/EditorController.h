@@ -63,7 +63,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool hasPhoto READ hasPhoto NOTIFY stateChanged)
     Q_PROPERTY(bool original READ original WRITE setOriginal NOTIFY stateChanged)
     Q_PROPERTY(double exposure READ exposure WRITE setExposure NOTIFY stateChanged)
-    Q_PROPERTY(double progress READ progress NOTIFY stateChanged)
+    Q_PROPERTY(double progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(QString filename READ filename NOTIFY stateChanged)
     Q_PROPERTY(QString camera READ camera NOTIFY stateChanged)
     Q_PROPERTY(QString lens READ lens NOTIFY stateChanged)
@@ -283,6 +283,7 @@ class EditorController final : public QObject {
     Q_INVOKABLE void retrySave();
     Q_INVOKABLE void cancelLoad();
   signals:
+    void progressChanged();
     void stateChanged();
     void photoLoaded(const QString &id);
     void editsSaved(const QString &id);
@@ -353,6 +354,7 @@ class EditorController final : public QObject {
     std::uint64_t loadRevision_ = 0;
     std::uint64_t renderRevision_ = 0;
     std::uint64_t imageRevision_ = 0;
+    bool previewReady_ = false;
     std::uint64_t editRevision_ = 0;
     QUrl deferredOpen_;
     LocalizedText status_ = QStringLiteral("Ready");
