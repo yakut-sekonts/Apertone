@@ -36,6 +36,8 @@ ColumnLayout {
         }
     }
     Slider {
+        id: slider
+        property bool resetRequested: false
         objectName: control.detailDiagnostic ? control.parameter + "Slider" : "develop." + control.parameter + "Slider"
         Layout.fillWidth: true
         Layout.minimumWidth: 0
@@ -43,11 +45,23 @@ ColumnLayout {
         value: editor.parameters[control.parameter]
         enabled: control.available && (editor.correctionStates[control.correction] ?? true)
         Accessible.name: control.label
-        onPressedChanged: { if (pressed) { editor.beginEdit(); if (control.detailDiagnostic) editor.setDetailControl(control.parameter) } else editor.endEdit() }
-        onMoved: editor.setParameter(control.parameter, value)
+        onPressedChanged: {
+            if (pressed) {
+                editor.beginEdit()
+                if (control.detailDiagnostic)
+                    editor.setDetailControl(control.parameter)
+            } else {
+                if (resetRequested) {
+                    resetRequested = false
+                    editor.setParameter(control.parameter, control.defaultValue)
+                }
+                editor.endEdit()
+            }
+        }
+        onMoved: { if (!resetRequested) editor.setParameter(control.parameter, value) }
         TapHandler {
             acceptedButtons: Qt.LeftButton
-            onDoubleTapped: { editor.endEdit(); editor.setParameter(control.parameter, control.defaultValue) }
+            onDoubleTapped: slider.resetRequested = true
         }
     }
 }

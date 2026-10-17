@@ -169,6 +169,31 @@ void importTests(const std::filesystem::path &root, const std::filesystem::path 
         require(luma::macos::sha256File(item.path) == item.checksum, "Copy checksum changed.");
     }
     require(luma::macos::sha256File(a) == hash, "Import modified original.");
+    // Discovery failures are durable in the initial transaction, before any file
+    // is processed; recovery must not reclassify them as queued cancellations.
+    const auto deniedPath = input / "denied-child";
+    const auto discoveryCatalog = root / "discovery-recovery.sqlite";
+    luma::Catalog discoveryDB(discoveryCatalog);
+    throws([&] {
+        discoveryDB.beginImport(luma::ImportMode::add, {}, {a}, getpid(), true,
+                                {{deniedPath, "permission denied"}});
+    });
+    require(discoveryDB.unfinishedImports().empty(), "Invalid discovery error created a session.");
+    const auto discoverySession =
+        discoveryDB.beginImport(luma::ImportMode::add, {}, {a, deniedPath}, 99999999, true,
+                                {{deniedPath, "permission denied"}});
+    require(discoveryDB.importSummary(discoverySession).failed == 1 &&
+                discoveryDB.importProblems(discoverySession) ==
+                    std::vector<std::string>{deniedPath.string() + "\npermission denied"},
+            "Initial discovery failure was not durable.");
+    const auto discoveryRecovery = luma::LibraryService(discoveryCatalog).recover();
+    require(discoveryRecovery.size() == 1 && discoveryRecovery.front().failed == 1 &&
+                discoveryRecovery.front().cancelled == 1 &&
+                discoveryDB.importProblems(discoverySession).front() ==
+                    deniedPath.string() + "\npermission denied" &&
+                discoveryDB.unfinishedImports().empty(),
+            "Recovery discarded a known discovery failure.");
+    discoveryDB.verify();
     // Simulate process death after filesystem installation but before DB checkpoint.
     const auto recoveryPath = root / "recovery.sqlite";
     luma::Catalog db(recoveryPath);

@@ -56,7 +56,7 @@ bool localeRestartScenario(Context &c, const QString &id, const QString &stage) 
             require(file.open(QIODevice::WriteOnly) && file.write("{broken-preferences") > 0,
                     "Cannot prepare corrupt language preferences");
         }
-        d.key(Qt::Key_Q, Qt::ControlModifier);
+        d.quitShortcut();
         d.wait([&] { return !c.window->isVisible(); }, "language restart clean shutdown");
         return true;
     }

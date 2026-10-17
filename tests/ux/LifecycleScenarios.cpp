@@ -87,7 +87,7 @@ bool lifecycleScenario(Context &c, const QString &id) {
         return true;
     }
     if (id == "UX-APP-006") {
-        d.key(Qt::Key_Q, Qt::ControlModifier);
+        d.quitShortcut();
         closed(c);
         return true;
     }
@@ -97,7 +97,7 @@ bool lifecycleScenario(Context &c, const QString &id) {
         d.drag(ids::exposure, {.5, .5}, {.65, .5});
         const auto edited = c.editor.currentSettings();
         require(c.editor.saving(), "Autosave-close fixture missed pending save window");
-        d.key(Qt::Key_Q, Qt::ControlModifier);
+        d.quitShortcut();
         closed(c);
         const auto saved = luma::Catalog((c.root + "/catalog.sqlite").toStdString()).activeAsset();
         require(saved && saved->edits == edited, "Quit during autosave lost final edit document");

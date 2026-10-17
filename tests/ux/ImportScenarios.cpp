@@ -191,7 +191,7 @@ bool importScenario(Context &c, const QString &id) {
                    {"target", fractions[i]},
                    {"observed", c.library.progress()}});
             if (id == "UX-APP-008") {
-                d.key(Qt::Key_Q, Qt::ControlModifier);
+                d.quitShortcut();
                 d.wait([&] { return !c.window->isVisible() && !c.library.importing(); },
                        "quit during import", 60000);
             } else {

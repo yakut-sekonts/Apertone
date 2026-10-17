@@ -5,28 +5,39 @@ Work stays in draft [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
 linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46).
 Source scope is 0.5.1; the public stable download remains 0.4.14.
 
-## Verified checkpoint, 2026-10-16
+## Verified checkpoint, 2026-10-17
 
-- 266 native scenario adapters and one suite-wide original-integrity adapter.
+- 301 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, one conditional Depth scenario is
-  absent and 177 current scenarios still lack executable adapters. Prepared,
+  absent and 142 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
-- 16 reproduced production defects have fixes and focused regressions in
+- 19 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
-- The latest navigation/preset/history block ran 19 scenarios three times:
-  **57 PASS**, all using the native Metal UI backend. Build provenance, unchanged
-  source/binary, original SHA-256 and catalog integrity checks passed.
-  Evidence: `navigation-presets-final-report`, run `20261016T145731Z-65579`.
-- That block includes eight navigation cases, three logical Undo cases, preset
-  hover/Original restoration, idempotence, Natural subset isolation and catalog
-  asset isolation. Enter/modal and eight-language checks also passed.
-- Full CTest after the unit-fixture normalization: **38 PASS, one optional private
-  Nikon SKIP**, 91.02 seconds (`navigation-presets-clean-ctest.log`). The thumbnail
-  fixture passed 30 consecutive targeted repeats (`thumbnail-serialized-run.log`).
-  A preceding full run's thumbnail timeout and later observer experiment remain
-  retained and described in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md).
-- Full build, clang-format and focused clang-tidy passed. Local performance
-  remains MEASURE_ONLY; these functional results are not a performance baseline.
+- 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
+  preset CRUD/round trips/restarts, queued preview races, retained decoded-image
+  recovery, partial import failures, 50 cancel/reimport cycles, update/batch
+  isolation and current performance measurements. The three new production fixes
+  address preset hover ownership, double-tap slider reset and denied import children.
+- The final Cocoa block ran 18 scenarios three times: **54 PASS**, all using
+  Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
+  Build provenance, unchanged source/binary, original SHA-256 and catalog
+  integrity passed. Evidence: `cocoa-quit-final-report`, run
+  `20261016T222117Z-92749`.
+- A separate local CI-environment simulation ran 15 exit/restart scenarios three
+  times: **45 offscreen/software PASS** (`offscreen-quit-fixed-report`, run
+  `20261016T221827Z-91621`). This is not a hosted GitHub Actions result. The fixture
+  now resolves the actual StandardKey.Quit binding; offscreen declares Exit,
+  while the Cocoa block separately asserts and exercises Cmd+Q.
+- Four isolated idle-host performance scenarios passed in MEASURE_ONLY mode:
+  `checkpoint-perf-guard-final-report`, run `20261016T222708Z-94930`. Exact document
+  and provider pixels remain required; only scene readback allows one RGBA8 level
+  of rounding. These measurements are not performance thresholds or a baseline.
+- Full CTest after the production fixes: **38 PASS, one optional private Nikon
+  SKIP**, 87.13 seconds (`checkpoint-full-ctest.log`). All 20 Python runner unit
+  tests passed. Full build, clang-format, diff checks and focused clang-tidy passed.
+- Earlier native failures and fixture corrections remain retained and explained
+  in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). The earlier PR-head CI run timed out;
+  a new hosted run is still required after publication of this checkpoint.
 
 ## Remaining qualification
 

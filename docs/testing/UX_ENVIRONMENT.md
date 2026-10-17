@@ -131,3 +131,81 @@ The final serialized-completion fixture passed 30 consecutive targeted repeats
 optional private Nikon SKIP (`navigation-presets-clean-ctest.log`, 91.02 s).
 This is verification of the normalized fixture; it does not prove the cause of
 the initial timeout.
+
+## Additional stress, race and recovery fixture corrections
+
+The original `expanded-first-report`, `expanded-stress-first-report`,
+`stress-input-report`, `expanded-functional-final-report` and
+`expanded-oracles-report` remain retained, including their failures.
+
+- A click does not give macOS Slider keyboard focus. The editing stress fixture
+  now reaches it with real Tab input under process-local Qt TabFocusAllControls;
+  no OS preference is changed. QQuickSlider does not implement the assumed
+  Home/End behavior, so the 1,000-gesture case uses actual endpoint pointer input.
+  The 500-edit cases retain full documents after every edit and verify all
+  200 retained Undo and 200 Redo states, including exact final preview pixels.
+- PRV-008 now waits for each photoOpened-triggered asynchronous Library reload
+  and compares the final asset against the UUID saved before activation. The
+  original composite final assertion did not identify which check failed; its
+  catalog already contained the expected Photo-0099. A three-repeat rerun passed
+  with separate load, activation, UUID and pixel assertions.
+- The import-cycle test's own read-only sqlite observer originally had no busy
+  timeout. Three retained failures explicitly reported SQLITE_BUSY (code 5) at
+  sqlite3_prepare. Only this observer now uses a 1,000 ms busy timeout; production
+  locking and the five-second GUI watchdog are unchanged. IMP-019 then passed
+  three native repeats, each with 50 cancel/reimport cycles and durable session,
+  item, asset and cleanup oracles (`import-cycle-fixed-report`).
+- REC-008 now proves the post-source-deletion Contrast render has a new URL and
+  distinct expected pixels before Undo, then requires a new URL restoring the
+  original pixels. Already-visible old pixels cannot satisfy either transition.
+  REC-009 corrupts only a hash-guarded private cache after the prepare process
+  exits and before the verification process constructs its image provider.
+- Held Qt callback tests preserve actual FIFO delivery and verify their gate was
+  caught. File-dialog selection remains an explicit fixture boundary; it is not
+  counted as native chooser selection. Ordinary angleDelta wheel input is not
+  trackpad or momentum coverage. Small public images are functional fixtures,
+  not substitutes for 20 MP performance workloads.
+
+## Scene readback and local performance
+
+`current-perf-first-report` retained focus failures. Performance setup now raises
+and activates the native window before timing, requiring active/exposed state
+again after the measurement. No global window or OS preference is changed.
+`current-perf-focus-report` still failed ADV-012 despite exact current document,
+Ready URL and provider pixels. Retained same-size 926 × 1532 RGBA8 frames differ
+in 92 pixels / 95 channels, with maximum absolute channel difference exactly 1.
+This establishes the observed discrepancy; attributing it to Qt/Metal
+quantization is an inference, not a reproduced application rendering defect.
+
+Only scene readback comparisons allow an absolute difference of one RGBA8 level;
+document and provider pixels remain exact. Before/after frames must differ beyond
+that tolerance, preventing an old frame from passing. Geometry and non-null item
+guards precede grabWindow. NAV-002, PRV-002, ADV-012 and PERF-006 passed on an idle
+host in `checkpoint-perf-guard-final-report`. Measurements include declared
+input/debounce/polish boundaries; they do not measure physical scanout. PERF-006
+uses a native foreground-only local run; FLT-002 retains the separate CI functional
+path. The Qt Quick Metal UI is not the planned 0.6 GPU image-processing backend.
+
+## StandardKey.Quit differs between Cocoa and offscreen
+
+Hosted PR run 38922231206 at commit 8a1efbb was cancelled at its 50-minute limit.
+Build/unit tests passed, while several exit/restart cases waited for a shortcut
+that was never delivered. Local `GITHUB_ACTIONS=true` reproductions retain the
+same issue in `offscreen-quit-repro-report` and `offscreen-quit-binding-report`.
+The latter records an active/exposed window, enabled ApplicationShortcut and
+actual QKeySequence::keyBindings(Quit) containing Exit. Qt 6.10.3's offscreen
+theme uses WindowsKeyboardScheme; hardcoded Ctrl+Q does not match that binding.
+
+Driver::quitShortcut now sends the actual resolved StandardKey through QTest and
+the unchanged production QML shortcut. It never calls root.close(). Cocoa
+separately asserts Cmd+Q is declared and sends that exact combination. The raw
+key-input helper is unchanged. Actions record the platform, resolved binding and
+whether native Cmd+Q was exercised; no fake ApplicationState is injected.
+
+The local offscreen/software simulation passed 45 results, including 150 actual
+empty-app launches (`offscreen-quit-fixed-report`). A separate Cocoa/Metal suite
+passed 54 results including the native Cmd+Q/restart paths and three production
+fixes (`cocoa-quit-final-report`). Both passed provenance, source consistency,
+original SHA and SQLite integrity. GITHUB_ACTIONS=true here is a local environment
+simulation, not proof of a hosted CI pass. The CI deadline remains unchanged;
+the next pushed commit still needs its own hosted result.

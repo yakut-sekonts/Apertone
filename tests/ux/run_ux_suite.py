@@ -53,6 +53,7 @@ RESTART = {'UX-APP-001', 'UX-APP-003', 'UX-APP-005', 'UX-APP-007',
            'UX-MSK-008', 'UX-MSK-040', 'UX-UND-013', 'UX-UND-014', 'UX-UND-015', 'UX-REC-007',
            'UX-DTL-012', 'UX-SLD-020', 'UX-CRP-018', 'UX-LNS-010', 'UX-TRN-015', 'UX-IMP-020', 'UX-LOC-006', 'UX-LOC-007'}
 KILL = {'UX-UND-014', 'UX-UND-015', 'UX-REC-007', 'UX-IMP-020'}
+RESTART.update(('UX-PRS-011', 'UX-PRS-018', 'UX-REC-009'))
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
 NATIVE.add('UX-APP-010')
@@ -76,7 +77,23 @@ NATIVE.update(f'UX-SEL-{i:03}' for i in (6,13,14,15,16,17,18,19))
 NATIVE.update(('UX-KEY-004', 'UX-KEY-006'))
 NATIVE.update(('UX-UND-007', 'UX-UND-008', 'UX-UND-009', 'UX-PRV-004'))
 NATIVE.update(f'UX-PRS-{i:03}' for i in (7, 8, 14, 15, 16))
+NATIVE.update(('UX-UND-016', 'UX-ADV-013', 'UX-REC-008'))
+NATIVE.update(f'UX-SLD-{i:03}' for i in (12, 13, 14, 18))
+NATIVE.update(f'UX-PRS-{i:03}' for i in (2, 3, 6, 9, 10, 12, 17, 19))
+NATIVE.update(('UX-PRV-007', 'UX-PRV-008', 'UX-ADV-003', 'UX-ADV-009',
+               'UX-ADV-015', 'UX-RACE-006', 'UX-RACE-008'))
+NATIVE.update(('UX-IMP-005', 'UX-IMP-010', 'UX-IMP-011', 'UX-IMP-012', 'UX-IMP-019',
+               'UX-NAV-002', 'UX-PRV-002', 'UX-ADV-012', 'UX-BAT-013', 'UX-PERF-006'))
 GLOBAL = {'UX-UND-018'}
+
+CASE_TIMEOUTS = {'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
+                 'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600}
+
+
+def scenario_timeout(identifier, arguments):
+    explicit = getattr(arguments, 'timeout', None)
+    return explicit if explicit is not None else CASE_TIMEOUTS.get(identifier, 180)
+
 
 
 
@@ -209,6 +226,7 @@ def execute(row, directory, arguments, fixture_folder):
     if getattr(arguments, 'variant', None):
         command.extend(['--variant', arguments.variant])
     atomic_json(directory / 'command.json', command)
+    deadline_seconds = scenario_timeout(row['id'], arguments)
     started = time.monotonic()
     last_beat, observed = started, None
     reason = None
@@ -239,7 +257,7 @@ def execute(row, directory, arguments, fixture_folder):
                                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if time.monotonic() - last_beat > 5:
                     reason = 'P0 hard hang: no main-loop heartbeat for >5s'
-                if time.monotonic() - started > arguments.timeout:
+                if time.monotonic() - started > deadline_seconds:
                     reason = 'Scenario deadline exceeded; last heartbeat remained recorded'
                 if reason:
                     break
@@ -440,7 +458,7 @@ def main():
     parser.add_argument('--release-qualification', action='store_true')
     parser.add_argument('--artifacts', type=Path)
     parser.add_argument('--report', type=Path)
-    parser.add_argument('--timeout', type=int, default=180)
+    parser.add_argument('--timeout', type=int, help='Override the per-scenario deadline in seconds')
     args = parser.parse_args()
     if args.phase and not re.fullmatch(r'\d+\.\d+', args.phase):
         parser.error('--phase must be a numeric major.minor phase')
@@ -455,7 +473,7 @@ def main():
     unknown = set(args.case) - {row['id'] for row in INVENTORY}
     if unknown:
         parser.error('Unknown scenario IDs: ' + ', '.join(sorted(unknown)))
-    if args.runs < 1 or args.timeout < 1:
+    if args.runs < 1 or (args.timeout is not None and args.timeout < 1):
         parser.error('--runs and --timeout must be positive')
     # Native suites share one macOS focus/keyboard surface, including across worktrees.
     with (Path(tempfile.gettempdir()) / f'luma-ux-screen-{os.getuid()}.lock').open('a') as screen_lock:

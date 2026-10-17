@@ -105,7 +105,7 @@ bool batchScenario(Context &c, const QString &id) {
                {"working", c.batch.working()},
                {"modal_open", d.object("batch.wait")->property("opened").toBool()},
                {"active_window", c.window->isActive()}});
-        d.key(Qt::Key_Q, Qt::ControlModifier);
+        d.quitShortcut();
         d.wait(
             [&] { return !c.window->isVisible() && !c.batch.working() && !c.library.importing(); },
             "quit during batch", 10000);

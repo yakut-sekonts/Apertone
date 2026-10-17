@@ -8,16 +8,19 @@
 namespace ux {
 bool localeRestartScenario(Context &, const QString &, const QString &);
 bool copyRestartScenario(Context &, const QString &, const QString &);
+bool presetRemainingRestartScenario(Context &, const QString &, const QString &);
+bool thumbnailRestartScenario(Context &, const QString &, const QString &);
 namespace {
 void quit(Context &c) {
-    c.driver->key(Qt::Key_Q, Qt::ControlModifier);
+    c.driver->quitShortcut();
     c.driver->wait([&] { return !c.window->isVisible() && !c.editor.saving() && !c.editor.busy(); },
                    "clean shutdown before process exit");
     c.checkData();
 }
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
-    if (localeRestartScenario(c, id, stage) || copyRestartScenario(c, id, stage))
+    if (presetRemainingRestartScenario(c, id, stage) || thumbnailRestartScenario(c, id, stage) ||
+        localeRestartScenario(c, id, stage) || copyRestartScenario(c, id, stage))
         return;
     auto &d = *c.driver;
     const bool mask = id == "UX-MSK-008" || id == "UX-MSK-040";

@@ -326,7 +326,7 @@ ApplicationWindow {
             Layout.fillWidth: true; Layout.preferredHeight: visible ? 112 : 0
             orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
             delegate: PhotoCard { width: 128; height: 104; compact: true }
-            ScrollBar.horizontal: ScrollBar {}
+            ScrollBar.horizontal: ScrollBar { objectName: "develop.filmstripBar" }
         }
         Rectangle {
             objectName: "main.footer"

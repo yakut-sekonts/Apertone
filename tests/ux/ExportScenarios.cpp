@@ -39,7 +39,7 @@ void noTemporaryFiles(Context &c) {
     }
 }
 void close(Context &c) {
-    c.driver->key(Qt::Key_Q, Qt::ControlModifier);
+    c.driver->quitShortcut();
     c.driver->wait(
         [&] { return !c.window->isVisible() && !c.exporter.working() && !c.editor.saving(); },
         "quit during export", 60000);

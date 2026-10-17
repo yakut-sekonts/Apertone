@@ -1,6 +1,8 @@
 #include "tests/ux/UxContext.h"
 #include <QElapsedTimer>
+#include <QGuiApplication>
 #include <QSignalSpy>
+#include <QTest>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -71,8 +73,12 @@ QJsonObject summary(const Distribution &distribution) {
 }
 } // namespace
 bool libraryScaleScenario(Context &c, const QString &id) {
-    if (id != "UX-LIB-012" && id != "UX-FLT-002")
+    if (id != "UX-LIB-012" && id != "UX-FLT-002" && id != "UX-PERF-006")
         return false;
+    if (id == "UX-PERF-006")
+        require(QGuiApplication::platformName() == "cocoa" &&
+                    qEnvironmentVariable("GITHUB_ACTIONS") != "true",
+                "PERF_LOCAL search measurements require native Cocoa on an idle physical Mac");
     metadataFixture(c);
     auto &d = *c.driver;
     if (id == "UX-LIB-012") {
@@ -134,15 +140,27 @@ bool libraryScaleScenario(Context &c, const QString &id) {
     c.metrics.reset();
     Distribution acknowledgment;
     QSignalSpy resets(&c.library, &QAbstractItemModel::modelReset);
+    c.window->raise();
+    c.window->requestActivate();
+    d.wait([&] { return c.window->isActive() && c.window->isExposed(); },
+           "search latency fixture foreground");
     d.click("library.search");
     QString query;
     for (int index = 0; index < 20; ++index) {
         query += '0';
         const auto expected = expectedCounts[static_cast<std::size_t>(index)];
         const auto before = resets.count();
+        if (!c.window->isActive()) {
+            c.window->requestActivate();
+            d.wait([&] { return c.window->isActive(); },
+                   "search foreground restored outside timer");
+        }
+        d.log({{"action", "filter_key_input_prepared"}, {"key", "0"}});
+        require(c.window->isActive() && d.item("library.search")->hasActiveFocus(),
+                "Search latency fixture lost its native input focus");
         QElapsedTimer timer;
         timer.start();
-        d.key(Qt::Key_0);
+        QTest::keyClick(c.window, Qt::Key_0, Qt::NoModifier, 0);
         d.wait(
             [&] {
                 return resets.count() > before && !c.library.loading() &&
@@ -151,6 +169,7 @@ bool libraryScaleScenario(Context &c, const QString &id) {
             "per-keystroke latest filter result acknowledged");
         d.frame();
         const double elapsed = static_cast<double>(timer.nsecsElapsed()) / 1e6;
+        require(c.window->isActive(), "Search window lost foreground during the measured input");
         acknowledgment.add(elapsed);
         require(d.object("library.search")->property("text").toString() == query,
                 "Search input lost an actual key event");

@@ -297,3 +297,74 @@ are tracked separately and are not counted as application failures or hidden ret
   (57 Metal results), including 20 bell open/Escape cycles per NAV-012 run and
   the 255-byte filename at minimum window size in NAV-007. Source consistency,
   build provenance, original hashes and SQL integrity passed.
+
+## LUMA-UX-017 — Leaving an old preset clears the newly hovered preview
+
+- Severity: P1. Scope: CURRENT. Subsystem: transient preset preview ownership.
+- Regression: `UX-PRS-006`, move the pointer directly Natural → Soft Portrait →
+  Landscape. A standalone single-row hover first proves transport and pixel coherence.
+- Expected: Landscape remains hovered and shows its own transient preview; applied
+  document, catalog and history remain unchanged. Late older render results cannot replace it.
+- Actual: Landscape is hovered but presetPreview is false. Qt delivers the new
+  row's HoverEnter before the old row's HoverLeave; every old row unconditionally
+  calls the controller's global clearPreview, clearing the new row's request.
+- Evidence: `hover-owner-repro-report` retains three direct-input failures.
+  `hover-trace-report` additionally records HoverEnter/HoverLeave ordering and
+  Landscape hovered=true with preview=false. This is independent of the later
+  queued-callback race test and is not attributed to physical cursor location.
+- Fix: track the hover-preview owner inside PresetPanel; a delegate may clear
+  only its own preview. Panel/tab/editor actions still clear the preview globally.
+- Verification: `hover-owner-fixed-report` passed PRV-004 and PRS-004/005/006
+  three times (12 Metal results). PRS-006 also passed three final native repeats
+  in `cocoa-quit-final-report`. Source/binary provenance, original hashes and
+  catalog integrity passed; full CTest passed 38 tests with one optional Nikon SKIP.
+
+
+## LUMA-UX-018 — Slider release overwrites a double-tap reset
+
+- Severity: P1. Scope: CURRENT. Subsystem: Basic/Detail slider reset.
+- Regression: `UX-SLD-014`, move Temperature to 25000 K, then double-click the
+  slider centre. The public fixture is small; this is a functional input test.
+- Expected: Temperature resets to its declared 6500 K default, Custom white
+  balance remains selected, other document fields remain unchanged and the
+  pointer gesture finishes.
+- Actual: Temperature finishes at 13500 K, the range midpoint. The doubleTapped
+  signal fires once and temporarily sets 6500, then Slider.onMoved overwrites it
+  with 13500 before pressed becomes false.
+- Evidence: `slider-reset-diag-report`, run `20261016T214418Z-79147`, retains
+  three native failures, unchanged source/binary provenance, original hashes
+  and valid SQLite snapshots. `basic_reset_state` records 13500 → 6500 → 13500;
+  `basic_reset_double_taps` confirms one actual handler signal. The QtTest
+  helper delivers both releases; a missing release is not the cause.
+- Fix: retain a pending reset until Slider releases, suppress intermediate moved
+  writes during that reset, then apply the declared default before ending the edit.
+- Verification: `slider-reset-fixed-report` passed SLD-005/006/014 and DTL-003/004
+  three times (15 Metal results). The strengthened SLD-014 requires exactly one
+  doubleTapped signal and both pressed/resetRequested false; it passed three
+  times in `expanded-oracles-report` and again in `cocoa-quit-final-report`.
+  Full CTest passed 38 tests with one optional private Nikon SKIP.
+
+
+## LUMA-UX-019 — A denied recursive child aborts all readable import siblings
+
+- Severity: P1. Scope: CURRENT. Subsystem: import discovery and durable reporting.
+- Regression: `UX-IMP-010`, recursively Add two readable PNG siblings alongside
+  an owned child folder whose mode is 0000. The fixture proves opendir returns
+  EACCES/EPERM and restores its permissions on every exit.
+- Expected: two assets import, the denied folder appears in the visible error
+  report and durable failed journal, and the session terminates normally.
+- Actual: recursive_directory_iterator throws while entering the child; the
+  entire import stops before beginImport, leaving zero assets and no journal.
+- Evidence: `inaccessible-import-repro-report`, run `20261016T214804Z-80690`,
+  retains three native failures, permission-denial diagnostics, source/binary
+  provenance, unchanged original hashes and valid SQLite snapshots.
+- Fix: discover each directory independently using error_code, continue readable
+  siblings and journal per-path failures atomically with the initial import
+  session. Failed entries retain their state through cancellation and recovery.
+  Child directory symlinks are not followed; file deduplication and cancellation
+  checks are preserved. There is no catalog schema change.
+- Verification: IMP-005/010/011/012 each passed three native repeats in
+  `expanded-functional-final-report`; IMP-010 passed three more final repeats in
+  `cocoa-quit-final-report`. Unit coverage verifies durable initial errors,
+  invalid error-map rejection and recovery preserving failed paths. Full CTest:
+  38 PASS, one optional private Nikon SKIP. Provenance, originals and SQL passed.

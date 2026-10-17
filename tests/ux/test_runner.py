@@ -141,6 +141,20 @@ class GateTests(unittest.TestCase):
         self.assertFalse(runner.phase_selected({'scope': '0.5', 'mode': 'REGRESSION'}, '0.6'))
         self.assertTrue(runner.phase_selected({'scope': '0.6', 'mode': 'REGRESSION'}, '0.6'))
 
+    def test_scenario_deadlines_preserve_explicit_override(self):
+        defaults = argparse.Namespace(timeout=None)
+        self.assertEqual(runner.scenario_timeout('UX-NAV-001', defaults), 180)
+        self.assertEqual(runner.scenario_timeout('UX-UND-016', defaults), 600)
+        self.assertEqual(runner.scenario_timeout('UX-ADV-013', defaults), 600)
+        self.assertEqual(runner.scenario_timeout('UX-PRS-019', defaults), 900)
+        self.assertEqual(runner.scenario_timeout('UX-IMP-019', defaults), 600)
+        self.assertEqual(runner.scenario_timeout('UX-ADV-012', defaults), 600)
+        self.assertEqual(runner.scenario_timeout('UX-NAV-002', defaults), 300)
+        for value in (1, 17, 1200):
+            override = argparse.Namespace(timeout=value)
+            for identifier in ('UX-NAV-001', 'UX-UND-016', 'UX-PRS-019'):
+                self.assertEqual(runner.scenario_timeout(identifier, override), value)
+
     def test_release_repeats_blockers_without_tripling_default_soaks(self):
         args = argparse.Namespace(release_qualification=True, runs=1)
         self.assertEqual(runner.repetitions_for({'mode': 'BLOCKING'}, args), 3)

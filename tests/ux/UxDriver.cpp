@@ -2,6 +2,7 @@
 #include <QGuiApplication>
 #include <QInputMethodEvent>
 #include <QJsonDocument>
+#include <QKeySequence>
 #include <QTest>
 #include <QWheelEvent>
 #include <QtTest/qtestwheel.h>
@@ -152,6 +153,25 @@ void Driver::key(Qt::Key key, Qt::KeyboardModifiers modifiers) {
          {"window_class", QString::fromUtf8(receiver->metaObject()->className())}});
     QTest::keyClick(receiver, key, modifiers);
     QCoreApplication::processEvents();
+}
+void Driver::quitShortcut() {
+    const auto bindings = QKeySequence::keyBindings(QKeySequence::Quit);
+    require(!bindings.isEmpty(), "Platform theme has no StandardKey.Quit binding");
+    const bool native = QGuiApplication::platformName() == "cocoa";
+    require(native || QGuiApplication::platformName() == "offscreen",
+            "Quit qualification requires Cocoa or the explicit offscreen CI fixture");
+    const QKeySequence commandQ(QKeyCombination(Qt::ControlModifier, Qt::Key_Q));
+    if (native)
+        require(bindings.contains(commandQ), "macOS Quit no longer declares Cmd+Q");
+    const auto sequence = native ? commandQ : bindings.front();
+    require(sequence.count() == 1, "Quit fixture requires a single key combination");
+    log({{"action", "standard_quit_shortcut_input"},
+         {"platform", QGuiApplication::platformName()},
+         {"resolved_binding", sequence.toString(QKeySequence::PortableText)},
+         {"native_command_q_exercised", native}});
+    // Offscreen uses a Windows keyboard scheme (Quit=Exit). This still travels
+    // through the actual QML StandardKey shortcut; never call root.close() here.
+    key(sequence[0].key(), sequence[0].keyboardModifiers());
 }
 void Driver::keyDown(Qt::Key key) {
     log({{"action", "key_down"}, {"key", static_cast<int>(key)}});

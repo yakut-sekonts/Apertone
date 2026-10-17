@@ -23,6 +23,7 @@ class Driver {
                      int steps = 12);
     void wheel(const QString &id, int pixels, bool horizontal = false);
     void key(Qt::Key key, Qt::KeyboardModifiers modifiers = Qt::NoModifier);
+    void quitShortcut();
     void keyDown(Qt::Key key);
     void keyUp(Qt::Key key);
     void type(const QString &id, const QString &text);

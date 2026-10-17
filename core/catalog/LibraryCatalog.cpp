@@ -3,6 +3,7 @@
 #include "core/catalog/SqliteStatement.h"
 #include <algorithm>
 #include <limits>
+#include <set>
 
 namespace luma {
 namespace {
@@ -177,10 +178,18 @@ void Catalog::collectionMembership(const std::string &collectionID,
 }
 std::string Catalog::beginImport(ImportMode mode, const std::filesystem::path &destination,
                                  const std::vector<std::filesystem::path> &sources,
-                                 std::int64_t ownerPID, bool skipDuplicates) {
+                                 std::int64_t ownerPID, bool skipDuplicates,
+                                 const std::map<std::filesystem::path, std::string> &sourceErrors) {
     if (sources.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()) ||
         ownerPID <= 0 || (mode != ImportMode::add && mode != ImportMode::copy))
         throw std::runtime_error("Invalid import session.");
+    if (!sourceErrors.empty()) {
+        const std::set<std::filesystem::path> knownSources(sources.begin(), sources.end());
+        for (const auto &[source, error] : sourceErrors) {
+            if (error.empty() || !knownSources.contains(source))
+                throw std::runtime_error("Invalid initial import error.");
+        }
+    }
     const auto id = newID();
     execute("BEGIN IMMEDIATE;");
     try {
@@ -194,11 +203,15 @@ std::string Catalog::beginImport(ImportMode mode, const std::filesystem::path &d
         session.integer(5, skipDuplicates ? 1 : 0);
         session.row();
         for (std::size_t i = 0; i < sources.size(); ++i) {
-            Statement item(db_, "INSERT INTO import_items(session_id,position,source_path,state) "
-                                "VALUES(?1,?2,?3,'queued')");
+            const auto failure = sourceErrors.find(sources[i]);
+            Statement item(db_,
+                           "INSERT INTO import_items(session_id,position,source_path,state,error) "
+                           "VALUES(?1,?2,?3,?4,?5)");
             item.text(1, id);
             item.integer(2, static_cast<std::int64_t>(i));
             item.text(3, sources[i].string());
+            item.text(4, failure == sourceErrors.end() ? "queued" : "failed");
+            item.text(5, failure == sourceErrors.end() ? "" : failure->second);
             item.row();
         }
         execute("COMMIT;");

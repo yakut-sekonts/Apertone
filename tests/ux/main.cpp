@@ -6,7 +6,8 @@
 #include <iostream>
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
-}
+void prepareThumbnailCorruption(const QString &, const QString &);
+} // namespace ux
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
@@ -28,10 +29,15 @@ int main(int argc, char **argv) {
         QDir().mkpath(parser.value("state-root"));
     std::unique_ptr<ux::Context> context;
     try {
+        if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
+            ux::prepareThumbnailCorruption(root, parser.value("state-root"));
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
                                                 parser.value("state-root"));
         if (parser.isSet("stage"))
             ux::restartScenario(*context, parser.value("case"), parser.value("stage"));
+        else if (parser.value("case") == "UX-BAT-013")
+            ux::require(ux::updaterScenario(*context, "UX-UPD-003", "batch"),
+                        "Batch restart adapter unavailable");
         else if (!ux::updaterScenario(*context, parser.value("case"), parser.value("variant")))
             ux::basicScenario(*context, parser.value("case"));
         context->saved();
