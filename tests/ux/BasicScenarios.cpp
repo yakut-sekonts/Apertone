@@ -30,6 +30,7 @@ bool gestureRemainingScenario(Context &, const QString &);
 bool visualRemainingScenario(Context &, const QString &);
 bool libraryRemainingScenario(Context &, const QString &);
 bool batchUpdateRemainingScenario(Context &, const QString &);
+bool exportSettingsScenario(Context &, const QString &);
 void basicScenario(Context &c, const QString &id) {
     auto &d = *c.driver;
     if (id == "UX-EXP-011") {
@@ -37,15 +38,15 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (batchUpdateRemainingScenario(c, id) || libraryRemainingScenario(c, id) ||
-        visualRemainingScenario(c, id) || gestureRemainingScenario(c, id) ||
-        whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
-        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
-        presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
-        sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
-        presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
-        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
-        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (exportSettingsScenario(c, id) || batchUpdateRemainingScenario(c, id) ||
+        libraryRemainingScenario(c, id) || visualRemainingScenario(c, id) ||
+        gestureRemainingScenario(c, id) || whiteBalanceScenario(c, id) || appExtraScenario(c, id) ||
+        exportExtraScenario(c, id) || importExtraScenario(c, id) ||
+        currentPerformanceScenario(c, id) || presetRemainingScenario(c, id) ||
+        historyStressScenario(c, id) || sliderExtraScenario(c, id) || previewExtraScenario(c, id) ||
+        recoveryExtraScenario(c, id) || presetExtraScenario(c, id) || navigationScenario(c, id) ||
+        transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
+        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;

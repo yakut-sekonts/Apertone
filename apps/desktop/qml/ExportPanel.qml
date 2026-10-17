@@ -27,13 +27,13 @@ Dialog {
             enabled: !exporter.working
             RowLayout {
                 Layout.fillWidth: true
-                ComboBox { id: profiles; Layout.fillWidth: true; model: exporter.profiles; textRole: "name"; valueRole: "id"; displayText: count ? currentText : qsTranslate("Luma", "Saved settings") }
-                Button { text: qsTranslate("Luma", "Load"); enabled: profiles.count > 0; onClicked: exporter.loadProfile(profiles.currentValue) }
+                ComboBox { id: profiles; objectName: "export.profiles"; Layout.fillWidth: true; model: exporter.profiles; textRole: "name"; valueRole: "id"; displayText: count ? currentText : qsTranslate("Luma", "Saved settings") }
+                Button { objectName: "export.profileLoad"; text: qsTranslate("Luma", "Load"); enabled: profiles.count > 0; onClicked: exporter.loadProfile(profiles.currentValue) }
                 Button { text: qsTranslate("Luma", "Delete"); enabled: profiles.count > 0; onClicked: exporter.deleteProfile(profiles.currentValue) }
             }
             RowLayout {
-                TextField { id: profileName; placeholderText: qsTranslate("Luma", "Settings name"); maximumLength: 80; Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Save"); onClicked: { if (exporter.configure(panel.form)) exporter.saveProfile(profileName.text) } }
+                TextField { id: profileName; objectName: "export.profileName"; placeholderText: qsTranslate("Luma", "Settings name"); maximumLength: 80; Layout.fillWidth: true }
+                Button { objectName: "export.profileSave"; text: qsTranslate("Luma", "Save"); onClicked: { if (exporter.configure(panel.form)) exporter.saveProfile(profileName.text) } }
             }
             Label { text: qsTranslate("Luma", "Destination folder") }
             RowLayout {
@@ -51,40 +51,40 @@ Dialog {
                 Label { text: qsTranslate("Luma", "JPEG quality") }
                 SpinBox { from: 1; to: 100; value: panel.form.quality; editable: true; onValueModified: panel.update("quality", value) }
             }
-            ComboBox { visible: panel.form.format === 2 || panel.form.format === 3; model: [qsTranslate("Luma", "TIFF · uncompressed"), "TIFF · LZW", "TIFF · ZIP"]; currentIndex: panel.form.compression; onActivated: panel.update("compression", currentIndex); Layout.fillWidth: true }
-            ComboBox { model: ["sRGB", "Display P3", "Adobe RGB (1998)", "ProPhoto RGB"]; currentIndex: panel.form.colorSpace; onActivated: panel.update("colorSpace", currentIndex); Layout.fillWidth: true }
+            ComboBox { objectName: "export.compression"; visible: panel.form.format === 2 || panel.form.format === 3; model: [qsTranslate("Luma", "TIFF · uncompressed"), "TIFF · LZW", "TIFF · ZIP"]; currentIndex: panel.form.compression; onActivated: panel.update("compression", currentIndex); Layout.fillWidth: true }
+            ComboBox { objectName: "export.colorSpace"; model: ["sRGB", "Display P3", "Adobe RGB (1998)", "ProPhoto RGB"]; currentIndex: panel.form.colorSpace; onActivated: panel.update("colorSpace", currentIndex); Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Size after Crop / Transform") }
             RowLayout {
-                ComboBox { model: [qsTranslate("Luma", "Original size"), qsTranslate("Luma", "Width, px"), qsTranslate("Luma", "Height, px"), qsTranslate("Luma", "Long edge, px"), qsTranslate("Luma", "Short edge, px"), qsTranslate("Luma", "Megapixels"), qsTranslate("Luma", "Percentage")]; currentIndex: panel.form.resize; onActivated: panel.update("resize", currentIndex); Layout.fillWidth: true }
-                TextField { visible: panel.form.resize !== 0; text: panel.form.resizeValue; Layout.preferredWidth: 100; validator: DoubleValidator { bottom: 0.01; top: 20000; locale: "C" } onEditingFinished: panel.update("resizeValue", Number(text)) }
+                ComboBox { objectName: "export.resize"; model: [qsTranslate("Luma", "Original size"), qsTranslate("Luma", "Width, px"), qsTranslate("Luma", "Height, px"), qsTranslate("Luma", "Long edge, px"), qsTranslate("Luma", "Short edge, px"), qsTranslate("Luma", "Megapixels"), qsTranslate("Luma", "Percentage")]; currentIndex: panel.form.resize; onActivated: panel.update("resize", currentIndex); Layout.fillWidth: true }
+                TextField { objectName: "export.resizeValue"; visible: panel.form.resize !== 0; text: panel.form.resizeValue; Layout.preferredWidth: 100; validator: DoubleValidator { bottom: 0.01; top: 20000; locale: "C" } onEditingFinished: panel.update("resizeValue", Number(text)) }
             }
             Label { text: qsTranslate("Luma", "Output sharpening") }
             RowLayout {
-                ComboBox { model: [qsTranslate("Luma", "Off"), qsTranslate("Luma", "Screen"), qsTranslate("Luma", "Matte paper"), qsTranslate("Luma", "Glossy paper")]; currentIndex: panel.form.outputMedium; onActivated: panel.update("outputMedium", currentIndex); Layout.fillWidth: true }
-                ComboBox { enabled: panel.form.outputMedium !== 0; model: [qsTranslate("Luma", "Low"), qsTranslate("Luma", "Standard"), qsTranslate("Luma", "High")]; currentIndex: panel.form.outputAmount; onActivated: panel.update("outputAmount", currentIndex) }
+                ComboBox { objectName: "export.outputMedium"; model: [qsTranslate("Luma", "Off"), qsTranslate("Luma", "Screen"), qsTranslate("Luma", "Matte paper"), qsTranslate("Luma", "Glossy paper")]; currentIndex: panel.form.outputMedium; onActivated: panel.update("outputMedium", currentIndex); Layout.fillWidth: true }
+                ComboBox { objectName: "export.outputAmount"; enabled: panel.form.outputMedium !== 0; model: [qsTranslate("Luma", "Low"), qsTranslate("Luma", "Standard"), qsTranslate("Luma", "High")]; currentIndex: panel.form.outputAmount; onActivated: panel.update("outputAmount", currentIndex) }
             }
             Label { text: qsTranslate("Luma", "Metadata") }
-            ComboBox { model: [qsTranslate("Luma", "Do not copy"), qsTranslate("Luma", "All available photo metadata"), qsTranslate("Luma", "Author / copyright only"), qsTranslate("Luma", "Remove location")]; currentIndex: panel.form.metadata; onActivated: panel.update("metadata", currentIndex); Layout.fillWidth: true }
+            ComboBox { objectName: "export.metadata"; model: [qsTranslate("Luma", "Do not copy"), qsTranslate("Luma", "All available photo metadata"), qsTranslate("Luma", "Author / copyright only"), qsTranslate("Luma", "Remove location")]; currentIndex: panel.form.metadata; onActivated: panel.update("metadata", currentIndex); Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "MakerNotes, embedded previews and camera processing instructions are not copied."); font.pixelSize: 11; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Watermark") }
-            ComboBox { model: [qsTranslate("Luma", "None"), qsTranslate("Luma", "Text"), qsTranslate("Luma", "Image")]; currentIndex: panel.form.watermarkKind; onActivated: panel.update("watermarkKind", currentIndex); Layout.fillWidth: true }
+            ComboBox { objectName: "export.watermarkKind"; model: [qsTranslate("Luma", "None"), qsTranslate("Luma", "Text"), qsTranslate("Luma", "Image")]; currentIndex: panel.form.watermarkKind; onActivated: panel.update("watermarkKind", currentIndex); Layout.fillWidth: true }
             TextField { visible: panel.form.watermarkKind === 1; text: panel.form.watermarkText; placeholderText: qsTranslate("Luma", "© Author"); maximumLength: 1024; onEditingFinished: panel.update("watermarkText", text); Layout.fillWidth: true }
             RowLayout {
                 visible: panel.form.watermarkKind === 2
-                TextField { text: panel.form.watermarkImage; onEditingFinished: panel.update("watermarkImage", text); Layout.fillWidth: true }
+                TextField { objectName: "export.watermarkImage"; text: panel.form.watermarkImage; onEditingFinished: panel.update("watermarkImage", text); Layout.fillWidth: true }
                 Button { text: qsTranslate("Luma", "File…"); onClicked: watermarkFile.open() }
             }
             GridLayout {
                 visible: panel.form.watermarkKind !== 0
                 columns: 2; Layout.fillWidth: true
                 Label { text: qsTranslate("Luma", "Opacity, %") }
-                SpinBox { from: 0; to: 100; value: panel.form.watermarkOpacity; editable: true; onValueModified: panel.update("watermarkOpacity", value) }
+                SpinBox { objectName: "export.watermarkOpacity"; from: 0; to: 100; value: panel.form.watermarkOpacity; editable: true; onValueModified: panel.update("watermarkOpacity", value) }
                 Label { text: qsTranslate("Luma", "Size, % of long edge") }
-                SpinBox { from: 1; to: 100; value: panel.form.watermarkSize; editable: true; onValueModified: panel.update("watermarkSize", value) }
+                SpinBox { objectName: "export.watermarkSize"; from: 1; to: 100; value: panel.form.watermarkSize; editable: true; onValueModified: panel.update("watermarkSize", value) }
                 Label { text: qsTranslate("Luma", "Margin, % of short edge") }
-                SpinBox { from: 0; to: 25; value: panel.form.watermarkMargin; editable: true; onValueModified: panel.update("watermarkMargin", value) }
+                SpinBox { objectName: "export.watermarkMargin"; from: 0; to: 25; value: panel.form.watermarkMargin; editable: true; onValueModified: panel.update("watermarkMargin", value) }
                 Label { text: qsTranslate("Luma", "Position") }
-                ComboBox { model: [qsTranslate("Luma", "Top left"), qsTranslate("Luma", "Top center"), qsTranslate("Luma", "Top right"), qsTranslate("Luma", "Left"), qsTranslate("Luma", "Center"), qsTranslate("Luma", "Right"), qsTranslate("Luma", "Bottom left"), qsTranslate("Luma", "Bottom center"), qsTranslate("Luma", "Bottom right")]; currentIndex: panel.form.watermarkAnchor; onActivated: panel.update("watermarkAnchor", currentIndex) }
+                ComboBox { objectName: "export.watermarkAnchor"; model: [qsTranslate("Luma", "Top left"), qsTranslate("Luma", "Top center"), qsTranslate("Luma", "Top right"), qsTranslate("Luma", "Left"), qsTranslate("Luma", "Center"), qsTranslate("Luma", "Right"), qsTranslate("Luma", "Bottom left"), qsTranslate("Luma", "Bottom center"), qsTranslate("Luma", "Bottom right")]; currentIndex: panel.form.watermarkAnchor; onActivated: panel.update("watermarkAnchor", currentIndex) }
             }
         }
     }

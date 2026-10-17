@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-17
 
-- 346 native scenario adapters and one suite-wide original-integrity adapter.
+- 349 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 97 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 94 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -86,6 +86,22 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   appcast, package download and install were not exercised. Those two cases also
   passed three times in a **local offscreen/software simulation**,
   `batch-update-offscreen-report`, run `20261017T180522Z-57220` (six PASS).
+- Three more adapters cover immutable image-watermark overwrite/deletion after
+  enqueue, complete named-profile versus last-used settings across two real
+  processes, and all four metadata privacy policies on actual PNG outputs.
+  Primary ImageIO readers independently check literal GPS/IPTC/EXIF/attribution
+  tags, both metadata/properties channels and forbidden serialized XMP values.
+  Full settings and profile UUID are checked against independent literals;
+  watermark geometry/pixels and all source/document identities remain exact.
+  Final evidence: **9 Metal PASS**, `export-settings-unlocked-final-report`, run
+  `20261017T222930Z-65253`, plus **18 affected Metal PASS**,
+  `export-settings-affected-report`, run `20261017T223110Z-65856`. The same cohorts
+  passed in a local offscreen/software simulation (9 + 18 PASS). All provenance,
+  source consistency, original SHA and SQLite checks passed. Full application
+  build, runner-accounting CTest (25 tests, 5.66 seconds), format and four focused
+  clang-tidy checks passed. Nine preceding native activation failures were
+  caused by a locked Mac session and remain retained in the original report;
+  the user unlocked the Mac before the successful new report was recorded.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -122,7 +138,11 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   All 25 runner unit tests passed (5.468 seconds), including 22 mocked CLI matrix
   cases for strict/ad hoc modes and source/binary drift. A real stale-build
   preflight rejected execution with exit 2 before fixture/child execution.
-  A new hosted run remains pending; mocked CLI tests are not native UX evidence.
+  Hosted `3183ff9` then passed **282 blocking attempts** and all build/unit/static
+  steps (run `39056014400`). Its uploaded source/binary proof, source consistency,
+  original SHA and 279 native catalog snapshots all passed. Its source hash is
+  identical to the local clean-commit snapshot. This confirms the CI attestation
+  path; the blocking subset is still not full current-scope release qualification.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.
   The original failed fixture is retained, without asserting a production defect.

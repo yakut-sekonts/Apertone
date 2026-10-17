@@ -54,6 +54,7 @@ RESTART = {'UX-APP-001', 'UX-APP-003', 'UX-APP-005', 'UX-APP-007',
            'UX-DTL-012', 'UX-SLD-020', 'UX-CRP-018', 'UX-LNS-010', 'UX-TRN-015', 'UX-IMP-020', 'UX-LOC-006', 'UX-LOC-007'}
 KILL = {'UX-UND-014', 'UX-UND-015', 'UX-REC-007', 'UX-IMP-020'}
 RESTART.update(('UX-PRS-011', 'UX-PRS-018', 'UX-REC-009', 'UX-APP-004', 'UX-SLD-016'))
+RESTART.add('UX-EXP-025')
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
 NATIVE.add('UX-APP-010')
@@ -94,9 +95,11 @@ NATIVE.update(f'UX-LIB-{i:03}' for i in (8, 14, 15, 16, 17))
 NATIVE.add('UX-RACE-009')
 NATIVE.update(('UX-BAT-004', 'UX-BAT-007', 'UX-BAT-014', 'UX-UPD-001',
                'UX-UPD-005', 'UX-UPD-006', 'UX-APP-011', 'UX-RACE-010'))
+NATIVE.update(('UX-EXP-017', 'UX-EXP-027'))
 GLOBAL = {'UX-UND-018'}
 
-CASE_TIMEOUTS = {'UX-BAT-014': 900, 'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
+CASE_TIMEOUTS = {'UX-EXP-017': 300, 'UX-EXP-025': 300, 'UX-EXP-027': 300,
+                 'UX-BAT-014': 900, 'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
                  'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600,
                  'UX-APP-012': 600, 'UX-APP-015': 600, 'UX-EXP-021': 600,
                  'UX-LIB-017': 600, 'UX-LIB-008': 300, 'UX-LIB-014': 300,

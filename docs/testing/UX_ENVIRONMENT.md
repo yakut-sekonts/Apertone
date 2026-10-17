@@ -474,3 +474,44 @@ plateau or observation of the worker's TEMP journal. APP-011/RACE-010 overlap
 actual autosave with an export waiting for that save. RACE-010 holds and resumes
 the genuine queued exporter closeReady while the editor emits its own source;
 it does not synthesize closeReady or claim cancellation during encoder writes.
+
+## Export settings/privacy qualification and a locked native session
+
+The first three native cases passed in export-settings-first-report. After a
+later user continuation, all nine final-source attempts failed before scenario
+actions at the common native-window activation guard. Computer-use inventory
+independently reported that the Mac was locked and automatic unlock had failed.
+These nine failures remain in export-settings-final-report (20261017T222606Z-64260);
+they were not relabeled as product defects or overwritten. The user then
+explicitly confirmed manual unlock.
+
+With the same attested final source, nine native Cocoa/Metal attempts passed in
+export-settings-unlocked-final-report (20261017T222930Z-65253), followed by
+18 affected native PASS in export-settings-affected-report (20261017T223110Z-65856).
+Separate local offscreen/software cohorts passed 9 + 18 attempts. All source/
+binary proof, unchanged source, source SHA and catalog integrity checks passed.
+The native wrapper used a process-scoped caffeinate display/system-idle assertion;
+it did not change lock preferences or bypass manual unlocking. Full application
+build, 25 runner-accounting tests, format and four focused tidy checks passed.
+
+EXP-017 executes both overwrite and deletion of its own original watermark after
+planning, with an independently defined red pixel rectangle in both real outputs.
+EXP-025 uses two processes and literal complete settings plus a valid stable UUID;
+both last-used and named-profile exports retain full durable documents and source
+identity. EXP-027 reads its own known JPEG and all four actual PNG policies through
+primary ImageIO APIs, checking exact GPS coordinates, IPTC locations, copyright,
+capture and lens tags in properties/metadata and forbidden values in XMP.
+
+## Hosted attestation path verified
+
+Hosted commit 3183ff9 run 39056014400/job 117464018541 passed all steps: build,
+39 available unit/integration tests (115.54 seconds), attested UX wrapper,
+282 blocking attempts, format and tidy. Artifact 12110895076 ZIP SHA-256 is
+91de1a17b6473b5da2515d16c091fbb5d69ca1ace0c918d6dab25d69bf94987a.
+Its source hash 15363caa5a7bc1b5397f0a9fa38bf4923de2e365b9bcea3d57f4db9faf0886fb
+matches the local clean 3183ff9 snapshot; source_commit identifies the expected PR
+merge checkout 90e23e5793e75c148b225e77d3f6d0be68b0cf77. Build provenance, source
+consistency, original SHA and all 279 native-case catalog snapshots passed.
+The 92 future cases remain NOT_IMPLEMENTED, and the blocking subset remains
+NOT_QUALIFIED for the full current-scope release. Earlier missing-proof artifacts
+are retained unchanged.
