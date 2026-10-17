@@ -332,3 +332,59 @@ results, `import-cancel-physical-offscreen-report`). The subsequent native
 57-result suite also passed those cases and the default-position import fault,
 50-cycle and process-death recovery regressions. A new hosted commit run is
 still required; the local environment flag is not a hosted CI result.
+
+
+## Long-filename visual oracle and sidebar focus transition
+
+The first ten visual/recovery scenarios passed in `visual-remaining-first-report`
+(run `20261017T124640Z-19791`). Manual screenshot review nevertheless found the
+left sidebar overflowing beneath the filmstrip for a 255-character filename.
+The initial oracle checked the toolbar/card/source label, but not preset action
+reachability. Its recorded PASS remains intact; a strengthened three-failure
+reproducer establishes the production defect LUMA-UX-022.
+
+The first layout correction passed pointer activation but its new keyboard check
+failed (`sidebar-overflow-fixed-smoke-report`). Closing Copy restores its focus;
+manual scrolling deliberately does not reveal an unchanged focus item. The fixture
+now leaves through actual Tab and traverses back, without direct focus setters.
+That fresh transition also failed three times in `sidebar-focus-transition-report`:
+the first implementation deferred the same helper twice with different pane
+arguments. The final implementation defers one callback which checks both panes.
+The acceptance waits for the actual clipped bounds before Space activation.
+No source-label truncation or manual contentY assignment was added to the fixture.
+
+VIS-005 imports 100 malformed owned images. Production reports contain a source
+line, an error and blank separators, so this is a declared larger-than-100-line
+readability workload, not a claim that 100 failed items render as exactly 100 lines.
+The actual complete text, line 100 and both endpoints are checked through real
+wheel input. VIS-004 independently exercises exactly 100 export-failure lines.
+Neither case is an alias for the global rendered-text overlap audit VIS-008.
+
+
+## Auxiliary-window polish acknowledgment in hosted CI
+
+Head `3e4fc19` hosted run `39033565439` completed with 281 blocking PASS and
+one DSC-001 timeout; build and all available unit/integration tests passed.
+The original artifact ZIP is retained with SHA-256
+`8ce08c1aa7f0bdd992886ddb2a05612dcea5119cc5b68d042c54909e8dde4774`.
+The failed process had a live heartbeat, no hard hang, four main-window frame
+intervals, valid SQLite/original integrity and no QML warnings.
+
+DSC-001 creates a separate real ScrollView positive-control window. Its Driver
+requested an update of that window but waited for Metrics.polishes, attached
+only to the main window. Unrelated main-window updates could acknowledge it;
+otherwise the five-second wait expired. Driver.frame now observes the actual
+window's afterAnimating through a scoped QObject connection established before
+update. The timeout, hidden-window handling and production code are unchanged.
+This remains a GUI animation/polish acknowledgment, not physical scanout proof.
+The corrected scenario passed four final-source Cocoa attempts and ten local
+CI-environment offscreen repeats (`visual-driver-final-report`,
+`sidebar-driver-native-final-report`, `driver-frame-offscreen-final-report`).
+Provenance, source consistency, original SHA and SQLite passed. This local
+simulation is not a hosted run; the original hosted CI FAIL remains retained.
+
+The intermediate left ScrollView also needed an explicit scrollbar gutter:
+`sidebar-gutter-repro-report` retains three native failures showing actual
+Flickable/source-label bounds overlapping the full vertical scrollbar hit area.
+Only the new left pane reserves effectiveScrollBarWidth; a fading thumb cannot
+hide the geometry assertion. Right-pane behavior is not changed by this finding.

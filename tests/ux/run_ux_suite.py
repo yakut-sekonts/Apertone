@@ -88,11 +88,15 @@ NATIVE.update(('UX-SLD-015', 'UX-SLD-017', 'UX-DSC-004', 'UX-APP-012', 'UX-APP-0
 NATIVE.update(f'UX-EXP-{i:03}' for i in (9, 14, 16, 19, 21, 22))
 NATIVE.update(('UX-DSC-005', 'UX-DSC-006', 'UX-DSC-008', 'UX-DSC-009',
                'UX-SLD-010', 'UX-SLD-011', 'UX-LNS-009'))
+NATIVE.update(f'UX-VIS-{i:03}' for i in (1, 2, 4, 5, 6, 9, 10, 11, 12))
+NATIVE.update(('UX-REC-011', 'UX-EXP-011'))
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
                  'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600,
-                 'UX-APP-012': 600, 'UX-APP-015': 600, 'UX-EXP-021': 600}
+                 'UX-APP-012': 600, 'UX-APP-015': 600, 'UX-EXP-021': 600,
+                 'UX-VIS-004': 600, 'UX-EXP-011': 600, 'UX-VIS-005': 600, 'UX-VIS-009': 300,
+                 'UX-VIS-011': 300, 'UX-VIS-012': 300, 'UX-REC-011': 300}
 
 
 def scenario_timeout(identifier, arguments):

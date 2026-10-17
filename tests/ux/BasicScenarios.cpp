@@ -27,15 +27,22 @@ bool whiteBalanceScenario(Context &, const QString &);
 bool appExtraScenario(Context &, const QString &);
 bool exportExtraScenario(Context &, const QString &);
 bool gestureRemainingScenario(Context &, const QString &);
+bool visualRemainingScenario(Context &, const QString &);
 void basicScenario(Context &c, const QString &id) {
     auto &d = *c.driver;
-    if (gestureRemainingScenario(c, id) || whiteBalanceScenario(c, id) || appExtraScenario(c, id) ||
-        exportExtraScenario(c, id) || importExtraScenario(c, id) ||
-        currentPerformanceScenario(c, id) || presetRemainingScenario(c, id) ||
-        historyStressScenario(c, id) || sliderExtraScenario(c, id) || previewExtraScenario(c, id) ||
-        recoveryExtraScenario(c, id) || presetExtraScenario(c, id) || navigationScenario(c, id) ||
-        transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
-        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (id == "UX-EXP-011") {
+        require(visualRemainingScenario(c, "UX-VIS-004"),
+                "The complete export-failure readability scenario is unavailable");
+        return;
+    }
+    if (visualRemainingScenario(c, id) || gestureRemainingScenario(c, id) ||
+        whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
+        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
+        presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
+        sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
+        presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
+        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
+        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;

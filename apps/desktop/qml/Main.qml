@@ -24,6 +24,32 @@ ApplicationWindow {
     font.family: "Helvetica Neue"
     onLibraryModeChanged: {if(libraryMode) { editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
+    function ensureActiveFocusVisible(scroll) {
+        const item = root.activeFocusItem
+        const view = scroll ? scroll.contentItem : null
+        if (!scroll || !scroll.visible || !item || !view || !view.contentItem)
+            return
+        let ancestor = item
+        while (ancestor && ancestor !== view.contentItem)
+            ancestor = ancestor.parent
+        if (!ancestor)
+            return
+        const position = item.mapToItem(view, 0, 0)
+        let target = view.contentY
+        if (position.y < 0)
+            target += position.y
+        else if (position.y + item.height > view.height)
+            target += position.y + item.height - view.height
+        const minimum = view.originY
+        const maximum = minimum + Math.max(0, view.contentHeight - view.height)
+        view.cancelFlick()
+        view.contentY = Math.max(minimum, Math.min(maximum, target))
+    }
+    function revealActiveFocus() {
+        ensureActiveFocusVisible(presetsScroll)
+        ensureActiveFocusVisible(adjustmentsScroll)
+    }
+    onActiveFocusItemChanged: Qt.callLater(root.revealActiveFocus)
     Connections {
         target: updates
         function onChanged() {
@@ -100,6 +126,7 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
         Rectangle {
+            objectName: "main.toolbar"
             Layout.fillWidth: true; Layout.preferredHeight: 64; color: "#191c22"
             RowLayout {
                 anchors.fill: parent; anchors.margins: 20; spacing: root.width < 1200 ? 8 : 18
@@ -149,6 +176,7 @@ ApplicationWindow {
             ProgressBar { objectName: "export.progress"; visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
             Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ScrollView {
+                objectName: "export.failuresScroll"
                 visible: exporter.failures.length > 0
                 Layout.fillWidth: true; Layout.preferredHeight: 65
                 TextArea { objectName: "export.failures"; readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: "#ffc1bc" }
@@ -166,21 +194,33 @@ ApplicationWindow {
             Rectangle {
                 objectName: "develop.presetsPane"
                 SplitView.preferredWidth: 214; SplitView.minimumWidth: 170; SplitView.maximumWidth: 350; color: "#191c22"
-                ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 20; spacing: 18
-                    Label { text: qsTranslate("Luma", "WORKSPACE"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
-                    Rectangle {
-                        Layout.fillWidth: true; implicitHeight: 42; radius: 6; color: "#302a25"
-                        Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: "#dfae77"; font.pixelSize: 12 }
+                ScrollView {
+                    id: presetsScroll
+                    objectName: "develop.presetsScroll"
+                    Component.onCompleted: ScrollBar.vertical.objectName = "develop.presetsBar"
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    clip: true
+                    rightPadding: effectiveScrollBarWidth
+                    contentWidth: availableWidth
+                    ColumnLayout {
+                        width: presetsScroll.availableWidth
+                        height: Math.max(implicitHeight, presetsScroll.availableHeight)
+                        spacing: 18
+                        Label { text: qsTranslate("Luma", "WORKSPACE"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
+                        Rectangle {
+                            Layout.fillWidth: true; implicitHeight: 42; radius: 6; color: "#302a25"
+                            Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: "#dfae77"; font.pixelSize: 12 }
+                        }
+                        Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
+                        Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
+                        Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
+                        PresetPanel { Layout.fillWidth: true; Layout.fillHeight: true }
+                        Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
+                        Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
                     }
-                    Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
-                    Label { text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                    Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
-                    Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
-                    PresetPanel { Layout.fillWidth: true; Layout.fillHeight: true }
-                    Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
-                    Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                    Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
                 }
             }
             Rectangle {
@@ -267,33 +307,6 @@ ApplicationWindow {
                     anchors.margins: 18
                     clip: true
                     contentWidth: availableWidth
-                    function ensureActiveFocusVisible() {
-                        const item = root.activeFocusItem
-                        const view = contentItem
-                        if (!visible || !item || !view || !view.contentItem)
-                            return
-                        let ancestor = item
-                        while (ancestor && ancestor !== view.contentItem)
-                            ancestor = ancestor.parent
-                        if (!ancestor)
-                            return
-                        const position = item.mapToItem(view, 0, 0)
-                        let target = view.contentY
-                        if (position.y < 0)
-                            target += position.y
-                        else if (position.y + item.height > view.height)
-                            target += position.y + item.height - view.height
-                        const minimum = view.originY
-                        const maximum = minimum + Math.max(0, view.contentHeight - view.height)
-                        view.cancelFlick()
-                        view.contentY = Math.max(minimum, Math.min(maximum, target))
-                    }
-                    Connections {
-                        target: root
-                        function onActiveFocusItemChanged() {
-                            Qt.callLater(adjustmentsScroll.ensureActiveFocusVisible)
-                        }
-                    }
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
                         spacing: 14

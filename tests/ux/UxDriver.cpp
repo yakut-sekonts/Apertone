@@ -45,10 +45,11 @@ void Driver::wait(const std::function<bool()> &condition, const QString &reason,
     require(QTest::qWaitFor(condition, timeout), "Timeout: " + reason);
 }
 void Driver::frame() {
-    const auto before = metrics_.polishes();
+    bool animated = false;
+    QObject observer;
+    QObject::connect(&window_, &QQuickWindow::afterAnimating, &observer, [&] { animated = true; });
     window_.update();
-    wait([&] { return metrics_.polishes() > before || !window_.isVisible(); },
-         "window polish cycle", 5000);
+    wait([&] { return animated || !window_.isVisible(); }, "window polish cycle", 5000);
 }
 QPoint Driver::point(const QString &id, QPointF fraction) const {
     auto *target = item(id);

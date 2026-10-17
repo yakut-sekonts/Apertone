@@ -7,11 +7,11 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-17
 
-- 321 native scenario adapters and one suite-wide original-integrity adapter.
+- 332 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 122 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 111 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
-- 21 reproduced production defects have fixes and focused regressions in
+- 22 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -36,6 +36,27 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   scenarios passed three times: **57 Metal PASS**, `gesture-import-final-report`,
   run `20261017T123506Z-16828`, with provenance, source consistency, original SHA
   and catalog integrity all passing.
+- Eleven more adapters cover 255-character filenames, 1,000-character paths,
+  large import/export reports, status/layout stability, closed-popup hitboxes,
+  disabled actions, actual ToolTips, dynamic scrollbar geometry and localized
+  failed-save/close recovery. EXP-011 explicitly reuses the complete VIS-004
+  real 100-file failure/readability contract. Manual screenshot review exposed a
+  missing sidebar-action oracle; three native failures reproduced the overflow,
+  and three more established the intermediate scrollbar/text overlap.
+  The complete sidebar now scrolls within clipped bounds and reserves its bar
+  gutter, retaining full filename text and real pointer/Tab/Space access to Copy.
+  Final evidence: **12 Metal PASS**, `visual-driver-final-report`, run
+  `20261017T131309Z-27651`, plus **6 Metal PASS** for VIS-001/DSC-001 three times,
+  `sidebar-driver-native-final-report`, run `20261017T132106Z-30385`.
+  Nine affected keyboard/preset/layout cases also passed three times before the
+  final gutter hardening (`sidebar-focused-final-report`, 27 Metal results).
+  Every report passed provenance, source consistency, original SHA and SQLite.
+- The hosted auxiliary-window timeout exposed a test-driver ownership error:
+  requesting a probe-window update waited on the main-window polish counter.
+  Frame acknowledgment now observes the requested window itself. Besides the
+  Cocoa repeats, **10 local offscreen/software repeats passed**,
+  `driver-frame-offscreen-final-report`, run `20261017T132123Z-27569`.
+  This is a local CI-environment simulation, not a successful hosted run.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -51,13 +72,16 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   and provider pixels remain required; only scene readback allows one RGBA8 level
   of rounding. These measurements are not performance thresholds or a baseline.
 - Full CTest after the latest production fix: **38 PASS, one optional private Nikon
-  SKIP**, 84.59 seconds (`gesture-import-full-ctest.log`). All 20 Python runner unit
-  tests passed. Full build, clang-format, diff checks and focused clang-tidy passed.
+  SKIP**, 83.90 seconds (`visual-driver-full-ctest.log`). All 20 Python runner unit
+  tests passed in 5.485 seconds. Full build, clang-format, diff checks and focused
+  clang-tidy for VisualRemainingScenarios, UxDriver and BasicScenarios passed.
 - Earlier native failures and fixture corrections remain retained and explained
   in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). Hosted ca38254 finished with 281
   blocking PASS / one missed import-Cancel input window. The normalized physical
-  Copy checkpoint passed nine local offscreen repeats and the native regressions;
-  a new hosted run is still required after publication of this checkpoint.
+  Copy checkpoint passed nine local offscreen repeats and the native regressions.
+  Hosted `3e4fc19` then passed 281 blocking attempts, including those import cases,
+  but retained one auxiliary-window polish timeout. The correction passed the
+  Cocoa/offscreen repeats above; a new hosted run is required for this checkpoint.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.
   The original failed fixture is retained, without asserting a production defect.

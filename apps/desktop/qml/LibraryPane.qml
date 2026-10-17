@@ -29,7 +29,7 @@ Rectangle {
         ColumnLayout {
             width: parent.width; spacing: 12
             RowLayout { Button { text: qsTranslate("Luma", "Choose files"); onClicked: files.open() } Button { text: qsTranslate("Luma", "Choose folder"); onClicked: folder.open() } }
-            Label { text: pane.sources.length ? qsTranslate("Luma", "Sources: ") + pane.sources.length + " · " + pane.sources[0] : qsTranslate("Luma", "No files or folder selected"); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true; font.pixelSize: 11 }
+            Label { objectName: "library.importSources"; text: pane.sources.length ? qsTranslate("Luma", "Sources: ") + pane.sources.length + " · " + pane.sources[0] : qsTranslate("Luma", "No files or folder selected"); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true; font.pixelSize: 11 }
             ComboBox { id: importMode; objectName: "library.importMode"; model: [qsTranslate("Luma", "Add · keep originals in place"), qsTranslate("Luma", "Copy · copy into the selected folder")]; Layout.fillWidth: true }
             Button { visible: importMode.currentIndex === 1; text: qsTranslate("Luma", "Choose destination folder"); onClicked: copyFolder.open() }
             Label { visible: importMode.currentIndex === 1; text: pane.destination.toString() || qsTranslate("Luma", "No folder selected"); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true; font.pixelSize: 11 }

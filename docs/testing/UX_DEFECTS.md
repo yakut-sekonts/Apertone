@@ -413,3 +413,33 @@ are tracked separately and are not counted as application failures or hidden ret
   keyboard focus/modal input and held Slider transitions. Source/binary
   provenance, original SHA and SQLite integrity passed. Full build and CTest:
   38 PASS, one optional private Nikon SKIP (`gesture-import-full-ctest.log`).
+
+
+## LUMA-UX-022 — A long source filename hides sidebar preset actions
+
+- Severity: P1. Scope: CURRENT. Subsystem: Develop sidebar layout/navigation.
+- Regression: strengthened `UX-VIS-001`, open an owned image with a 255-character
+  filename at 1000×640. Retain full source-name wrapping, then reach Copy through
+  actual pointer/keyboard input without overlapping the filmstrip or footer.
+- Expected: the full filename remains available, sidebar content stays within its
+  viewport and preset actions have a usable scroll/focus route.
+- Actual: the unscrollable ColumnLayout grows beyond its pane; Copy/Paste overlap
+  the filmstrip/footer and catalog details disappear outside the window.
+- Evidence: manual inspection of the initial narrow VIS-001 PASS screenshot in
+  `visual-remaining-first-report` exposed the missing action oracle. The strengthened
+  `sidebar-overflow-repro-report`, run `20261017T125915Z-21622`, retains three native
+  failures with source/binary provenance, unchanged original SHA and valid SQLite
+  snapshots. The initial narrower PASS is retained as such, without relabeling it.
+- Fix: put the complete sidebar in a clipped ScrollView, preserve full filename
+  wrapping and normal full-height layout, and share the existing minimal focus
+  reveal behavior across both Develop panes. An explicit scrollbar gutter keeps
+  text and preset actions outside its hit area. A single deferred callback checks
+  both panes; focus outside them and manual scrolling do not force repositioning.
+- Verification: `visual-driver-final-report`, run `20261017T131309Z-27651`,
+  passed all eleven new cases and DSC-001 on Metal. VIS-001 and DSC-001 each
+  passed three further native repeats in `sidebar-driver-native-final-report`,
+  run `20261017T132106Z-30385`. Copy is actually clicked, reached by a fresh Tab
+  transition, activated by Space, and contained outside the full scrollbar hit
+  area. Source/binary provenance, original SHA and SQLite passed. Full build,
+  CTest (38 PASS, one optional private Nikon SKIP, 83.90 s), format and focused
+  clang-tidy passed. Original intermediate failures remain retained.
