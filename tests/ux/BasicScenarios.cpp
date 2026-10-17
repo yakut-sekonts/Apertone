@@ -23,9 +23,13 @@ bool previewExtraScenario(Context &, const QString &);
 bool recoveryExtraScenario(Context &, const QString &);
 bool importExtraScenario(Context &, const QString &);
 bool currentPerformanceScenario(Context &, const QString &);
+bool whiteBalanceScenario(Context &, const QString &);
+bool appExtraScenario(Context &, const QString &);
+bool exportExtraScenario(Context &, const QString &);
 void basicScenario(Context &c, const QString &id) {
     auto &d = *c.driver;
-    if (importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
+    if (whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
+        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
         presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
         sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
         presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||

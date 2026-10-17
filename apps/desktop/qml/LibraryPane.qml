@@ -122,6 +122,7 @@ Rectangle {
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
             }
             GridLayout {
+                objectName: "library.metadataActions"
                 Layout.minimumWidth: 0; Layout.fillWidth: true
                 columns: width < 900 ? 1 : 2; columnSpacing: 12; rowSpacing: 6
                 enabled: library.selectedCount > 0 && !library.working

@@ -53,7 +53,7 @@ RESTART = {'UX-APP-001', 'UX-APP-003', 'UX-APP-005', 'UX-APP-007',
            'UX-MSK-008', 'UX-MSK-040', 'UX-UND-013', 'UX-UND-014', 'UX-UND-015', 'UX-REC-007',
            'UX-DTL-012', 'UX-SLD-020', 'UX-CRP-018', 'UX-LNS-010', 'UX-TRN-015', 'UX-IMP-020', 'UX-LOC-006', 'UX-LOC-007'}
 KILL = {'UX-UND-014', 'UX-UND-015', 'UX-REC-007', 'UX-IMP-020'}
-RESTART.update(('UX-PRS-011', 'UX-PRS-018', 'UX-REC-009'))
+RESTART.update(('UX-PRS-011', 'UX-PRS-018', 'UX-REC-009', 'UX-APP-004', 'UX-SLD-016'))
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
 NATIVE.add('UX-APP-010')
@@ -84,10 +84,13 @@ NATIVE.update(('UX-PRV-007', 'UX-PRV-008', 'UX-ADV-003', 'UX-ADV-009',
                'UX-ADV-015', 'UX-RACE-006', 'UX-RACE-008'))
 NATIVE.update(('UX-IMP-005', 'UX-IMP-010', 'UX-IMP-011', 'UX-IMP-012', 'UX-IMP-019',
                'UX-NAV-002', 'UX-PRV-002', 'UX-ADV-012', 'UX-BAT-013', 'UX-PERF-006'))
+NATIVE.update(('UX-SLD-015', 'UX-SLD-017', 'UX-DSC-004', 'UX-APP-012', 'UX-APP-015'))
+NATIVE.update(f'UX-EXP-{i:03}' for i in (9, 14, 16, 19, 21, 22))
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
-                 'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600}
+                 'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600,
+                 'UX-APP-012': 600, 'UX-APP-015': 600, 'UX-EXP-021': 600}
 
 
 def scenario_timeout(identifier, arguments):

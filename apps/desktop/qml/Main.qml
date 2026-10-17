@@ -153,16 +153,18 @@ ApplicationWindow {
                 Layout.fillWidth: true; Layout.preferredHeight: 65
                 TextArea { objectName: "export.failures"; readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: "#ffc1bc" }
             }
-            Button { visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+            Button { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
         }
         LibraryPane { objectName: "library.pane"; visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {
             visible: !root.libraryMode
             id: panels
+            objectName: "develop.panels"
             Layout.fillWidth: true; Layout.fillHeight: true
             orientation: Qt.Horizontal
             handle: Rectangle { implicitWidth: 1; color: "#30343b" }
             Rectangle {
+                objectName: "develop.presetsPane"
                 SplitView.preferredWidth: 214; SplitView.minimumWidth: 170; SplitView.maximumWidth: 350; color: "#191c22"
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 20; spacing: 18
@@ -182,6 +184,7 @@ ApplicationWindow {
                 }
             }
             Rectangle {
+                objectName: "develop.canvasPane"
                 SplitView.fillWidth: true; SplitView.minimumWidth: 360; color: "#111318"
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
@@ -274,6 +277,7 @@ ApplicationWindow {
                             Label { text: qsTranslate("Luma", "WHITE BALANCE"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1 }
                         }
                         ComboBox {
+                            objectName: "develop.whiteBalance.preset"
                             Layout.fillWidth: true
                             textRole: "label"
                             model: [{ value: "As Shot", label: qsTranslate("Luma", "As Shot") },{ value: "Daylight", label: qsTranslate("Luma", "Daylight") },{ value: "Cloudy", label: qsTranslate("Luma", "Cloudy") },{ value: "Shade", label: qsTranslate("Luma", "Shade") },{ value: "Tungsten", label: qsTranslate("Luma", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Luma", "Fluorescent") },{ value: "Custom", label: qsTranslate("Luma", "Custom") }]

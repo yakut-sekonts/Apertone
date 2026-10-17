@@ -7,6 +7,7 @@
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
+void prepareMissingStartupSource(const QString &, const QString &);
 } // namespace ux
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
@@ -29,6 +30,8 @@ int main(int argc, char **argv) {
         QDir().mkpath(parser.value("state-root"));
     std::unique_ptr<ux::Context> context;
     try {
+        if (parser.value("case") == "UX-APP-004" && parser.value("stage") == "verify")
+            ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
             ux::prepareThumbnailCorruption(root, parser.value("state-root"));
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),

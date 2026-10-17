@@ -10,6 +10,8 @@ bool localeRestartScenario(Context &, const QString &, const QString &);
 bool copyRestartScenario(Context &, const QString &, const QString &);
 bool presetRemainingRestartScenario(Context &, const QString &, const QString &);
 bool thumbnailRestartScenario(Context &, const QString &, const QString &);
+bool whiteBalanceRestartScenario(Context &, const QString &, const QString &);
+bool appMissingSourceRestartScenario(Context &, const QString &, const QString &);
 namespace {
 void quit(Context &c) {
     c.driver->quitShortcut();
@@ -19,7 +21,9 @@ void quit(Context &c) {
 }
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
-    if (presetRemainingRestartScenario(c, id, stage) || thumbnailRestartScenario(c, id, stage) ||
+    if (whiteBalanceRestartScenario(c, id, stage) ||
+        appMissingSourceRestartScenario(c, id, stage) ||
+        presetRemainingRestartScenario(c, id, stage) || thumbnailRestartScenario(c, id, stage) ||
         localeRestartScenario(c, id, stage) || copyRestartScenario(c, id, stage))
         return;
     auto &d = *c.driver;

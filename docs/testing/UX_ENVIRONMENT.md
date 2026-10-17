@@ -209,3 +209,61 @@ fixes (`cocoa-quit-final-report`). Both passed provenance, source consistency,
 original SHA and SQLite integrity. GITHUB_ACTIONS=true here is a local environment
 simulation, not proof of a hosted CI pass. The CI deadline remains unchanged;
 the next pushed commit still needs its own hosted result.
+
+## Window / WB / export draft normalization
+
+`window-wb-export-first-report` retains 9 native PASS and 5 FAIL results with
+unchanged source/binary, original SHA and valid SQLite snapshots. Four failures
+were fixture assumptions; the numeric negative-zero defect is LUMA-UX-020.
+
+- APP-014 requested 899 px through QWindow::resize and received an actual 899 px
+  window despite minimumWidth=1000. That programmatic request bypasses the native
+  user-resize constraint; it does not prove a real macOS resize handle can do so.
+  The invalid clamp assertion and its original screenshot remain retained. This
+  ID is unregistered again until real native resize input or another valid
+  acceptance boundary is available; supported-width-only checks are not a full
+  pass for the specified 899/900/999/1000/1199/1200/1450 contract.
+- Public nextItemInFocusChain does not predict every actual focus-scope/proxy
+  route. WB now uses bounded real Tab input until the target has active focus,
+  checking document invariance on every step, rather than requiring predicted
+  intermediate object identities. No direct focus setter or OS preference change
+  is used.
+- The WB prepare process closed its window successfully, but the old fixture
+  required Library.working=false. That aggregate intentionally includes the
+  closing state. Shutdown now checks no live import, no busy/save and a closed
+  window, matching the established restart contracts.
+- EXP-009 attempted to decode an empty source string before an asynchronous
+  Library metadata page was ready. Reference preparation now waits for the
+  actual nonempty row source and loading=false. The same guard protects the
+  immutable queue oracle. No production decoding/export behavior was changed.
+
+The first native run already passed 50 fullscreen round trips at 1000 × 640 and
+50 at 1200 × 760, preserving exact edits, selection and three nonzero scroll
+positions. It also passed protected original/catalog/WAL/SHM aliases, live edits
+after immutable export planning, actual SQLITE_FULL autosave/Retry and real
+Library wheel input overlapping a running 1,000-item export queue. These are
+focused results, not full-scope release qualification.
+
+After the formatting fix, `window-wb-export-fixed-smoke-report` retained an
+additional numeric fixture failure at the third inserted preset. The label had
+already correctly shown positive zero for -0.001 and 0. An intermediate fixture
+added wheel input and required the actual clicked signal, but all three attempts
+missed that click (`window-wb-export-final-report`, 30 PASS / 3 FAIL). These raw
+failures are retained; no production preset behavior was changed in response.
+
+The fixture now waits for ListView.moving=false and a layout polish before
+testing whether the row centre is inside the clipped viewport. It then requires
+one actual clicked signal. `numeric-scroll-settled-report` passed three full
+80-label runs: the third row was at y=84 inside a 101 px viewport, contentY=27,
+moving=false. All -0.001/0/+0.001 document and durable values stayed exact.
+This verifies the normalized input boundary; the earlier missed hit is not
+attributed to one unproven internal Qt cause.
+
+The other ten WB/recovery/export cases passed three times in
+`window-wb-export-final-report`. The final corrected-source fullscreen cases
+each passed 50 native round trips (`fullscreen-fixed-final-report`, two Metal
+results, run `20261017T062228Z-7607`). These non-blocking REGRESSION cases also
+passed their first 50-cycle runs before the label correction. Offscreen may not
+qualify native fullscreen: the adapter explicitly requires Cocoa. A subsequent
+serialized full build and CTest passed, with 38 PASS and one optional private
+Nikon SKIP in 83.74 s (`window-wb-export-full-ctest.log`).

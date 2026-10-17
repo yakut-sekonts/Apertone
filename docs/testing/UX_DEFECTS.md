@@ -368,3 +368,27 @@ are tracked separately and are not counted as application failures or hidden ret
   `cocoa-quit-final-report`. Unit coverage verifies durable initial errors,
   invalid error-map rejection and recovery preserving failed paths. Full CTest:
   38 PASS, one optional private Nikon SKIP. Provenance, originals and SQL passed.
+
+## LUMA-UX-020 — Valid near-zero edits display a negative zero
+
+- Severity: P2. Scope: CURRENT. Subsystem: shared numeric slider labels.
+- Regression: `UX-SLD-017`, import and apply a valid sparse JSON preset with
+  Exposure=-0.001, then inspect the actual numeric Label after Ready preview and
+  durable autosave. This is an external value permitted by the document schema;
+  Slider.stepSize does not quantize imported edits.
+- Expected: the label displays 0.00 EV at its declared precision, retaining the
+  exact -0.001 document, rendered effect and persisted value.
+- Actual: the label displays -0.00 EV. The full boundary/numeric inspection passed
+  before this assertion, and the underlying value was preserved correctly.
+- Evidence: `negative-zero-repro-report`, run `20261017T061411Z-4978`, retains
+  three Metal failures with source/binary provenance, original SHA and valid
+  catalog snapshots. The first occurrence is also retained in
+  `window-wb-export-first-report`.
+- Fix: normalize only formatted zero to a positive zero at the existing display
+  precision; keep all nonzero text, suffixes and underlying edit values intact.
+- Verification: `numeric-scroll-settled-report`, run `20261017T062117Z-7274`,
+  passed three complete native inspections with 80 actual numeric-label checks
+  per run. Each verifies exact -0.001/0/+0.001 documents and persisted values,
+  positive-zero text, Ready preview and one actual clicked signal per preset.
+  Source/binary provenance, original SHA and SQLite integrity passed. Full CTest:
+  38 PASS, one optional private Nikon SKIP (`window-wb-export-full-ctest.log`).
