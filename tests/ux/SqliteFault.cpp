@@ -6,16 +6,27 @@
 
 namespace ux {
 namespace {
-bool publishedCopy(const std::string &root) noexcept {
+bool publishedCopy(const std::string &root, std::size_t position) noexcept {
     if (root.empty())
         return true;
     try {
         std::error_code error;
-        std::filesystem::recursive_directory_iterator current(root, error), end;
-        while (!error && current != end) {
-            if (current->path().extension() == ".png" && current->is_regular_file(error))
-                return true;
-            current.increment(error);
+        std::filesystem::directory_iterator session(root, error), end;
+        while (!error && session != end) {
+            if (session->path().filename().string().starts_with("Luma-") &&
+                session->is_directory(error)) {
+                // A fresh owned destination contains one import session. Check
+                // its exact item directory instead of scanning all earlier copies.
+                std::error_code itemError;
+                std::filesystem::directory_iterator file(session->path() / std::to_string(position),
+                                                         itemError);
+                while (!itemError && file != end) {
+                    if (file->path().extension() == ".png" && file->is_regular_file(itemError))
+                        return true;
+                    file.increment(itemError);
+                }
+            }
+            session.increment(error);
         }
     } catch (...) {
         // A missing/failed fixture checkpoint must time out, never escape SQLite's C API.
@@ -92,7 +103,7 @@ int SqliteFault::write(sqlite3_file *file, const void *data, int size, sqlite3_i
     bool checkpoint = false;
     if (result == SQLITE_OK && catalog && self.hold_.load()) {
         std::lock_guard lock(self.mutex_);
-        checkpoint = publishedCopy(self.copyRoot_);
+        checkpoint = publishedCopy(self.copyRoot_, self.copyPosition_);
     }
     if (checkpoint) {
         self.blocked_.store(true);

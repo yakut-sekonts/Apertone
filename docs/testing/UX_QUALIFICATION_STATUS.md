@@ -7,11 +7,11 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-17
 
-- 314 native scenario adapters and one suite-wide original-integrity adapter.
-  Of 445 scenarios through the current phase, one conditional Depth scenario is
-  absent and 129 current scenarios still lack executable adapters. Prepared,
+- 321 native scenario adapters and one suite-wide original-integrity adapter.
+  Of 445 scenarios through the current phase, conditional mask duplication
+  (MSK-005) is absent and 122 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
-- 20 reproduced production defects have fixes and focused regressions in
+- 21 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -29,6 +29,13 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   cases each passed 50 final-source round trips in `fullscreen-fixed-final-report`.
   This resolves **35 Metal results across 13 cases**; provenance, source/binary
   consistency, original SHA and catalog integrity passed for each evidence run.
+- Seven more adapters cover deep scroll after WB relayout, photo/language changes,
+  actual Tab reachability, held Slider photo/Library transitions and Optics-only
+  Copy/Paste/presets. The new fix scrolls focused adjustments into view without
+  changing manual scroll or edit history. These and twelve affected existing
+  scenarios passed three times: **57 Metal PASS**, `gesture-import-final-report`,
+  run `20261017T123506Z-16828`, with provenance, source consistency, original SHA
+  and catalog integrity all passing.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -44,10 +51,12 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   and provider pixels remain required; only scene readback allows one RGBA8 level
   of rounding. These measurements are not performance thresholds or a baseline.
 - Full CTest after the latest production fix: **38 PASS, one optional private Nikon
-  SKIP**, 83.74 seconds (`window-wb-export-full-ctest.log`). All 20 Python runner unit
+  SKIP**, 84.59 seconds (`gesture-import-full-ctest.log`). All 20 Python runner unit
   tests passed. Full build, clang-format, diff checks and focused clang-tidy passed.
 - Earlier native failures and fixture corrections remain retained and explained
-  in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). The earlier PR-head CI run timed out;
+  in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). Hosted ca38254 finished with 281
+  blocking PASS / one missed import-Cancel input window. The normalized physical
+  Copy checkpoint passed nine local offscreen repeats and the native regressions;
   a new hosted run is still required after publication of this checkpoint.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.

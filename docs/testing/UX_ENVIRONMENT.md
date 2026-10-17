@@ -267,3 +267,68 @@ passed their first 50-cycle runs before the label correction. Offscreen may not
 qualify native fullscreen: the adapter explicitly requires Cocoa. A subsequent
 serialized full build and CTest passed, with 38 PASS and one optional private
 Nikon SKIP in 83.74 s (`window-wb-export-full-ctest.log`).
+
+## Gesture fixture semantics and actual keyboard focus
+
+`gesture-remaining-first-report` retains four PASS / four FAIL native results.
+The focused-control clipping was reproduced separately three times and fixed as
+LUMA-UX-021. Two other failures were fixture assumptions:
+
+- After a named WB choice, the existing currentIndex binding can display Custom
+  (index 6). Up from there selects Fluorescent, not As Shot. The corrected reverse
+  input is actual Home; the pinned Qt ComboBox implementation activates item 0
+  for that key. No direct currentIndex setter or WB production change was used.
+- Preset JSON serializes only selected groups, so decoding an Optics-only preset
+  restores neutral defaults for unselected groups. Its independent expected
+  document now explicitly copies only typed lens state and its enabled bit into
+  a default document. In-memory Copy correctly retains the full captured document;
+  both operations are still required to change only Optics in their targets.
+
+DTL-007 remains unadapted. The initial test held an actual Option/Radius Slider
+gesture and moved to a preset, but hover preview did not arrive while the Slider
+owned the exclusive pointer grab. This is an input-feasibility boundary, not
+proof of diagnostic persistence in production. The failed input trace is retained;
+no direct HoverEvent, preview setter or simulated response is counted as coverage.
+
+The corrected seven new cases and twelve affected existing cases passed three
+native repeats in `gesture-import-final-report` (57 Metal results). Full build
+and CTest then passed: 38 PASS, one optional private Nikon SKIP, 84.59 seconds.
+
+## Hosted import-Cancel race and physical Copy checkpoints
+
+Hosted run 39008653483 at ca38254 completed build/unit tests, then reported
+281 blocking PASS / one FAIL. IMP-004/repeat-3 observed progress=0.953 at its
+90% checkpoint, but the import completed before Driver::click's next frame.
+The Cancel button was therefore unavailable. Retained SQLite evidence has two
+cancelled sessions and one completed session; catalog integrity passed and the
+main-loop maximum stall was 96 ms. No production import failure is asserted.
+
+The original 57,572,076-byte evidence ZIP was downloaded through the GitHub
+connector and verified against its supplied SHA-256:
+`ecaf4c32843a6b7e858272a2d4610910f9ec4988aa466e644bab62fe841bf37f`.
+Original reports, actions, screenshots and failed-case SQLite remain locally
+retained under `ci-ca38254-evidence`.
+
+The process-local test VFS now holds the real writer after the exact owned Copy
+item 99/499/899 has been published. The actual Cancel or Quit input runs while
+that writer is held; release then permits normal atomic completion/cancellation.
+The final asset delta must be exactly the known boundary or one item below it,
+with real copied files and no leaked temporary output. Default position 0 keeps
+the established single-copy fault/recovery scenarios intact. This is functional
+checkpoint coverage; pausing a worker does not measure production cancel latency.
+
+An initial local observer incorrectly also required delivered GUI progress to
+equal the physical checkpoint. LibraryModel throttles updates to 100 ms in the
+worker; a held worker need not emit that next update. Its first timeout and a
+partly run second attempt remain retained in the interrupted
+`import-cancel-offscreen-fixed` run. The author stopped that known-invalid suite;
+the runner cleaned up its own child. It is not a completed qualification.
+
+Only that invalid GUI-progress condition was removed. The physical checkpoint,
+real UI action, strict retained rows, integrity and cleanup remain mandatory;
+observed GUI progress is logged separately. A local GITHUB_ACTIONS=true
+offscreen/software simulation passed IMP-004/006 and APP-008 three times (nine
+results, `import-cancel-physical-offscreen-report`). The subsequent native
+57-result suite also passed those cases and the default-position import fault,
+50-cycle and process-death recovery regressions. A new hosted commit run is
+still required; the local environment flag is not a hosted CI result.

@@ -267,6 +267,33 @@ ApplicationWindow {
                     anchors.margins: 18
                     clip: true
                     contentWidth: availableWidth
+                    function ensureActiveFocusVisible() {
+                        const item = root.activeFocusItem
+                        const view = contentItem
+                        if (!visible || !item || !view || !view.contentItem)
+                            return
+                        let ancestor = item
+                        while (ancestor && ancestor !== view.contentItem)
+                            ancestor = ancestor.parent
+                        if (!ancestor)
+                            return
+                        const position = item.mapToItem(view, 0, 0)
+                        let target = view.contentY
+                        if (position.y < 0)
+                            target += position.y
+                        else if (position.y + item.height > view.height)
+                            target += position.y + item.height - view.height
+                        const minimum = view.originY
+                        const maximum = minimum + Math.max(0, view.contentHeight - view.height)
+                        view.cancelFlick()
+                        view.contentY = Math.max(minimum, Math.min(maximum, target))
+                    }
+                    Connections {
+                        target: root
+                        function onActiveFocusItemChanged() {
+                            Qt.callLater(adjustmentsScroll.ensureActiveFocusVisible)
+                        }
+                    }
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
                         spacing: 14

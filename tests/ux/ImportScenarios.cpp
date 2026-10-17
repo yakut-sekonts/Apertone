@@ -177,25 +177,43 @@ bool importScenario(Context &c, const QString &id) {
     if (id == "UX-IMP-004" || id == "UX-IMP-006" || id == "UX-APP-008") {
         const int cycles = id == "UX-IMP-004" ? 3 : 1;
         const double fractions[]{.1, .5, .9};
+        const int checkpoints[]{100, 500, 900};
         for (int i = 0; i < cycles; ++i) {
+            struct ReleaseWrites {
+                SqliteFault &fault;
+                ~ReleaseWrites() {
+                    fault.holdWrites(false);
+                }
+            } release{c.storageFault};
             const int before = c.library.count();
-            start(c, files(c, 1000), c.root + QString("/copies-%1").arg(i));
+            const auto destination = c.root + QString("/copies-%1").arg(i);
+            c.storageFault.holdWritesAfterCopy(destination.toStdString(),
+                                               static_cast<std::size_t>(checkpoints[i] - 1));
+            start(c, files(c, 1000), destination);
             if (id == "UX-IMP-006")
                 require(!d.item("library.importButton")->isEnabled(),
                         "Concurrent Import button is enabled");
-            d.wait([&] { return c.library.progress() >= fractions[i] || !c.library.importing(); },
-                   "cancellation checkpoint", 60000);
-            require(c.library.importing() && c.library.progress() < 1,
-                    "Missed import cancellation window");
+            d.wait([&] { return c.storageFault.writeBlocked() && c.library.importing(); },
+                   "actual published Copy checkpoint before cancellation", 60000);
+            require(c.library.importing() && c.library.progress() < 1 &&
+                        d.item("library.cancelImport")->isVisible() &&
+                        d.item("library.cancelImport")->isEnabled(),
+                    "Held import checkpoint has no real cancellation action");
             d.log({{"action", "cancel_checkpoint"},
                    {"target", fractions[i]},
-                   {"observed", c.library.progress()}});
+                   {"observed", c.library.progress()},
+                   {"published_copy_target", checkpoints[i]},
+                   {"worker_write_held", true}});
             if (id == "UX-APP-008") {
                 d.quitShortcut();
+                c.storageFault.holdWrites(false);
                 d.wait([&] { return !c.window->isVisible() && !c.library.importing(); },
                        "quit during import", 60000);
             } else {
                 d.click("library.cancelImport");
+                require(c.storageFault.writeBlocked() && c.library.importing(),
+                        "Cancellation did not stay within the held worker boundary");
+                c.storageFault.holdWrites(false);
                 settled(c);
             }
             luma::Catalog catalog((c.root + "/catalog.sqlite").toStdString());
@@ -206,9 +224,9 @@ bool importScenario(Context &c, const QString &id) {
                 if (page.size() < 512)
                     break;
             }
-            require(static_cast<int>(rows.size()) > before &&
-                        static_cast<int>(rows.size()) < before + 1000,
-                    "Cancelled import lost checkpoints or completed every file");
+            const int added = static_cast<int>(rows.size()) - before;
+            require(added >= checkpoints[i] - 1 && added <= checkpoints[i],
+                    "Cancellation did not retain exactly the known atomic Copy boundary");
             for (const auto &item : rows)
                 require(QFileInfo::exists(QString::fromStdString(item.path.string())),
                         "Import left a half row with missing copied file");

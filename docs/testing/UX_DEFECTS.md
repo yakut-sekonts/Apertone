@@ -392,3 +392,24 @@ are tracked separately and are not counted as application failures or hidden ret
   positive-zero text, Ready preview and one actual clicked signal per preset.
   Source/binary provenance, original SHA and SQLite integrity passed. Full CTest:
   38 PASS, one optional private Nikon SKIP (`window-wb-export-full-ctest.log`).
+
+## LUMA-UX-021 — Tab focuses adjustment controls outside the viewport
+
+- Severity: P1. Scope: CURRENT. Subsystem: Develop keyboard/scroll navigation.
+- Regression: `UX-DSC-009`, reach Sharpen Amount with real Tab input, then continue
+  through Detail controls without fixture scrolling or direct focus setters.
+- Expected: each focused adjustment remains visible and keyboard-reachable.
+- Actual: Tab reaches noise.luminanceSlider below the ScrollView viewport while
+  contentY stays unchanged. The control has actual active focus but is clipped.
+- Evidence: `focus-visibility-repro-report`, run `20261017T063425Z-12429`, retains
+  three native failures, real focus traces, screenshots, source/binary provenance,
+  unchanged original SHA and valid catalog snapshots.
+- Fix: when active focus enters an adjustment, scroll only enough to expose its
+  bounds, clamped to the actual Flickable range. Manual scrolling and content
+  relayout do not force focus-following; controls outside this pane are ignored.
+- Verification: `gesture-import-final-report`, run `20261017T123506Z-16828`,
+  passed 19 scenarios three times (57 Metal results), including the actual
+  Tab-to-visible-control regression, deep-scroll relayout/language/photo switches,
+  keyboard focus/modal input and held Slider transitions. Source/binary
+  provenance, original SHA and SQLite integrity passed. Full build and CTest:
+  38 PASS, one optional private Nikon SKIP (`gesture-import-full-ctest.log`).

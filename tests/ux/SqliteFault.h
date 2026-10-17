@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <cstddef>
 #include <map>
 #include <mutex>
 #include <sqlite3.h>
@@ -28,10 +29,11 @@ class SqliteFault {
         }
         hold_.store(enabled);
     }
-    void holdWritesAfterCopy(std::string directory) {
+    void holdWritesAfterCopy(std::string directory, std::size_t position = 0) {
         {
             std::lock_guard lock(mutex_);
             copyRoot_ = std::move(directory);
+            copyPosition_ = position;
         }
         hold_.store(true);
     }
@@ -48,6 +50,7 @@ class SqliteFault {
     static SqliteFault *active_;
     sqlite3_vfs wrapper_{}, *original_ = nullptr;
     std::string catalog_, copyRoot_;
+    std::size_t copyPosition_ = 0;
     std::mutex mutex_;
     std::map<sqlite3_file *, File> files_;
     std::atomic<bool> full_{false};

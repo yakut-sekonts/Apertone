@@ -86,6 +86,8 @@ NATIVE.update(('UX-IMP-005', 'UX-IMP-010', 'UX-IMP-011', 'UX-IMP-012', 'UX-IMP-0
                'UX-NAV-002', 'UX-PRV-002', 'UX-ADV-012', 'UX-BAT-013', 'UX-PERF-006'))
 NATIVE.update(('UX-SLD-015', 'UX-SLD-017', 'UX-DSC-004', 'UX-APP-012', 'UX-APP-015'))
 NATIVE.update(f'UX-EXP-{i:03}' for i in (9, 14, 16, 19, 21, 22))
+NATIVE.update(('UX-DSC-005', 'UX-DSC-006', 'UX-DSC-008', 'UX-DSC-009',
+               'UX-SLD-010', 'UX-SLD-011', 'UX-LNS-009'))
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
