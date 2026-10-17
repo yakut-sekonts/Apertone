@@ -443,3 +443,33 @@ are tracked separately and are not counted as application failures or hidden ret
   area. Source/binary provenance, original SHA and SQLite passed. Full build,
   CTest (38 PASS, one optional private Nikon SKIP, 83.90 s), format and focused
   clang-tidy passed. Original intermediate failures remain retained.
+
+
+## LUMA-UX-023 — Import completion resets the scrolled Library viewport
+
+- Severity: P1. Scope: CURRENT. Subsystem: Library reload and view positioning.
+- Regression: `UX-LIB-017`, scroll deeply through 1,000 real imported assets,
+  perform actual wheel input while an ungated Add worker commits more files,
+  then Cancel and observe the viewport after the actual metadata reload.
+- Expected: remain around the same asset identity, retaining selection, all
+  prior full documents, originals and the durable import checkpoint.
+- Actual: the reload resets the grid to the beginning, losing the distant asset.
+- Evidence: `library-anchor-corrected-report`, run `20261017T132723Z-33025`,
+  retains three native failures. Each proves physical worker progress across
+  wheel input, source/binary provenance, original integrity and valid SQLite.
+  The first earlier run stopped at a fixture-only full-card visibility condition;
+  that raw report is retained separately, not labeled a production failure.
+- Fix: capture the visible asset and its offset before a preserving reload,
+  resolve its new row on the metadata worker using the current filter/sort,
+  and restore the bounded grid viewport after layout. Superseded reloads and
+  new user movement invalidate deferred restoration; filter changes clear it.
+  There is no catalog schema change or selection/sort policy change.
+- Verification: `library-viewport-final-report`, run `20261017T174218Z-45300`,
+  passed all six new scenarios three times (18 Metal results), with two independent
+  2,048-source before/after insertion waves and a further actual import completion
+  during a held scrollbar per repeat. `library-viewport-affected-report`, run
+  `20261017T174723Z-45228`, passed thirteen affected scenarios three times (39).
+  Provenance, unchanged source/binary, original SHA and SQLite passed. Unit cases
+  cover NOCASE ties, combined filters, missing assets, insertion before the anchor
+  and stale reloads. Full build and CTest: 38 PASS, one optional private Nikon SKIP,
+  86.59 seconds. Format and five focused clang-tidy checks passed.

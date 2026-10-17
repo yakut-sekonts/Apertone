@@ -47,6 +47,19 @@ std::int64_t Catalog::libraryCount(const LibraryFilter &filter) const {
         throw std::runtime_error("Cannot count library.");
     return query.integer(0);
 }
+std::optional<std::int64_t> Catalog::libraryIndex(const LibraryFilter &filter,
+                                                  const std::string &assetID) const {
+    filter.validate();
+    if (assetID.empty())
+        return std::nullopt;
+    Statement query(db_,
+                    ("SELECT position FROM (SELECT a.id,ROW_NUMBER() OVER (" + std::string(order) +
+                     ")-1 AS position FROM assets a" + where + ") WHERE id=?7")
+                        .c_str());
+    bindFilter(query, filter);
+    query.text(7, assetID);
+    return query.row() ? std::optional<std::int64_t>(query.integer(0)) : std::nullopt;
+}
 std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int offset,
                                               int limit) const {
     if (offset < 0 || limit < 1 || limit > 1024)

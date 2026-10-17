@@ -65,6 +65,8 @@ class Catalog {
                        const std::function<void()> &install);
     std::optional<AssetRecord> duplicate(const std::string &checksum, std::int64_t size) const;
     std::int64_t libraryCount(const LibraryFilter &filter = {}) const;
+    std::optional<std::int64_t> libraryIndex(const LibraryFilter &filter,
+                                             const std::string &assetID) const;
     std::vector<LibraryItem> libraryPage(const LibraryFilter &filter, int offset, int limit) const;
     std::vector<std::string> libraryIDs(const LibraryFilter &filter, int offset = 0,
                                         int limit = 2147483647) const;

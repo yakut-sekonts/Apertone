@@ -184,6 +184,8 @@ void LibraryModel::page(int number) {
 void LibraryModel::reload(bool clear) {
     if (closing_)
         return;
+    emit reloadStarted(!clear);
+    const auto viewportAnchor = clear ? std::string{} : viewportAnchor_.toStdString();
     ++revision_;
     ++selectionRevision_;
     selecting_ = false;
@@ -209,43 +211,48 @@ void LibraryModel::reload(bool clear) {
     const auto path = catalog_;
     const auto filter = filter_;
     const QPointer<LibraryModel> self(this);
-    countJob_ = reads_.submit(
-        luma::JobPriority::background, [self, path, filter, revision](const auto &context) {
-            std::int64_t count = 0;
-            QVariantList collections;
-            QString error;
-            try {
-                if (context.stopToken().isCancelled())
-                    return;
-                luma::Catalog db(path);
-                count = db.libraryCount(filter);
-                if (count > std::numeric_limits<int>::max())
-                    throw std::runtime_error("Catalog exceeds the Qt model row limit.");
-                for (const auto &c : db.collections())
-                    collections.push_back(QVariantMap{{"id", QString::fromStdString(c.id)},
-                                                      {"name", QString::fromStdString(c.name)},
-                                                      {"count", static_cast<qlonglong>(c.count)}});
-            } catch (const std::exception &e) {
-                count = 0;
-                error = QString::fromUtf8(e.what());
-            }
-            if (self)
-                QMetaObject::invokeMethod(
-                    self,
-                    [self, count, collections, error, revision] {
-                        if (!self || self->revision_ != revision)
-                            return;
-                        self->beginResetModel();
-                        self->count_ = static_cast<int>(count);
-                        self->collections_ = collections;
-                        self->endResetModel();
-                        self->loading_ = false;
-                        if (!error.isEmpty())
-                            self->error_ = error;
-                        emit self->stateChanged();
-                    },
-                    Qt::QueuedConnection);
-        });
+    countJob_ = reads_.submit(luma::JobPriority::background, [self, path, filter, revision,
+                                                              viewportAnchor](const auto &context) {
+        std::int64_t count = 0;
+        int anchorRow = -1;
+        QVariantList collections;
+        QString error;
+        try {
+            if (context.stopToken().isCancelled())
+                return;
+            luma::Catalog db(path);
+            count = db.libraryCount(filter);
+            if (count > std::numeric_limits<int>::max())
+                throw std::runtime_error("Catalog exceeds the Qt model row limit.");
+            if (const auto index = db.libraryIndex(filter, viewportAnchor);
+                index && *index >= 0 && *index < count)
+                anchorRow = static_cast<int>(*index);
+            for (const auto &c : db.collections())
+                collections.push_back(QVariantMap{{"id", QString::fromStdString(c.id)},
+                                                  {"name", QString::fromStdString(c.name)},
+                                                  {"count", static_cast<qlonglong>(c.count)}});
+        } catch (const std::exception &e) {
+            count = 0;
+            error = QString::fromUtf8(e.what());
+        }
+        if (self)
+            QMetaObject::invokeMethod(
+                self,
+                [self, count, collections, error, revision, anchorRow] {
+                    if (!self || self->revision_ != revision)
+                        return;
+                    self->beginResetModel();
+                    self->count_ = static_cast<int>(count);
+                    self->collections_ = collections;
+                    self->endResetModel();
+                    self->loading_ = false;
+                    if (!error.isEmpty())
+                        self->error_ = error;
+                    emit self->viewportRestored(error.isEmpty() ? anchorRow : -1);
+                    emit self->stateChanged();
+                },
+                Qt::QueuedConnection);
+    });
 }
 void LibraryModel::refresh() {
     reload(false);

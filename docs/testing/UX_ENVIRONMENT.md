@@ -388,3 +388,61 @@ The intermediate left ScrollView also needed an explicit scrollbar gutter:
 Flickable/source-label bounds overlapping the full vertical scrollbar hit area.
 Only the new left pane reserves effectiveScrollBarWidth; a fading thumb cannot
 hide the geometry assertion. Right-pane behavior is not changed by this finding.
+
+
+## Import/scroll fixture required a fully visible card unnecessarily
+
+The first Library block (`library-remaining-first-report`, run
+`20261017T132538Z-32470`) passed five cases but stopped LIB-017 before Cancel:
+its anchor helper required an entire card inside the viewport. Import progress
+reduces the viewport height, and a legal settled offset can straddle both edges
+without one whole card fitting. The screenshot retains substantially visible
+cards and a working grid, not a production blank state.
+
+The helper now requires a real asset at least half visible with its center inside
+that viewport, logging the actual bounds and identity. The independent post-reload
+identity/distance assertion is preserved. Three corrected runs then reproduced
+the actual reload jump, tracked separately as LUMA-UX-023. The stronger final
+fixture additionally verifies insertion on both sides of the anchor, using its
+new independent Catalog rank rather than its previous numeric row.
+
+
+## Held scrollbar coverage for the unpublished viewport correction
+
+Independent review found a missing edge in the first LUMA-UX-023 correction:
+a reload could schedule restoration after a drag/scrollbar press had already
+started. The earlier movement-start handler would not fire again for that input.
+A supplemental native probe held the first eligible Library queued delivery
+after final progress and eight durable insertions, pressed the actual scrollbar thumb,
+and observed reloadStarted with both native Qt mouse buttons and ScrollBar.pressed.
+`library-held-scrollbar-repro-report` retains its failed restore-target assertion.
+This tests the actual import/UI path, without a direct model refresh or fake input
+state. A cacheBuffer page may deliver at that queued boundary; the separate
+pressed-at-reload observation proves the actual import/input overlap either way.
+Capture now ignores a current drag/held scrollbar; a post-release real
+scroll is the positive control. The initial two 2,048-source Z/A insertion waves
+remain separate proofs that ordinary completed input preserves asset identity.
+
+
+## Hosted functional success without a build-attestation file
+
+Hosted `56e4e28` run `39036376277` completed successfully: 282 blocking attempts
+passed, as did build, unit/integration, format and clang-tidy. The retained ZIP
+SHA-256 is `eeea223928875e1698cc635d12a666b0397aaa264e8ddfa2feb3542c2a20b5c3`.
+Source consistency and original hashes passed; all 279 native-case catalog
+snapshots passed (the three suite-wide integrity results have no catalog).
+
+Its report nevertheless marks build provenance UNVERIFIED: ordinary cmake build
+never created `build/ux-build-provenance.json`. These functional PASS results
+remain intact, but are not a formally attested release qualification. Local
+current-scope evidence uses build_ux.py and retains matching source/binary proof.
+The workflows now call the existing build wrapper immediately before UX and
+require matching provenance through --require-build-provenance. Release
+qualification implies the same strict preflight. Missing or stale proof is
+rejected before fixtures/child processes; setup and suite drift are also checked.
+The evidence upload includes the build record. All 25 runner unit tests passed
+in 5.468 seconds, including 22 mocked CLI matrix cases using the real JSON
+validator. A real stale-build preflight also returned exit 2 before execution
+(ci-provenance-preflight.log). These tests validate runner accounting, not native
+UX or hosted CI. The prior hosted functional results are unchanged; a new hosted
+attested run is still required.

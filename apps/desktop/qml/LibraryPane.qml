@@ -10,6 +10,11 @@ Rectangle {
     property url destination: ""
     property string currentCollection: ""
     property string editCollectionID: ""
+    Connections {
+        target: library
+        function onReloadStarted(preserveViewport) { grid.captureViewport(preserveViewport) }
+        function onViewportRestored(row) { grid.restoreViewport(row) }
+    }
     function applyFilter() { library.filter(search.text, ratingFilter.currentIndex, flagFilter.currentIndex - 2, ["any","","red","yellow","green","blue","purple"][labelFilter.currentIndex], currentCollection) }
     function allowShortcut() { return library.selectedCount > 0 && !library.working && !(Window.window.activeFocusItem && typeof Window.window.activeFocusItem.cursorPosition === "number") }
     Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(1) }
@@ -114,10 +119,62 @@ Rectangle {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 GridView {
                     id: grid; objectName: "library.grid"; anchors.fill: parent; clip: true; model: library
+                    property string viewportAsset: ""
+                    property real viewportOffset: 0
+                    property bool restorePending: false
+                    property int restoreRevision: 0
+                    function cancelViewportRestore() {
+                        ++restoreRevision
+                        restorePending = false
+                    }
+                    function captureViewport(preserve) {
+                        ++restoreRevision
+                        if (!preserve || dragging || libraryBar.pressed) {
+                            restorePending = false
+                            viewportAsset = ""
+                        } else {
+                            let card = null
+                            for (const candidate of contentItem.children) {
+                                if (candidate instanceof PhotoCard && candidate.assetID.length &&
+                                    candidate.y + candidate.height > contentY && candidate.y < contentY + height &&
+                                    (!card || candidate.index < card.index))
+                                    card = candidate
+                            }
+                            if (card && card.assetID.length) {
+                                viewportAsset = card.assetID
+                                viewportOffset = card.y - contentY
+                                restorePending = true
+                            } else if (!restorePending) {
+                                // Keep a pending identity across another reload before
+                                // delegates for the preceding result have been laid out.
+                                viewportAsset = ""
+                            }
+                        }
+                        library.setViewportAnchor(restorePending ? viewportAsset : "")
+                    }
+                    function restoreViewport(row) {
+                        const revision = restoreRevision
+                        Qt.callLater(function() {
+                            if (revision !== restoreRevision || !restorePending)
+                                return
+                            restorePending = false
+                            if (row < 0 || row >= count)
+                                return
+                            cancelFlick()
+                            forceLayout()
+                            positionViewAtIndex(row, GridView.Beginning)
+                            contentY = Math.max(originY, Math.min(originY + Math.max(0, contentHeight - height), contentY - viewportOffset))
+                        })
+                    }
+                    onMovementStarted: cancelViewportRestore()
                     cellWidth: width / Math.max(1,Math.floor(width / 220)); cellHeight: 210
                     cacheBuffer: 420
                     delegate: PhotoCard { width: grid.cellWidth - 12; height: grid.cellHeight - 12 }
-                    ScrollBar.vertical: ScrollBar { objectName: "library.scrollBar" }
+                    ScrollBar.vertical: ScrollBar {
+                        id: libraryBar
+                        objectName: "library.scrollBar"
+                        onPressedChanged: { if (pressed) grid.cancelViewportRestore() }
+                    }
                 }
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
             }

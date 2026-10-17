@@ -90,11 +90,15 @@ NATIVE.update(('UX-DSC-005', 'UX-DSC-006', 'UX-DSC-008', 'UX-DSC-009',
                'UX-SLD-010', 'UX-SLD-011', 'UX-LNS-009'))
 NATIVE.update(f'UX-VIS-{i:03}' for i in (1, 2, 4, 5, 6, 9, 10, 11, 12))
 NATIVE.update(('UX-REC-011', 'UX-EXP-011'))
+NATIVE.update(f'UX-LIB-{i:03}' for i in (8, 14, 15, 16, 17))
+NATIVE.add('UX-RACE-009')
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-UND-016': 600, 'UX-ADV-013': 600, 'UX-PRS-019': 900,
                  'UX-IMP-019': 600, 'UX-NAV-002': 300, 'UX-PRV-002': 300, 'UX-ADV-012': 600,
                  'UX-APP-012': 600, 'UX-APP-015': 600, 'UX-EXP-021': 600,
+                 'UX-LIB-017': 600, 'UX-LIB-008': 300, 'UX-LIB-014': 300,
+                 'UX-LIB-015': 300, 'UX-LIB-016': 300, 'UX-RACE-009': 300,
                  'UX-VIS-004': 600, 'UX-EXP-011': 600, 'UX-VIS-005': 600, 'UX-VIS-009': 300,
                  'UX-VIS-011': 300, 'UX-VIS-012': 300, 'UX-REC-011': 300}
 
@@ -465,10 +469,13 @@ def main():
     parser.add_argument('--seed', type=int, default=123456)
     parser.add_argument('--replay', type=Path)
     parser.add_argument('--release-qualification', action='store_true')
+    parser.add_argument('--require-build-provenance', action='store_true',
+                        help='Require a matching attested build before execution; implied by --release-qualification')
     parser.add_argument('--artifacts', type=Path)
     parser.add_argument('--report', type=Path)
     parser.add_argument('--timeout', type=int, help='Override the per-scenario deadline in seconds')
     args = parser.parse_args()
+    args.require_build_provenance = args.require_build_provenance or args.release_qualification
     if args.phase and not re.fullmatch(r'\d+\.\d+', args.phase):
         parser.error('--phase must be a numeric major.minor phase')
     if not re.fullmatch(r'\d+\.\d+', args.through):
@@ -492,12 +499,20 @@ def main():
         args.artifacts = (args.artifacts or args.build / 'ux-artifacts').resolve()
         args.report = (args.report or args.build / 'ux-report').resolve()
         args.report.mkdir(parents=True, exist_ok=True)
+        if args.require_build_provenance:
+            preflight = build_provenance(args.build, fingerprint(args.build))
+            if preflight['status'] != 'PASS':
+                parser.error(f"Build provenance preflight failed ({preflight['path']}): {preflight['reason']}. "
+                             f'Run tests/ux/build_ux.py --build {args.build}')
         run_root = args.artifacts.resolve() / (time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + f'-{os.getpid()}')
         run_root.mkdir(parents=True)
         fixture_folder = args.artifacts.resolve() / 'public-fixtures'
         checksums = fixtures(fixture_folder)
         suite_start = fingerprint(args.build)
         provenance = build_provenance(args.build, suite_start)
+        if args.require_build_provenance and provenance['status'] != 'PASS':
+            parser.error(f"Build provenance changed during fixture setup ({provenance['path']}): {provenance['reason']}. "
+                         f'Run tests/ux/build_ux.py --build {args.build}')
         results = []
         global_rows = []
         observed_mutations = set()
@@ -559,7 +574,7 @@ def main():
         summary['unadapted_applicable'] = sorted({r['id'] for r in results if r['status'] == 'SKIPPED'
                                                 and r.get('skip_reason', 'unadapted') == 'unadapted'
                                                 and in_scope(r.get('scope', 'CURRENT'), args.through)})
-        if not source_stable or args.release_qualification and provenance['status'] != 'PASS':
+        if not source_stable or args.require_build_provenance and provenance['status'] != 'PASS':
             incomplete = True
             summary['release_gate'] = 'FAIL' if args.release_qualification else 'NOT_QUALIFIED'
         summary['execution_status'] = 'FAIL' if selected_failed else 'INCOMPLETE' if incomplete else 'PASS'

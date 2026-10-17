@@ -71,8 +71,10 @@ jobs:
           .tools/venv/bin/ctest --test-dir build --output-on-failure
           ./scripts/check-format.sh
           ./scripts/check-tidy.sh build
+      - name: Build and attest UX executable
+        run: .tools/venv/bin/python tests/ux/build_ux.py --build build
       - name: Current-scope blocking UX regressions before packaging
-        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --runs 3
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --runs 3 --require-build-provenance
       - name: Upload release UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -80,6 +82,7 @@ jobs:
           name: release-ux-blocking-evidence
           path: |
             build/ux-report/
+            build/ux-build-provenance.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/metrics.json
             build/ux-artifacts/20*/**/actions.jsonl

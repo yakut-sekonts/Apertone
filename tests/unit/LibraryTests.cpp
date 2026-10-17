@@ -254,6 +254,83 @@ void importTests(const std::filesystem::path &root, const std::filesystem::path 
     db.finishImport(live, "cancelled");
     db.verify();
 }
+void viewportTests(const std::filesystem::path &root) {
+    const auto path = root / "viewport.sqlite";
+    luma::Catalog db(path);
+    sql(path, R"sql(BEGIN;
+        INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,width,height,orientation)
+        VALUES('b-a','/fixture/b.dng','b.dng','dng',1,'b-a',16,16,0),
+              ('b-z','/fixture/B.dng','B.dng','dng',1,'b-z',16,16,0),
+              ('d','/fixture/d.dng','d.dng','dng',1,'d',16,16,0);
+        INSERT INTO edit_documents(asset_id) SELECT id FROM assets;COMMIT;)sql");
+    require(db.libraryIndex({}, "b-a") == 0 && db.libraryIndex({}, "b-z") == 1 &&
+                db.libraryIndex({}, "d") == 2,
+            "Viewport index lost NOCASE ordering or the stable ID tie-break.");
+    require(!db.libraryIndex({}, "missing") && !db.libraryIndex({}, ""),
+            "Absent viewport asset incorrectly resolved to a row.");
+    db.setRating({"b-z"}, 4);
+    db.setLabel({"b-z"}, "blue");
+    const auto collection = db.createCollection("Viewport");
+    db.collectionMembership(collection, {"b-z"}, true);
+    luma::LibraryFilter filtered;
+    filtered.search = "b.";
+    filtered.minimumRating = 4;
+    filtered.label = "blue";
+    filtered.collectionID = collection;
+    require(db.libraryIndex(filtered, "b-z") == 0 && !db.libraryIndex(filtered, "d"),
+            "Viewport index ignored the current metadata/search/collection filter.");
+    filtered.search = "%";
+    require(!db.libraryIndex(filtered, "b-z"), "Viewport search interpreted a literal wildcard.");
+    filtered.minimumRating = 6;
+    throws([&] { db.libraryIndex(filtered, ""); });
+
+    LibraryModel model(path);
+    QString requested = "d";
+    int restored = -2, restorations = 0;
+    QObject observer;
+    QObject::connect(&model, &LibraryModel::reloadStarted, &observer, [&](bool preserve) {
+        model.setViewportAnchor(preserve ? requested : QString{});
+    });
+    QObject::connect(&model, &LibraryModel::viewportRestored, &observer, [&](int row) {
+        restored = row;
+        ++restorations;
+    });
+    wait([&] { return !model.working() && !model.loading() && model.count() == 3; });
+    const auto refresh = [&] {
+        const int before = restorations;
+        model.refresh();
+        wait([&] { return restorations > before && !model.loading(); });
+        require(model.error().isEmpty(), "Viewport lookup failed the Library reload.");
+    };
+    refresh();
+    require(restored == 2, "Unchanged viewport asset did not resolve after reload.");
+    sql(path, R"sql(BEGIN;
+        INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,width,height,orientation)
+        VALUES('a','/fixture/a.dng','a.dng','dng',1,'a',16,16,0);
+        INSERT INTO edit_documents(asset_id) VALUES('a');COMMIT;)sql");
+    refresh();
+    require(model.count() == 4 && restored == 3,
+            "Insert before the viewport retained a numeric row instead of the same asset.");
+    requested = "missing";
+    refresh();
+    require(restored == -1, "Missing viewport asset must not restore another photo.");
+    requested = "d";
+    const int beforeFilter = restorations;
+    model.filter("b.", 0, -2, "any", "");
+    wait([&] { return restorations > beforeFilter && !model.loading() && model.count() == 2; });
+    require(restored == -1, "Changing filters restored an anchor from the previous result.");
+    refresh();
+    require(restored == -1, "Filtered-out viewport asset must not restore another row.");
+    requested = "b-a";
+    const int beforeSuperseded = restorations;
+    model.refresh();
+    requested = "b-z";
+    model.refresh();
+    wait([&] { return restorations > beforeSuperseded && !model.loading(); });
+    require(restored == 1 && restorations == beforeSuperseded + 1,
+            "Superseded reload emitted a stale viewport restoration.");
+    db.verify();
+}
 void modelTests(const std::filesystem::path &root) {
     const auto path = root / "large.sqlite";
     {
@@ -321,6 +398,7 @@ int main(int argc, char **argv) {
     try {
         catalogTests(root, argv[1]);
         importTests(root, argv[1]);
+        viewportTests(root);
         modelTests(root);
         std::filesystem::remove_all(root);
         std::cout << "Library unit tests passed\n";

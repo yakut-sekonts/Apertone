@@ -7,11 +7,11 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-17
 
-- 332 native scenario adapters and one suite-wide original-integrity adapter.
+- 338 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 111 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 105 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
-- 22 reproduced production defects have fixes and focused regressions in
+- 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -57,6 +57,21 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   Cocoa repeats, **10 local offscreen/software repeats passed**,
   `driver-frame-offscreen-final-report`, run `20261017T132123Z-27569`.
   This is a local CI-environment simulation, not a successful hosted run.
+- Six further Library adapters cover 4↔5-column reflow around the same logical
+  asset, filter changes during an actual drag, cleared/empty result ranges,
+  ungated physical import progress during scrolling and held Select all completion
+  overlapping durable insertion. The import/reload regression reproduced a real
+  viewport jump three times. The fix resolves the same visible asset in the new
+  filtered/sorted result on the metadata worker and restores its bounded offset,
+  while filters, superseded reloads and user input invalidate old restoration.
+  Final evidence: **18 Metal PASS**, `library-viewport-final-report`, run
+  `20261017T174218Z-45300`, plus **39 affected Metal PASS**,
+  `library-viewport-affected-report`, run `20261017T174723Z-45228`.
+  Each import/scroll repeat executes separate 2,048-source insertion waves before
+  and after the old assets, then an actual import reload while a scrollbar is
+  held. All three observed that real held input suppresses restoration and that
+  post-release scrolling works. Provenance, source consistency, original SHA and
+  SQLite integrity passed for every result.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -72,16 +87,27 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   and provider pixels remain required; only scene readback allows one RGBA8 level
   of rounding. These measurements are not performance thresholds or a baseline.
 - Full CTest after the latest production fix: **38 PASS, one optional private Nikon
-  SKIP**, 83.90 seconds (`visual-driver-full-ctest.log`). All 20 Python runner unit
-  tests passed in 5.485 seconds. Full build, clang-format, diff checks and focused
-  clang-tidy for VisualRemainingScenarios, UxDriver and BasicScenarios passed.
+  SKIP**, 86.59 seconds (`library-viewport-full-ctest.log`), including the new
+  Catalog/filter/rank and superseded-model-reload unit cases. All 20 Python runner
+  unit tests passed in 5.523 seconds. Full build, clang-format, diff checks and
+  focused clang-tidy for LibraryCatalog, LibraryModel, LibraryTests,
+  LibraryRemainingScenarios and BasicScenarios passed.
 - Earlier native failures and fixture corrections remain retained and explained
   in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). Hosted ca38254 finished with 281
   blocking PASS / one missed import-Cancel input window. The normalized physical
   Copy checkpoint passed nine local offscreen repeats and the native regressions.
   Hosted `3e4fc19` then passed 281 blocking attempts, including those import cases,
   but retained one auxiliary-window polish timeout. The correction passed the
-  Cocoa/offscreen repeats above; a new hosted run is required for this checkpoint.
+  Cocoa/offscreen repeats above. Hosted `56e4e28` then completed with **282 blocking
+  PASS**, passing build, unit/integration, format and clang-tidy. Its source
+  consistency and original SHA passed; its build-provenance file was absent,
+  so those functional results do not qualify a formally attested release build.
+  CI/release workflows now build through the attestation wrapper, require matching
+  source/binary hashes before UX execution and retain the proof in their artifacts.
+  All 25 runner unit tests passed (5.468 seconds), including 22 mocked CLI matrix
+  cases for strict/ad hoc modes and source/binary drift. A real stale-build
+  preflight rejected execution with exit 2 before fixture/child execution.
+  A new hosted run remains pending; mocked CLI tests are not native UX evidence.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.
   The original failed fixture is retained, without asserting a production defect.
