@@ -34,8 +34,10 @@ int main(int argc, char **argv) {
             ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
             ux::prepareThumbnailCorruption(root, parser.value("state-root"));
+        const auto id = parser.value("case");
+        const bool updaterProbe = id == "UX-UPD-005" || id == "UX-UPD-006";
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
-                                                parser.value("state-root"));
+                                                parser.value("state-root"), updaterProbe);
         if (parser.isSet("stage"))
             ux::restartScenario(*context, parser.value("case"), parser.value("stage"));
         else if (parser.value("case") == "UX-BAT-013")

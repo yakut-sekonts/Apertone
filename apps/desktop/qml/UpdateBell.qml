@@ -38,6 +38,7 @@ Button {
             }
         }
         Rectangle {
+            objectName: "updates.availableBadge"
             visible: updates.availableVersion.length > 0
             width: 8
             height: 8
@@ -71,6 +72,7 @@ Button {
                 font.pixelSize: 15
             }
             Label {
+                objectName: "updates.message"
                 text: qsTranslate("Luma", updates.message)
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
@@ -86,6 +88,7 @@ Button {
                 }
             }
             Button {
+                objectName: "updates.check"
                 text: updates.checking ? qsTranslate("Luma", "Checking…") : qsTranslate("Luma", "Check for updates")
                 enabled: updates.canCheck && !updates.checking
                 Layout.fillWidth: true

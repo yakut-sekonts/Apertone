@@ -1,4 +1,5 @@
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UpdaterProbe.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -9,11 +10,12 @@
 #include <QScreen>
 #include <algorithm>
 #include <sqlite3.h>
-std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) {
-    return {};
+std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks callbacks) {
+    return std::make_unique<ux::NativeUpdaterProbe>(std::move(callbacks));
 }
 namespace ux {
-Context::Context(QString rootPath, QString fixturePath, const QString &qml, QString state)
+Context::Context(QString rootPath, QString fixturePath, const QString &qml, QString state,
+                 bool updaterProbe)
     : root(std::move(rootPath)), fixture(std::move(fixturePath)),
       stateRoot(state.isEmpty() ? root : std::move(state)),
       catalogFile(stateRoot + "/catalog.sqlite"), storageFault(catalogFile.toStdString()),
@@ -27,7 +29,7 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
                      !editor.exporting() && !library.working() && !batch.working() &&
                      !exporter.working();
           },
-          false),
+          updaterProbe),
       metrics(root + "/heartbeat.json") {
     localization = std::make_unique<LocalizationController>(stateRoot + "/language.json", engine);
     engine.rootContext()->setContextProperty("editor", &editor);

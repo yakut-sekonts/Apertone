@@ -14,7 +14,8 @@
 namespace ux {
 class Context {
   public:
-    Context(QString root, QString fixture, const QString &qml, QString state = {});
+    Context(QString root, QString fixture, const QString &qml, QString state = {},
+            bool updaterProbe = false);
     ~Context();
     QString root, fixture;
     QString stateRoot, catalogFile;

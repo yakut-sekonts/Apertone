@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-17
 
-- 338 native scenario adapters and one suite-wide original-integrity adapter.
+- 346 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 105 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 97 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -72,6 +72,20 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   held. All three observed that real held input suppresses restoration and that
   post-release scrolling works. Provenance, source consistency, original SHA and
   SQLite integrity passed for every result.
+- Eight further adapters cover repeated batch Cancel, editor/batch history
+  arbitration, 100 full Apply/Undo cycles over 100 assets, idle update popup,
+  update-check failure, notification during a held Slider and simultaneous
+  save/export close with overlapping genuine closeReady delivery. Final evidence:
+  **24 Metal PASS**, `batch-update-final-report`, run `20261017T180206Z-54876`,
+  plus **30 affected Metal PASS**, `batch-update-affected-report`, run
+  `20261017T180407Z-56461`. All provenance, source consistency, original SHA and
+  catalog-integrity checks passed. Batch growth assertions cover permanent
+  row/page footprint for the fixed workload, not allocator RSS or worker TEMP tables.
+  UPD-005/006 replace only the NativeUpdater SDK interface, deliver its actual
+  callbacks to the real UpdateController, and record that Sparkle network,
+  appcast, package download and install were not exercised. Those two cases also
+  passed three times in a **local offscreen/software simulation**,
+  `batch-update-offscreen-report`, run `20261017T180522Z-57220` (six PASS).
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -86,12 +100,13 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   `checkpoint-perf-guard-final-report`, run `20261016T222708Z-94930`. Exact document
   and provider pixels remain required; only scene readback allows one RGBA8 level
   of rounding. These measurements are not performance thresholds or a baseline.
-- Full CTest after the latest production fix: **38 PASS, one optional private Nikon
-  SKIP**, 86.59 seconds (`library-viewport-full-ctest.log`), including the new
-  Catalog/filter/rank and superseded-model-reload unit cases. All 20 Python runner
-  unit tests passed in 5.523 seconds. Full build, clang-format, diff checks and
-  focused clang-tidy for LibraryCatalog, LibraryModel, LibraryTests,
-  LibraryRemainingScenarios and BasicScenarios passed.
+- Latest full CTest: **38 PASS, one optional private Nikon SKIP**, 92.13 seconds
+  (`batch-update-full-ctest.log`). All 25 Python runner unit tests passed in
+  5.494 seconds. Full build, clang-format, diff checks and focused clang-tidy
+  for BatchUpdateRemainingScenarios, UxContext, BasicScenarios and main passed.
+  The preceding production viewport correction separately passed full CTest
+  (86.59 seconds), including new Catalog/filter/rank and superseded-model-reload
+  unit cases, and focused clang-tidy for its Core/model/unit/UX changes.
 - Earlier native failures and fixture corrections remain retained and explained
   in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). Hosted ca38254 finished with 281
   blocking PASS / one missed import-Cancel input window. The normalized physical

@@ -446,3 +446,31 @@ validator. A real stale-build preflight also returned exit 2 before execution
 (ci-provenance-preflight.log). These tests validate runner accounting, not native
 UX or hosted CI. The prior hosted functional results are unchanged; a new hosted
 attested run is still required.
+
+## Batch/update SDK callback and close-overlap qualification
+
+Eight new cases passed three times on Cocoa/Metal in batch-update-final-report
+(20261017T180206Z-54876); ten affected existing cases passed three times in
+batch-update-affected-report (20261017T180407Z-56461). Source/binary provenance,
+source stability, original hashes and all catalog snapshots passed. Full build,
+CTest (38 PASS, one optional Nikon SKIP, 92.13 seconds), 25 runner tests,
+format/diff and four focused clang-tidy checks passed. No new production defect
+was reproduced in this block.
+
+UPD-005/006 opt into a test-target NativeUpdater factory before Context
+construction. The real UpdateController receives the same error/found callback
+sequence as its Sparkle adapter and the UI receives real Check/held-Slider input.
+The fixture does not execute Sparkle, network, appcast, archive installation or
+restart delivery. Its measurements explicitly identify this boundary. Six further
+offscreen/software PASS (batch-update-offscreen-report, 20261017T180522Z-57220)
+are a local CI-environment simulation, not a hosted result.
+
+BAT-004 holds an actual WAL write while 25 real Cancel inputs arrive. A late
+COMMIT may win atomically; only unchanged full documents or the exact complete
+transaction are accepted, with corresponding revisions/history and a subsequent
+normal Apply/Undo positive control. BAT-014 checks all permanent table counts and
+checkpointed main pages through 100 Apply/Undo pairs; it does not claim an RSS
+plateau or observation of the worker's TEMP journal. APP-011/RACE-010 overlap
+actual autosave with an export waiting for that save. RACE-010 holds and resumes
+the genuine queued exporter closeReady while the editor emits its own source;
+it does not synthesize closeReady or claim cancellation during encoder writes.
