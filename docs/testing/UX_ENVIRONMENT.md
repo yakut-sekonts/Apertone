@@ -515,3 +515,33 @@ consistency, original SHA and all 279 native-case catalog snapshots passed.
 The 92 future cases remain NOT_IMPLEMENTED, and the blocking subset remains
 NOT_QUALIFIED for the full current-scope release. Earlier missing-proof artifacts
 are retained unchanged.
+
+## Export queue stress and unqualified AppKit lifecycle probes
+
+EXP-023/024 passed three times on Cocoa/Metal in export-stress-final-report
+(20261017T225237Z-70937), followed by 18 affected native PASS in
+export-stress-affected-report (20261017T225511Z-71714). Both complete workloads
+also passed once in a local offscreen/software simulation. Build provenance,
+source stability, original SHA and all catalog snapshots passed. Full build,
+25 runner-accounting tests (5.62 seconds), format and focused tidy passed.
+
+All 500 inputs are private byte-distinct copies. The seeded schedule, complete
+saved documents and original identities are persisted before execution; every
+actual output is decoded and compared with its saved-document CPU reference.
+EXP-024 performs all 100 Start/Cancel cycles at the real post-install/COMMIT
+boundary, retaining each committed first output while its queued completion is
+held. It verifies all unstarted outputs and temporary files remain absent.
+The fsynced fixture journal is test evidence; production export queues remain
+session-local. Neither mid-encoder cancellation nor independent mathematical
+validation of the renderer is claimed.
+
+The first combined report (cocoa-export-stress-first-report,
+20261017T224040Z-68475) retains two stress PASS and three AppKit lifecycle FAIL.
+APP-016/017 and SLD-009 never reached genuine miniaturized/application-inactive
+notifications despite key-window loss. A real app.exec experiment retained the
+same failures in cocoa-event-loop-first-report (20261017T224533Z-69368), so that
+main-loop change was reverted. The Slider had already released automatically
+and retained its full document; no production Slider defect was established.
+These three prototypes remain unregistered and outside verified coverage.
+Qt already requests Regular activation policy for bare executables; absence
+of an app bundle alone is not an established cause. All raw failures remain.

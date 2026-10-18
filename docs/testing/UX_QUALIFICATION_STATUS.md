@@ -5,11 +5,11 @@ Work stays in draft [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
 linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46).
 Source scope is 0.5.1; the public stable download remains 0.4.14.
 
-## Verified checkpoint, 2026-10-17
+## Verified checkpoint, 2026-10-18
 
-- 349 native scenario adapters and one suite-wide original-integrity adapter.
+- 351 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 94 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 92 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -102,6 +102,17 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   clang-tidy checks passed. Nine preceding native activation failures were
   caused by a locked Mac session and remain retained in the original report;
   the user unlocked the Mac before the successful new report was recorded.
+- Two more adapters execute 500 byte-distinct private inputs with a persisted
+  seeded pause/resume schedule and 100 actual Start/Cancel cycles. Final evidence:
+  **6 Metal PASS**, `export-stress-final-report`, run `20261017T225237Z-70937`,
+  plus **18 affected Metal PASS**, `export-stress-affected-report`, run
+  `20261017T225511Z-71714`. A local offscreen/software simulation passed both
+  complete workloads once. Provenance, source consistency, original SHA and
+  SQLite integrity passed throughout. Cancel overlaps a genuinely installed and
+  committed first output while its original completion remains held; committed
+  files survive and unstarted files and temporary artifacts remain absent.
+  This does not qualify cancellation inside an encoder or restart persistence.
+  Full build, 25 runner-accounting tests, format and two focused tidy checks passed.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
