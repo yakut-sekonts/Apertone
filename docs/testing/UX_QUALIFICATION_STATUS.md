@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-18
 
-- 357 native scenario adapters and one suite-wide original-integrity adapter.
+- 358 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 86 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 85 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -140,6 +140,22 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   original SHA and SQLite checks passed. Full build, 25 runner tests (5.65
   seconds), format and focused tidy passed. Initial fixture failures remain
   retained; no production behavior was changed by this block.
+- One scoped seeded history-chaos adapter executes all 10,000 semantic actions
+  through three real Basic Sliders and Undo/Redo. Independent full typed-document
+  hashes and a capped timeline model check every action; natural durable saves,
+  exact Ready pixels and SQLite integrity are checked every 100 actions and at
+  completion. The default seed, an immutable replay in a new process and seed0
+  all passed on Cocoa/Metal: **30,000 native actions**, in
+  `history-chaos-first-native-report`, `history-chaos-replay-report` and
+  `history-chaos-seed-zero-report`. Replay bytes and full checkpoint measurements
+  were identical. Another **10,000 actions** passed in a local offscreen/software
+  simulation; **18 affected native attempts** passed in
+  `history-chaos-main-affected-report`, run `20261018T082544Z-92058`.
+  Every run passed provenance, source stability, original SHA and SQLite checks.
+  A structurally valid replay with another app version was rejected by the actual
+  native binary before Context/window/catalog/seed creation; its raw expected
+  rejection remains distinct from UX PASS. The broad Chaos Monkey action pool,
+  other CHAOS IDs and randomized worker delays remain outside this adapter.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
@@ -154,13 +170,13 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   `checkpoint-perf-guard-final-report`, run `20261016T222708Z-94930`. Exact document
   and provider pixels remain required; only scene readback allows one RGBA8 level
   of rounding. These measurements are not performance thresholds or a baseline.
-- Latest full CTest: **38 PASS, one optional private Nikon SKIP**, 92.13 seconds
-  (`batch-update-full-ctest.log`). All 25 Python runner unit tests passed in
-  5.494 seconds. Full build, clang-format, diff checks and focused clang-tidy
-  for BatchUpdateRemainingScenarios, UxContext, BasicScenarios and main passed.
-  The preceding production viewport correction separately passed full CTest
-  (86.59 seconds), including new Catalog/filter/rank and superseded-model-reload
-  unit cases, and focused clang-tidy for its Core/model/unit/UX changes.
+- Latest full CTest: **40 PASS, one optional private Nikon SKIP**, 87.51 seconds
+  (`history-chaos-full-ctest.log`). This includes the independent history model/
+  replay-plan target, 26 Python runner tests and five replay-routing tests.
+  Full application build, format/diff and focused clang-tidy for HistoryChaosPlan,
+  HistoryChaosScenarios, HistoryChaosModelTests and main passed. The preceding
+  production viewport correction separately passed full CTest (86.59 seconds),
+  including new Catalog/filter/rank and superseded-model-reload unit cases.
 - Earlier native failures and fixture corrections remain retained and explained
   in [UX_ENVIRONMENT.md](UX_ENVIRONMENT.md). Hosted ca38254 finished with 281
   blocking PASS / one missed import-Cancel input window. The normalized physical

@@ -621,3 +621,63 @@ odd1101x801 logical and2202x1602 physical scene dimensions, independent native
 coordinate roundtrips, mapped image/letterbox pixels and rendered gold handle
 centroids. The input boundary is Qt QTest window dispatch; physical scanout,
 hardware pointer events and sublogical hardware precision are not claimed.
+
+
+## Scoped history chaos and immutable replay
+
+UND-017 completed 10,000 actual semantic actions on Cocoa/Metal with seed 123456
+(history-chaos-first-native-report, 20261018T075617Z-85273), then a full immutable
+replay in another process (history-chaos-replay-report, 20261018T080432Z-87248),
+and a fresh seed 0 (history-chaos-seed-zero-report, 20261018T081133Z-88845). The
+first two workloads took 417.322/417.956 seconds; the replay plan and entire full
+checkpoint measurements were byte/value identical. Seed0 generated another plan
+and final document. All three native results passed full document/history,
+original hashes, natural durable saves, exact Ready preview and SQLite checks.
+
+A separate local offscreen/software simulation executed all 10,000 actions
+(history-chaos-offscreen-report, 20261018T081832Z-90459). Six affected restart/
+recovery/update/thumbnail cases passed three times (history-chaos-main-affected-
+report, 20261018T082544Z-92058). All reports have matching source/binary proof,
+source stability, original SHA and catalog integrity. Source hash is
+32676c4ff9e40a8163510e752856960a4ccee966c621f86e4791a7321704faf4.
+Full build and CTest passed 40 available tests with one optional private Nikon
+SKIP (87.51 seconds); format/diff and four focused tidy checks passed. The new
+QtCore-only oracle tests validate cap/no-op/branch, full typed hash field groups
+and deterministic plans/replay. Five Python routing tests and the 26th runner
+argument bridge validate infrastructure, not native UX.
+
+The default plan SHA is 31d7f503e573e6c30e10a663d85083ac78f22c29d77789cdab627c6259ecac5d,
+with final document 84318b30df0e6093fd49e5f3a767bd81a1036d5b6cbe3e219b9d341c16d9bb3d.
+Seed 0 plan SHA is fe70acf217477500b924c77757e49e30367f9d40d9d78b8cf9f23232f54baaa8;
+its final document is 804c44a549b798ce588ed950f13579827ef5113e5e8ae0a359bb006b7f50f486.
+The full plan/seed exists before Context; intent is fsynced before each input and
+observed full state afterward. Every 100 actions and at completion, natural
+autosave, exact current-source Ready pixels and SQLite integrity are required.
+No endEdit/saved helper repairs acceptance. Numeric inputs use real focused
+Sliders; history uses real keyboard shortcuts. The independent model is a
+201-state timeline/cursor with cap 200, not production history or parameter APIs.
+
+A real native negative probe changed only app version in a structurally valid
+private replay copy, updating its checksum. Native header regeneration rejected
+it with expected exit1 before Context/window/catalog/seed creation. Original
+replay bytes remained unchanged. Raw child result is intentionally FAIL; the
+separate assertions.json records expected rejection, never native UX PASS.
+This probe remains under history-chaos-native-preflight-rejection.
+
+The scope is three Basic integer controls, discrete edits and Undo/Redo only.
+It is not the general Chaos Monkey, pointer/modifier gesture pool, injected
+worker reordering, 100k stabilization gate or future phase 0.6. Counts below 10,000
+are explicit smoke/subsets and cannot replace the release baseline. No new
+production defect was reproduced in this block. The process-scoped caffeinate
+assertion covered the validation supervisor, including software checks before
+returning to native input, and expires with that process.
+
+Hosted 4fc89dc run 39107703186/job 117617029069 completed all steps successfully:
+38 unit/integration PASS, one optional Nikon SKIP (168.93 seconds), 282 blocking
+UX PASS, build/provenance, format and tidy. Artifact 12129573574 ZIP SHA-256 is
+de608a1215bf3d2e466d127a80fe0b9e68950fc1922256c27a656988a92d66cf.
+Source/binary proof, original SHA and 279 native-case catalog snapshots passed.
+Source hash 009be3a715f95c76144c6fc79ade5f57f17b0db40d3d191fe9e30d467130c105
+matches local clean 4fc89dc; expected PR merge is 15a4bb3e696345b9be96acf199dae12e8e4e5d72.
+The blocking subset and 92 future NOT_IMPLEMENTED results do not qualify the
+full current-scope release. Earlier evidence is retained unchanged.

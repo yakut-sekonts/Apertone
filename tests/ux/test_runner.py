@@ -299,6 +299,33 @@ class GateTests(unittest.TestCase):
             self.assertIn('ORIGINAL-INTEGRITY', (root / 'UX_REPORT.md').read_text())
             self.assertIn('Reproduced failures', (root / 'ROADMAP_CANDIDATES.md').read_text())
 
+    def test_history_chaos_child_receives_exact_seed_count_and_replay(self):
+        # Process argument routing only: this fake executable does not validate
+        # a chaos schedule or exercise native UI/document-history behavior.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\n(r/"result.json").write_text(json.dumps({"id":"UX-UND-017","status":"PASS","forwarded_args":sys.argv[1:]}))\n')
+            child.chmod(0o755)
+            replay = root / 'mock-replay.jsonl'
+            replay.write_text('mocked command boundary; not a native valid plan\n')
+            for replay_path in (None, replay):
+                with self.subTest(replay=replay_path):
+                    result = runner.execute(
+                        {'id': 'UX-UND-017', 'scope': 'CURRENT', 'mode': 'CHAOS',
+                         'severity': 'P1', 'scenario': 'Fake argument routing'},
+                        root / ('with-replay' if replay_path else 'seeded'),
+                        argparse.Namespace(build=root, timeout=10, seed=0, actions=10001,
+                                           replay=replay_path), root)
+                    self.assertEqual(result['status'], 'PASS')
+                    forwarded = result['forwarded_args']
+                    self.assertEqual(forwarded[forwarded.index('--seed') + 1], '0')
+                    self.assertEqual(forwarded[forwarded.index('--actions') + 1], '10001')
+                    if replay_path:
+                        self.assertEqual(forwarded[forwarded.index('--replay') + 1], str(replay))
+                    else:
+                        self.assertNotIn('--replay', forwarded)
+
     def test_zero_exit_cannot_hide_catalog_corruption(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

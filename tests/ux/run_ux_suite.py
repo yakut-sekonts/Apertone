@@ -7,6 +7,7 @@ import tempfile
 from collections import Counter
 from contextlib import closing
 import hashlib
+from history_chaos_cli import configure_history_chaos
 import importlib.util
 import json
 import os
@@ -99,9 +100,10 @@ NATIVE.update(('UX-EXP-017', 'UX-EXP-027'))
 NATIVE.update(('UX-EXP-023', 'UX-EXP-024'))
 NATIVE.update(('UX-PERF-017', 'UX-PERF-018', 'UX-DTL-011'))
 NATIVE.update(('UX-LIB-006', 'UX-LIB-018', 'UX-MAC-001'))
+NATIVE.add('UX-UND-017')
 GLOBAL = {'UX-UND-018'}
 
-CASE_TIMEOUTS = {'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
+CASE_TIMEOUTS = {'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
                  'UX-PERF-017': 600, 'UX-PERF-018': 600, 'UX-DTL-011': 900,
                  'UX-EXP-023': 900, 'UX-EXP-024': 600,
                  'UX-EXP-017': 300, 'UX-EXP-025': 300, 'UX-EXP-027': 300,
@@ -249,6 +251,10 @@ def execute(row, directory, arguments, fixture_folder):
         command.extend(['--stage', arguments.stage, '--state-root', str(state_root)])
     if getattr(arguments, 'variant', None):
         command.extend(['--variant', arguments.variant])
+    if row['id'] == 'UX-UND-017':
+        command.extend(['--seed', str(arguments.seed), '--actions', str(arguments.actions)])
+        if arguments.replay:
+            command.extend(['--replay', str(arguments.replay)])
     atomic_json(directory / 'command.json', command)
     deadline_seconds = scenario_timeout(row['id'], arguments)
     started = time.monotonic()
@@ -471,13 +477,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, default=ROOT / 'build-verify')
     parser.add_argument('--app', type=Path)
-    parser.add_argument('--suite', choices=['all', 'blocking', 'regression', 'stress', 'perf', 'chaos'], default='all')
+    parser.add_argument('--suite', choices=['all', 'blocking', 'regression', 'stress', 'perf', 'chaos'], default=None)
     parser.add_argument('--through', default=source_phase())
     parser.add_argument('--phase')
     parser.add_argument('--case', action='append', default=[])
     parser.add_argument('--runs', type=int, default=1)
-    parser.add_argument('--actions', type=int, default=10000)
-    parser.add_argument('--seed', type=int, default=123456)
+    parser.add_argument('--actions', type=int, default=None)
+    parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--replay', type=Path)
     parser.add_argument('--release-qualification', action='store_true')
     parser.add_argument('--require-build-provenance', action='store_true',
@@ -493,10 +499,9 @@ def main():
         parser.error('--through must be a numeric major.minor phase')
     if args.release_qualification and tuple(map(int, args.through.split('.'))) < tuple(map(int, source_phase().split('.'))):
         parser.error('Release qualification cannot exclude the current source phase')
-    if args.app or args.replay:
-        parser.error('--app and --replay are not executable adapters yet; refusing an ignored request')
-    if args.suite == 'chaos':
-        parser.error('Seeded chaos/replay adapter is not implemented yet')
+    if args.app:
+        parser.error('--app is not an executable adapter yet; refusing an ignored request')
+    configure_history_chaos(args, parser)
     unknown = set(args.case) - {row['id'] for row in INVENTORY}
     if unknown:
         parser.error('Unknown scenario IDs: ' + ', '.join(sorted(unknown)))
