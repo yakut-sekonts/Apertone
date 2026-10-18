@@ -578,3 +578,46 @@ results are NOT_IMPLEMENTED and also have no catalog. Expected PR merge checkout
 is 4545586ddfe32d73c5689519d1cbc0d1c77eb940; source hash is
 d7a321ac6dbb29c72a94fe53977d2e305badce678e65b2c9f73b55bf28df0cee.
 The blocking subset remains NOT_QUALIFIED for the full current release gate.
+
+
+## Thumbnail retry/invalidation and native Retina mapping
+
+LIB-006/018 and MAC-001 passed three times on Cocoa/Metal in
+thumbnail-retina-final-report (20261018T074529Z-82693); seven affected cases
+passed three times in thumbnail-retina-affected-report (20261018T074623Z-82997).
+Both Library cases also passed once in local offscreen/software
+(thumbnail-offscreen-report, 20261018T074756Z-83546); Retina never uses that
+fallback. Provenance, unchanged source, original SHA and SQLite checks passed.
+Full build, 25 runner tests (5.65 seconds), format and four focused tidy checks
+passed. The unavoidable Cocoa WId/NSView ARC bridge has a narrowly documented
+interop suppression; no production defect or behavior change was introduced.
+
+LIB-006 observes actual 1500 ms Timer signals and Image.Error/source/retryCount
+for 0, 1 and 2, then a 3250 ms quiet interval with no third retry. Real selection
+and bounded ScrollBar thumb movement preserve the same error delegate. Restored
+private bytes and a genuine saved edit create a new generation with retryCount0
+and correct pixels. LIB-018 holds a real production cache reader across actual
+scrolling and a saved edit; all three repeats observed exactly one targeted
+invalidation and zero model resets during the edit. Every visible Image node,
+including edge cards, is read back with QPointer lifetime/source guards. Exact
+cache pixels supplement declared scene-resampling mean RGB tolerance4/255.
+Full documents/revisions and source SHA are protected for all 64/200 assets.
+This does not observe the identity/order of OLD Qt response delivery after
+NEW Ready; LIB-004/005 and RACE-002 remain unqualified.
+
+The initial combined report (thumbnail-retina-first-report,
+20261018T073906Z-81285) retains one LIB-018 PASS and two fixture failures.
+Diagnostic report thumbnail-retina-diagnostic-report (20261018T074107Z-81853)
+confirmed that a single synthetic QTest angleDelta120 did not move this grid,
+and that the Retina helper had assumed backing coordinates inherited NSView's
+flipped basis. Logical(.25,.75) actually converted to backing(.5,1678.5) while
+round-tripping exactly. The helper now derives backing origin/directions from
+actual AppKit conversions of logical corners. The retry case uses a genuine
+bounded scrollbar drag for its specified responsiveness contract; OS wheel
+delivery is not qualified by that case. Original reports remain untouched.
+
+MAC-001 requires active Cocoa/Metal, actual NSWindow/QWindow/QScreen scale2,
+odd1101x801 logical and2202x1602 physical scene dimensions, independent native
+coordinate roundtrips, mapped image/letterbox pixels and rendered gold handle
+centroids. The input boundary is Qt QTest window dispatch; physical scanout,
+hardware pointer events and sublogical hardware precision are not claimed.

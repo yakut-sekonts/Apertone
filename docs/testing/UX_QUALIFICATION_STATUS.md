@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-18
 
-- 354 native scenario adapters and one suite-wide original-integrity adapter.
+- 357 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 89 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 86 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -126,6 +126,20 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   application build, 25 runner tests (5.67 seconds), format and focused tidy passed.
   RSS/object counts are raw observations without a leak or plateau assertion;
   QML Import Cancel does not qualify native file-panel Cancel.
+- Three more adapters cover the actual two-retry thumbnail cap and recovery,
+  saved thumbnail invalidation while the asset is offscreen, and native Retina
+  2x pointer/render mapping. Exact JPEG cache pixels, all visible Image-node
+  readbacks, original hashes and complete durable documents remain required.
+  Retina uses independent AppKit corner conversions, actual Metal frame pixels,
+  real Slider/mask/Crop inputs, rendered handle centroids and exact history.
+  Final evidence: **9 Metal PASS**, `thumbnail-retina-final-report`, run
+  `20261018T074529Z-82693`, plus **21 affected Metal PASS**,
+  `thumbnail-retina-affected-report`, run `20261018T074623Z-82997`.
+  The two Library workloads also passed once in local offscreen/software;
+  Retina has no software/forced-scale fallback. All provenance, source stability,
+  original SHA and SQLite checks passed. Full build, 25 runner tests (5.65
+  seconds), format and focused tidy passed. Initial fixture failures remain
+  retained; no production behavior was changed by this block.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog
