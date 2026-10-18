@@ -794,3 +794,45 @@ filesystem, size, layout and hdiutil interface are unchanged. Both raw records
 are retained. This is an environment fixture correction, not an app defect.
 
 Verified-kill runtime follow-up: verified-kill-software-report, 20261018T190719Z-5607, executed UND-014/015 and REC-007 three times each in a local offscreen/software simulation. All9 validated prepare children were actually terminated by SIGKILL, all9 new verify processes exited0, and full documents, catalog integrity, original SHA, source consistency and build proof passed. This does not replace native or hosted qualification.
+
+
+## Resize mode/scalar output qualification and shutdown observations
+
+EXP-026 maps to the actual current UI: one mutually exclusive mode and one
+scalar. The scalar is entered under another mode, then mode changes final →
+opposite → final occur without retyping it. No simultaneous width/height fields
+or derived-size Label are invented. Actual output dimensions provide the size
+oracle: seven modes × landscape/portrait create14 real PNGs per attempt.
+Independent literals cover fractional rounding and up/down scaling; complete
+RGBA8 pixels use direct2D box integration/bilinear reference after shared CPU
+development and ICC encoding, with fixed maximum channel error1/255.
+
+The original unregistered candidate passed once in local software and once on
+Cocoa/Metal. After explicit optional guards, local recipe initialization,
+stride widening and reference reservation, the official adapter passed three
+native attempts: resize-shutdown-final-native-report,20261018T191631Z-7773.
+Eighteen affected export/restart attempts passed on Metal in
+resize-shutdown-affected-native-report,20261018T191745Z-8438. The local
+software cohort resize-shutdown-software-report,20261018T191911Z-8944,
+passed three complete resize attempts and nine actual SIGKILL/restart attempts.
+All provenance/source stability/original SHA/SQLite checks passed; source hash
+18ced70de6dd2de58bcb32f5a8bf5e9a23e113987dce315cc173c638504cc9f8.
+Four infrastructure CTests passed in8.38s (including30 runner tests), and format
+passed. Focused tidy found only an empty diagnostic catch in SqliteFault; adding
+an explicit snapshot-unavailable stderr marker fixed it, and its focused tidy
+passed. That catch is outside the normal observed path; case semantics and
+acceptance remain unchanged. Full evidence is retained before this log-only fix.
+
+Natural RAII stderr markers bracket Context and QGuiApplication owner destruction;
+no reset, scope/control-flow change, sleep, drain or ownership fix was added.
+All39 normally exiting processes recorded every boundary, exit0 and zero wrapped
+SQLite files in the destructor snapshot. Nine verified SIGKILL prepares rightly
+do not execute destructors. These observations do not prove future jobs absent
+and do not establish the cause of hosted29074's abnormal exit. The raw original
+failure remains unresolved; latest hosted5af765f CI is a separate pending run.
+
+The macOS tool subsequently confirmed the desktop was unlocked, so native tests
+resumed. No unlock bypass or security/preference change was made. EXP-028 remains
+unqualified: deleting the original image watermark after planning correctly uses
+the immutable staged copy, as independently tested by EXP-017. That design/spec
+conflict was not relabeled an execution-failure PASS.

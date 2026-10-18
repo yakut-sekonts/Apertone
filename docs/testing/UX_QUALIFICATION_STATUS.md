@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-18
 
-- 358 native scenario adapters and one suite-wide original-integrity adapter.
+- 359 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 85 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 84 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -156,6 +156,24 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   native binary before Context/window/catalog/seed creation; its raw expected
   rejection remains distinct from UX PASS. The broad Chaos Monkey action pool,
   other CHAOS IDs and randomized worker delays remain outside this adapter.
+- One further export adapter covers the supported mutually exclusive resize
+  modes and retained scalar: seven modes on landscape/portrait inputs produce
+  14 actual PNGs per attempt. Independent literal dimensions and direct 2D
+  area/bilinear resampling check the complete output, allowing one RGBA8 level
+  for float accumulation; CPU development and ICC encoding are shared and not
+  independently qualified. Full document/history, catalog metadata/journal,
+  immutable originals and prior outputs remain protected. Final evidence:
+  **3 Metal PASS**, `resize-shutdown-final-native-report`, run
+  `20261018T191631Z-7773`, plus **18 affected Metal PASS**,
+  `resize-shutdown-affected-native-report`, run `20261018T191745Z-8438`.
+  A local offscreen/software cohort passed the same 14-output case three times
+  and nine genuine SIGKILL/restart cases (12 PASS). All proof, source stability,
+  original SHA and SQLite checks passed. Four infrastructure CTests passed
+  (8.38 seconds), including 30 runner tests; format and focused tidy passed.
+  Test-only shutdown markers preserve natural owner destruction and observed
+  zero wrapped SQLite files in all 39 normally exiting child snapshots. This
+  is an observation, not a worker-drain barrier or a root-cause verdict for the
+  earlier hosted abnormal exit. No production behavior changed in this block.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog

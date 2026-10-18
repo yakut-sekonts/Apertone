@@ -1,5 +1,6 @@
 #include "tests/ux/SqliteFault.h"
 #include <chrono>
+#include <cstdio>
 #include <filesystem>
 #include <stdexcept>
 #include <thread>
@@ -53,9 +54,32 @@ SqliteFault::SqliteFault(std::string catalog) : catalog_(std::move(catalog)) {
     }
 }
 SqliteFault::~SqliteFault() {
+    std::fprintf(stderr, "UX_SHUTDOWN phase=sqlite_vfs.destructor.begin\n");
+    std::fflush(stderr);
+    std::size_t wrappedFiles = 0, catalogFiles = 0;
+    bool countsAvailable = false;
+    try {
+        std::lock_guard lock(mutex_);
+        wrappedFiles = files_.size();
+        for (const auto &entry : files_)
+            if (entry.second.catalog)
+                ++catalogFiles;
+        countsAvailable = true;
+    } catch (...) {
+        // Diagnostics must not add an exception to the original destructor path.
+        std::fputs("UX_SHUTDOWN phase=sqlite_vfs.destructor.snapshot.unavailable\n", stderr);
+    }
+    std::fprintf(stderr,
+                 "UX_SHUTDOWN phase=sqlite_vfs.destructor.snapshot counts_available=%d "
+                 "wrapped_files=%zu catalog_files=%zu\n",
+                 countsAvailable ? 1 : 0, wrappedFiles, catalogFiles);
+    std::fflush(stderr);
     sqlite3_vfs_unregister(&wrapper_);
     sqlite3_vfs_register(original_, 1);
     active_ = nullptr;
+    // Member storage is destroyed after this body; Context's end marker brackets it.
+    std::fprintf(stderr, "UX_SHUTDOWN phase=sqlite_vfs.destructor.body.end\n");
+    std::fflush(stderr);
 }
 int SqliteFault::open(sqlite3_vfs *, const char *name, sqlite3_file *file, int flags, int *out) {
     auto &self = *active_;

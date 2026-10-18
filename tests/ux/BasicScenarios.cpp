@@ -32,6 +32,7 @@ bool libraryRemainingScenario(Context &, const QString &);
 bool batchUpdateRemainingScenario(Context &, const QString &);
 bool exportSettingsScenario(Context &, const QString &);
 bool exportStressScenario(Context &, const QString &);
+bool exportResizeScenario(Context &, const QString &);
 bool panelDetailStressScenario(Context &, const QString &);
 bool thumbnailRemainingScenario(Context &, const QString &);
 bool retinaScenario(Context &, const QString &);
@@ -42,7 +43,7 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (retinaScenario(c, id) || thumbnailRemainingScenario(c, id) ||
+    if (exportResizeScenario(c, id) || retinaScenario(c, id) || thumbnailRemainingScenario(c, id) ||
         panelDetailStressScenario(c, id) || exportStressScenario(c, id) ||
         exportSettingsScenario(c, id) || batchUpdateRemainingScenario(c, id) ||
         libraryRemainingScenario(c, id) || visualRemainingScenario(c, id) ||

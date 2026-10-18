@@ -5,6 +5,7 @@
 #include <QGuiApplication>
 #include <QQuickStyle>
 #include <QRegularExpression>
+#include <cstdio>
 #include <iostream>
 #include <optional>
 namespace ux {
@@ -12,8 +13,19 @@ bool updaterScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
 void prepareMissingStartupSource(const QString &, const QString &);
 } // namespace ux
+namespace {
+struct ShutdownMarker {
+    const char *phase;
+    ~ShutdownMarker() noexcept {
+        std::fprintf(stderr, "UX_SHUTDOWN phase=%s\n", phase);
+        std::fflush(stderr);
+    }
+};
+} // namespace
 int main(int argc, char **argv) {
+    ShutdownMarker applicationDestroyed{"qguiapplication.owner.destroy.end"};
     QGuiApplication app(argc, argv);
+    ShutdownMarker applicationDestroying{"qguiapplication.owner.destroy.begin"};
     app.setQuitOnLastWindowClosed(false);
     app.setApplicationName("Luma UX");
     app.setApplicationVersion(LUMA_VERSION);
@@ -34,7 +46,10 @@ int main(int argc, char **argv) {
     QDir().mkpath(root);
     if (parser.isSet("state-root"))
         QDir().mkpath(parser.value("state-root"));
+    // Reverse destruction brackets the unchanged unique_ptr cleanup, including members.
+    ShutdownMarker contextDestroyed{"context.owner.destroy.end"};
     std::unique_ptr<ux::Context> context;
+    ShutdownMarker contextDestroying{"context.owner.destroy.begin"};
     try {
         const auto id = parser.value("case");
         std::optional<ux::HistoryChaosPlan> chaos;
