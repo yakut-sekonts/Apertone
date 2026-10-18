@@ -440,6 +440,48 @@ time.sleep(30)
             self.assertEqual(result['checkpoint_metric'], 42)
             self.assertFalse((root / 'result/child-result.json').exists())
 
+    def test_valid_marker_does_not_excuse_exit_before_actual_sigkill(self):
+        # Deterministically cover the race between marker validation and the
+        # supervisor's final poll. No unrelated process or real signal is used.
+        for exit_code in (0, 7, -signal.SIGTERM):
+            with self.subTest(exit_code=exit_code), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                destination = root / 'result'
+
+                class ExitedBeforeKill:
+                    pid = 987654321
+                    returncode = None
+                    observed_running = False
+
+                    def poll(self):
+                        if not self.observed_running:
+                            self.observed_running = True
+                            return None
+                        self.returncode = exit_code
+                        return self.returncode
+
+                def launch(*args, **kwargs):
+                    (destination / 'result.json').write_text(json.dumps(
+                        {'id': 'UX-UND-014', 'status': 'PASS', 'message': ''}))
+                    (destination / 'kill-ready.json').write_text(json.dumps(
+                        {'id': 'UX-UND-014', 'stage': 'prepare', 'pid': ExitedBeforeKill.pid}))
+                    return ExitedBeforeKill()
+
+                with patch.object(runner.subprocess, 'Popen', side_effect=launch), \
+                     patch.object(runner.os, 'killpg') as kill:
+                    result = runner.execute(
+                        {'id': 'UX-UND-014', 'scope': 'CURRENT', 'mode': 'BLOCKING',
+                         'severity': 'P0', 'scenario': 'Mocked checkpoint/exit race'},
+                        destination, argparse.Namespace(build=root, timeout=10, stage='prepare'), root)
+                kill.assert_not_called()
+                self.assertEqual(result['status'], 'FAIL')
+                self.assertEqual(result['child_returncode'], exit_code)
+                self.assertEqual(result['child_reported_status'], 'PASS')
+                self.assertTrue(result['intentional_kill_requested'])
+                self.assertNotIn('intentional_kill', result)
+                self.assertIn('not terminated by SIGKILL', result['message'])
+                self.assertEqual(json.loads((destination / 'child-result.json').read_text())['status'], 'PASS')
+
     def test_restart_uses_new_process_and_cannot_hide_second_stage_failure(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

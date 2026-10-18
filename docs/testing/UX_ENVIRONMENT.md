@@ -762,3 +762,35 @@ scenario could run. The macOS tool explicitly confirmed a locked Mac; a new
 manual unlock request is pending. These failures are environment evidence,
 not native restart PASS and not an application defect. No further native input
 is attempted until the user confirms the Mac is unlocked.
+
+
+## Verified kill checkpoint accounting
+
+A further supervisor review found that a valid kill-ready marker could exempt
+an abnormal process exit even if the child had already exited before the parent's
+final poll and SIGKILL delivery. A marker proves the intended persistence
+boundary, not process termination. The runner now accepts the kill variant only
+when both the validated marker and actual returncode -SIGKILL are present.
+Normal exit0, positive exit7 and SIGTERM in the marker/final-poll race all remain
+FAIL. intentional_kill_requested is retained separately from intentional_kill.
+A deterministic mocked process covers that race without signaling any real
+process; the real isolated-child checkpoint test still checks actual SIGKILL.
+All30 runner infrastructure tests passed (5.923 seconds).
+
+## Owned-volume environment preflight, not UX qualification
+
+A private64 MiB HFS+ blank disk image with NONE partition layout completed two
+real attach/detach generations, preserving the same VolumeUUID and nonce file
+on remount to the same unique /Volumes path. Attach plist, own-device diskutil
+info and actual statfs device/filesystem identities were checked before every
+detach. Final attachment is absent; the image and raw commands/plists remain
+under owned-volume-env-cxfr_puq. No user volume was inspected or operated on,
+and no physical USB-removal behavior is claimed. MAC-007/008 remain unadapted.
+
+The first preflight, owned-volume-env-hpperxya, failed before creating or
+attaching an image: this host's hdiutil blank-create interface rejects -format.
+The corrected command uses the documented -type UDIF blank read/write type;
+filesystem, size, layout and hdiutil interface are unchanged. Both raw records
+are retained. This is an environment fixture correction, not an app defect.
+
+Verified-kill runtime follow-up: verified-kill-software-report, 20261018T190719Z-5607, executed UND-014/015 and REC-007 three times each in a local offscreen/software simulation. All9 validated prepare children were actually terminated by SIGKILL, all9 new verify processes exited0, and full documents, catalog integrity, original SHA, source consistency and build proof passed. This does not replace native or hosted qualification.

@@ -309,13 +309,18 @@ def execute(row, directory, arguments, fixture_folder):
         # PASS when teardown crashes or the watchdog terminates the process.
         atomic_json(directory / 'child-result.json', child_result)
     result = dict(child_result) if child_result is not None else {'id': row['id'], 'status': 'FAIL'}
-    if intentional_kill and process.returncode == -signal.SIGKILL:
+    verified_kill = intentional_kill and process.returncode == -signal.SIGKILL
+    if intentional_kill and not verified_kill:
+        reason = reason or ('Intentional-kill checkpoint was not terminated by SIGKILL '
+                            f'(child exit {process.returncode})')
+    if verified_kill:
         result = {**json.loads((directory / 'metrics.json').read_text()), 'id': row['id'],
                   'status': 'PASS', 'message': 'Intentional SIGKILL at the verified persistence checkpoint',
                   'intentional_kill': True}
     result.update(child_returncode=process.returncode,
-                  child_reported_status=child_result.get('status') if child_result else None)
-    if reason or process.returncode != 0 and not intentional_kill:
+                  child_reported_status=child_result.get('status') if child_result else None,
+                  intentional_kill_requested=intentional_kill)
+    if reason or process.returncode != 0 and not verified_kill:
         exit_message = f'Child exited {process.returncode}'
         if process.returncode < 0:
             try:
