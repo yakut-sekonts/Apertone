@@ -303,13 +303,26 @@ def execute(row, directory, arguments, fixture_folder):
                     diagnostic.terminate()
                     diagnostic.wait(timeout=2)
     result_path = directory / 'result.json'
-    result = json.loads(result_path.read_text()) if result_path.exists() else {'id': row['id'], 'status': 'FAIL'}
+    child_result = json.loads(result_path.read_text()) if result_path.exists() else None
+    if child_result is not None:
+        # Keep the child's evidence before the supervisor overrides an apparent
+        # PASS when teardown crashes or the watchdog terminates the process.
+        atomic_json(directory / 'child-result.json', child_result)
+    result = dict(child_result) if child_result is not None else {'id': row['id'], 'status': 'FAIL'}
     if intentional_kill and process.returncode == -signal.SIGKILL:
         result = {**json.loads((directory / 'metrics.json').read_text()), 'id': row['id'],
                   'status': 'PASS', 'message': 'Intentional SIGKILL at the verified persistence checkpoint',
                   'intentional_kill': True}
+    result.update(child_returncode=process.returncode,
+                  child_reported_status=child_result.get('status') if child_result else None)
     if reason or process.returncode != 0 and not intentional_kill:
-        result.update(status='FAIL', message=reason or result.get('message', f'Child exited {process.returncode}'))
+        exit_message = f'Child exited {process.returncode}'
+        if process.returncode < 0:
+            try:
+                exit_message += f' ({signal.Signals(-process.returncode).name})'
+            except ValueError:
+                pass  # Retain the numeric code if the platform has no signal name.
+        result.update(status='FAIL', message=reason or result.get('message') or exit_message)
     catalog = state_root / 'catalog.sqlite'
     if catalog.exists():
         try:

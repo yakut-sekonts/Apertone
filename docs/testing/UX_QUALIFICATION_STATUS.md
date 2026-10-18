@@ -197,6 +197,14 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   original SHA and 279 native catalog snapshots all passed. Its source hash is
   identical to the local clean-commit snapshot. This confirms the CI attestation
   path; the blocking subset is still not full current-scope release qualification.
+- Latest hosted `29074c6` run `39110825283` passed build, unit/integration and
+  attestation but failed the blocking subset: **281 PASS, one SLD-020 FAIL**,
+  with 92 future NOT_IMPLEMENTED. Only its first verify process terminated
+  abnormally after the visible quit path; repeats2/3 passed. The original runner
+  omitted the exit code and retained an empty message, so a product root cause
+  is not yet established. Raw artifact and its SHA are preserved; supervisor
+  diagnostics are strengthened before targeted restart reproduction. This CI
+  failure remains unresolved and cannot qualify a release.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.
   The original failed fixture is retained, without asserting a production defect.

@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import signal
 import sqlite3
 import tempfile
 import unittest
@@ -360,6 +361,84 @@ class GateTests(unittest.TestCase):
                                     root / 'result', argparse.Namespace(build=root, timeout=15), root)
             self.assertEqual(result['status'], 'FAIL')
             self.assertIn('P0 hard hang', result['message'])
+            self.assertEqual(result['child_returncode'], -signal.SIGKILL)
+            self.assertEqual(result['child_reported_status'], 'PASS')
+            self.assertEqual(json.loads((root / 'result/child-result.json').read_text())['status'], 'PASS')
+
+    def test_abnormal_exit_cannot_hide_behind_an_empty_child_pass_message(self):
+        # Real isolated subprocesses exercise supervisor accounting, not native UX.
+        cases = [('positive-exit', 'sys.exit(7)', 7, 'Child exited 7'),
+                 ('signal-exit', 'os.kill(os.getpid(), signal.SIGTERM)',
+                  -signal.SIGTERM, 'Child exited -15 (SIGTERM)')]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            for name, termination, expected_code, message in cases:
+                with self.subTest(name=name):
+                    child.write_text('''#!/usr/bin/env python3
+import json,os,signal,sys
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+(r/"result.json").write_text(json.dumps({"id":"A","status":"PASS","message":""}))
+''' + termination + '\n')
+                    child.chmod(0o755)
+                    destination = root / name
+                    result = runner.execute(
+                        {'id': 'A', 'scope': 'CURRENT', 'mode': 'BLOCKING',
+                         'severity': 'P0', 'scenario': 'Fake post-result abnormal exit'},
+                        destination, argparse.Namespace(build=root, timeout=10), root)
+                    self.assertEqual(result['status'], 'FAIL')
+                    self.assertEqual(result['child_returncode'], expected_code)
+                    self.assertEqual(result['child_reported_status'], 'PASS')
+                    self.assertEqual(result['message'], message)
+                    raw = json.loads((destination / 'child-result.json').read_text())
+                    self.assertEqual(raw, {'id': 'A', 'status': 'PASS', 'message': ''})
+                    self.assertEqual(json.loads((destination / 'result.json').read_text()), result)
+
+    def test_nonempty_child_failure_survives_abnormal_exit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            child.write_text('''#!/usr/bin/env python3
+import json,sys
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+(r/"result.json").write_text(json.dumps({"id":"A","status":"FAIL","message":"Exact child assertion"}))
+sys.exit(2)
+''')
+            child.chmod(0o755)
+            result = runner.execute(
+                {'id': 'A', 'scope': 'CURRENT', 'mode': 'BLOCKING',
+                 'severity': 'P0', 'scenario': 'Fake assertion failure'},
+                root / 'result', argparse.Namespace(build=root, timeout=10), root)
+            self.assertEqual(result['status'], 'FAIL')
+            self.assertEqual(result['message'], 'Exact child assertion')
+            self.assertEqual(result['child_returncode'], 2)
+            self.assertEqual(result['child_reported_status'], 'FAIL')
+
+    def test_verified_intentional_kill_retains_exit_code_and_checkpoint_pass(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            child.write_text('''#!/usr/bin/env python3
+import json,os,sys,time
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+(r/"metrics.json").write_text(json.dumps({"checkpoint_metric":42}))
+(r/"kill-ready.json").write_text(json.dumps({"id":"UX-UND-014","stage":"prepare","pid":os.getpid(),"utc_ms":time.time_ns()//1000000}))
+time.sleep(30)
+''')
+            child.chmod(0o755)
+            result = runner.execute(
+                {'id': 'UX-UND-014', 'scope': 'CURRENT', 'mode': 'BLOCKING',
+                 'severity': 'P0', 'scenario': 'Verified fake persistence checkpoint'},
+                root / 'result', argparse.Namespace(build=root, timeout=10, stage='prepare'), root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertTrue(result['intentional_kill'])
+            self.assertEqual(result['child_returncode'], -signal.SIGKILL)
+            self.assertIsNone(result['child_reported_status'])
+            self.assertEqual(result['checkpoint_metric'], 42)
+            self.assertFalse((root / 'result/child-result.json').exists())
 
     def test_restart_uses_new_process_and_cannot_hide_second_stage_failure(self):
         with tempfile.TemporaryDirectory() as directory:

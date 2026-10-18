@@ -710,3 +710,55 @@ absence of any actual release instead. All three runs passed source/binary proof
 source consistency, original SHA and catalog integrity. None is relabeled PASS.
 The unregistered final source, integration snapshots and qualification.json are
 retained in the ignored pending-detail-diagnostic/integrated-unqualified archive.
+
+
+## IDLE Cocoa event-loop experiment and hosted restart failure
+
+Two unregistered IDLE probes used a queued single public AppKit action and a
+real local QEventLoop::exec; main's control flow was unchanged. Both native
+experiments failed their required fresh transitions, cocoa-idle-candidate-report,
+20261018T085016Z-99324. NSApp.running was true, Qt loop level was1 and the owned
+window was actually key immediately inside each action. Nevertheless neither
+performMiniaturize nor deactivate produced the required native notification or
+miniaturized/inactive state during 625 read-only polls over10 seconds. Thus the
+hypothesis that EventLoopExec alone fixes the previous Cocoa fixture was not
+confirmed. No production defect or official APP-016/017/SLD-009 PASS is claimed.
+The experimental source/wiring is archived and unregistered; bundle/companion
+alternatives remain unrun. Raw FAIL and pre-cleanup state are preserved.
+
+Hosted 29074c6 run39110825283/job117626404846 completed build, unit/integration
+and attestation, then failed its blocking subset:281 PASS, one SLD-020 FAIL and
+92 future NOT_IMPLEMENTED. SLD-020's first verify child completed its visible
+quit path but terminated nonzero; repeats2/3 passed. The raw message is empty,
+and no exception or crash stack is present in its app.log. The old supervisor
+did not retain the child exit code and let an empty child message suppress its
+fallback. A signal or production root cause cannot be reconstructed from that
+record. Original failure evidence remains unchanged. Artifact12130972625 ZIP
+SHA-256 d8c69297207ca0efda8320edd91e72ac7618038673e4232df5be46b429913b1e
+was independently verified. Report provenance, source consistency, original SHA
+and the failed case's SQLite snapshot check passed; this is not a green CI run.
+
+The supervisor now retains child_returncode, child_reported_status and an
+untouched child-result.json before enriching or overriding result.json. Abnormal
+exit after an apparent PASS remains FAIL, with numeric exit code/signal fallback
+when the child supplied an empty message. Real isolated subprocess tests exercise
+positive exit, SIGTERM after writing PASS, preserved nonempty assertions,
+watchdog-killed apparent PASS and verified intentional SIGKILL checkpoints.
+These are infrastructure checks and never native UX qualification.
+
+
+Targeted follow-up: restart-exit-diagnostics-offscreen-report,
+20261018T181334Z-3071, completed30 full SLD-020 quit/restart attempts in a
+**local offscreen/software simulation**. All60 prepare/verify processes exited0,
+reported PASS and retained their raw child-result.json; full source/binary proof,
+source consistency, original SHA and catalog integrity passed. The hosted
+abnormal exit was not reproduced by this cohort and remains unresolved.
+The diagnostic runner's29 infrastructure tests passed (5.893 seconds).
+CI and release artifact lists now also retain the untouched child-result.json.
+
+The attempted native follow-up is separately retained as
+restart-exit-diagnostics-native-report: three activation timeouts before the
+scenario could run. The macOS tool explicitly confirmed a locked Mac; a new
+manual unlock request is pending. These failures are environment evidence,
+not native restart PASS and not an application defect. No further native input
+is attempted until the user confirms the Mac is unlocked.
