@@ -7,9 +7,9 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
 
 ## Verified checkpoint, 2026-10-18
 
-- 351 native scenario adapters and one suite-wide original-integrity adapter.
+- 354 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 92 current scenarios still lack executable adapters. Prepared,
+  (MSK-005) is absent and 89 current scenarios still lack executable adapters. Prepared,
   uncompiled adapters are not counted.
 - 23 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -113,6 +113,19 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   files survive and unstarted files and temporary artifacts remain absent.
   This does not qualify cancellation inside an encoder or restart persistence.
   Full build, 25 runner-accounting tests, format and two focused tidy checks passed.
+- Three more adapters execute all 200 Export open/close cycles, all 200 Import
+  open/Cancel cycles and 200 real Detail keyboard edits followed immediately by
+  Export. Independent full documents cover every Undo and Redo step. A genuine
+  held final catalog write proves Export waits for the last natural autosave;
+  exact PNG pixels, three originals and durable import/catalog state remain
+  correct. Final evidence: **9 Metal PASS**, `panel-detail-final-report`, run
+  `20261018T072955Z-79020`, plus **21 affected Metal PASS**,
+  `panel-detail-affected-report`, run `20261018T073124Z-79528`. All provenance,
+  source consistency, original SHA and SQLite checks passed. The complete three
+  workloads also passed once in a local offscreen/software simulation. Full
+  application build, 25 runner tests (5.67 seconds), format and focused tidy passed.
+  RSS/object counts are raw observations without a leak or plateau assertion;
+  QML Import Cancel does not qualify native file-panel Cancel.
 - The preceding Cocoa block ran 18 scenarios three times: **54 PASS**, all using
   Metal, including actual Cmd+Q, restart, recovery and all three new fixes.
   Build provenance, unchanged source/binary, original SHA-256 and catalog

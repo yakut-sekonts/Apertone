@@ -545,3 +545,36 @@ and retained its full document; no production Slider defect was established.
 These three prototypes remain unregistered and outside verified coverage.
 Qt already requests Regular activation policy for bare executables; absence
 of an app bundle alone is not an established cause. All raw failures remain.
+
+
+## Panel/Detail stress and hosted 25bfec8
+
+PERF-017/018 and DTL-011 passed three times on Cocoa/Metal in
+panel-detail-final-report (20261018T072955Z-79020); seven affected cases passed
+three times in panel-detail-affected-report (20261018T073124Z-79528). Three
+complete local offscreen/software workloads also passed. Provenance, source
+stability, original SHA and SQLite integrity passed throughout. Full build,
+25 runner tests (5.67 seconds), format and two focused tidy checks passed.
+The first format command named a nonexistent Python script and exited 2;
+the actual existing check-format.sh then passed. No native attempts were
+reclassified or rerun for that orchestration typo.
+
+Each panel case preserves exact preexisting Undo/Redo branches, complete saved
+settings/store bytes, queue, baseline output pixels and all private originals
+through 200 actual cycles. Import exercises the QML Dialog Cancel button, not
+NSOpenPanel. DTL-011 executes 200 independent keyboard edits in nine controls,
+then 200 Undo and 200 Redo. The last natural catalog-associated xWrite is held
+while real Export enters waitingForSave; the fixture does not identify that fd
+as specifically WAL. No memory plateau, latency threshold or independent CPU
+renderer mathematics claim is made. No new production defect was reproduced.
+
+Hosted 25bfec8 run 39075666008/job 117522182165 completed all steps successfully:
+38 unit/integration PASS, one optional private Nikon SKIP (141.46 seconds),
+282 blocking UX PASS, build/provenance, format and tidy. Artifact 12117387978
+ZIP SHA-256 is d09b48c7292cffb87c82511a74953492ddbb259fd7131003b1506baf5852efa4.
+Source/binary proof, unchanged source, original SHA and 279 native-case catalog
+snapshots passed; three global integrity results have no catalog. The 92 future
+results are NOT_IMPLEMENTED and also have no catalog. Expected PR merge checkout
+is 4545586ddfe32d73c5689519d1cbc0d1c77eb940; source hash is
+d7a321ac6dbb29c72a94fe53977d2e305badce678e65b2c9f73b55bf28df0cee.
+The blocking subset remains NOT_QUALIFIED for the full current release gate.

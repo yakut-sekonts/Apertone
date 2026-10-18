@@ -31,6 +31,7 @@ Rectangle {
     Dialog {
         id: importDialog; objectName: "library.importDialog"; title: qsTranslate("Luma", "Import photos"); modal: true; anchors.centerIn: parent; width: 550
         standardButtons: Dialog.Cancel
+        onOpened: standardButton(Dialog.Cancel).objectName = "library.importCancel"
         ColumnLayout {
             width: parent.width; spacing: 12
             RowLayout { Button { text: qsTranslate("Luma", "Choose files"); onClicked: files.open() } Button { text: qsTranslate("Luma", "Choose folder"); onClicked: folder.open() } }
