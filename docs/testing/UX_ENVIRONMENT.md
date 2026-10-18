@@ -681,3 +681,32 @@ Source hash 009be3a715f95c76144c6fc79ade5f57f17b0db40d3d191fe9e30d467130c105
 matches local clean 4fc89dc; expected PR merge is 15a4bb3e696345b9be96acf199dae12e8e4e5d72.
 The blocking subset and 92 future NOT_IMPLEMENTED results do not qualify the
 full current-scope release. Earlier evidence is retained unchanged.
+
+
+## Held Detail diagnostic and preset hover: unqualified native boundary
+
+The DTL-007 candidate was independently reviewed for input ordering and failure
+cleanup. A read-only input trace now observes actual Alt KeyPress/KeyRelease,
+LeftButton release and application/window deactivation; a fresh active diagnostic
+is required immediately before the real pointer move. Failure evidence is saved
+before RAII input cleanup. No direct preview/diagnostic/property calls are used.
+
+The final actual Cocoa/Metal attempt, detail-diagnostic-window-trace-report,
+20261018T084247Z-96807, did not reach the required preset-hover boundary. After
+moving the held pointer onto Soft Portrait, the Slider remained pressed, the
+LeftButton remained held, exactly one Alt press and no release/deactivation were
+observed, diagnostic remained Amount luminance, and hovered/hoverPreviewId/
+presetPreview stayed false/empty/false. This demonstrates an unreachable hover
+in this specific exclusive-grab fixture, not a reproduced application defect.
+The adapter was removed from source registration and the suite's NATIVE set.
+DTL-007 remains unqualified; verified coverage remains 358 native cases.
+
+Two earlier raw failures are retained: detail-diagnostic-continuity-first-report
+(20261018T084113Z-96228) incorrectly assumed the global Qt modifier cache stayed
+Alt after QTest mouse input with NoModifier; detail-diagnostic-event-continuity-
+report (20261018T084200Z-96534) initially counted the same unaccepted key propagating
+through QML items. The final trace counts the window KeyPress once and checks
+absence of any actual release instead. All three runs passed source/binary proof,
+source consistency, original SHA and catalog integrity. None is relabeled PASS.
+The unregistered final source, integration snapshots and qualification.json are
+retained in the ignored pending-detail-diagnostic/integrated-unqualified archive.
