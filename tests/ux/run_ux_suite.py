@@ -9,7 +9,10 @@ from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
 from quality_policy import quality_skip_reason, quality_fixture_count
-from thumbnail_response_fixtures import CASE_PROFILE_IDS, official_fixture as thumbnail_fixture
+from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
+from export_watermark_fixtures import (OFFICIAL_CASE as WATERMARK_CASE,
+                                       official_fixture as watermark_fixture,
+                                       child_environment as watermark_child_environment)
 import importlib.util
 import json
 import os
@@ -23,6 +26,8 @@ import subprocess
 import sys
 import time
 import zlib
+
+CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE}
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = json.loads((Path(__file__).with_name('scenarios.json')).read_text())
@@ -109,6 +114,7 @@ NATIVE.add('UX-MAC-008')
 NATIVE.add('UX-RACE-005')
 NATIVE.add('UX-LIB-004')
 NATIVE.add('UX-RACE-002')
+NATIVE.add(WATERMARK_CASE)
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -289,6 +295,8 @@ def execute(row, directory, arguments, fixture_folder):
         environment['QT_QUICK_BACKEND'] = 'software'
     if os.environ.get('GITHUB_ACTIONS'):
         environment['QT_QPA_PLATFORM'] = 'offscreen'
+    if row['id'] == WATERMARK_CASE:
+        environment = watermark_child_environment(environment, directory, fixture_folder, case_id=row['id'])
     command = [str(arguments.build / 'luma_ux_tests'), '--case', row['id'], '--root', str(directory),
                '--fixtures', str(fixture_folder), '--qml', str(ROOT / 'apps/desktop/qml')]
     state_root = getattr(arguments, 'state_root', directory)
@@ -662,7 +670,10 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         hash_profiles = [(fixture_folder, base_checksums)]
         for row in case_profile_rows:
             folder = run_root / 'case-fixtures' / row['id']
-            extra_checksums, profile = thumbnail_fixture(folder, owned_root=run_root, case_id=row['id'])
+            if row['id'] == WATERMARK_CASE:
+                extra_checksums, profile = watermark_fixture(folder, owned_root=run_root)
+            else:
+                extra_checksums, profile = thumbnail_fixture(folder, owned_root=run_root, case_id=row['id'])
             case_fixture_folders[row['id']] = folder
             case_profiles.append(profile)
             hash_profiles.append((folder, extra_checksums))

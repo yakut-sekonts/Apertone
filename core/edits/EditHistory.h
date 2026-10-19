@@ -12,6 +12,10 @@ class EditHistory {
     const EditDocument &current() const {
         return current_;
     }
+    // Pure observation: does not finish or mutate the current gesture.
+    bool gestureActive() const noexcept {
+        return gesture_.has_value();
+    }
     bool canUndo() const {
         return !undo_.empty() || (gesture_ && *gesture_ != current_);
     }

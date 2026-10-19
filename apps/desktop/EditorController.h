@@ -219,6 +219,12 @@ class EditorController final : public QObject {
     bool customWhiteBalance() const {
         return history_.current().customWhiteBalance;
     }
+#ifdef LUMA_UX_HISTORY_READBACK
+    // C++ readback only; never exposed to QML or the shipping target.
+    bool uxHistoryGestureActive() const noexcept {
+        return history_.gestureActive();
+    }
+#endif
     bool canUndo() const {
         return history_.canUndo();
     }

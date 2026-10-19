@@ -12,8 +12,10 @@ namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
 bool cardFlagLocalizationCandidate(Context &, const QString &);
+bool exportWatermarkSnapshotMissingCandidate(Context &, const QString &);
 bool lib004ActualResponseCandidate(Context &, const QString &);
 bool race002ActualResponseCandidate(Context &, const QString &);
+bool appDeactivationCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -102,6 +104,10 @@ int main(int argc, char **argv) {
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
         }
+        if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+            ux::require(
+                !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
+                "App deactivation candidate forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -110,6 +116,10 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "LIB004 forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-EXP028-WATERMARK-SNAPSHOT-MISSING" || id == "UX-EXP-028")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "EXP028 snapshot scenario forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -127,12 +137,18 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+            ux::require(ux::appDeactivationCandidate(*context, id),
+                        "Real cross-process app deactivation candidate unavailable");
         else if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
             ux::require(ux::race002ActualResponseCandidate(*context, id),
                         "Actual thumbnail invalidation adapter unavailable");
         else if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE" || id == "UX-LIB-004")
             ux::require(ux::lib004ActualResponseCandidate(*context, id),
                         "Actual thumbnail response adapter unavailable");
+        else if (id == "CANDIDATE-EXP028-WATERMARK-SNAPSHOT-MISSING" || id == "UX-EXP-028")
+            ux::require(ux::exportWatermarkSnapshotMissingCandidate(*context, id),
+                        "Watermark snapshot missing candidate adapter unavailable");
         else if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
             ux::require(ux::cardFlagLocalizationCandidate(*context, id),
                         "Card flag localization candidate adapter unavailable");

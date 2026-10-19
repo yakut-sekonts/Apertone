@@ -748,3 +748,93 @@ Actual checkout051586954bbb2bdcc5319baa8468ef53b32c48f8 is the verified syntheti
 PR merge, whose second parent is50f6e16 and whose Git tree equals that head tree.
 That archive is evidence for the prior source7085381e checkpoint, not current281a.
 No workflow completion, release, tag, main merge or phase0.6 work is claimed here.
+
+## Official missing-watermark execution regression
+
+Official `UX-EXP-028` is now registered without changing inventory mode, scope or
+severity. There are365 native adapters:253 reviewed bounded and112 implemented
+deferred workloads, plus global integrity. Of445 applicable rows, conditional
+MSK005 is absent and78 remain unadapted:27 functional and51 deferred. This adds
+no production defect to the29 reproduced fixes and does not qualify the release.
+
+The actual three-photo queue first commits A with independently verified source
+and red-watermark pixels. Before B starts, the test unlinks only the sole verified
+private runtime snapshot inside its own canonical0700 temporary root. Original
+watermark/source files and live original-path options remain intact. Actual B and
+C each fail with the exact missing-watermark message; C starts after B, the queue
+finishes3/3 with1 success and no global error, and only unchanged A remains. All
+three full neutral documents/revisions, metadata, membership, selection, session
+and import journal are pinned. Per-job snapshot-path tracing is not claimed.
+
+The separate launcher environment is installed before Popen/Qt and never mutates
+the parent environment. Validated wrapper/child PID/nonce, UID/mode/inode and
+sidecar hashes are embedded in the narrow uploaded evidence. The four generated
+RGB originals include three64x48 photos and one32x32 red mark. Dedicated profiles
+preserve existing generic/LIB/RACE inputs and exact50/60/38 mixed SHA unions.
+All78 combined Python infrastructure tests pass. The first supplemental software
+run and subsequent3software+3native candidate runs remain supplemental evidence;
+independent PNG/SQLite/SHA/ownership audits found no discrepancy.
+
+The final cohort `official-exp028-final` attests source
+`77cd3c5e1e20924b73d27488fd7230df67bc73f04c28164ff04286e99b876e3f`
+and executable `e905e3b75b785d12add3861cc9856d890b7cfb3f71afd753aa1a06348bf01f0f`.
+All25 rows PASS:24 official and1 historical supplemental EXP row. These include
+3software+3Cocoa/Metal EXP repeats,3software+3native RACE002 repeats and three
+mixed LIB/RACE/EXP selections with SEL002, IMP009 and global UND018. Independent
+audit verifies all25 rows,10 actual EXP outputs/owned runtimes,9 RACE executions,
+3 LIB executions and shared originals/catalogs. Native LIB is not newly claimed
+by this cohort; its three mixed executions use software. All local RACE immediate
+session observations and both expected JSON forms match the exact nested row.
+
+Full build passes; CTest passes45 tests with one optional private Nikon SKIP,
+46 total,84.41s. Format and five focused tidy commands exit0; advisory diagnostics
+remain visible. The previous broad251-application/software plus native Retina
+evidence remains historical source281a evidence, not a rerun of every adapter on
+source77cd. No load, stress, soak, chaos or performance qualification was run.
+
+## Preserved hosted setup failures and native lifecycle gaps
+
+Hosted6413ca5 run39248009895/job118044714145 completed with failure: all three
+`UX-RACE-002` attempts stopped at the initial Import/session baseline before any
+response Session/race boundary. Blocking195, keyboard6, gradient6, card3 and
+LIB0043 attempts passed. Later Auto Transform/static steps were skipped. Its
+47,929,429-byte artifact12185576864 matches SHA
+`e2254fad7605edad9b0d48da337f2e14c97ca785b271110f7a1fd98473c1127c`.
+The actual synthetic merge858b990 is independently verified to have the same Git
+tree as6413ca5; hosted source8a0d00d5 is that exact clean head, with its own binary
+4d05b149. The earlier50f6e16 workflow was subsequently cancelled by the new push;
+its successful individual steps are not full workflow success.
+
+All three failure SQLite snapshots independently contain one completed Add, two
+committed items and the correct active UUID; they are snapshots after failure,
+not the missing immediate guard observation. The exact failing clause/cause is
+still UNKNOWN. SessionService commits selection before photoLoaded, so a late
+session commit is not established. Local AppleClang21/Qt6.10.3 constructor probe
+produces the intended nested JSON for both old and explicit forms; hosted uses
+AppleClang17.0.0.17000013. This compiler difference does not prove causation.
+RACE002 now forms expected nesting explicitly and saves actual/old/new values and
+all three clause outcomes before requiring the unchanged strict contract. Local
+passes do not replace the three hosted FAILs; a new hosted check is required.
+
+The supplemental native lifecycle candidate observes genuine held Exposure5,
+real separate Finder activation, native DidResignActive/key/workspace counters,
+Qt ApplicationInactive/WindowDeactivate and history=false/Slider.pressed=false
+before manual release or cleanup. Its UX-only plain C++ history getter observes
+without finishing a gesture; ordinary application/moc builds have no getter
+define. The underlying core const observation changes no state or class layout.
+
+The first default run `app-deactivation-first-native-report` preserves its10s
+own-return FAIL. On source77cd, `app-deactivation-external-first-native-report`
+preserves a distinct45s external return FAIL: one CUA Finder Cmd+Tab dispatch did
+not yield actual own activation. The unique-name capability run
+`app-deactivation-external-unique-name-native-report` also fails; CUA returned
+`Invalid app: luma_ux_tests` for the live unbundled process. Native bundle ID is
+empty; no installed Luma was selected. Every accepted deactivation observation
+still precedes release and naturally preserves Exposure5/revision1, but return,
+new gesture, Undo/Redo depth and post-return pixels remain unqualified. These are
+test transport gaps, not demonstrated product defects or official APP017/SLD009
+passes. All original non-PASS artifacts remain intact; no automatic retry or
+security/activation-policy change converted them into a PASS.
+
+Phase0.5 functional qualification remains incomplete. Work stays in draft PR47;
+there is no release/tag/main merge, phase0.6 or production publication.

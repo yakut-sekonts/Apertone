@@ -105,7 +105,7 @@ class ThumbnailFixtureTests(unittest.TestCase):
 
     def run_cli(self, identifiers, *, runs=1, quality=True, native=True,
                 extra_flags=(), override_row=None, denied=False, provenance='PASS', mutate=False,
-                mutation_case=palette.OFFICIAL_CASE):
+                mutation_case=palette.OFFICIAL_CASE, mutation_name='Photo-0000.png'):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()
             build = root / 'build'
@@ -133,7 +133,7 @@ class ThumbnailFixtureTests(unittest.TestCase):
                 destination.mkdir(parents=True)
                 calls.append((row['id'], fixture_folder))
                 if mutate and row['id'] == mutation_case:
-                    source = fixture_folder / 'Photo-0000.png'
+                    source = fixture_folder / mutation_name
                     if mutate == 'remove':
                         source.unlink()
                     elif mutate == 'symlink':

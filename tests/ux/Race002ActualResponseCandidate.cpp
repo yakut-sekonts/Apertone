@@ -718,9 +718,20 @@ bool race002ActualResponseCandidate(Context &c, const QString &identifier) {
     const auto oldPreview = fixtureReference(c, old.saved.asset.edits, path(old));
     rendered(c, old, oldPreview);
     const auto journalBefore = journal(c);
+    QJsonArray expectedSession;
+    expectedSession.append(QJsonValue(QJsonArray{QStringLiteral("1"), id(old)}));
+    const QJsonArray legacyExpectedSession{QJsonArray{"1", id(old)}};
+    writeJson(c.root + "/race002-setup-journal.json",
+              {{"actual", journalBefore},
+               {"expected_session", expectedSession},
+               {"legacy_expected_session", legacyExpectedSession},
+               {"expected_active_uuid", id(old)},
+               {"imports_count_matches", journalBefore["imports"].toArray().size() == 1},
+               {"items_count_matches", journalBefore["items"].toArray().size() == 2},
+               {"session_matches", journalBefore["session"].toArray() == expectedSession}});
     require(journalBefore["imports"].toArray().size() == 1 &&
                 journalBefore["items"].toArray().size() == 2 &&
-                journalBefore["session"].toArray() == QJsonArray{QJsonArray{"1", id(old)}},
+                journalBefore["session"].toArray() == expectedSession,
             "RACE002 setup Import/session journal cardinality is invalid");
     const auto imported = journalBefore["imports"].toArray().at(0).toArray();
     require(imported.size() == 8 && imported.at(1).toString() == "add" &&

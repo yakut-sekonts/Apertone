@@ -214,3 +214,44 @@ predicate changes with it. Dropped/failed sample counters are explicit; observed
 successful reruns do not establish individual causes of earlier native failures.
 The user confirmed external interaction during that mixed run; preserve it
 separately from subsequent controlled acceptance. See UX_QUALIFICATION_STATUS.md.
+
+Official `UX-EXP-028` covers a missing watermark at execution. Its dedicated
+profile contains three64x48 RGB photographs and one32x32 red original watermark.
+The four original paths remain in the shared SHA guard; only three are imported.
+After actual A output is atomically committed, the existing completion gate holds
+its queued continuation before B/C. The test independently checks A pixels, then
+removes exactly one verified, unaliased private execution-input copy. It does not
+delete the original watermark or mutate controller settings, worker options or
+queue state. B and C must each report the exact missing-watermark error, C must
+actually start after B fails, and only the unchanged A output may remain.
+Full neutral documents/revisions, metadata, source SHA and all catalog/session/
+import/membership facts must survive. This is not per-job snapshot-path tracing.
+
+```sh
+.tools/venv/bin/python tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-EXP-028 --runs 3 --require-build-provenance
+```
+
+The official launcher creates a fresh canonical0700 temporary sibling for this
+exact case/repeat and passes its environment copy to Popen before Qt starts.
+The parent environment and other case launches are unchanged. Actual case ID,
+wrapper/child PID claims, nonce, UID/mode and file hashes are checked and embedded
+in `exp028-evidence.json`; CI uploads that narrow diagnostic rather than private
+temporary-file contents. SoloEXP generates four RGB originals and no generic
+profile. Combined LIB/RACE/EXP profiles have38 paths; generic10/20 retain their
+own two small DNGs, producing50/60 originals. All78 infrastructure tests pass.
+The historical supplemental EXP wrapper retains its own ID and domain.
+
+RACE002 now records actual setup Import/session rows, explicitly nested expected
+session, the historical expected expression and individual clause outcomes before
+the strict baseline assertion. Three first hosted setup FAILs remain unresolved;
+later local passes do not establish their cause or overwrite them.
+
+`AppDeactivationCandidate.cpp` is supplemental only. The UX-only
+`LUMA_UX_HISTORY_READBACK` provides a plain C++ const observation, never a QML
+property/invokable or a shipping-target getter. Genuine existing-Finder handoff
+has proved native/Qt inactivity and completed control/history before any test
+release. Programmatic return and external Cmd+Tab did not prove own activation;
+CUA rejected the unbundled process name. Full return/new-gesture/history acceptance
+and official APP017/SLD009 qualification remain open. Its45s opt-in coordination
+deadline is a fixture guard, not a product latency threshold. The original10s
+return path and all original failures are retained.
