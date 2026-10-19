@@ -2,7 +2,10 @@
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QCryptographicHash>
+#include <QCursor>
+#include <QElapsedTimer>
 #include <QFile>
+#include <QGuiApplication>
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -19,8 +22,8 @@
 #include <utility>
 #include <vector>
 
-// First bounded MSK-023 crop-loss reproducer. No runtime qualification yet.
-// The strict assertion is immediately after actual Crop/Done, without Transform.
+// Bounded Crop/flip regression for reachable gradient controls.
+// The complete official MSK-023 scenario remains unqualified.
 namespace ux {
 namespace {
 using Document = luma::EditDocument;
@@ -28,8 +31,94 @@ QJsonObject documentJSON(const Document &document) {
     const auto parsed = QJsonDocument::fromJson(
         luma::encodePreset({"MSK023 complete document", {}, document, luma::allSettingsGroups}));
     require(parsed.isObject(), "Cannot encode complete MSK023 diagnostic document");
-    return parsed.object();
+    auto result = parsed.object();
+    result.insert("local_masks_serialized",
+                  QString::fromStdString(luma::encodeLocalMasks(document.localMasks)));
+    return result;
 }
+// Passive diagnostics only: no input, rendering, delay or acceptance changes.
+struct MaskReadyTrace {
+    Context &context;
+    QObject observer;
+    QElapsedTimer elapsed;
+    QJsonArray observations;
+    QJsonObject previous;
+    int dropped = 0, failedSamples = 0;
+    QJsonObject snapshot() const {
+        const auto &editor = context.editor;
+        const auto *window = context.window;
+        const auto cursor = window->mapFromGlobal(QCursor::pos());
+        return {{"local_mode", editor.localMode()},
+                {"local_canvas_ready", editor.localCanvasReady()},
+                {"local_sampling", editor.localSampling()},
+                {"local_gesture_active", editor.localGestureActive()},
+                {"local_overlay", editor.localOverlay()},
+                {"original", editor.original()},
+                {"preset_preview", editor.presetPreview()},
+                {"detail_diagnostic", editor.detailDiagnostic()},
+                {"crop_mode", editor.cropMode()},
+                {"guided_mode", editor.guidedMode()},
+                {"busy", editor.busy()},
+                {"saving", editor.saving()},
+                {"error", editor.error()},
+                {"status", editor.status()},
+                {"photo_id", editor.photoID()},
+                {"source", editor.sourcePath()},
+                {"preview_url", editor.previewUrl()},
+                {"can_undo", editor.canUndo()},
+                {"can_redo", editor.canRedo()},
+                {"mask_count", static_cast<int>(editor.currentSettings().localMasks.size())},
+                {"application_state", static_cast<int>(QGuiApplication::applicationState())},
+                {"window_active", window->isActive()},
+                {"window_visible", window->isVisible()},
+                {"window_exposed", window->isExposed()},
+                {"window_visibility", static_cast<int>(window->visibility())},
+                {"window_has_focus", QGuiApplication::focusWindow() == window},
+                {"mouse_grabber",
+                 window->mouseGrabberItem() ? window->mouseGrabberItem()->objectName() : QString{}},
+                {"physical_cursor_in_window_x", cursor.x()},
+                {"physical_cursor_in_window_y", cursor.y()}};
+    }
+    void sample(const char *reason) noexcept {
+        try {
+            auto state = snapshot();
+            if (state == previous)
+                return;
+            previous = state;
+            state["elapsed_ms"] = elapsed.elapsed();
+            state["reason"] = QString::fromLatin1(reason);
+            if (observations.size() < 4096)
+                observations.append(state);
+            else
+                ++dropped;
+        } catch (...) {
+            ++failedSamples;
+        }
+    }
+    explicit MaskReadyTrace(Context &value) : context(value) {
+        elapsed.start();
+        QObject::connect(&context.editor, &EditorController::stateChanged, &observer,
+                         [this] { sample("editor_state_changed"); });
+        QObject::connect(context.window, &QQuickWindow::afterAnimating, &observer,
+                         [this] { sample("window_after_animating"); });
+        sample("candidate_begin");
+    }
+    ~MaskReadyTrace() noexcept {
+        try {
+            sample("candidate_end_before_cleanup");
+            writeJson(context.root + "/msk023-ready-timeline.json",
+                      {{"passive_only", true},
+                       {"unwinding_exception", std::uncaught_exceptions() > 0},
+                       {"dropped", dropped},
+                       {"failed_samples", failedSamples},
+                       {"observations", observations},
+                       {"final_state", snapshot()},
+                       {"final_document", documentJSON(context.editor.currentSettings())}});
+        } catch (...) {
+            std::fputs("Cannot preserve passive mask readiness diagnostics\n", stderr);
+        }
+    }
+};
 struct ReleasePointer {
     Context &context;
     QPoint last;
@@ -807,6 +896,7 @@ bool maskHandleCropLossCandidate(Context &c, const QString &id) {
     if (id != "CANDIDATE-MSK023-CROP-LOSS" && !thin)
         return false;
     auto &d = *c.driver;
+    MaskReadyTrace readyTrace(c);
     c.import(1);
     d.doubleClick(c.card(0));
     c.loaded();

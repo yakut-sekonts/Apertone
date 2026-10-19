@@ -1,4 +1,4 @@
-"""Execution-policy contracts only: no native child, image generation or UI."""
+"""Execution-policy and tiny supplemental fixtures; no native child or UI."""
 import argparse
 import io
 from pathlib import Path
@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import run_card_flag_regression as card_flags
+import run_thumbnail_response_regression as thumbnail_response
 import quality_policy as policy
 import run_ux_suite as runner
 
@@ -123,6 +125,52 @@ class QualityPolicyTests(unittest.TestCase):
         self.assertEqual((result['children'], result['fixtures']), (1, 1))
         self.assertEqual(result['fixture_options'], {'count': 1, 'include_large': False})
         self.assertEqual(result['summary']['release_gate'], 'NOT_QUALIFIED')
+
+    def test_supplemental_card_and_thumbnail_profiles_cannot_expand_into_load_fixtures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary) / 'card'
+            hashes = card_flags.two_png_fixture(folder)
+            self.assertEqual(sorted(path.name for path in folder.iterdir()),
+                             ['Photo-0000.png', 'Photo-0001.png'])
+            self.assertEqual(len(hashes), 2)
+            self.assertEqual(card_flags.two_png_fixture(folder), hashes)
+            for count in (8, 12, 32):
+                with self.subTest(count=count):
+                    fixture = Path(temporary) / ('thumbnail-' + str(count))
+                    def inspect(**kwargs):
+                        self.assertEqual(kwargs['domain'], 'supplemental')
+                        self.assertEqual(kwargs['executable_ids'], {thumbnail_response.IDENTIFIER})
+                        self.assertEqual(len(kwargs['inventory']), 1)
+                        hashes = kwargs['fixture_factory'](fixture)
+                        self.assertEqual(len(hashes), count)
+                        self.assertEqual(len(list(fixture.iterdir())), count)
+                        colors = set()
+                        for source in fixture.iterdir():
+                            data = source.read_bytes()
+                            self.assertEqual(source.suffix, '.png')
+                            self.assertEqual(data[:8], b'\x89PNG\r\n\x1a\n')
+                            self.assertEqual(data[16:24], b'\0\0\x01\0\0\0\0\xc0')
+                            self.assertEqual(data[24:26], bytes((8, 2)))  # Opaque RGB.
+                            colors.add(data)
+                        self.assertEqual(len(colors), count)
+                        with self.assertRaises(ValueError):
+                            kwargs['fixture_factory'](fixture)
+                        return 0
+                    with (patch('sys.argv', ['wrapper', '--fixture-count', str(count)]),
+                          patch.object(thumbnail_response.runner, 'main', side_effect=inspect)):
+                        self.assertEqual(thumbnail_response.main(), 0)
+
+    def test_thumbnail_profile_rejects_bulk_or_duplicate_counts_before_runner_setup(self):
+        for options in (['--fixture-count', '1000'],
+                        ['--fixture-count', '8', '--fixture-count', '32']):
+            with self.subTest(options=options):
+                with (patch('sys.argv', ['wrapper', *options]),
+                      patch('sys.stderr', io.StringIO()),
+                      patch.object(thumbnail_response.runner, 'main') as main):
+                    with self.assertRaises(SystemExit) as error:
+                        thumbnail_response.main()
+                    self.assertEqual(error.exception.code, 2)
+                    main.assert_not_called()
 
     def test_missing_functional_adapter_keeps_unadapted_accounting(self):
         result = self.run_cli([self.row('UX-APP-002'), self.row('UX-KEY-015')],

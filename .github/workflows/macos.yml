@@ -36,6 +36,10 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: Supplemental gradient handle accessibility regressions
         run: .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build --runs 3 --require-build-provenance
+      - name: Supplemental PhotoCard flag localization regression
+        run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
+      - name: Supplemental actual thumbnail response regression
+        run: .tools/venv/bin/python tests/ux/run_thumbnail_response_regression.py --build build --runs 3 --require-build-provenance
       - name: Auto Transform completion regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
       - name: Upload UX evidence
@@ -48,6 +52,8 @@ jobs:
             build/ux-keyboard-report/
             build/ux-mask-handles-report/
             build/ux-auto-transform-report/
+            build/ux-card-flags-report/
+            build/ux-thumbnail-response-report/
             build/ux-build-provenance.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/child-result.json
@@ -57,6 +63,9 @@ jobs:
             build/ux-artifacts/20*/**/dsc006-scroll-trace.json
             build/ux-artifacts/20*/**/msk023-*.json
             build/ux-artifacts/20*/**/race005-*.json
+            build/ux-artifacts/20*/**/card-flags-*.json
+            build/ux-artifacts/20*/**/card-flags-*.png
+            build/ux-artifacts/20*/**/lib004-*.json
             build/ux-artifacts/20*/**/msk023-*.png
             build/ux-artifacts/20*/**/app.log
             build/ux-artifacts/20*/**/command.json

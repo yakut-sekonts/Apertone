@@ -661,3 +661,48 @@ are tracked separately and are not counted as application failures or hidden ret
   checks. `run_mask_handle_regression.py` reports both rows in the supplemental
   domain. Official UX-MSK-023 remains unregistered, and no full zoom/Transform/
   projective/pan-recenter qualification or release publication is claimed.
+
+
+## LUMA-UX-029 — PhotoCard flag captions ignore the selected language
+
+- Severity: P2. Scope: CURRENT. Subsystem: Library PhotoCard localization.
+- Status: fixed; focused captions/data/history/pixel regressions pass three times
+  on Cocoa/Metal and three times in local offscreen/software.
+- Two actual imported PNGs receive Pick/Reject through the real Library flag
+  control, with an edited A and rated B. After actual Settings changes to Russian,
+  the card labels still show `☆☆☆☆☆  Pick` and `★★★  Reject` while surrounding
+  controls use Russian. Independent literal expectations require `Выбрано` and
+  `Отклонено`. The original software child exits1 at the exact caption assertion;
+  source/binary proof, original hashes and catalog integrity pass.
+- Original evidence: `card-flags-original-first-local-software-report`, run
+  `20261019T103306Z-67607`. English and Russian JSON/screenshots are preserved
+  before the failure. No native original was run: IOConsoleLocked was true.
+- Fix: use the existing Luma Pick/Reject translation keys in PhotoCard. Stars,
+  rating/flag semantics, spacing, colors and visibility are unchanged.
+- Focused software evidence: `card-lib004-fixed-first-card-local-software-report`,
+  run `20261019T103951Z-68921`. All eight actual language choices match independent
+  literal captions at1000×640. Actual flag/rating controls, pinned full A/B
+  documents, history, natural durable revisions, complete metadata, bound Ready
+  thumbnail Image-node pixels/cache and source hashes remain correct. Final actual
+  Undo/Redo preserves A's original edit and B's independent document/revision.
+- Scope: this is a supplemental PhotoCard-caption regression, not complete
+  VIS007/VIS008/LOC, native chooser, glyph renderer or physical-display qualification.
+  No new official adapter or release is implied.
+
+- Final caption evidence: `card-thumbnail-retina-card-native-report`, run
+  `20261019T105445Z-73292`, and `card-thumbnail-retina-card-software-report`, run
+  `20261019T105433Z-73165`, three PASS each. Source SHA
+  `5a1a35eac6846e715c67f77bf2b8d1e8a49ca214b9ed9611448336d67624fd69`,
+  binary SHA `c4613c871f61c148d5fb7da0ed805bbb449518fd8287814cb8c353e0259935d4`.
+  Native records identify Cocoa/metal, DPR2. All eight actual language choices,
+  independent literals, complete data/history and own Image-node pixels pass.
+- Fixture correction: three software attempts in
+  `card-lib004-promoted-verified-card-software-report` stopped before flag or
+  language changes because one synthetic wheel event did not move the clipped
+  grid. The cause remains unexplained; passive-only instrumentation passed once
+  on each backend and does not establish a fix. The final caption fixture uses
+  one actual scrollbar drag from its real thumb center to the required endpoint,
+  acquired/released press, directional displacement, settled legal offset and
+  unchanged strict visibility/data/caption assertions. It contains no contentY
+  assignment, blind retry, extra resize or relaxed translation oracle. Original
+  production and fixture failures remain separate and unchanged.

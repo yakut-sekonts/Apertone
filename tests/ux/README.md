@@ -140,3 +140,50 @@ small Building/Lens DNG fixtures, imports two assets and starts Auto twice. Ther
 are no TRN014 stress cycles. The REGRESSION case needs its own focused CI/release
 step because the blocking subset does not select it. Full current-scope release
 qualification remains separate from this result.
+
+
+Supplemental PhotoCard captions and real thumbnail-response races have separate
+bounded wrappers, `run_card_flag_regression.py` and
+`run_thumbnail_response_regression.py`. Both retain supplemental IDs and
+NOT_QUALIFIED release status. The card test imports two small PNGs and changes all
+eight languages through real Settings controls, with independent caption literals,
+complete data/history and current Image-node/cache pixel checks. It does not
+qualify every localization/visual scenario.
+
+The thumbnail candidate imports exactly the minimal reviewed8/12/32 opaque RGB
+PNGs required by actual GridView geometry (default32, strict precondition). It
+holds one successfully computed real response before its original completion
+queue while actual scrolling reveals a previously unrequested response. Current
+OLD Loading is required after the real scrollbar press and before movement.
+Actual serial/revision/events, NEW Ready pixels, real cancellation/finished/
+destruction, final viewport and complete pinned data establish acceptance; a
+cancelled OLD response need not deliver GUI pixels. No source/status setter or
+fabricated request/finished signal can satisfy it. This boundary is pending
+completion, not active disk I/O. Official LIB004 remains unregistered pending
+further acceptance.
+
+The real-response trace/gate is private to `luma_ux_tests` through
+`LUMA_UX_THUMBNAIL_TRACE`; normal application targets have no probe or altered ABI.
+An uninstalled Session retains the ordinary UX-target provider path. The finite
+CV gate is outside catalog/cache/provider locks, leaves the other worker and GUI
+alive, and has explicit/RAII release. Qt cancelled-response lifetime expectations
+were reviewed against the pinned6.10.3 implementation. Artifact document helpers
+include canonical `local_masks_serialized` alongside preset settings; preset
+encoding alone is not a complete mask document. Original incomplete archives are
+retained with their limitations.
+
+
+Caption reveal uses one actual scrollbar drag, not a synthetic wheel prerequisite.
+It requires press acquisition/release, positive directional movement, legal settled
+offset and the same strict caption visibility/bounds/data checks. The response
+candidate independently predicts the physical provider size from declared384×384
+sourceSize and effective window DPR before arming; actual OLD/NEW tuples must match
+exactly. Logical sourceSize remains separately asserted. DPR1 and Retina DPR2 do
+not use the same physical request size.
+
+The mask supplement also retains a passive bounded controller/window readiness
+timeline before Context cleanup. No scheduling gate, render, delay or acceptance
+predicate changes with it. Dropped/failed sample counters are explicit; observed
+successful reruns do not establish individual causes of earlier native failures.
+The user confirmed external interaction during that mixed run; preserve it
+separately from subsequent controlled acceptance. See UX_QUALIFICATION_STATUS.md.

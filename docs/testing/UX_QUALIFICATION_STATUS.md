@@ -27,8 +27,11 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
   (MSK-005) is absent. Of the 81 remaining scenarios without executable adapters,
   30 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 28 reproduced production defects have fixes and focused regressions in
-  [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
+- 29 production defects are reproduced and fixed with focused native/software
+  evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
+  Three outcomes from a native mask run with confirmed external interaction
+  remain individually unattributed. Their FAIL records and subsequent controlled
+  diagnostic PASS are retained separately; full release qualification is incomplete.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
   recovery, partial import failures, 50 cancel/reimport cycles, update/batch
@@ -505,3 +508,163 @@ chaos checks; conditional absent MSK005 and independent original-integrity remai
 separate. Full MSK023 remains unqualified. The official 770-ID inventory, 28 fixed
 production defects, stable0.4.14 and release NOT_QUALIFIED status are unchanged.
 No load test, phase0.6 work, tag or production release ran in this checkpoint.
+
+
+## PhotoCard and real thumbnail-response checkpoint, 2026-10-19
+
+LUMA-UX-029 fixes hardcoded Pick/Reject captions through the existing translation
+keys. Its preserved original software failure is followed by a focused software
+PASS for all eight actual Settings language choices, with exact independent
+literals, current card Image-node/cache pixels, typed documents, metadata, natural
+persistence and Undo/Redo. Original and fixed evidence are separate. Native
+original was not run; fixed Cocoa/Metal acceptance is pending because the Mac
+session remains locked. No complete VIS007/VIS008/LOC qualification is claimed.
+
+A separate supplemental LIB004 candidate observes real QQuickImageResponse
+objects and their original lifecycle in the UX target only. Its selected worker
+holds a successfully computed OLD image before the original completion queue,
+after catalog and provider/cache locks are released. A real scrollbar press must
+still own the current visible OLD Loading binding, with no prior reset/cancel/
+finish. One real coarse move reveals a previously unrequested NEW tail card;
+its genuine request, saved revision, successful result, finished signal, texture
+consumption and current Ready pixels must precede explicit OLD release. Actual
+processed cancellation is allowed to finish/destroy OLD without a GUI reply.
+The same visible UUIDs, viewport, per-card independent pixels and all32 pinned
+neutral documents/revisions/metadata/originals must survive that cleanup.
+
+The first software candidate passes in
+`card-lib004-fixed-first-lib004-local-software-report`, run
+`20261019T103956Z-68969`. Actual grid1079×382, four columns, cell269.75×210 and
+cacheBuffer420 require the minimal reviewed32 small RGB PNGs; no large image or
+bulk workload is generated. Eight visible cards have own-reference mean RGB
+error0 before/after release; the nearest wrong-card error is at least23. The real
+OLD response is cancelled by Qt, then emits its genuine finished signal and is
+destroyed; no OLD GUI delivery is claimed. This pending-completion boundary does
+not establish active disk I/O, exhaustive transient frames or physical scanout.
+Official UX-LIB-004 stays unregistered until further acceptance; official counts
+remain362 adapters,250 bounded,112 deferred and30 functional gaps.
+
+Mask and Auto diagnostic documents now also retain canonical
+`local_masks_serialized`, because preset encoding omits masks. The repeated normal/
+thin Crop software cases pass in
+`card-lib004-fixed-first-mask-local-software-report`, run
+`20261019T103959Z-69021`, and official RACE005 passes in the corresponding
+`race-local-software-report`, run `20261019T104102Z-69547`. Typed runtime oracles,
+numeric tolerance, full-document/history/pixel/durable checks are unchanged.
+This is instrumentation completeness, not a production fix or extra official
+adapter. Historical incomplete artifacts remain unchanged.
+
+These first software results share tested source SHA
+`151e312372a5471bf20b086420fc2eb57ef855c99ff689c245c2d0ff9fed51c4`
+and binary SHA
+`6e88661927cf16eeabc9af99e7a822b7ee3868da1ccd53434ae0ac3b24d5d5c9`.
+Separate supplemental wrappers preserve both new regressions for CI without
+aliasing official IDs. Workload-policy tests reject bulk/duplicate fixture counts
+before runner setup and pin exact bounded RGB-only inputs. The full release gate
+remains NOT_QUALIFIED; no phase0.6, load test, release tag or production publication.
+
+### Hosted ec51a5d artifact audit
+
+The independently audited archive SHA is
+`b0a3893f77e9aa57ca40a092f5af96d950e0d1e51939ac814bc6ef2adf3e1c7e`.
+Its four reports contain195 blocking-subset PASS,29 implemented deferred SKIPPED
+and92 future NOT_IMPLEMENTED, plus six keyboard, six mask and three RACE005 PASS.
+The main195 includes three runner-only SHA observations. There are231 normal
+exit0 processes and six expected SIGKILL persistence prepare stages. All normal
+raw children report offscreen/software, not Cocoa/Metal. Archived proof agrees
+with clean ec51 source SHA
+`9fe69d8ffacdd3adb8fba7fc9d3e1234faa33c4a6ca9b958da54dfc6117dcb8f`;
+CI checkout is the synthetic merge `f76d4735ba9c88682bbb629410687f2e2cf95179`.
+All four release gates remain NOT_QUALIFIED. This archive audit does not establish
+completion of remaining workflow steps or independently recheck SQLite/original
+bytes, which are absent. The historical mask JSON contains all144 typed-check
+markers but omits numerical local-mask deltas; those cannot be reconstructed from
+that archive. Historical runtime PASS is retained with this explicit evidence limit.
+
+
+## Native acceptance and interrupted-run evidence, 2026-10-19
+
+After the Mac was observed unlocked, final PhotoCard captions and real thumbnail
+responses each passed three times on Cocoa/metal DPR2 and three times in local
+offscreen/software. These are twelve supplemental results, not twelve new
+specification adapters. Reports are `card-thumbnail-retina-card-native-report`
+(`20261019T105445Z-73292`), `card-thumbnail-retina-card-software-report`
+(`20261019T105433Z-73165`), `card-thumbnail-retina-lib004-native-report`
+(`20261019T105417Z-73045`) and `card-thumbnail-retina-lib004-software-report`
+(`20261019T105410Z-72993`). Their exact tested source is
+`5a1a35eac6846e715c67f77bf2b8d1e8a49ca214b9ed9611448336d67624fd69`;
+binary is `c4613c871f61c148d5fb7da0ed805bbb449518fd8287814cb8c353e0259935d4`.
+All proof, original SHA and catalog checks pass. Card captions now have focused
+native acceptance; full VIS007/VIS008/LOC remains outside that result.
+
+Two fixture corrections retain their original failures. The caption fixture's
+single wheel event failed to move the clipped grid in three software attempts;
+its cause is unexplained. One real scrollbar drag now reveals the same strict
+caption bounds with acquired press, directional displacement and legal settled
+offset; no setter/retry or translation-oracle change is involved. The first three
+native thumbnail attempts failed before the gate because Qt requests768×768 on
+Retina for the declared384×384 source. The test now independently predicts
+`QSize(384,384) * window.effectiveDevicePixelRatio()` before arming, verifies the
+logical sourceSize separately, and requires that exact physical size on both
+actual OLD/NEW tuples. No response wildcard or production size change is used.
+The retained native failure trace proves the size mismatch; corrected DPR1/DPR2
+runs pass with genuine current OLD Loading and real terminal cleanup.
+
+The same source's expanded mask regression produced **three PASS and three FAIL**
+in `card-thumbnail-retina-mask-native-report`, run `20261019T105606Z-73698`.
+Normal repeat2 timed out on the existing conjunction localMode/localCanvasReady/
+not-localSampling after a final Undo; the full typed document assertion had
+already passed. Thin repeats1/2 timed out on window polish and evidence capture.
+The Mac was unlocked. These are **unresolved native outcomes**, not proven render
+races, fixture failures or extra production defects. The old messages do not
+separate the predicate terms, current error, window exposure or other input.
+Original reports, actions, screenshots and mixed counts remain unchanged.
+
+A passive bounded readiness timeline now records distinct public controller and
+window states on genuine stateChanged/afterAnimating, with a final document before
+Context cleanup. It makes no render, cancellation, input, wait or acceptance
+change. Both software cases pass in `mask-ready-passive-mask-software-report`,
+run `20261019T110201Z-75351`; all six native attempts pass in
+`mask-ready-passive-mask-native-report`, run `20261019T110304Z-75610`.
+The six native timelines have no dropped/failed samples, active exposed windows,
+no preset preview and an unchanged physical cursor. This does **not** explain or
+fix the three prior failures: observation can affect scheduling, and the old
+outcomes lack those fields. The user subsequently confirmed using the Mac during
+the first mask run. External interaction could affect native focus/input, but the
+individual causes are not established. Those original outcomes are retained as
+an externally interrupted run; they neither prove a production defect nor become
+PASS. The later six passing native timelines independently establish their own
+bounded functional acceptance, without a further production fix.
+
+Canonical mask artifacts now independently expose all192 accepted geometry edits
+and exact restored documents across those eight attempts, including base/H/HV/V
+for both shapes. Saved actual/expected numerical differences are at most
+1.6653345369377348e-16, within the unchanged less-than1e-12 runtime tolerance.
+This repairs future artifact completeness; the old CI mask omission remains an
+explicit historical limit. Full official MSK023 stays unqualified.
+
+Four ordinary no-Session provider controls (REC009 clean corruption/restart,
+SEL002 card activation, SEL017 filmstrip switch and LOC005 Unicode flow), plus
+RACE005, pass five times once in software and fifteen times across three native
+repeats. See `mask-ready-passive-provider-control-software-report` and
+`mask-ready-passive-provider-control-native-report`. REC009 has an independent
+Ready/cache oracle; the activation/filename cases are not relabelled thumbnail
+race or pixel qualification. Auto still requires its genuine solver completions.
+
+Full build/CTest pass:42 PASS plus one optional private Nikon SKIP,82.26s, in
+`mask-ready-passive-full-ctest.log`. That includes40 runner and10 workload-policy
+unit tests. Format and all seven focused tidy commands exit0; advisory diagnostics
+remain in logs. This last tested source before documentation-only recording is
+`cedef5a1ab8e28090de5b091f928a31cd5d9129098705a25c3704caff0c00e03`;
+binary is `8af6e5692443bc7452a3c78d6d6206288ac298f430035919b7dc272c3135b18d`.
+The private trace define is absent from both ordinary production/thumbnail-unit
+provider compile commands and present only in the UX target.
+
+GitHub subsequently confirms the earlier clean ec51a5d workflow run39234353511
+completed successfully, including clang-tidy. Its uploaded evidence audit and
+historical mask limitations remain as recorded above. This is not CI completion
+for the newly changed source. Official counts remain362/250/112 and30 functional
+gaps. LIB004 remains a supplemental candidate pending generic fixture/inventory
+integration; a prepared RACE002 draft has no runtime result and is not counted.
+No load test, phase0.6 work, release tag, merge or production publication occurred.
+Full current-scope release qualification is still NOT_QUALIFIED.

@@ -37,7 +37,10 @@ QJsonObject documentJSON(const Document &value) {
     const auto encoded = QJsonDocument::fromJson(
         luma::encodePreset({"RACE005 full document", {}, value, luma::allSettingsGroups}));
     require(encoded.isObject(), "Cannot encode complete Auto document evidence");
-    return encoded.object();
+    auto result = encoded.object();
+    result.insert("local_masks_serialized",
+                  QString::fromStdString(luma::encodeLocalMasks(value.localMasks)));
+    return result;
 }
 QJsonObject operationJSON(const AutoTransformOperation &operation) {
     return {

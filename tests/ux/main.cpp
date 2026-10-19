@@ -11,6 +11,8 @@
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
+bool cardFlagLocalizationCandidate(Context &, const QString &);
+bool lib004ActualResponseCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -99,6 +101,14 @@ int main(int argc, char **argv) {
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
         }
+        if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "LIB004 candidate forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Card flag localization candidate forbids variant/stage/state-root flags");
         if (id == "CANDIDATE-RACE005-AUTO-COMPLETION" || id == "UX-RACE-005")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -112,6 +122,12 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE")
+            ux::require(ux::lib004ActualResponseCandidate(*context, id),
+                        "Actual thumbnail response candidate adapter unavailable");
+        else if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
+            ux::require(ux::cardFlagLocalizationCandidate(*context, id),
+                        "Card flag localization candidate adapter unavailable");
         else if (id == "CANDIDATE-RACE005-AUTO-COMPLETION" || id == "UX-RACE-005")
             ux::require(ux::autoTransformRaceCandidate(*context, id),
                         "Genuine Auto completion regression adapter unavailable");

@@ -1,4 +1,7 @@
 #include "apps/desktop/ThumbnailProvider.h"
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+#include "tests/ux/ThumbnailResponseTrace.h"
+#endif
 #include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/PresetStore.h"
 #include "core/catalog/Catalog.h"
@@ -45,13 +48,20 @@ void trimCache(const std::filesystem::path &cache) {
     }
 }
 QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
-                 const std::shared_ptr<ThumbnailState> &state,
-                 const luma::CancellationToken &stop) {
+                 const std::shared_ptr<ThumbnailState> &state, const luma::CancellationToken &stop
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+                 ,
+                 const ux::thumbnail_trace::Token &trace
+#endif
+) {
     luma::checkCancellation(stop);
     luma::Catalog connection(catalog);
     const auto snapshot = connection.assetSnapshot(id.toStdString());
     if (!snapshot)
         throw std::runtime_error("Photo is not in the catalog.");
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    trace.note(ux::thumbnail_trace::Kind::SnapshotRead, snapshot->revision);
+#endif
     const auto &asset = snapshot->asset;
     const auto encoded =
         luma::encodePreset({"Thumbnail", {}, asset.edits, luma::allSettingsGroups});
@@ -131,7 +141,15 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
         if (allowed_)
             state_->active.push_back(cancellation_);
     }
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    void setTrace(ux::thumbnail_trace::Token trace) noexcept {
+        trace_ = std::move(trace);
+    }
+#endif
     QQuickTextureFactory *textureFactory() const override {
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+        trace_.note(ux::thumbnail_trace::Kind::TextureFactoryCalled);
+#endif
         return QQuickTextureFactory::textureFactoryForImage(image_);
     }
     QString errorString() const override {
@@ -139,12 +157,19 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
     }
     void cancel() override {
         cancellation_.cancel();
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+        trace_.note(ux::thumbnail_trace::Kind::Cancelled);
+#endif
     }
     void run() override {
         try {
             if (!allowed_)
                 throw std::runtime_error("Thumbnail queue busy.");
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+            image_ = thumbnail(catalog_, id_, state_, cancellation_.token(), trace_);
+#else
             image_ = thumbnail(catalog_, id_, state_, cancellation_.token());
+#endif
             if (size_.isValid())
                 image_ = image_.scaled(size_.boundedTo(QSize(384, 384)).boundedTo(image_.size()),
                                        Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -162,6 +187,10 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
             if (iterator != active.end())
                 active.erase(iterator);
         }
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+        // Pool worker only; both state/cache mutex scopes ended before this point.
+        trace_.beforeFinishedQueue(error_.isEmpty() && !image_.isNull());
+#endif
         QMetaObject::invokeMethod(this, [this] { emit finished(); }, Qt::QueuedConnection);
     }
 
@@ -173,10 +202,16 @@ class ThumbnailResponse final : public QQuickImageResponse, public QRunnable {
     luma::CancellationSource cancellation_;
     QImage image_;
     bool allowed_ = false;
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    ux::thumbnail_trace::Token trace_;
+#endif
 };
 } // namespace
 ThumbnailProvider::ThumbnailProvider(std::filesystem::path catalog)
     : catalog_(std::move(catalog)), state_(std::make_shared<ThumbnailState>()) {
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    uxTraceSlot_ = ux::thumbnail_trace::makeSlot();
+#endif
     pool_.setMaxThreadCount(2);
 }
 ThumbnailProvider::~ThumbnailProvider() {
@@ -191,6 +226,10 @@ ThumbnailProvider::~ThumbnailProvider() {
 QQuickImageResponse *ThumbnailProvider::requestImageResponse(const QString &id,
                                                              const QSize &requestedSize) {
     auto *response = new ThumbnailResponse(catalog_, id.section('?', 0, 0), requestedSize, state_);
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    response->setTrace(
+        ux::thumbnail_trace::observeActualResponse(uxTraceSlot_, response, id, requestedSize));
+#endif
     pool_.start(response);
     return response;
 }
