@@ -5,13 +5,20 @@ It sends real clicks, drags, keys and ordinary wheel events. A native file-panel
 selection may be prepared as a fixture boundary; this does not qualify the native
 file chooser itself. It never opens private photographs or the user's real catalog.
 
+Current schedule (user direction, 2026-10-19): until the pre-release campaign
+for 1.0.0, run functional/image-quality/UX/data-integrity checks only. Do not run
+stress, soak, chaos, performance or large-catalog/repeated-load workflows.
+Existing load adapters and historical results are retained for 1.0.0; deferral
+never means PASS. Select explicit bounded functional cases, inspect their fixture
+sizes, then fix and recheck failures before publishing an intermediate release.
+
 Build with the pinned toolchain:
 
 ```sh
 .tools/venv/bin/python tests/ux/build_ux.py --build build-verify
 .tools/venv/bin/cmake --build build-verify --target luma_ux_metric_tests --parallel 3
 .tools/venv/bin/ctest --test-dir build-verify --output-on-failure
-.tools/venv/bin/python tests/ux/run_ux_suite.py --release-qualification
+.tools/venv/bin/python tests/ux/run_ux_suite.py --case UX-MAC-007 --case UX-SEL-002 --runs 3 --require-build-provenance
 ```
 
 All native UI runs share an exclusive screen/focus lock. Do not interact with the
@@ -22,7 +29,11 @@ while investigating a reproducer:
 .tools/venv/bin/python tests/ux/run_ux_suite.py --case UX-PRV-013 --runs 3
 ```
 
-Release qualification repeats blocking scenarios three times and runs other scenarios
+The legacy full-matrix --release-qualification command includes load workloads;
+reserve it for the pre-1.0.0 campaign. Its strict full-matrix status is separate
+from the requested intermediate functional-quality checkpoint.
+
+Full-matrix qualification repeats blocking scenarios three times and runs other scenarios
 once by default. An explicit --runs value applies to every selected scenario.
 
 The complete 770-ID specification inventory is separate from executable adapters.
@@ -55,7 +66,7 @@ and tests of packaged app bundles still need executable adapters. Unsupported
 --app and unsupported chaos selections are rejected, never silently ignored.
 Reports keep this work separate from missing product capabilities.
 
-Scoped history chaos supports only UX-UND-017: Contrast, Shadows and Vibrance Sliders,
+Deferred until the pre-1.0.0 campaign: scoped history chaos supports only UX-UND-017: Contrast, Shadows and Vibrance Sliders,
 discrete Left/Right inputs and Undo/Redo, with an independent full-document hash
 and history model. Other CHAOS IDs, pointer gestures and randomized worker delays
 are not covered. The default remains exactly 10,000 semantic actions; setup,

@@ -4,6 +4,16 @@ This follows the supplied requirements, renamed from Photon to Luma. Each stage
 ships an end-to-end workflow with persistent data, error handling and tests.
 No dates are promised before measuring scope and performance.
 
+## Validation schedule — user direction, 2026-10-19
+
+Before 1.0.0, validate functionality, image quality, persistence, data integrity,
+error recovery and UX. After each phase, fix defects and repeat the affected
+functional checks before publishing that phase. Stress, load, performance,
+chaos and long soak campaigns are reserved for the pre-release qualification
+of 1.0.0. Do not run them during intermediate phases or claim deferred results
+as PASS. Performance features may still be implemented and checked for functional
+correctness; scale/latency/resource benchmarks wait for the 1.0.0 campaign.
+
 ## M0 — RAW Vertical Slice / 0.1 Foundation
 
 [Issue #1](https://github.com/yakut-sekonts/Luma/issues/1) ·
@@ -118,7 +128,9 @@ phase completion; the public download remains 0.4.14 until then.
 
 🗓 Planned. Metal processing backend, CPU/GPU tolerance tests, bounded LRU,
 progressive quality, true 1:1 rendering, memory pressure handling and latency
-benchmarks on 8/16 GB Apple Silicon machines.
+benchmarks on 8/16 GB Apple Silicon machines. Numerical/functional validation
+accompanies implementation; load and benchmark campaigns run before 1.0.0
+under the validation schedule above.
 
 ## 0.7 — Advanced
 
