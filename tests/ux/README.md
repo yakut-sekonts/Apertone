@@ -243,8 +243,10 @@ The historical supplemental EXP wrapper retains its own ID and domain.
 
 RACE002 now records actual setup Import/session rows, explicitly nested expected
 session, the historical expected expression and individual clause outcomes before
-the strict baseline assertion. Three first hosted setup FAILs remain unresolved;
-later local passes do not establish their cause or overwrite them.
+the strict baseline assertion. Hosted a94eac6 reproduces the former expression
+as a flat array on AppleClang17, while the actual session and explicit expected
+row are nested. All three new hosted RACE002 runs pass. Original setup FAILs
+remain retained; their missing immediate values are not retroactively invented.
 
 `AppDeactivationCandidate.cpp` is supplemental only. The UX-only
 `LUMA_UX_HISTORY_READBACK` provides a plain C++ const observation, never a QML
@@ -255,3 +257,39 @@ CUA rejected the unbundled process name. Full return/new-gesture/history accepta
 and official APP017/SLD009 qualification remain open. Its45s opt-in coordination
 deadline is a fixture guard, not a product latency threshold. The original10s
 return path and all original failures are retained.
+
+`UX-LIB-005` is now official with its own fresh32-RGB profile. It performs real
+Library scroll-away, one naturally saved Exposure edit and scroll-back while an
+actual successful OLD thumbnail result remains held before its normal finished
+delivery. The returned current NEW Image must be Ready with the correct pixels
+before OLD is released. Actual OLD cancellation is allowed and recorded; no
+uncancelled branch, active CPU rendering overlap or per-consumer ownership is
+claimed. Full document/history/revision/metadata/journal/source checks remain
+required. The historical supplemental ID is retained separately.
+
+Combined LIB004/LIB005/RACE002/EXP028 profiles now contain70 distinct paths;
+generic10/20 plus their two DNGs produce82/92-path SHA unions. The102 combined
+Python infrastructure checks pass. Run the bounded official case with:
+
+```sh
+.tools/venv/bin/python tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-LIB-005 --runs 3 --require-build-provenance
+```
+
+On macOS the UX executable is a build-only `luma_ux_tests.app` with the unique
+`app.luma.ux-tests` identity and `LumaUXTests` display name. The existing CLI path
+is an absolute symlink to its canonical executable; the launcher executes that
+canonical path. Provenance includes exact generated plist identity/SHA and binary
+SHA and fails closed for changed or aliased bundle metadata. This is not a
+signed, relocatable or distributed application. For one-time migration of an
+existing flat UX build, configure first while its old attestation still exists;
+`build_ux.py` removes stale attestation before building. CMake refuses to replace
+an unverified old file or a different symlink.
+
+The bundle identifies the live native test window correctly, but CUA Raise/title
+input still did not establish own native activation. The user deferred manual
+Cmd+Tab on2026-10-19. APP017/SLD009 remain unqualified; no official adapter or
+PASS is assigned from the successful deactivation half alone.
+
+The three approved contract clarifications are recorded with original wording
+in [UX_SCOPE_CLARIFICATIONS.md](../../docs/testing/UX_SCOPE_CLARIFICATIONS.md).
+Changing those descriptions alone does not qualify APP014, CRP010 or VIS003.

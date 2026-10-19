@@ -419,7 +419,7 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-APP-011 [P1][CURRENT][REGRESSION]` — close одновременно при save + export → no deadlock между контроллерами.
 - `UX-APP-012 [P2][ALL][REGRESSION]` — resize min→fullscreen→min 50 раз → layout не разваливается.
 - `UX-APP-013 [P1][CURRENT][BLOCKING]` — 1000×640 → все критические действия доступны.
-- `UX-APP-014 [P2][CURRENT][REGRESSION]` — ширины 899/900/999/1000/1199/1200/1450 → no layout oscillation.
+- `UX-APP-014 [P2][CURRENT][REGRESSION]` — Native OS user resize requests 899/900/999 remain clamped to actual width ≥1000; supported widths 1000/1199/1200/1450 preserve readable controls and stable layout without oscillation.
 - `UX-APP-015 [P2][ALL][REGRESSION]` — fullscreen enter/exit 50 раз → валидные scroll positions.
 - `UX-APP-016 [P1][ALL][REGRESSION]` — minimize во время background op и restore → операция продолжает жить.
 - `UX-APP-017 [P1][ALL][REGRESSION]` — deactivate app mid-drag → gesture завершается или отменяется безопасно.
@@ -635,7 +635,7 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-CRP-007 [P1][CURRENT][REGRESSION]` — quarter-turn while Crop active.
 - `UX-CRP-008 [P1][CURRENT][REGRESSION]` — horizontal/vertical flip with crop.
 - `UX-CRP-009 [P1][CURRENT][REGRESSION]` — Straighten drag = one Undo.
-- `UX-CRP-010 [P1][CURRENT][REGRESSION]` — Done/Cancel leaves no transient overlay residue.
+- `UX-CRP-010 [P1][CURRENT][REGRESSION]` — Actual Crop Done terminates the crop interaction with no transient overlay/input residue or extra history edit; committed crop settings and neutral transient state remain correct. No Crop Cancel contract is implied.
 - `UX-CRP-011 [P1][CURRENT][REGRESSION]` — Original while Crop active has defined non-destructive behavior.
 - `UX-CRP-012 [P1][CURRENT][REGRESSION]` — photo switch exits transient crop interaction.
 - `UX-CRP-013 [P1][CURRENT][REGRESSION]` — preset hover while Crop active does not corrupt crop mode.
@@ -924,7 +924,7 @@ Private Nikon D7500 acceptance использовать только при на
 
 - `UX-VIS-001 [P2][ALL][REGRESSION]` — filename 255 chars in top bar/card/source label.
 - `UX-VIS-002 [P2][ALL][REGRESSION]` — path 1 000 chars.
-- `UX-VIS-003 [P2][CURRENT][REGRESSION]` — exporter current filename 255 chars.
+- `UX-VIS-003 [P2][CURRENT][REGRESSION]` — Exporter current filename uses the longest legal expanded stem (230 UTF-8 bytes) plus format extension: full logical text matches the actual output basename, the bounded label remains readable without overlap, and intentional middle elision is allowed. Overlimit expanded stems are rejected before file execution without changing files or documents.
 - `UX-VIS-004 [P2][CURRENT][REGRESSION]` — 100-line export failures list.
 - `UX-VIS-005 [P2][CURRENT][REGRESSION]` — 100-line import report.
 - `UX-VIS-006 [P2][CURRENT][REGRESSION]` — status text changes no top-level geometry jump.

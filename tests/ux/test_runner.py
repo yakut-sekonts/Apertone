@@ -231,7 +231,7 @@ class GateTests(unittest.TestCase):
 
     def test_cli_required_provenance_rechecks_sources_and_binary_after_setup(self):
         for flags in (('--require-build-provenance',), ('--release-qualification',)):
-            for field in ('source_tree_sha256', 'test_executable_sha256'):
+            for field in ('source_tree_sha256', 'test_executable_sha256', 'native_bundle_info'):
                 with self.subTest(flags=flags, field=field):
                     result = self._mocked_attestation_cli(flags, changed_after_setup=field)
                     self.assertEqual(result['code'], 2)
@@ -242,7 +242,7 @@ class GateTests(unittest.TestCase):
 
     def test_cli_source_or_binary_drift_prevents_green_even_when_children_pass(self):
         for flags in ((), ('--require-build-provenance',), ('--release-qualification',)):
-            for field in ('source_tree_sha256', 'test_executable_sha256'):
+            for field in ('source_tree_sha256', 'test_executable_sha256', 'native_bundle_info'):
                 with self.subTest(flags=flags, field=field):
                     result = self._mocked_attestation_cli(flags, changed_at_end=field)
                     self.assertEqual(result['code'], 1)

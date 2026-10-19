@@ -40,6 +40,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
       - name: Actual thumbnail response regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-004 --runs 3 --require-build-provenance --report build/ux-thumbnail-response-report
+      - name: Thumbnail away and back before pending completion
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-005 --runs 3 --require-build-provenance --report build/ux-thumbnail-away-back-report
       - name: Thumbnail invalidation during an actual response
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-002 --runs 3 --require-build-provenance --report build/ux-thumbnail-invalidation-report
       - name: Missing private watermark snapshot regression
@@ -58,6 +60,7 @@ jobs:
             build/ux-auto-transform-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
+            build/ux-thumbnail-away-back-report/
             build/ux-thumbnail-invalidation-report/
             build/ux-watermark-snapshot-report/
             build/ux-build-provenance.json
@@ -75,6 +78,7 @@ jobs:
             build/ux-artifacts/20*/**/card-flags-*.json
             build/ux-artifacts/20*/**/card-flags-*.png
             build/ux-artifacts/20*/**/lib004-*.json
+            build/ux-artifacts/20*/**/lib005-*.json
             build/ux-artifacts/20*/**/msk023-*.png
             build/ux-artifacts/20*/**/app.log
             build/ux-artifacts/20*/**/command.json

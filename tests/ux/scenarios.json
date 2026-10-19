@@ -95,7 +95,7 @@
     "severity": "P2",
     "scope": "CURRENT",
     "mode": "REGRESSION",
-    "scenario": "ширины 899/900/999/1000/1199/1200/1450 → no layout oscillation."
+    "scenario": "Native OS user resize requests 899/900/999 remain clamped to actual width ≥1000; supported widths 1000/1199/1200/1450 preserve readable controls and stable layout without oscillation."
   },
   {
     "id": "UX-APP-015",
@@ -1257,7 +1257,7 @@
     "severity": "P1",
     "scope": "CURRENT",
     "mode": "REGRESSION",
-    "scenario": "Done/Cancel leaves no transient overlay residue."
+    "scenario": "Actual Crop Done terminates the crop interaction with no transient overlay/input residue or extra history edit; committed crop settings and neutral transient state remain correct. No Crop Cancel contract is implied."
   },
   {
     "id": "UX-CRP-011",
@@ -2790,7 +2790,7 @@
     "severity": "P2",
     "scope": "CURRENT",
     "mode": "REGRESSION",
-    "scenario": "exporter current filename 255 chars."
+    "scenario": "Exporter current filename uses the longest legal expanded stem (230 UTF-8 bytes) plus format extension: full logical text matches the actual output basename, the bounded label remains readable without overlap, and intentional middle elision is allowed. Overlimit expanded stems are rejected before file execution without changing files or documents."
   },
   {
     "id": "UX-VIS-004",

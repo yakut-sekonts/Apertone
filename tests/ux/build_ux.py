@@ -30,10 +30,14 @@ def main():
         after = fingerprint(build)
         if before['source_tree_sha256'] != after['source_tree_sha256']:
             parser.error('Sources changed during the build; no provenance was recorded')
+        bundle = after.get('native_bundle_info')
+        if bundle is not None and bundle.get('status') != 'PASS':
+            parser.error('Generated UX bundle metadata is invalid; no provenance was recorded: ' + bundle.get('reason', 'unknown'))
         if not after['test_executable_sha256']:
             parser.error('UX executable is missing after the build')
         atomic_json(attestation, {'schema': 1, 'source_tree_sha256': after['source_tree_sha256'],
                                   'test_executable_sha256': after['test_executable_sha256'],
+                                  'native_bundle_info': bundle,
                                   'source_commit': after['commit'], 'command': command})
         print(json.dumps({'build_provenance': str(attestation), 'source_tree_sha256': after['source_tree_sha256']}))
     return 0

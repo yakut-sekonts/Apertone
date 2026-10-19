@@ -103,8 +103,12 @@ if(BUILD_TESTING)
     set_tests_properties(ux-thumbnail-fixture-accounting PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
     add_test(NAME ux-thumbnail-invalidation-fixture-accounting COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/ux/test_thumbnail_invalidation_fixtures.py")
     set_tests_properties(ux-thumbnail-invalidation-fixture-accounting PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
+    add_test(NAME ux-thumbnail-away-back-fixture-accounting COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/ux/test_thumbnail_away_back_fixtures.py")
+    set_tests_properties(ux-thumbnail-away-back-fixture-accounting PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
     add_test(NAME ux-watermark-snapshot-fixture-accounting COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/ux/test_export_watermark_fixtures.py")
     set_tests_properties(ux-watermark-snapshot-fixture-accounting PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
+    add_test(NAME ux-native-bundle-provenance COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/ux/test_native_bundle_provenance.py")
+    set_tests_properties(ux-native-bundle-provenance PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
     set_tests_properties(ux-metric-accounting PROPERTIES LABELS "ux;infrastructure")
     add_executable(luma_ux_history_oracle_tests tests/ux/HistoryChaosModelTests.cpp tests/ux/HistoryChaosPlan.cpp)
     target_include_directories(luma_ux_history_oracle_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -114,12 +118,30 @@ if(BUILD_TESTING)
     add_test(NAME ux-history-chaos-routing COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/ux/test_history_chaos_cli.py")
     set_tests_properties(ux-history-chaos-plan ux-history-chaos-routing PROPERTIES TIMEOUT 120 LABELS "ux;infrastructure")
     find_package(Qt6 6.10.3 REQUIRED COMPONENTS Test)
-    qt_add_executable(luma_ux_tests tests/ux/main.cpp tests/ux/UxContext.cpp tests/ux/UxPixels.cpp tests/ux/UxDriver.cpp tests/ux/UxMetrics.cpp tests/ux/SqliteFault.cpp tests/ux/RecoveryScenarios.cpp tests/ux/BasicScenarios.cpp tests/ux/LibraryScenarios.cpp tests/ux/MaskScenarios.cpp tests/ux/LifecycleScenarios.cpp tests/ux/ImportScenarios.cpp tests/ux/ExportScenarios.cpp tests/ux/RestartScenarios.cpp tests/ux/BatchScenarios.cpp tests/ux/GeometryScenarios.cpp tests/ux/CropScenarios.cpp tests/ux/AccessibilityScenarios.cpp tests/ux/LibraryScaleScenarios.cpp tests/ux/SelectionScenarios.cpp tests/ux/KeyboardScenarios.cpp tests/ux/NavigationScenarios.cpp tests/ux/FilterExtraScenarios.cpp tests/ux/DetailScenarios.cpp tests/ux/LensScenarios.cpp tests/ux/AdvancedScenarios.cpp tests/ux/PresetScenarios.cpp tests/ux/PresetExtraScenarios.cpp tests/ux/PresetRemainingScenarios.cpp tests/ux/HistoryStressScenarios.cpp tests/ux/ImportExtraScenarios.cpp tests/ux/CurrentPerformanceScenarios.cpp tests/ux/WhiteBalanceScenarios.cpp tests/ux/GestureRemainingScenarios.cpp tests/ux/VisualRemainingScenarios.cpp tests/ux/LibraryRemainingScenarios.cpp tests/ux/BatchUpdateRemainingScenarios.cpp tests/ux/AppExtraScenarios.cpp tests/ux/ExportExtraScenarios.cpp tests/ux/PreviewExtraScenarios.cpp tests/ux/RecoveryExtraScenarios.cpp tests/ux/AsyncScenarios.cpp tests/ux/TransformScenarios.cpp tests/ux/TransformExtraScenarios.cpp tests/ux/LocalizationScenarios.cpp tests/ux/UpdaterScenarios.cpp
+    qt_add_executable(luma_ux_tests MACOSX_BUNDLE tests/ux/main.cpp tests/ux/UxContext.cpp tests/ux/UxPixels.cpp tests/ux/UxDriver.cpp tests/ux/UxMetrics.cpp tests/ux/SqliteFault.cpp tests/ux/RecoveryScenarios.cpp tests/ux/BasicScenarios.cpp tests/ux/LibraryScenarios.cpp tests/ux/MaskScenarios.cpp tests/ux/LifecycleScenarios.cpp tests/ux/ImportScenarios.cpp tests/ux/ExportScenarios.cpp tests/ux/RestartScenarios.cpp tests/ux/BatchScenarios.cpp tests/ux/GeometryScenarios.cpp tests/ux/CropScenarios.cpp tests/ux/AccessibilityScenarios.cpp tests/ux/LibraryScaleScenarios.cpp tests/ux/SelectionScenarios.cpp tests/ux/KeyboardScenarios.cpp tests/ux/NavigationScenarios.cpp tests/ux/FilterExtraScenarios.cpp tests/ux/DetailScenarios.cpp tests/ux/LensScenarios.cpp tests/ux/AdvancedScenarios.cpp tests/ux/PresetScenarios.cpp tests/ux/PresetExtraScenarios.cpp tests/ux/PresetRemainingScenarios.cpp tests/ux/HistoryStressScenarios.cpp tests/ux/ImportExtraScenarios.cpp tests/ux/CurrentPerformanceScenarios.cpp tests/ux/WhiteBalanceScenarios.cpp tests/ux/GestureRemainingScenarios.cpp tests/ux/VisualRemainingScenarios.cpp tests/ux/LibraryRemainingScenarios.cpp tests/ux/BatchUpdateRemainingScenarios.cpp tests/ux/AppExtraScenarios.cpp tests/ux/ExportExtraScenarios.cpp tests/ux/PreviewExtraScenarios.cpp tests/ux/RecoveryExtraScenarios.cpp tests/ux/AsyncScenarios.cpp tests/ux/TransformScenarios.cpp tests/ux/TransformExtraScenarios.cpp tests/ux/LocalizationScenarios.cpp tests/ux/UpdaterScenarios.cpp
         apps/desktop/ExportController.cpp apps/shared/ExportSettings.cpp
         apps/desktop/BatchController.cpp apps/desktop/PresetController.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
         apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
+    set_target_properties(luma_ux_tests PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.ux-tests"
+        MACOSX_BUNDLE_BUNDLE_NAME "LumaUXTests"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/tests/ux/Info.plist.in")
+    # Keep the established runner path; the runner launches its canonical bundle target.
+    # Configure also repairs a deleted launcher when the executable needs no relink.
+    set(UX_BUILD_ROOT "${CMAKE_BINARY_DIR}")
+    set(UX_PROJECT_ROOT "${CMAKE_SOURCE_DIR}")
+    set(UX_BUNDLE_EXECUTABLE "${CMAKE_BINARY_DIR}/luma_ux_tests.app/Contents/MacOS/luma_ux_tests")
+    include(cmake/LinkUxTestExecutable.cmake)
+    add_custom_command(TARGET luma_ux_tests POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" "-DUX_BUILD_ROOT=${CMAKE_BINARY_DIR}"
+            "-DUX_PROJECT_ROOT=${CMAKE_SOURCE_DIR}"
+            "-DUX_BUNDLE_EXECUTABLE=$<TARGET_FILE:luma_ux_tests>"
+            -P "${CMAKE_SOURCE_DIR}/cmake/LinkUxTestExecutable.cmake"
+        VERBATIM)
     target_sources(luma_ux_tests PRIVATE tests/ux/ExportSettingsScenarios.cpp tests/ux/ExportPrivacyFixture.mm)
     set_source_files_properties(tests/ux/ExportPrivacyFixture.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(luma_ux_tests PRIVATE "-framework Foundation" "-framework ImageIO" "-framework CoreGraphics")
@@ -141,6 +163,7 @@ if(BUILD_TESTING)
     target_sources(luma_ux_tests PRIVATE tests/ux/ExportWatermarkSnapshotMissingCandidate.cpp)
     target_sources(luma_ux_tests PRIVATE tests/ux/Lib004ActualResponseCandidate.cpp)
     target_sources(luma_ux_tests PRIVATE tests/ux/Race002ActualResponseCandidate.cpp)
+    target_sources(luma_ux_tests PRIVATE tests/ux/Lib005ActualResponseCandidate.cpp)
     target_sources(luma_ux_tests PRIVATE tests/ux/AppDeactivationCandidate.cpp tests/ux/NativeFinderActivation.mm)
     set_source_files_properties(tests/ux/NativeFinderActivation.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_HISTORY_READBACK=1)

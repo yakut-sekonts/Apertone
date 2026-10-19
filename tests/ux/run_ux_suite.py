@@ -8,6 +8,7 @@ from collections import Counter
 from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
+from native_bundle_provenance import native_bundle_info, launch_executable
 from quality_policy import quality_skip_reason, quality_fixture_count
 from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
 from export_watermark_fixtures import (OFFICIAL_CASE as WATERMARK_CASE,
@@ -113,6 +114,7 @@ NATIVE.add('UX-MAC-007')
 NATIVE.add('UX-MAC-008')
 NATIVE.add('UX-RACE-005')
 NATIVE.add('UX-LIB-004')
+NATIVE.add('UX-LIB-005')
 NATIVE.add('UX-RACE-002')
 NATIVE.add(WATERMARK_CASE)
 GLOBAL = {'UX-UND-018'}
@@ -267,6 +269,7 @@ def fingerprint(build):
             'worktree_dirty': bool(command('git', '-C', str(ROOT), 'status', '--porcelain')),
             'source_tree_sha256': source.hexdigest(),
             'test_executable_sha256': hashlib.sha256(executable.read_bytes()).hexdigest() if executable.is_file() else None,
+            'native_bundle_info': native_bundle_info(build),
             'source_snapshot_point': 'suite_end',
             'build_directory': str(build), 'hosted_ci': bool(os.environ.get('GITHUB_ACTIONS')),
             'performance_mode': 'MEASURE_ONLY'}
@@ -276,7 +279,11 @@ def build_provenance(build, snapshot):
     path = build / 'ux-build-provenance.json'
     try:
         recorded = json.loads(path.read_text())
-        valid = (recorded.get('schema') == 1 and bool(snapshot.get('test_executable_sha256'))
+        bundle = native_bundle_info(build)
+        bundle_valid = (recorded.get('native_bundle_info') == snapshot.get('native_bundle_info') == bundle
+                        and (bundle is None or (bundle.get('status') == 'PASS'
+                             and bundle.get('executable_sha256') == snapshot.get('test_executable_sha256'))))
+        valid = (bundle_valid and recorded.get('schema') == 1 and bool(snapshot.get('test_executable_sha256'))
                  and all(recorded.get(field) == snapshot.get(field)
                          for field in ('source_tree_sha256', 'test_executable_sha256')))
         return {'status': 'PASS' if valid else 'UNVERIFIED', 'path': str(path),
@@ -297,7 +304,7 @@ def execute(row, directory, arguments, fixture_folder):
         environment['QT_QPA_PLATFORM'] = 'offscreen'
     if row['id'] == WATERMARK_CASE:
         environment = watermark_child_environment(environment, directory, fixture_folder, case_id=row['id'])
-    command = [str(arguments.build / 'luma_ux_tests'), '--case', row['id'], '--root', str(directory),
+    command = [str(launch_executable(arguments.build)), '--case', row['id'], '--root', str(directory),
                '--fixtures', str(fixture_folder), '--qml', str(ROOT / 'apps/desktop/qml')]
     state_root = getattr(arguments, 'state_root', directory)
     if getattr(arguments, 'stage', None):
@@ -748,7 +755,9 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         if mutations:
             results.append({'id': 'ORIGINAL-INTEGRITY', 'status': 'FAIL', 'severity': 'P0', 'paths': mutations})
         suite_end = fingerprint(args.build)
-        source_stable = all(suite_start[field] == suite_end[field] for field in ('source_tree_sha256', 'test_executable_sha256'))
+        source_stable = (all(suite_start[field] == suite_end[field]
+                             for field in ('source_tree_sha256', 'test_executable_sha256'))
+                         and suite_start.get('native_bundle_info') == suite_end.get('native_bundle_info'))
         summary = {'hardware': suite_end, 'build_provenance': provenance,
                    'inventory_domain': domain, 'official_inventory_count': len(INVENTORY),
                    'selected_inventory_count': len(selected_inventory),

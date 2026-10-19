@@ -838,3 +838,92 @@ security/activation-policy change converted them into a PASS.
 
 Phase0.5 functional qualification remains incomplete. Work stays in draft PR47;
 there is no release/tag/main merge, phase0.6 or production publication.
+
+## Official away/save/back thumbnail and test bundle checkpoint
+
+`UX-LIB-005` is now official with unchanged severity/scope/mode. The current
+inventory has366 native adapters:254 reviewed bounded and112 deferred, plus
+global integrity. Of445 applicable rows, conditional MSK005 remains absent and
+77 are unadapted:26 functional and51 deferred. No production defect is added to
+the29 reproduced fixes. Deferred workloads have not been executed or qualified.
+
+The bounded fixture owns32 distinct opaque256x192 RGB originals. Actual Library
+bar input scrolls away before OLD completion, actual Develop input produces one
+natural Exposure5 edit/revision1, and actual Library bar input returns to the
+current NEW Image before OLD is released. Exact source/revision tracing, all
+eight returned visible identities/pixels, targeted invalidation, full document
+and metadata/journal/SQLite/SHA guards and one Undo/Redo to revisions2/3 pass.
+All observed OLD responses are naturally cancelled; no uncancelled branch is
+claimed. OLD is held after successful computation before finished delivery:
+this is stale-completion coverage, not active CPU computation overlap. The
+source-domain trace does not identify ownership by an individual consumer.
+
+The official cohort attests source
+`b326cdaf1375aa92cefa1f227ffe13c137bec2ec88e710278ed690e495dc38bb`
+and binary `e56db157877bb10eb0cc03acba18b4fff0b94b2c260cfd8575f91b30fa65d2dc`.
+All28 runner rows PASS:27 official and one historical supplemental LIB005 row,
+including one global integrity row and27 actual child executions. LIB005 has
+3software+3Cocoa/Metal repeats and three software mixed runs. The mixed profiles
+contain70 distinct LIB004/LIB005/RACE002/EXP028 paths, with exact82/92/70 SHA
+unions for SEL002/IMP009/global integrity. Additional EXP028/RACE002/KEY001
+controls pass once on each backend. The separate completed-artifact audit checks
+all10 LIB005 executions against literal fixtures, full SQLite rows and real
+trace order. JSON pixel metrics are audited; raw per-node readbacks are not
+archived and the CPU/ICC/JPEG reference pipeline is shared.
+
+All102 combined infrastructure tests pass. Full build passes; CTest has47 PASS
+and one optional private Nikon SKIP out of48,87.77s. Format and two focused tidy
+commands exit0 with advisory diagnostics retained. The old full software sweep
+remains historical evidence, not a new sweep of every adapter on this source.
+The first cohort supervisor misclassified the historical LIB005 ID as EXP for
+its final post-run verifier and failed after that actual child had passed.
+That harness failure and raw results are retained; a read-only audit and a
+separate static/unit-check continuation completed without retrying app cases.
+
+The UX target is now a real build-only macOS bundle with the unique native
+`app.luma.ux-tests` identity. Generated Info.plist SHA
+`300c1d5531728371ef2444f49eff853e5494e69064fe9ab67bdf8ecdd27d885a`
+and canonical executable identity are part of build/suite provenance. The
+compatibility CLI is an exact absolute symlink. Legacy flat migration refuses
+unattested/different files; configure must precede build_ux for that one-time
+migration. This adds no shipping app packaging, signing or distribution claim.
+
+The first bundled APP candidate, source653280ca/binary7068d21e, proved actual
+bundle ID/window/PID and genuine deactivation, but CUA Raise/title input did not
+produce native own activation. Its45s return FAIL remains separate. Dock access
+then timed out without another candidate run. On2026-10-19 the user deferred the
+manual Cmd+Tab return check. APP017/SLD009 remain unqualified; no full history
+acceptance or new official PASS is inferred from deactivation alone.
+
+The user approved exactly three scope clarifications: APP014 native subminimum
+requests clamp to1000; CRP010 uses the existing Done-only interaction; VIS003 uses
+the230-UTF8-byte expanded stem plus extension with intentional middle elision.
+Original text and exact limits are preserved in UX_SCOPE_CLARIFICATIONS.md.
+Those changes alone add no adapter or PASS, and authorize no other scope change.
+
+## Hosted RACE002 oracle diagnosis on a94eac6
+
+Hosted run39253840073/job118064040756 completed all functional/supplemental,
+artifact upload and format steps successfully; tidy was still in progress at
+the latest observation. This is not a full workflow-success claim. Its
+49,280,866-byte artifact12187549851 matches API SHA
+`7f8bd09fc8c406824614ec9e6a106d55aadd9a5e797618d6448d39efba0809fd`.
+Fetched synthetic merge156ea2d has a94eac6 as its second parent and the exact same
+Git tree. Hosted attested source9b02f0ab equals the clean a94eac6 checkpoint,
+not the newer local bundle/LIB005 source.
+
+All three immediate setup JSON records contain one completed Import, two items
+and the exact nested actual/explicit expected session `[["1", uuid]]`; every
+strict clause is true. In the same records the former constructor expression
+produces flat `["1", uuid]`. This reproduces a test-oracle portability defect on
+the hosted AppleClang17 toolchain; the local AppleClang21 probe remains nested.
+Explicit construction removes the ambiguous initialization without weakening
+the session assertion. The three older hosted FAILs remain unchanged and their
+missing immediate values are not reconstructed. No late commit or product data
+corruption is established by them.
+
+The archive contains195 blocking PASS,29 SKIPPED and92 NOT_IMPLEMENTED rows,
+plus6 keyboard,6 gradient,3 card,3 thumbnail,3 RACE002,3 watermark and3 Auto
+Transform PASS. These counts do not close the remaining adapters or deferred
+workloads. Phase0.5 remains incomplete; work stays in draft PR47 without a
+release, tag, main merge, production publication or phase0.6 work.

@@ -6,7 +6,8 @@ import zlib
 
 OFFICIAL_CASE = 'UX-LIB-004'
 RACE_CASE = 'UX-RACE-002'
-CASE_PROFILE_IDS = frozenset((OFFICIAL_CASE, RACE_CASE))
+AWAY_BACK_CASE = 'UX-LIB-005'
+CASE_PROFILE_IDS = frozenset((OFFICIAL_CASE, RACE_CASE, AWAY_BACK_CASE))
 PROFILE_NAME = 'thumbnail-response-rgb32-v1'
 PHOTO_COUNT = 32
 WIDTH, HEIGHT = 256, 192
@@ -37,8 +38,10 @@ def official_fixture(folder, *, owned_root, case_id=OFFICIAL_CASE):
     """Create the exact bounded RGB profile inside this run's case directory."""
     if case_id not in CASE_PROFILE_IDS:
         raise ValueError('Unknown official thumbnail fixture profile')
-    count = PHOTO_COUNT if case_id == OFFICIAL_CASE else 2
-    profile_name = PROFILE_NAME if case_id == OFFICIAL_CASE else 'thumbnail-invalidation-rgb2-v1'
+    profiles = {OFFICIAL_CASE: (PHOTO_COUNT, PROFILE_NAME),
+                RACE_CASE: (2, 'thumbnail-invalidation-rgb2-v1'),
+                AWAY_BACK_CASE: (PHOTO_COUNT, 'thumbnail-away-back-rgb32-v1')}
+    count, profile_name = profiles[case_id]
     folder, owned_root = Path(folder), Path(owned_root)
     if (not owned_root.is_absolute() or owned_root.resolve() != owned_root
             or not owned_root.is_dir() or owned_root.is_symlink()):
