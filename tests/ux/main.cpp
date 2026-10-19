@@ -13,6 +13,7 @@ bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
 bool cardFlagLocalizationCandidate(Context &, const QString &);
 bool lib004ActualResponseCandidate(Context &, const QString &);
+bool race002ActualResponseCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -101,10 +102,14 @@ int main(int argc, char **argv) {
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
         }
-        if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE")
+        if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
-                        "LIB004 candidate forbids ignored variant/stage/state-root flags");
+                        "RACE002 forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE" || id == "UX-LIB-004")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "LIB004 forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -122,9 +127,12 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
-        else if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE")
+        else if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
+            ux::require(ux::race002ActualResponseCandidate(*context, id),
+                        "Actual thumbnail invalidation adapter unavailable");
+        else if (id == "CANDIDATE-LIB004-ACTUAL-RESPONSE" || id == "UX-LIB-004")
             ux::require(ux::lib004ActualResponseCandidate(*context, id),
-                        "Actual thumbnail response candidate adapter unavailable");
+                        "Actual thumbnail response adapter unavailable");
         else if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
             ux::require(ux::cardFlagLocalizationCandidate(*context, id),
                         "Card flag localization candidate adapter unavailable");

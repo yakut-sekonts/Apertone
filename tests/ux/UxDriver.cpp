@@ -192,7 +192,9 @@ void Driver::type(const QString &id, const QString &text) {
     key(Qt::Key_Backspace);
     QInputMethodEvent event;
     event.setCommitString(text);
-    QCoreApplication::sendEvent(window_.activeFocusItem(), &event);
+    auto *focus = window_.activeFocusItem();
+    require(focus, "Text input has no active focus item: " + id);
+    QCoreApplication::sendEvent(focus, &event);
     QCoreApplication::processEvents();
     log({{"action", "text"}, {"id", id}, {"text", text}});
 }

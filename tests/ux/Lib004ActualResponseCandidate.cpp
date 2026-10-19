@@ -33,7 +33,7 @@
 #error "LIB004 candidate requires the real response observation seam"
 #endif
 
-// Supplemental candidate; no official LIB-004 registration or qualification.
+// Shared strict contract for official LIB-004 and its historical supplemental candidate.
 namespace ux {
 namespace {
 namespace trace = thumbnail_trace;
@@ -534,7 +534,7 @@ struct ReleasePointer {
 } // namespace
 
 bool lib004ActualResponseCandidate(Context &c, const QString &identifier) {
-    if (identifier != candidateID)
+    if (identifier != candidateID && identifier != "UX-LIB-004")
         return false;
     auto &d = *c.driver;
     const auto names = QDir(c.fixture).entryList({"Photo-*.png"}, QDir::Files, QDir::Name);

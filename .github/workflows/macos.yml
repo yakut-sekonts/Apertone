@@ -38,8 +38,10 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build --runs 3 --require-build-provenance
       - name: Supplemental PhotoCard flag localization regression
         run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
-      - name: Supplemental actual thumbnail response regression
-        run: .tools/venv/bin/python tests/ux/run_thumbnail_response_regression.py --build build --runs 3 --require-build-provenance
+      - name: Actual thumbnail response regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-004 --runs 3 --require-build-provenance --report build/ux-thumbnail-response-report
+      - name: Thumbnail invalidation during an actual response
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-002 --runs 3 --require-build-provenance --report build/ux-thumbnail-invalidation-report
       - name: Auto Transform completion regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
       - name: Upload UX evidence
@@ -54,7 +56,9 @@ jobs:
             build/ux-auto-transform-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
+            build/ux-thumbnail-invalidation-report/
             build/ux-build-provenance.json
+            build/ux-artifacts/20*/fixture-manifest.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/child-result.json
             build/ux-artifacts/20*/**/metrics.json
@@ -63,6 +67,7 @@ jobs:
             build/ux-artifacts/20*/**/dsc006-scroll-trace.json
             build/ux-artifacts/20*/**/msk023-*.json
             build/ux-artifacts/20*/**/race005-*.json
+            build/ux-artifacts/20*/**/race002-*.json
             build/ux-artifacts/20*/**/card-flags-*.json
             build/ux-artifacts/20*/**/card-flags-*.png
             build/ux-artifacts/20*/**/lib004-*.json

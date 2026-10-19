@@ -286,7 +286,7 @@ class GateTests(unittest.TestCase):
 
     def test_original_mutation_and_integrity_only_report(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
+            root = Path(directory).resolve()
             source = root / 'Original.png'
             source.write_bytes(b'original')
             baseline = {str(source): runner.hashlib.sha256(source.read_bytes()).hexdigest()}

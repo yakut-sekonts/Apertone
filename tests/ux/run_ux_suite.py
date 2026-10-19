@@ -9,6 +9,7 @@ from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
 from quality_policy import quality_skip_reason, quality_fixture_count
+from thumbnail_response_fixtures import CASE_PROFILE_IDS, official_fixture as thumbnail_fixture
 import importlib.util
 import json
 import os
@@ -106,6 +107,8 @@ NATIVE.add('UX-EXP-026')
 NATIVE.add('UX-MAC-007')
 NATIVE.add('UX-MAC-008')
 NATIVE.add('UX-RACE-005')
+NATIVE.add('UX-LIB-004')
+NATIVE.add('UX-RACE-002')
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -142,8 +145,38 @@ def atomic_json(path, value):
 
 
 def changed_originals(checksums):
-    return [name for name, digest in checksums.items()
-            if not Path(name).is_file() or hashlib.sha256(Path(name).read_bytes()).hexdigest() != digest]
+    changed = []
+    for name, digest in checksums.items():
+        path = Path(name)
+        try:
+            if (not path.is_file() or path.is_symlink() or path.resolve() != path
+                    or hashlib.sha256(path.read_bytes()).hexdigest() != digest):
+                changed.append(name)
+        except OSError:
+            changed.append(name)
+    return changed
+
+
+def merge_fixture_hashes(profiles):
+    """Validate owned original files before combining disjoint profile hashes."""
+    merged = {}
+    for folder, checksums in profiles:
+        folder = Path(folder)
+        if not folder.is_absolute() or folder.resolve() != folder or folder.is_symlink():
+            raise ValueError('Fixture directory must be canonical and without symlinks')
+        for name, digest in checksums.items():
+            path = Path(name)
+            if (not path.is_absolute() or path == folder or not path.is_relative_to(folder)
+                    or path.resolve() != path or path.is_symlink() or not path.is_file()):
+                raise ValueError('Original must be a regular file inside its owned fixture directory: ' + str(path))
+            canonical = str(path)
+            if canonical in merged:
+                raise ValueError('Duplicate original path across fixture profiles: ' + canonical)
+            if (not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest)
+                    or hashlib.sha256(path.read_bytes()).hexdigest() != digest):
+                raise ValueError('Fixture checksum does not match its original: ' + canonical)
+            merged[canonical] = digest
+    return merged
 
 
 def in_scope(scope, through):
@@ -594,6 +627,11 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                     if row['id'] in selected_executable and in_scope(row['scope'], args.through)
                     and (row['scope'] in ('ALL', 'CURRENT') or row['scope'] in MANIFEST['completed_phases'])
                     and not (args.quality_only and quality_skip_reason(row))]
+    case_profile_rows = [row for row in fixture_rows
+                         if domain == 'specification' and row['id'] in CASE_PROFILE_IDS]
+    base_fixture_rows = [row for row in fixture_rows if row not in case_profile_rows]
+    profile_only_request = (domain == 'specification' and bool(args.case)
+                            and set(args.case).issubset(CASE_PROFILE_IDS))
     # Native suites share one macOS focus/keyboard surface, including across worktrees.
     with (Path(tempfile.gettempdir()) / f'luma-ux-screen-{os.getuid()}.lock').open('a') as screen_lock:
         print('Waiting for exclusive UI test access...', flush=True)
@@ -613,10 +651,35 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                           else run_root / 'public-fixtures-quality' if args.quality_only
                           else args.artifacts.resolve() / 'public-fixtures')
         if args.quality_only:
-            count = quality_fixture_count(fixture_rows)
-            checksums = make_fixtures(fixture_folder, count=count, include_large=False) if count else {}
+            count = quality_fixture_count(base_fixture_rows)
+            base_checksums = make_fixtures(fixture_folder, count=count, include_large=False) if count else {}
+        elif not base_fixture_rows and (case_profile_rows or profile_only_request):
+            base_checksums = {}
         else:
-            checksums = make_fixtures(fixture_folder)
+            base_checksums = make_fixtures(fixture_folder)
+        case_fixture_folders = {}
+        case_profiles = []
+        hash_profiles = [(fixture_folder, base_checksums)]
+        for row in case_profile_rows:
+            folder = run_root / 'case-fixtures' / row['id']
+            extra_checksums, profile = thumbnail_fixture(folder, owned_root=run_root, case_id=row['id'])
+            case_fixture_folders[row['id']] = folder
+            case_profiles.append(profile)
+            hash_profiles.append((folder, extra_checksums))
+        checksums = merge_fixture_hashes(hash_profiles)
+        base_photo_count = sum(Path(name).parent == fixture_folder and
+                               Path(name).suffix.lower() == '.png' for name in base_checksums)
+        fixture_profile = {
+            'directory': str(fixture_folder), 'public_photo_count': base_photo_count,
+            'base_original_checksum_count': len(base_checksums),
+            'large_24mp_generated': str(fixture_folder / 'stress' / 'Large.png') in base_checksums,
+            'case_profiles': case_profiles,
+            'extra_public_photo_count': sum(profile['public_photo_count'] for profile in case_profiles),
+            'extra_original_checksum_count': sum(profile['original_checksum_count'] for profile in case_profiles),
+            'original_checksum_count': len(checksums),
+        }
+        atomic_json(run_root / 'fixture-manifest.json',
+                    {'schema': 1, 'fixture_profile': fixture_profile, 'original_sha256': checksums})
         suite_start = fingerprint(args.build)
         provenance = build_provenance(args.build, suite_start)
         if args.require_build_provenance and provenance['status'] != 'PASS':
@@ -651,7 +714,8 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                                 'notes': ['No verified executable adapter yet; current scope qualification remains incomplete']})
                 continue
             for repeat in range(repetitions):
-                result = execute_scenario(row, run_root / identifier / f'repeat-{repeat + 1}', args, fixture_folder)
+                result = execute_scenario(row, run_root / identifier / f'repeat-{repeat + 1}', args,
+                                          case_fixture_folders.get(identifier, fixture_folder))
                 mutations = changed_originals(checksums)
                 observed_mutations.update(mutations)
                 result['original_integrity'] = 'FAIL' if mutations else 'PASS'
@@ -680,9 +744,7 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                    'source_consistency': 'PASS' if source_stable else 'CHANGED_DURING_SUITE', 'scope_through': args.through, 'run_directory': str(run_root),
                    'summary': dict(Counter(r['status'] for r in results)), 'original_hashes': 'FAIL' if mutations else 'PASS',
                    'results': results, 'quality_only': args.quality_only,
-                   'fixture_profile': {'directory': str(fixture_folder),
-                                       'public_photo_count': len(checksums) if domain == 'supplemental' else quality_fixture_count(fixture_rows) if args.quality_only else 1000,
-                                       'large_24mp_generated': domain == 'specification' and not args.quality_only},
+                   'fixture_profile': fixture_profile,
                    'deferred_load_implemented': sorted({r['id'] for r in results
                                                        if r.get('skip_reason') == 'deferred_load' and r['adapter_implemented']}),
                    'deferred_load_unadapted': sorted({r['id'] for r in results

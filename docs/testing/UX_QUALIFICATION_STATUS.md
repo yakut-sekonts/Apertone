@@ -11,7 +11,7 @@ Historical load-test evidence stays historical; deferred work does not count as 
 Current runs use explicit functional cases, excluding large-catalog and repeated
 stress fixtures even when their inventory mode is REGRESSION.
 
-The execution policy classifies 362 compiled native adapters: 250 reviewed bounded
+The execution policy classifies 364 compiled native adapters: 252 reviewed bounded
 adapters and 112 deferred implemented workloads, plus the independent integrity
 adapter. These are separate from the 51 deferred checks among unadapted scenarios.
 LIB009 is included in those deferrals because its unchanged REGRESSION contract
@@ -22,10 +22,10 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
 
 ## Verified checkpoint, 2026-10-19
 
-- 362 native scenario adapters and one suite-wide original-integrity adapter.
+- 364 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent. Of the 81 remaining scenarios without executable adapters,
-  30 are functional regressions and 51 are deferred load/performance/chaos checks.
+  (MSK-005) is absent. Of the 79 remaining scenarios without executable adapters,
+  28 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
 - 29 production defects are reproduced and fixed with focused native/software
   evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -668,3 +668,83 @@ gaps. LIB004 remains a supplemental candidate pending generic fixture/inventory
 integration; a prepared RACE002 draft has no runtime result and is not counted.
 No load test, phase0.6 work, release tag, merge or production publication occurred.
 Full current-scope release qualification is still NOT_QUALIFIED.
+
+## Official thumbnail response regressions and complete bounded pass
+
+The next checkpoint registers official `UX-LIB-004` and `UX-RACE-002`, keeping
+their existing specification modes, scopes and severities. There are now 364
+compiled native adapters: 252 reviewed bounded and 112 deferred implemented
+workloads, plus the global integrity adapter. Of 445 applicable scenarios,
+conditional MSK005 is absent and 79 remain unadapted: 28 functional and 51 deferred
+load/performance/chaos checks. No production defect is added to the 29 reproduced
+fixes by this checkpoint.
+
+LIB004 uses exactly 32 fresh opaque RGB sources; RACE002 uses two. Separate
+run-owned case directories preserve ordinary fixture counts and bytes for every
+other selected case. Their path-based SHA union is checked after every case and
+at suite end. Equal contents at different owned paths remain distinct originals.
+The manifest records the actual base/extra/total counts. Alias, duplicate-path,
+symlink, digest, missing-file, mutation and ineligible-selection tests fail closed;
+an explicitly ineligible profile-only request never falls back to 1000/Large.
+All 67 combined Python infrastructure tests pass, including 17 dedicated fixture
+tests, 40 runner tests and 10 workload-policy tests.
+
+RACE002 observes a genuine successful OLD request held before its original
+completion queue. A real Exposure gesture naturally saves revision 1 and emits
+one targeted A invalidation. The real NEW response must read that revision and
+reach Ready with its independent saved-document pixels while OLD is still held.
+Explicit OLD release, finished and destruction preserve current NEW pixels and
+the untouched B asset. Separate actual Undo/Redo produce revisions2/3. Full typed
+documents, metadata, row fields, session/import journal, source SHA and history
+are pinned independently. This is request/completion ordering and UI/data
+coherence, not an independent numerical renderer or physical scanout proof.
+
+The first candidate attempt, `lib004-official-race002-first-race002-software-report`,
+run `20261019T112549Z-79939`, crashed in Driver::type when the declared FileDialog
+selection seam left no active text focus. Its crash report is retained. The next
+attempt, `race002-dialog-focus-software-report`, honestly timed out waiting for
+focus return. Both failed before the race boundary; neither proves a production
+race defect. Setup now explicitly reactivates its own window before installing
+the Session, then requires actual focus. Native picker selection and platform
+focus return remain unqualified. Driver::type checks null before sendEvent.
+The unchanged race contract then passed three times per backend as a candidate;
+those original supplemental results are not relabelled official results.
+
+Official final reports use prefix `official-thumbnail-final`: six software and
+six Cocoa/Metal results across LIB004/RACE002, nine mixed results with SEL002,
+IMP009 and UND018, eight affected controller/input results and two supplemental
+card-caption results. All 31 rows PASS, with one global-integrity row included.
+Mixed SHA unions are 34/46/56 as planned. Independent trace/pixel/SQLite/SHA audit
+found no discrepancy across all 18 thumbnail executions. Full build, format and
+four focused tidy commands exit 0; advisory diagnostics remain in their logs.
+CTest passes 44 tests plus one optional private Nikon SKIP, 45 total, 84.50s.
+
+The broader local offscreen/software run, `all-current-quality-281a591f-report`,
+run `20261019T114156Z-86851`, selects all 444 current rows except native-only
+MAC001. It passes 251 real application scenarios plus the global SHA check:
+**252 PASS, 191 SKIPPED, one NOT_IMPLEMENTED, zero FAIL**, 398.638s. SKIPPED comprises
+112 implemented deferred workloads, 51 unadapted deferred checks and 28 functional
+gaps; MSK005 is the single absent conditional capability. Its raw exit 1,
+execution INCOMPLETE and release NOT_QUALIFIED are expected and preserved. It
+creates only 20 base PNGs, two small DNGs and 34 dedicated RGB sources, 56 originals
+in total, with no 24MP/large-catalog fixture and no deferred execution.
+
+MAC001 separately passes its strict native AppKit/Metal/Retina contract in
+`official-thumbnail-final-retina-native-report`. Thus all 252 currently implemented
+bounded native adapters have execution evidence for this source: 251 in software
+and one native-only Retina case. This does not close the 28 unadapted functional
+scenarios or qualify deferred workloads. The final official, broad and Retina
+cohorts attest source
+`281a591fe832665bdfe87ef8d1094324ebab206c452b0c60ae16280ba917680c`
+and executable `67a284b38a337c174d2be0a7a460aa9f71f6fee638ac0d2f786af2bfd21429e5`.
+Provenance, source consistency, original SHA and catalog integrity pass. Local
+GITHUB_ACTIONS simulation is not hosted CI.
+
+The earlier 50f6e16 hosted run 39242877166 has completed its functional/supplemental,
+artifact-upload and format steps successfully; clang-tidy was still in progress
+at this recording. Its downloaded 47,360,440-byte ZIP matches API SHA
+`722646f2a5c5661465b7c1cfe4be6c00e9fc0146ca9c3b0897913571e94d92e3`.
+Actual checkout051586954bbb2bdcc5319baa8468ef53b32c48f8 is the verified synthetic
+PR merge, whose second parent is50f6e16 and whose Git tree equals that head tree.
+That archive is evidence for the prior source7085381e checkpoint, not current281a.
+No workflow completion, release, tag, main merge or phase0.6 work is claimed here.

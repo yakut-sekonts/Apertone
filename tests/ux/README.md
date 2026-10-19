@@ -142,16 +142,15 @@ step because the blocking subset does not select it. Full current-scope release
 qualification remains separate from this result.
 
 
-Supplemental PhotoCard captions and real thumbnail-response races have separate
-bounded wrappers, `run_card_flag_regression.py` and
-`run_thumbnail_response_regression.py`. Both retain supplemental IDs and
-NOT_QUALIFIED release status. The card test imports two small PNGs and changes all
+Supplemental PhotoCard captions use the bounded wrapper
+`run_card_flag_regression.py` and retain their own ID and NOT_QUALIFIED release
+status. The card test imports two small PNGs and changes all
 eight languages through real Settings controls, with independent caption literals,
 complete data/history and current Image-node/cache pixel checks. It does not
 qualify every localization/visual scenario.
 
-The thumbnail candidate imports exactly the minimal reviewed8/12/32 opaque RGB
-PNGs required by actual GridView geometry (default32, strict precondition). It
+Official `UX-LIB-004` imports exactly32 opaque RGB PNGs, the minimal reviewed
+overflow for the actual GridView geometry (strict precondition). It
 holds one successfully computed real response before its original completion
 queue while actual scrolling reveals a previously unrequested response. Current
 OLD Loading is required after the real scrollbar press and before movement.
@@ -159,8 +158,36 @@ Actual serial/revision/events, NEW Ready pixels, real cancellation/finished/
 destruction, final viewport and complete pinned data establish acceptance; a
 cancelled OLD response need not deliver GUI pixels. No source/status setter or
 fabricated request/finished signal can satisfy it. This boundary is pending
-completion, not active disk I/O. Official LIB004 remains unregistered pending
-further acceptance.
+completion, not active disk I/O. The historical supplemental wrapper
+`run_thumbnail_response_regression.py` remains available with its original ID;
+it is not another official adapter.
+
+Official `UX-RACE-002` uses exactly two small opaque RGB sources. A real successful
+OLD response is held while one actual Exposure gesture naturally saves a new
+revision and emits its targeted invalidation. The NEW request must read that
+revision, finish and display independently expected pixels while OLD remains
+held. Explicit OLD release/finished/destruction must preserve the NEW image,
+the unchanged control asset, complete documents, revisions and source bytes.
+One separate Undo/Redo branch validates history. The declared FileDialog selection
+and setup activation do not qualify native picker selection or platform focus
+return. The driver now reports a missing text-input focus item instead of sending
+an event to null; original setup failures remain archived.
+
+Run both through the ordinary specification runner:
+
+```sh
+.tools/venv/bin/python tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-LIB-004 --case UX-RACE-002 --runs 3 --require-build-provenance
+```
+
+Each eligible official case receives a fresh `case-fixtures/<caseID>` directory.
+Their32+2 originals form a strict SHA union with the unchanged generic fixture
+profile of other selected cases; identical bytes at different owned paths remain
+separate originals. Solo selections create no generic DNG/24MP/large-catalog
+fixtures. A narrow manifest records actual directories and counts; mutation,
+missing files, symlinks, aliases and duplicate paths fail integrity checks.
+Explicit profile-only selections that become ineligible create no historical
+large profile; their existing incomplete/nonzero outcome remains visible.
+Both workflows run the REGRESSION cases in separate focused quality-only steps.
 
 The real-response trace/gate is private to `luma_ux_tests` through
 `LUMA_UX_THUMBNAIL_TRACE`; normal application targets have no probe or altered ABI.
