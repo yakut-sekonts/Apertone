@@ -89,6 +89,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-002 --runs 3 --require-build-provenance --report build/ux-thumbnail-invalidation-report
       - name: Missing private watermark snapshot regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-EXP-028 --runs 3 --require-build-provenance --report build/ux-watermark-snapshot-report
+      - name: Legal UTF-8 current export filename regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-VIS-003 --runs 3 --require-build-provenance --report build/ux-export-current-filename-report
       - name: Auto Transform completion regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
       - name: Upload release UX evidence
@@ -106,6 +108,7 @@ jobs:
             build/ux-thumbnail-away-back-report/
             build/ux-thumbnail-invalidation-report/
             build/ux-watermark-snapshot-report/
+            build/ux-export-current-filename-report/
             build/ux-build-provenance.json
             build/ux-artifacts/20*/fixture-manifest.json
             build/ux-artifacts/20*/**/result.json
@@ -118,6 +121,9 @@ jobs:
             build/ux-artifacts/20*/**/race005-*.json
             build/ux-artifacts/20*/**/race002-*.json
             build/ux-artifacts/20*/**/exp028-evidence.json
+            build/ux-artifacts/20*/**/vis003-approved-evidence.json
+            build/ux-artifacts/20*/**/vis003-current-label-*.png
+            build/ux-artifacts/20*/**/vis003-active-export-*.png
             build/ux-artifacts/20*/**/card-flags-*.json
             build/ux-artifacts/20*/**/card-flags-*.png
             build/ux-artifacts/20*/**/lib004-*.json

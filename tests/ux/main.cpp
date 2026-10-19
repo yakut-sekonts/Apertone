@@ -13,8 +13,10 @@ bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
 bool cardFlagLocalizationCandidate(Context &, const QString &);
 bool exportWatermarkSnapshotMissingCandidate(Context &, const QString &);
+bool exportCurrentFilenameLegalCandidate(Context &, const QString &);
 bool lib004ActualResponseCandidate(Context &, const QString &);
 bool lib005ActualResponseCandidate(Context &, const QString &);
+bool cropDoneResidueCandidate(Context &, const QString &);
 bool race002ActualResponseCandidate(Context &, const QString &);
 bool appDeactivationCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
@@ -105,10 +107,18 @@ int main(int argc, char **argv) {
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
         }
+        if (id == "CANDIDATE-CRP010-DONE-RESIDUE" || id == "UX-CRP-010")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "CRP010 Done candidate forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-LIB005-AWAY-BACK" || id == "UX-LIB-005")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "LIB005 forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-VIS003-LEGAL-CURRENT-FILENAME" || id == "UX-VIS-003")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "VIS003 candidate forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
             ux::require(
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
@@ -142,6 +152,12 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-CRP010-DONE-RESIDUE" || id == "UX-CRP-010")
+            ux::require(ux::cropDoneResidueCandidate(*context, id),
+                        "Actual Crop Done-only residue candidate unavailable");
+        else if (id == "CANDIDATE-VIS003-LEGAL-CURRENT-FILENAME" || id == "UX-VIS-003")
+            ux::require(ux::exportCurrentFilenameLegalCandidate(*context, id),
+                        "Legal current export filename candidate unavailable");
         else if (id == "CANDIDATE-LIB005-AWAY-BACK" || id == "UX-LIB-005")
             ux::require(ux::lib005ActualResponseCandidate(*context, id),
                         "Actual Library away/back thumbnail candidate unavailable");

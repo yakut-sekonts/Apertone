@@ -33,6 +33,7 @@
     "UX-CRP-007",
     "UX-CRP-008",
     "UX-CRP-009",
+    "UX-CRP-010",
     "UX-CRP-011",
     "UX-CRP-012",
     "UX-CRP-013",
@@ -257,7 +258,8 @@
     "UX-UPD-005",
     "UX-UPD-006",
     "UX-VIS-001",
-    "UX-VIS-002"
+    "UX-VIS-002",
+    "UX-VIS-003"
   ],
   "deferred_load": {
     "UX-ADV-003": {

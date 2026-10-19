@@ -11,9 +11,12 @@ from history_chaos_cli import configure_history_chaos
 from native_bundle_provenance import native_bundle_info, launch_executable
 from quality_policy import quality_skip_reason, quality_fixture_count
 from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
+from crop_done_fixtures import OFFICIAL_CASE as CROP_DONE_CASE, official_fixture as crop_done_fixture
 from export_watermark_fixtures import (OFFICIAL_CASE as WATERMARK_CASE,
                                        official_fixture as watermark_fixture,
                                        child_environment as watermark_child_environment)
+from export_current_filename_fixtures import (OFFICIAL_CASE as CURRENT_FILENAME_CASE,
+                                              official_fixture as current_filename_fixture)
 import importlib.util
 import json
 import os
@@ -28,7 +31,27 @@ import sys
 import time
 import zlib
 
-CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE}
+CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE}
+
+# These adapters have explicit actual-native render contracts. NATIVE below means
+# implemented adapter, not compatibility with every requested Qt backend.
+NATIVE_ONLY_CONTRACTS = {
+    'UX-MAC-001': {'platform': 'cocoa', 'graphics_api': 'metal', 'device_pixel_ratio': 2},
+    CROP_DONE_CASE: {'platform': 'cocoa', 'graphics_api': 'metal'},
+}
+
+
+def unsupported_backend_requirement(identifier):
+    # Match execute()'s existing controlled environment route exactly. No probe,
+    # hardware model inference or environment override: no child is started here.
+    if identifier in NATIVE_ONLY_CONTRACTS and os.environ.get('GITHUB_ACTIONS'):
+        return {
+            'required': dict(NATIVE_ONLY_CONTRACTS[identifier]),
+            'classification_basis': 'runner_controlled_child_environment',
+            'requested_platform': 'offscreen', 'requested_graphics_api': 'software',
+            'actual_runtime_observed': False, 'child_launch_suppressed': True,
+        }
+    return None
 
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY = json.loads((Path(__file__).with_name('scenarios.json')).read_text())
@@ -117,6 +140,8 @@ NATIVE.add('UX-LIB-004')
 NATIVE.add('UX-LIB-005')
 NATIVE.add('UX-RACE-002')
 NATIVE.add(WATERMARK_CASE)
+NATIVE.add(CROP_DONE_CASE)
+NATIVE.add(CURRENT_FILENAME_CASE)
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -499,6 +524,9 @@ def qualify(results, inventory, through, requested):
     if any(r['status'] in ('FAIL', 'FLAKY') and
            r.get('severity_if_failed', r.get('severity', 'P0')) in ('P0', 'P1') for r in results):
         return 'FAIL', sorted(missing)
+    if any(r['status'] == 'SKIPPED' and r.get('skip_reason') == 'unsupported_backend'
+           and in_scope(r.get('scope', 'CURRENT'), through) for r in results):
+        return 'NOT_QUALIFIED', sorted(missing)
     if not requested:
         return 'NOT_QUALIFIED', sorted(missing)
     observed = {row['id'] for row in results}
@@ -549,6 +577,8 @@ def write_reports(summary, destination):
              f"Deferred implemented load adapters: {len(summary.get('deferred_load_implemented', []))}; "
              f"deferred unadapted inventory: {len(summary.get('deferred_load_unadapted', []))}.",
              'Policy deferral is SKIPPED and never PASS or full release qualification.',
+             f"Unsupported-backend adapters: {len(summary.get('unsupported_backend', []))}. "
+             'These checks were not executed and keep execution incomplete.',
              'Performance is MEASURE_ONLY. Input dispatch is not visual acknowledgment.',
              'Frame intervals include idle periods; they are not an active-interaction FPS baseline.', '',
              f"Unqualified blocking IDs: {len(summary['blocking_missing_or_failed'])}.", '']
@@ -641,12 +671,14 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
     fixture_rows = [row for row in selected_rows
                     if row['id'] in selected_executable and in_scope(row['scope'], args.through)
                     and (row['scope'] in ('ALL', 'CURRENT') or row['scope'] in MANIFEST['completed_phases'])
-                    and not (args.quality_only and quality_skip_reason(row))]
+                    and not (args.quality_only and quality_skip_reason(row))
+                    and not (domain == 'specification' and unsupported_backend_requirement(row['id']))]
     case_profile_rows = [row for row in fixture_rows
                          if domain == 'specification' and row['id'] in CASE_PROFILE_IDS]
     base_fixture_rows = [row for row in fixture_rows if row not in case_profile_rows]
+    protected_fixture_ids = CASE_PROFILE_IDS | NATIVE_ONLY_CONTRACTS.keys()
     profile_only_request = (domain == 'specification' and bool(args.case)
-                            and set(args.case).issubset(CASE_PROFILE_IDS))
+                            and set(args.case).issubset(protected_fixture_ids))
     # Native suites share one macOS focus/keyboard surface, including across worktrees.
     with (Path(tempfile.gettempdir()) / f'luma-ux-screen-{os.getuid()}.lock').open('a') as screen_lock:
         print('Waiting for exclusive UI test access...', flush=True)
@@ -679,6 +711,10 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
             folder = run_root / 'case-fixtures' / row['id']
             if row['id'] == WATERMARK_CASE:
                 extra_checksums, profile = watermark_fixture(folder, owned_root=run_root)
+            elif row['id'] == CROP_DONE_CASE:
+                extra_checksums, profile = crop_done_fixture(folder, owned_root=run_root)
+            elif row['id'] == CURRENT_FILENAME_CASE:
+                extra_checksums, profile = current_filename_fixture(folder, owned_root=run_root)
             else:
                 extra_checksums, profile = thumbnail_fixture(folder, owned_root=run_root, case_id=row['id'])
             case_fixture_folders[row['id']] = folder
@@ -731,6 +767,15 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                 results.append({**row, 'status': 'SKIPPED', 'skip_reason': 'unadapted',
                                 'notes': ['No verified executable adapter yet; current scope qualification remains incomplete']})
                 continue
+            unsupported = (unsupported_backend_requirement(identifier)
+                           if domain == 'specification' else None)
+            if unsupported:
+                results.append({**row, 'status': 'SKIPPED', 'skip_reason': 'unsupported_backend',
+                                'adapter_implemented': True, 'backend_requirement': unsupported,
+                                'notes': ['Not executed: the existing GITHUB_ACTIONS child route forces '
+                                          'offscreen/software, which cannot qualify this actual-native contract. '
+                                          'No actual runtime backend was observed.']})
+                continue
             for repeat in range(repetitions):
                 result = execute_scenario(row, run_root / identifier / f'repeat-{repeat + 1}', args,
                                           case_fixture_folders.get(identifier, fixture_folder))
@@ -770,14 +815,16 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                    'deferred_load_unadapted': sorted({r['id'] for r in results
                                                      if r.get('skip_reason') == 'deferred_load' and not r['adapter_implemented']}),
                    'policy_unreviewed': sorted({r['id'] for r in results
-                                                if r.get('skip_reason') == 'policy_unreviewed'})}
+                                                if r.get('skip_reason') == 'policy_unreviewed'}),
+                   'unsupported_backend': sorted({r['id'] for r in results
+                                                  if r.get('skip_reason') == 'unsupported_backend'})}
         selected_failed = bool(mutations) or any(r['status'] == 'FAIL' for r in results)
         if domain == 'specification':
             summary['release_gate'], blocking_missing = qualify(results, selected_inventory, args.through,
                                                                qualification_requested(args))
         else:
             summary['release_gate'], blocking_missing = 'NOT_QUALIFIED', []
-        incomplete = any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') in ('unadapted', 'policy_unreviewed')
+        incomplete = any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') in ('unadapted', 'policy_unreviewed', 'unsupported_backend')
                          for r in results) or not any(r.get('child_pid') for r in results)
         summary['unadapted_applicable'] = sorted({r['id'] for r in results if r['status'] == 'SKIPPED'
                                                 and r.get('skip_reason', 'unadapted') == 'unadapted'

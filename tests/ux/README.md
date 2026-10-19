@@ -244,8 +244,11 @@ The historical supplemental EXP wrapper retains its own ID and domain.
 RACE002 now records actual setup Import/session rows, explicitly nested expected
 session, the historical expected expression and individual clause outcomes before
 the strict baseline assertion. Hosted a94eac6 reproduces the former expression
-as a flat array on AppleClang17, while the actual session and explicit expected
-row are nested. All three new hosted RACE002 runs pass. Original setup FAILs
+as a flat array, while the actual session and explicit expected row are nested.
+Its archive alone does not expose the compiler version. The later completed job
+logs confirm AppleClang17.0.0.17000013/Xcode16.4 for this run; the exact compiler/Qt
+overload-selection cause is not inferred from the JSON shape. All three new
+hosted RACE002 runs pass. Original setup FAILs
 remain retained; their missing immediate values are not retroactively invented.
 
 `AppDeactivationCandidate.cpp` is supplemental only. The UX-only
@@ -293,3 +296,47 @@ PASS is assigned from the successful deactivation half alone.
 The three approved contract clarifications are recorded with original wording
 in [UX_SCOPE_CLARIFICATIONS.md](../../docs/testing/UX_SCOPE_CLARIFICATIONS.md).
 Changing those descriptions alone does not qualify APP014, CRP010 or VIS003.
+
+CRP010 and VIS003 now have runtime-qualified official adapters for their approved
+contracts. APP014 still needs actual native resize/clamp input and remains a gap.
+
+```sh
+.tools/venv/bin/python tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-CRP-010 --runs 3 --require-build-provenance
+.tools/venv/bin/python tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-VIS-003 --runs 3 --require-build-provenance
+```
+
+CRP010 owns one256x192 stripe PNG. It observes real drag/Done, positive active
+Canvas overlay and independent composited-scene source/letterbox pixels after
+Done, followed by ordinary input, empty re-entry/Done and one natural Undo/Redo.
+No Cancel action is invented. The final read-only audit recomputes35 scene PNGs
+across seven actual native children,28 after the first Done including Undo.
+Independently predicted flat pixels have zero mismatches; predetermined border/
+interpolation bands are excluded and not qualified.
+
+VIS003 owns four64x48 RGB sources with short, ASCII230-byte, Cyrillic230-byte and
+231-byte stems. Real active exports retain full logical basename while middle
+elision is allowed. Allocated item geometry and virtual painted bounds are checked
+separately, with exact stable controls and paint containment. The first draft's
+painted-bounds-as-layout failure is retained; its measurement correction changes
+no product UI or tolerances. Every child verifies three literal sRGB PNG outputs
+and a pre-execution231-byte rejection without changing sources, complete typed
+documents, catalog identities, persisted settings or existing destination files.
+This is a PNG boundary representative, not every format or an OCR/scanout oracle.
+
+MAC001 and CRP010 require actual Cocoa/Metal (MAC001 also requires native DPR2).
+When the existing GITHUB_ACTIONS route requests offscreen/software, the runner
+classifies these as unsupported_backend before fixture generation/child launch.
+It records required/requested backend and explicitly unobserved actual runtime;
+no PID or actual backend is fabricated. Unsupported-only --runs3 emits one policy
+SKIP, not three invented child results. Mixed supported rows still run, but raw
+reports keep INCOMPLETE, exit1 and NOT_QUALIFIED. Unforced native runs continue to
+validate the actual backend rather than infer it from the machine model.
+
+All six dedicated profiles contain75 native original paths. Mixed SEL002/IMP009/
+global unions are87/97/75. Software omits the Crop source, yielding74 profile paths
+and86 originals with SEL002. Fixture accounting/policy tests verify unsupported
+requests cannot fall back to generic/Large generation. The combined infrastructure
+suite has122 PASS. The final focused cohort has39 PASS and3 SKIPPED in42 rows,
+with38 actual children, one global result and three no-child policy SKIPs. It is
+not a full adapter sweep or release qualification. Both workflows run VIS003
+three times and upload its JSON, current-label and active-export artifacts.

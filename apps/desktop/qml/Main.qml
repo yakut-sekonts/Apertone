@@ -172,7 +172,7 @@ ApplicationWindow {
                 Button { objectName: "export.cancel"; visible: exporter.working; text: qsTranslate("Luma", "Cancel"); onClicked: exporter.cancel() }
                 Button { text: qsTranslate("Luma", "Settings / errors"); onClicked: exportSettings.open() }
             }
-            Label { visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
+            Label { objectName: "export.currentFilename"; visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
             ProgressBar { objectName: "export.progress"; visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
             Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ScrollView {

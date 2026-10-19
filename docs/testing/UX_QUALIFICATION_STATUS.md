@@ -11,7 +11,7 @@ Historical load-test evidence stays historical; deferred work does not count as 
 Current runs use explicit functional cases, excluding large-catalog and repeated
 stress fixtures even when their inventory mode is REGRESSION.
 
-The execution policy classifies 364 compiled native adapters: 252 reviewed bounded
+The execution policy classifies 368 compiled native adapters: 256 reviewed bounded
 adapters and 112 deferred implemented workloads, plus the independent integrity
 adapter. These are separate from the 51 deferred checks among unadapted scenarios.
 LIB009 is included in those deferrals because its unchanged REGRESSION contract
@@ -22,10 +22,10 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
 
 ## Verified checkpoint, 2026-10-19
 
-- 364 native scenario adapters and one suite-wide original-integrity adapter.
+- 368 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent. Of the 79 remaining scenarios without executable adapters,
-  28 are functional regressions and 51 are deferred load/performance/chaos checks.
+  (MSK-005) is absent. Of the 75 remaining scenarios without executable adapters,
+  24 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
 - 29 production defects are reproduced and fixed with focused native/software
   evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -903,9 +903,8 @@ Those changes alone add no adapter or PASS, and authorize no other scope change.
 
 ## Hosted RACE002 oracle diagnosis on a94eac6
 
-Hosted run39253840073/job118064040756 completed all functional/supplemental,
-artifact upload and format steps successfully; tidy was still in progress at
-the latest observation. This is not a full workflow-success claim. Its
+Hosted run39253840073/job118064040756 completed successfully, including all
+functional/supplemental, artifact upload, format and tidy steps. Its
 49,280,866-byte artifact12187549851 matches API SHA
 `7f8bd09fc8c406824614ec9e6a106d55aadd9a5e797618d6448d39efba0809fd`.
 Fetched synthetic merge156ea2d has a94eac6 as its second parent and the exact same
@@ -915,8 +914,11 @@ not the newer local bundle/LIB005 source.
 All three immediate setup JSON records contain one completed Import, two items
 and the exact nested actual/explicit expected session `[["1", uuid]]`; every
 strict clause is true. In the same records the former constructor expression
-produces flat `["1", uuid]`. This reproduces a test-oracle portability defect on
-the hosted AppleClang17 toolchain; the local AppleClang21 probe remains nested.
+produces flat `["1", uuid]`. This directly reproduces a test-oracle portability
+defect in the hosted build; the local AppleClang21 probe remains nested.
+The archive alone does not expose its compiler version. Later completed job logs
+confirm AppleClang17.0.0.17000013/Xcode16.4 in this run. The exact compiler/Qt
+overload-selection cause is not established by these JSON observations.
 Explicit construction removes the ambiguous initialization without weakening
 the session assertion. The three older hosted FAILs remain unchanged and their
 missing immediate values are not reconstructed. No late commit or product data
@@ -927,3 +929,80 @@ plus6 keyboard,6 gradient,3 card,3 thumbnail,3 RACE002,3 watermark and3 Auto
 Transform PASS. These counts do not close the remaining adapters or deferred
 workloads. Phase0.5 remains incomplete; work stays in draft PR47 without a
 release, tag, main merge, production publication or phase0.6 work.
+
+## Official Crop Done and legal current export filename checkpoint
+
+After runtime qualification of the approved CRP010/VIS003 contracts, the inventory
+has368 compiled native adapters:256 bounded and112 deferred, plus global integrity.
+Of445 applicable cases, conditional MSK005 remains absent and75 have no adapter:
+24 functional and51 deferred. The29 reproduced product fixes are unchanged.
+APP014 still lacks real native resize input; its approved wording alone is not a
+PASS. The user's deferred manual APP017/SLD009 focus return remains unqualified.
+
+CRP010 uses one literal256x192 stripe PNG and real Crop drag/Done input. The actual
+composited scene positively contains crop dimming/guides/border before Done and
+matches an independently mapped source/letterbox afterward. Ordinary post-Done
+input and re-entry/Done do not add a hidden edit. Full typed documents, natural
+revisions0/1/1/1/2/3, three saves and one Undo/Redo pass. A separate read-only
+audit recomputed35 scene PNGs across six official native children and one
+historical supplemental child:28 follow the first Done, including seven Undo
+scenes. All independently predicted flat pixels have zero mismatches/maxRGBA
+delta0; predetermined interpolation/border bands are excluded, not qualified.
+Active-overlay controls and neutral negative controls pass in every child. No
+Crop Cancel, physical pointer or display scanout claim is made.
+
+VIS003 owns four literal64x48 PNGs: short stem, ASCII230 bytes, Cyrillic230 bytes
+and231-byte overlimit stem. Actual export actions expose the full logical output
+basename while working; bounded middle-elided text and adjacent controls remain
+stable. Three legal outputs per child have exact literal RGB/sRGB content; the
+231-byte request fails planning before any file item executes. Source/document/
+catalog identities, settings bytes, existing outputs and sentinel remain intact.
+Independent audit covers ten official children and one historical supplemental
+child:33 output PNGs,44 real enqueue attempts and44 preservation checkpoints.
+This qualifies the PNG representative and UTF-8 boundary, not every output format
+or OCR/physical display rendering.
+
+The first software and native VIS003 drafts each failed their layout assertion.
+They mistakenly measured QQuickText's painted boundingRect as allocated geometry.
+Recorded label/action positions were stable while that virtual paint width changed.
+The correction observes item size for allocated geometry and retains separate
+paint containment and exact layout comparisons; it changes no product layout or
+tolerance. Both original FAIL reports and the corrected first two PASS remain
+preserved on their own older source/binary proofs. A draft syntax failure and an
+offline audit's incorrect iCCP-only assumption are also retained as tooling errors;
+the actual PNGs contain valid sRGB chunks. No new product defect is inferred.
+
+Final attested source is
+`21c484100e3f69c2fd6858e110f84962c567176b02f0766c262d8feb1175d2fe`,
+binary `3b61161fd35a1b6588dead8ad9bb9f36d5ed6cdcc293cb4c600fe489dcee0034`.
+The12 reports contain39 PASS and3 SKIPPED across42 rows:40 official and two
+supplemental,38 actual children (28 Cocoa/Metal and10 offscreen/software), one
+global integrity result and three policy SKIPs without child execution. VIS003
+passes3software+3native repeats, three native mixed runs and one software mixed
+run; CRP010 passes3native repeats and three native mixed runs. Native MAC001
+also passes once. All child exits, source/binary/bundle provenance, original SHA
+and catalog guards pass. Independent audit reopens38 owned catalog copies and
+checks371 original paths, plus all four watermark ownership/PID/nonce records.
+
+The existing hosted/software route cannot meet MAC001/CRP010 native contracts.
+Unsupported-only --runs3 requests each emit one truthful SKIPPED result, with
+zero fixtures/children and no fabricated actual backend. Mixed software retains
+six actual PASS and one CRP010 SKIP. All three raw unsupported reports stay
+INCOMPLETE, CLI exit1 and NOT_QUALIFIED; the supervisor's successful classification
+check does not turn them into case PASS. Six native dedicated profiles contain75
+distinct sources, giving exact87/97/75 unions for SEL002/IMP009/global integrity;
+software excludes the one Crop fixture and has86 sources/74 profile paths.
+
+Full build, format and three focused tidy commands exit0; advisory diagnostics
+remain in the logs, including optional accesses guarded by the throwing test
+require helper. CTest has49 PASS and one optional private Nikon SKIP out of50,
+94.42s. The combined Python infrastructure suite has122 PASS. Both workflows now
+run VIS003 three times and retain its JSON/label/active-export artifacts. The
+ordinary CI time budget is60 minutes because the preceding successful job used
+about49; this is not a performance threshold. Only documentation changed after
+this attested cohort, with the original proof retained separately.
+
+No load/performance/soak/chaos workloads ran. This focused cohort is not a new full
+adapter sweep, a completed phase0.5 or release qualification. Work remains in
+draft PR47; stable public download is0.4.14 and source scope is0.5.1. No release,
+tag, main merge, production publication or phase0.6 begins at this checkpoint.
