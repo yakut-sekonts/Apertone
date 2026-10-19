@@ -366,7 +366,7 @@ ApplicationWindow {
         ListView {
             id: filmstrip
             objectName: "develop.filmstrip"
-            visible: !root.libraryMode && library.count > 0
+            visible: !root.libraryMode && (library.count > 0 || (library.loading && editor.hasPhoto))
             Layout.fillWidth: true; Layout.preferredHeight: visible ? 112 : 0
             orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
             delegate: PhotoCard { width: 128; height: 104; compact: true }

@@ -11,14 +11,23 @@ Historical load-test evidence stays historical; deferred work does not count as 
 Current runs use explicit functional cases, excluding large-catalog and repeated
 stress fixtures even when their inventory mode is REGRESSION.
 
+The execution policy classifies 361 compiled native adapters: 249 reviewed bounded
+adapters and 112 deferred implemented workloads, plus the independent integrity
+adapter. These are separate from the 51 deferred checks among unadapted scenarios.
+LIB009 is included in those deferrals because its unchanged REGRESSION contract
+requires 50 resize cycles; this deferral adds no adapter or PASS.
+The policy preserves inventory modes and marks deferral SKIPPED. New adapters
+require workload review. Default CTest uses 256 Library metadata rows; the original
+100k contract remains opt-in with `LUMA_ENABLE_SCALE_CONTRACT_TESTS=OFF` by default.
+
 ## Verified checkpoint, 2026-10-19
 
-- 360 native scenario adapters and one suite-wide original-integrity adapter.
+- 361 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent. Of the 83 remaining scenarios without executable adapters,
-  33 are functional regressions and 50 are deferred load/performance/chaos checks.
+  (MSK-005) is absent. Of the 82 remaining scenarios without executable adapters,
+  31 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 24 reproduced production defects have fixes and focused regressions in
+- 27 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -275,3 +284,70 @@ This checkpoint is not the full release gate. The Metal UI backend used by Qt
 also does not implement the planned 0.6 Metal image-processing backend.
 No phase 0.6 production work or release publication starts before the current
 scope's requested functional quality qualification and fixes are complete.
+
+
+## Removable destination and keyboard checkpoint, 2026-10-19
+
+MAC008 requires both Copy and Export in fresh processes/catalogs for every repeat;
+a failed Copy prevents Export and a failed Export cannot inherit Copy PASS. Each
+branch has three preceding native candidate PASS, real owned-image detach/remount,
+source/document/catalog identity and checked final detach. The official aggregate
+also passes in the focused local software cohort. This covers ordinary loss at the
+established file/host-WAL boundaries; it does not claim physical USB or mid-encoder
+loss. The new single-link unit fails the original Copy and passes the fix.
+
+The selected-photo keyboard regression has a separate supplemental domain and a
+single generated PNG. Separate fresh processes cover Return and keypad Enter;
+each requires one exact UUID/open/load with zero acceptance pointer events. Native
+chooser, OS repeat cadence and full KEY015 remain unqualified. CI runs these two
+supplemental adapters separately from the 770-ID specification.
+
+Complete build and CTest pass: 42 PASS and one optional private Nikon SKIP (97.32s),
+`quality-fixed-final-ctest.log`. Runner accounting passes 37 tests and
+quality-policy accounting passes seven. Focused local software covers seven official
+cases plus the supplemental keyboard case. Source consistency, attested build,
+original SHA and SQLite checks pass. Latest preceding hosted commit `7c2c59c`
+completed build, CTest, its blocking UX subset, format and tidy successfully
+(run `39215333610`); that run predates this checkpoint's new changes.
+
+The original full reviewed software cohort has 248 PASS and one DSC006 FAIL; passive
+traces reproduce its layout clamp three times. The fixed-source full software rerun
+(`quality-reviewed-fixed-local-software-report`, `20261019T083331Z-35766`) has
+248 PASS, including DSC006, and one DSC003 FAIL. These are local offscreen/software
+runs with matching source/binary proof, original SHA and 248 catalog checks each;
+the global original-integrity adapter has no catalog. They are not hosted CI or
+native Metal qualification.
+
+DSC003 diagnostics preserve two further original FAIL and one PASS in
+`dsc003-original-oracle-confirm-local-software-report`, `20261019T084551Z-38913`.
+Both failures observe y=0 after one animation tick, then natural y=33 about 15 ms
+later without another input, focus change, document change or layout change.
+This proves an early test oracle, not a production wheel-routing defect. The
+fixture now acknowledges actual displacement from that same single wheel within
+one second, then checks settled positive in-range offset, unchanged geometry and
+exact full document. DSC003, DSC006 and two related Slider cases pass three times
+in `dsc003-acknowledged-final-local-software-report` (12 PASS). The earlier full
+report retains its FAIL; the focused result resolves that case without rewriting it.
+
+The earlier native rerun has one PASS and 20 FAIL while the Mac becomes locked
+(`mac008-quality-final-native-report`, `20261019T080838Z-30627`). Its original OS
+lock evidence and raw failures remain retained. A later read-only OS probe confirms
+IOConsoleLocked=false, permitting a fresh native run without changing Mac security
+settings. The final affected cohort passes **30 Cocoa/Metal results** across ten
+bounded scenarios, including native Retina, Copy/Export remount, import rollback,
+selection/keyboard and DSC003/006: `quality-checkpoint-final-native-report`,
+`20261019T085424Z-41974`. Both supplemental keyboard routes pass three times
+(**6 Metal PASS**), `keyboard-two-routes-final-native-report`,
+`20261019T085602Z-43302`. The same final code passes 27 official and six supplemental
+local offscreen/software results; those are not hosted CI. Every final report
+passes build provenance, unchanged source/binary, original SHA and SQLite checks.
+
+The final source snapshot is
+`06a50ce703137085eed3e2a7f791dc7fb570574b80150a1d2d5fbec41031f4d9`;
+the tested binary SHA-256 is
+`76aae6657370eb14b34b12b4353f1551fef8ea8a61d18295c3c55ac87dec5d0b`.
+Later documentation-only edits record these outcomes. Full app build, 37 runner
+tests, seven policy tests, format and three affected-source tidy checks pass;
+pre-existing advisory tidy warnings remain separate. The native lock blocker is
+resolved for this cohort, while the 31 functional adapter gaps above remain open.
+No tag, production release or phase 0.6 work has started.

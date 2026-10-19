@@ -8,6 +8,7 @@ from collections import Counter
 from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
+from quality_policy import quality_skip_reason, quality_fixture_count
 import importlib.util
 import json
 import os
@@ -103,9 +104,10 @@ NATIVE.update(('UX-LIB-006', 'UX-LIB-018', 'UX-MAC-001'))
 NATIVE.add('UX-UND-017')
 NATIVE.add('UX-EXP-026')
 NATIVE.add('UX-MAC-007')
+NATIVE.add('UX-MAC-008')
 GLOBAL = {'UX-UND-018'}
 
-CASE_TIMEOUTS = {'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
+CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
                  'UX-PERF-017': 600, 'UX-PERF-018': 600, 'UX-DTL-011': 900,
                  'UX-EXP-023': 900, 'UX-EXP-024': 600,
                  'UX-EXP-017': 300, 'UX-EXP-025': 300, 'UX-EXP-027': 300,
@@ -116,6 +118,12 @@ CASE_TIMEOUTS = {'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-L
                  'UX-LIB-015': 300, 'UX-LIB-016': 300, 'UX-RACE-009': 300,
                  'UX-VIS-004': 600, 'UX-EXP-011': 600, 'UX-VIS-005': 600, 'UX-VIS-009': 300,
                  'UX-VIS-011': 300, 'UX-VIS-012': 300, 'UX-REC-011': 300}
+
+
+ISOLATED_VARIANTS = {
+    'UX-UPD-003': ('import', 'export', 'batch'),
+    'UX-MAC-008': ('copy', 'export'),
+}
 
 
 def scenario_timeout(identifier, arguments):
@@ -156,7 +164,7 @@ def png(path, index):
                      + chunk(b'IDAT', zlib.compress(pixels)) + chunk(b'IEND', b''))
 
 
-def fixtures(folder, count=1000):
+def fixtures(folder, count=1000, include_large=True):
     folder.mkdir(parents=True, exist_ok=True)
     for index in range(count):
         path = folder / f'Photo-{index:04}.png'
@@ -164,16 +172,17 @@ def fixtures(folder, count=1000):
             png(path, index)
     stress = folder / 'stress'
     stress.mkdir(exist_ok=True)
-    large = stress / 'Large.png'
-    if not large.exists():
-        width, height = 6000, 4000
-        compressor = zlib.compressobj(1)
-        row = b'\0' + bytes((80, 120, 160, 255)) * width
-        compressed = b''.join(compressor.compress(row) for _ in range(height)) + compressor.flush()
-        def chunk(kind, data):
-            return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
-        large.write_bytes(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
-                          + chunk(b'IDAT', compressed) + chunk(b'IEND', b''))
+    if include_large:
+        large = stress / 'Large.png'
+        if not large.exists():
+            width, height = 6000, 4000
+            compressor = zlib.compressobj(1)
+            row = b'\0' + bytes((80, 120, 160, 255)) * width
+            compressed = b''.join(compressor.compress(row) for _ in range(height)) + compressor.flush()
+            def chunk(kind, data):
+                return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+            large.write_bytes(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
+                              + chunk(b'IDAT', compressed) + chunk(b'IEND', b''))
     lens = stress / 'Lens.DNG'
     if not lens.exists():
         specification = importlib.util.spec_from_file_location('luma_ux_dng', ROOT / 'tests/assets/generate_dng.py')
@@ -350,18 +359,20 @@ def execute(row, directory, arguments, fixture_folder):
     result.update(scope=row['scope'], mode=row['mode'], severity_if_failed=row['severity'],
                   scenario=row['scenario'], artifacts=str(directory), child_pid=process.pid,
                   wall_duration_ms=round((time.monotonic() - started) * 1000))
+    if getattr(arguments, 'variant', None):
+        result['variant'] = arguments.variant
     atomic_json(result_path, result)
     return result
 
 
 def execute_scenario(row, directory, arguments, fixture_folder):
-    operations = row['id'] == 'UX-UPD-003'
-    if row['id'] not in RESTART and not operations:
+    variants = ISOLATED_VARIANTS.get(row['id'])
+    if row['id'] not in RESTART and not variants:
         return execute(row, directory, arguments, fixture_folder)
     directory.mkdir(parents=True)
     cycles = 50 if row['id'] == 'UX-APP-001' else 20 if row['id'] == 'UX-APP-005' else 0
-    if operations:
-        stages = ['import', 'export', 'batch']
+    if variants:
+        stages = variants
     elif cycles:
         stages = ['cycle'] * cycles
     else:
@@ -369,13 +380,22 @@ def execute_scenario(row, directory, arguments, fixture_folder):
     outcomes = []
     for index, stage in enumerate(stages):
         options = dict(vars(arguments))
-        options.update({'variant': stage} if operations else {'stage': stage, 'state_root': directory / 'state'})
+        if variants:
+            # Operation variants are independent application processes, never restart stages.
+            options.pop('stage', None)
+            options.pop('state_root', None)
+            options['variant'] = stage
+        else:
+            options.update(stage=stage, state_root=directory / 'state')
         options = argparse.Namespace(**options)
         outcome = execute(row, directory / f'{index + 1:02}-{stage}', options, fixture_folder)
         outcomes.append(outcome)
         if outcome['status'] != 'PASS':
             break
     result = dict(outcomes[-1])
+    if variants:
+        result.pop('variant', None)
+        result['required_variants'] = list(variants)
     result.update(artifacts=str(directory), stages=outcomes, metric_scope='final_stage',
                   wall_duration_ms=sum(r['wall_duration_ms'] for r in outcomes),
                   main_loop_stall_max_ms=max(r.get('main_loop_stall_max_ms', 0) for r in outcomes),
@@ -395,6 +415,16 @@ def phase_selected(row, phase):
     return row['mode'] == 'BLOCKING' and in_scope(row['scope'], phase)
 
 
+def row_selected(row, arguments):
+    if arguments.case and row['id'] not in arguments.case:
+        return False
+    if not phase_selected(row, arguments.phase):
+        return False
+    return (arguments.suite == 'all' or row['mode'] ==
+            {'blocking': 'BLOCKING', 'regression': 'REGRESSION', 'stress': 'STRESS',
+             'perf': 'PERF_LOCAL', 'chaos': 'CHAOS'}.get(arguments.suite))
+
+
 def source_phase():
     match = re.search(r'project\(Luma VERSION (\d+)\.(\d+)\.\d+ LANGUAGES',
                       (ROOT / 'CMakeLists.txt').read_text())
@@ -404,7 +434,8 @@ def source_phase():
 
 
 def qualification_requested(arguments):
-    return (arguments.release_qualification and not arguments.case
+    return (not getattr(arguments, 'quality_only', False)
+            and arguments.release_qualification and not arguments.case
             and arguments.suite == 'all' and arguments.phase is None)
 
 
@@ -450,7 +481,14 @@ def theme(row):
 def write_reports(summary, destination):
     atomic_json(destination / 'UX_REPORT.json', summary)
     hardware = summary['hardware']
-    lines = ['# UX qualification', '',
+    supplemental = summary.get('inventory_domain') == 'supplemental'
+    title = '# Supplemental UX regressions' if supplemental else '# UX qualification'
+    lines = [title, '',
+             ('Supplemental results do not qualify official specification scenarios.' if supplemental
+              else 'Specification inventory results.'),
+             f"Inventory domain: {summary.get('inventory_domain', 'specification')}; "
+             f"official inventory: {summary.get('official_inventory_count', len(INVENTORY))}; "
+             f"selected inventory: {summary.get('selected_inventory_count', len(INVENTORY))}.", '',
              f"Execution: {summary['execution_status']}. Release gate: {summary['release_gate']}.", '',
              f"Results: {json.dumps(summary['summary'])}. Original hashes: {summary['original_hashes']}.", '',
              f"Source commit: {hardware['commit']}; dirty worktree: {hardware['worktree_dirty']}.",
@@ -458,6 +496,10 @@ def write_reports(summary, destination):
              f"Test executable SHA-256: {hardware['test_executable_sha256']}.",
              f"Build provenance: {summary.get('build_provenance', {}).get('status', 'UNVERIFIED')}. "
              f"Source consistency: {summary.get('source_consistency', 'UNVERIFIED')}.", '',
+             f"Quality-only policy: {summary.get('quality_only', False)}. "
+             f"Deferred implemented load adapters: {len(summary.get('deferred_load_implemented', []))}; "
+             f"deferred unadapted inventory: {len(summary.get('deferred_load_unadapted', []))}.",
+             'Policy deferral is SKIPPED and never PASS or full release qualification.',
              'Performance is MEASURE_ONLY. Input dispatch is not visual acknowledgment.',
              'Frame intervals include idle periods; they are not an active-interaction FPS baseline.', '',
              f"Unqualified blocking IDs: {len(summary['blocking_missing_or_failed'])}.", '']
@@ -493,7 +535,13 @@ def write_reports(summary, destination):
     (destination / 'ROADMAP_CANDIDATES.md').write_text('\n'.join(roadmap))
 
 
-def main():
+def main(*, inventory=None, executable_ids=None, fixture_factory=None,
+         domain='specification', default_report_name='ux-report'):
+    selected_inventory = INVENTORY if inventory is None else inventory
+    selected_executable = NATIVE if executable_ids is None else executable_ids
+    make_fixtures = fixtures if fixture_factory is None else fixture_factory
+    if domain not in ('specification', 'supplemental'):
+        raise ValueError('Unknown UX inventory domain')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build', type=Path, default=ROOT / 'build-verify')
     parser.add_argument('--app', type=Path)
@@ -506,12 +554,20 @@ def main():
     parser.add_argument('--seed', type=int, default=None)
     parser.add_argument('--replay', type=Path)
     parser.add_argument('--release-qualification', action='store_true')
+    parser.add_argument('--quality-only', action='store_true',
+                        help='Run bounded functional checks; defer reviewed load adapters without qualifying a full release')
     parser.add_argument('--require-build-provenance', action='store_true',
                         help='Require a matching attested build before execution; implied by --release-qualification')
     parser.add_argument('--artifacts', type=Path)
     parser.add_argument('--report', type=Path)
     parser.add_argument('--timeout', type=int, help='Override the per-scenario deadline in seconds')
     args = parser.parse_args()
+    if domain != 'specification':
+        if (args.release_qualification or args.phase is not None or args.seed is not None
+                or args.actions is not None or args.replay is not None or args.quality_only):
+            parser.error('Supplemental regressions use their own bounded fixture; official qualification, phase, quality-policy and chaos flags are unsupported')
+        if args.suite not in (None, 'all', 'regression'):
+            parser.error('Supplemental regressions support only all/regression selection')
     args.require_build_provenance = args.require_build_provenance or args.release_qualification
     if args.phase and not re.fullmatch(r'\d+\.\d+', args.phase):
         parser.error('--phase must be a numeric major.minor phase')
@@ -521,19 +577,29 @@ def main():
         parser.error('Release qualification cannot exclude the current source phase')
     if args.app:
         parser.error('--app is not an executable adapter yet; refusing an ignored request')
+    if args.quality_only:
+        if args.release_qualification:
+            parser.error('--quality-only cannot request full release qualification')
+        if args.suite in ('stress', 'perf', 'chaos') or args.seed is not None or args.actions is not None or args.replay:
+            parser.error('--quality-only cannot request stress/performance/chaos/replay workloads')
     configure_history_chaos(args, parser)
-    unknown = set(args.case) - {row['id'] for row in INVENTORY}
+    unknown = set(args.case) - {row['id'] for row in selected_inventory}
     if unknown:
         parser.error('Unknown scenario IDs: ' + ', '.join(sorted(unknown)))
     if args.runs < 1 or (args.timeout is not None and args.timeout < 1):
         parser.error('--runs and --timeout must be positive')
+    selected_rows = [row for row in selected_inventory if row_selected(row, args)]
+    fixture_rows = [row for row in selected_rows
+                    if row['id'] in selected_executable and in_scope(row['scope'], args.through)
+                    and (row['scope'] in ('ALL', 'CURRENT') or row['scope'] in MANIFEST['completed_phases'])
+                    and not (args.quality_only and quality_skip_reason(row))]
     # Native suites share one macOS focus/keyboard surface, including across worktrees.
     with (Path(tempfile.gettempdir()) / f'luma-ux-screen-{os.getuid()}.lock').open('a') as screen_lock:
         print('Waiting for exclusive UI test access...', flush=True)
         fcntl.flock(screen_lock.fileno(), fcntl.LOCK_EX)
         args.build = args.build.resolve()
         args.artifacts = (args.artifacts or args.build / 'ux-artifacts').resolve()
-        args.report = (args.report or args.build / 'ux-report').resolve()
+        args.report = (args.report or args.build / default_report_name).resolve()
         args.report.mkdir(parents=True, exist_ok=True)
         if args.require_build_provenance:
             preflight = build_provenance(args.build, fingerprint(args.build))
@@ -542,8 +608,14 @@ def main():
                              f'Run tests/ux/build_ux.py --build {args.build}')
         run_root = args.artifacts.resolve() / (time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()) + f'-{os.getpid()}')
         run_root.mkdir(parents=True)
-        fixture_folder = args.artifacts.resolve() / 'public-fixtures'
-        checksums = fixtures(fixture_folder)
+        fixture_folder = (run_root / 'public-fixtures-supplemental' if domain == 'supplemental'
+                          else run_root / 'public-fixtures-quality' if args.quality_only
+                          else args.artifacts.resolve() / 'public-fixtures')
+        if args.quality_only:
+            count = quality_fixture_count(fixture_rows)
+            checksums = make_fixtures(fixture_folder, count=count, include_large=False) if count else {}
+        else:
+            checksums = make_fixtures(fixture_folder)
         suite_start = fingerprint(args.build)
         provenance = build_provenance(args.build, suite_start)
         if args.require_build_provenance and provenance['status'] != 'PASS':
@@ -552,26 +624,28 @@ def main():
         results = []
         global_rows = []
         observed_mutations = set()
-        for row in INVENTORY:
+        for row in selected_rows:
             identifier, scope, mode = row['id'], row['scope'], row['mode']
             repetitions = repetitions_for(row, args)
-            if args.case and identifier not in args.case:
-                continue
             applicable = in_scope(scope, args.through)
             capable = scope in ('ALL', 'CURRENT') or scope in MANIFEST['completed_phases']
-            if not phase_selected(row, args.phase):
-                continue
-            mode_selected = args.suite == 'all' or mode == {'blocking': 'BLOCKING', 'regression': 'REGRESSION',
-                                 'stress': 'STRESS', 'perf': 'PERF_LOCAL', 'chaos': 'CHAOS'}.get(args.suite)
-            if not mode_selected:
-                continue
             if not applicable or not capable or identifier == 'UX-MSK-005':
                 results.append({**row, 'status': 'NOT_IMPLEMENTED', 'notes': ['Capability absent; future phase/conditional tool']})
+                continue
+            policy_skip = quality_skip_reason(row) if args.quality_only else None
+            if (policy_skip and policy_skip[0] == 'policy_unreviewed'
+                    and identifier not in selected_executable and identifier not in GLOBAL):
+                policy_skip = None  # Preserve missing-adapter accounting for unimplemented functional checks.
+            if policy_skip:
+                skip_reason, reason = policy_skip
+                results.append({**row, 'status': 'SKIPPED', 'skip_reason': skip_reason,
+                                'adapter_implemented': identifier in selected_executable,
+                                'notes': ['Deferred by the functional-only execution policy: ' + reason]})
                 continue
             if identifier in GLOBAL:
                 global_rows.append(row)
                 continue
-            if identifier not in NATIVE:
+            if identifier not in selected_executable:
                 results.append({**row, 'status': 'SKIPPED', 'skip_reason': 'unadapted',
                                 'notes': ['No verified executable adapter yet; current scope qualification remains incomplete']})
                 continue
@@ -600,13 +674,28 @@ def main():
         suite_end = fingerprint(args.build)
         source_stable = all(suite_start[field] == suite_end[field] for field in ('source_tree_sha256', 'test_executable_sha256'))
         summary = {'hardware': suite_end, 'build_provenance': provenance,
+                   'inventory_domain': domain, 'official_inventory_count': len(INVENTORY),
+                   'selected_inventory_count': len(selected_inventory),
                    'source_consistency': 'PASS' if source_stable else 'CHANGED_DURING_SUITE', 'scope_through': args.through, 'run_directory': str(run_root),
                    'summary': dict(Counter(r['status'] for r in results)), 'original_hashes': 'FAIL' if mutations else 'PASS',
-                   'results': results}
+                   'results': results, 'quality_only': args.quality_only,
+                   'fixture_profile': {'directory': str(fixture_folder),
+                                       'public_photo_count': len(checksums) if domain == 'supplemental' else quality_fixture_count(fixture_rows) if args.quality_only else 1000,
+                                       'large_24mp_generated': domain == 'specification' and not args.quality_only},
+                   'deferred_load_implemented': sorted({r['id'] for r in results
+                                                       if r.get('skip_reason') == 'deferred_load' and r['adapter_implemented']}),
+                   'deferred_load_unadapted': sorted({r['id'] for r in results
+                                                     if r.get('skip_reason') == 'deferred_load' and not r['adapter_implemented']}),
+                   'policy_unreviewed': sorted({r['id'] for r in results
+                                                if r.get('skip_reason') == 'policy_unreviewed'})}
         selected_failed = bool(mutations) or any(r['status'] == 'FAIL' for r in results)
-        summary['release_gate'], blocking_missing = qualify(results, INVENTORY, args.through,
-                                                           qualification_requested(args))
-        incomplete = any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') == 'unadapted' for r in results) or not any(r.get('child_pid') for r in results)
+        if domain == 'specification':
+            summary['release_gate'], blocking_missing = qualify(results, selected_inventory, args.through,
+                                                               qualification_requested(args))
+        else:
+            summary['release_gate'], blocking_missing = 'NOT_QUALIFIED', []
+        incomplete = any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') in ('unadapted', 'policy_unreviewed')
+                         for r in results) or not any(r.get('child_pid') for r in results)
         summary['unadapted_applicable'] = sorted({r['id'] for r in results if r['status'] == 'SKIPPED'
                                                 and r.get('skip_reason', 'unadapted') == 'unadapted'
                                                 and in_scope(r.get('scope', 'CURRENT'), args.through)})

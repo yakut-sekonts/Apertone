@@ -498,3 +498,112 @@ are tracked separately and are not counted as application failures or hidden ret
   `volume-source-qualified-candidate-native-report`, `20261019T070952Z-16982`.
   Original failures remain unchanged; no model-data polling retries were added
   to the previously blank-card boundary.
+
+
+## LUMA-UX-025 — Copy retains a temporary hard link after destination remount
+
+- Severity: P2. Scope: CURRENT. Subsystem: Copy publication / removable destination.
+- Two distinct private host PNGs are imported to an owned HFS+ image. A hold-only
+  SQLite VFS delays a genuine catalog WAL write after the first file publication.
+  The volume is ordinarily detached, the real write released, and the same image,
+  mount path and UUID remounted. No volume error or completion callback is faked.
+- Original evidence: all three repeats in `copy-destination-remount-original-native-report`,
+  `20261019T074521Z-24768`, fail the strict remounted file-tree oracle. The published
+  file and `.luma-copy-<session>-0.tmp` have the same inode, source SHA and link count
+  two. Raw inventory is retained before the assertion. One item committed and the
+  other failed normally; catalog integrity and original SHA pass. No data-loss
+  claim follows from this orphaned-alias defect.
+- Cause: `CopyCleanup` removed the temporary alias only after catalog commit.
+  With the destination detached during that host write, cleanup saw an absent
+  path; the alias remained on the image and reappeared on remount.
+- Fix: unlink the owned temporary name immediately after exclusive target
+  publication, before directory fsync and catalog commit. Clear temporary ownership
+  only after successful unlink. An unlink error now fails the item before commit;
+  existing rollback and staged-target recovery remain responsible for cleanup.
+- Independent small regression `copy-publication-single-link` observes the real
+  publication/WAL boundary with one 8×6 PNG. Original CTest fails with two links;
+  fixed CTest passes with no alias and one link (0.16 seconds). Assertions run after
+  unconditional write release, worker join and complete VFS teardown.
+- Fixed native evidence: three complete repeats in `copy-destination-fixed-native-report`,
+  `20261019T075002Z-25706`. Same-image recovery, retained A UUID/bytes, duplicate-aware
+  retry of B, exact tree/documents/journals and checked final detach all pass.
+  The two initial fixture failures (mount-relative pin path and libc++ error
+  ancestor wording) remain retained separately and are not production defects.
+
+## LUMA-UX-026 — Visible Library cards cannot be opened by keyboard
+
+- Severity: P2. Scope: CURRENT. Subsystem: Library focus / asset activation.
+- After a declared pointer-based one-photo Add fixture, actual Tab and Space
+  select the sole UUID. Neither complete Tab direction reaches the card or grid;
+  tested asset keys cannot open it. The Develop button changes mode without
+  loading the selection. This is a bounded partial regression, not complete KEY015.
+- Original evidence: one failure in `keyboard-activation-original-native-report`
+  and two in `keyboard-activation-confirmed-original-native-report`. Each retains
+  the complete focus/input trace: zero pointer events during acceptance, no
+  openRequested/photoLoaded, unchanged default document and exact source SHA.
+- Fix: populated cards fully contained in their actual attached GridView/ListView
+  viewport become Tab stops. Unmodified Return/Enter selects and activates that
+  card once; auto-repeat, busy and ineligible hidden/clipped cards do not activate.
+  Numeric-keypad Enter also accepts exactly `KeypadModifier`; combining Shift,
+  Control, Alt or Meta continues to reject activation. Ordinary Return is unchanged.
+  The handler rechecks viewport eligibility because an existing focused card can
+  scroll out of view. Existing pointer handlers and viewport anchors stay intact.
+  The Tab flag stays set while a card owns focus because Qt refuses clearing it
+  on the active item;
+  the binding re-evaluates eligibility on genuine focus loss.
+- Three native fixed repeats pass in `keyboard-activation-fixed-native-report`,
+  `20261019T075025Z-26024`: real Tab reaches the card, Return emits one open/load,
+  and exact UUID/default full document/current Ready preview/provider pixels pass.
+  Seven related functional cases also pass three times in
+  `copy-keyboard-affected-native-report` (21 PASS), including search typing,
+  selection focus, missing queued Copy source and denied destination children.
+  This earlier cohort included the legacy KEY003 100-photo fixture; the new
+  conservative quality policy defers that adapter and does not repeat its workload.
+- Keypad-specific original evidence: three local software failures in
+  `keyboard-keypad-original-local-software-report`, `20261019T085028Z-40575`.
+  Real Tab reaches the card; the actual window receives one Enter/KeypadModifier
+  press but emits zero open/load signals. Modified and explicit public auto-repeat
+  probes do not open or edit anything, and acceptance has zero pointer events.
+  This extends the same keyboard activation correction, not the production defect
+  count or the official 770-ID inventory. OS repeat cadence remains unqualified.
+- Both Return and keypad Enter pass three times on final Cocoa/Metal
+  (`keyboard-two-routes-final-native-report`, `20261019T085602Z-43302`) and three
+  times in local offscreen/software (six results per backend). Each preserves the
+  exact default document, UUID, durable catalog, source SHA and Ready pixels, emits
+  one open/load and records zero pointer events during keyboard acceptance.
+- Limits: native file-chooser keyboard control, all-row Arrow/Page navigation and
+  the complete import→edit→export KEY015 contract remain unqualified. No global
+  macOS keyboard setting is changed; the fixture restores its process-local Qt hint.
+
+
+## LUMA-UX-027 — Photo changes clamp the deep adjustments scroll offset
+
+- Severity: P2. Scope: CURRENT. Subsystem: Develop layout / Library count reload.
+- The complete reviewed local software cohort first exposes DSC006 in
+  `quality-reviewed-local-software-report`, `20261019T081326Z-31601`
+  (248 PASS, one FAIL). A separate three-repeat run still fails after the
+  independent PhotoCard Tab-flag warning is fixed; the issues are not conflated.
+- Passive evidence: all three repeats in `dsc006-passive-trace-original-local-software-report`,
+  `20261019T082517Z-34114`, fail the unchanged final-offset oracle. Reload resets
+  Library count to zero while loading. The filmstrip becomes invisible, increasing
+  the adjustments viewport from 594 to 706 logical pixels. Content height stays
+  4730; Flickable clamps y=4105 to 4730-706=4024. Restoring the 112-pixel filmstrip
+  leaves that 81-pixel offset loss behind. Trace has zero dropped events.
+- Fix: retain the filmstrip container during a pending Library reload with an
+  existing editor photo. Model rows still reset normally; no old rows or metadata
+  are retained. A finished empty result or error hides the strip as before, and an
+  empty Develop/startup without a photo does not gain an empty 112-pixel strip.
+- Regression preserves actual filmstrip input, independent A/B documents, numeric
+  controls, durable histories and exact preview pixels. Bounded passive observers
+  also require stable filmstrip/viewport geometry during each genuine zero-count
+  reload. Both A→B and B→A require the settled original offset within one logical
+  pixel; there is no reveal, extra wait, focus setter or weakened jump allowance.
+- Fixed evidence: three local software PASS in
+  `dsc006-fixed-local-software-report`, then three passes with the stricter final
+  B→A oracle in `dsc006-final-strict-local-software-report`. The complete reviewed
+  software rerun also passes DSC006, followed by three affected-case passes in
+  `dsc003-acknowledged-final-local-software-report`. Final Cocoa/Metal passes the
+  strict case three times in `quality-checkpoint-final-native-report`,
+  `20261019T085424Z-41974`, after the Mac is observed unlocked. Both genuine reload
+  directions preserve the original viewport and offset. Original failures and raw
+  timelines are unchanged.

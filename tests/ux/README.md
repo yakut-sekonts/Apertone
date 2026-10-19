@@ -9,8 +9,9 @@ Current schedule (user direction, 2026-10-19): until the pre-release campaign
 for 1.0.0, run functional/image-quality/UX/data-integrity checks only. Do not run
 stress, soak, chaos, performance or large-catalog/repeated-load workflows.
 Existing load adapters and historical results are retained for 1.0.0; deferral
-never means PASS. Select explicit bounded functional cases, inspect their fixture
-sizes, then fix and recheck failures before publishing an intermediate release.
+never means PASS. Use `--quality-only` for the reviewed functional policy. It keeps load deferrals
+visible as SKIPPED and rejects new, unreviewed adapters. Fix and recheck failures
+before publishing an intermediate release.
 
 Build with the pinned toolchain:
 
@@ -18,7 +19,7 @@ Build with the pinned toolchain:
 .tools/venv/bin/python tests/ux/build_ux.py --build build-verify
 .tools/venv/bin/cmake --build build-verify --target luma_ux_metric_tests --parallel 3
 .tools/venv/bin/ctest --test-dir build-verify --output-on-failure
-.tools/venv/bin/python tests/ux/run_ux_suite.py --case UX-MAC-007 --case UX-SEL-002 --runs 3 --require-build-provenance
+.tools/venv/bin/python tests/ux/run_ux_suite.py --quality-only --case UX-MAC-007 --case UX-SEL-002 --runs 3 --require-build-provenance
 ```
 
 All native UI runs share an exclusive screen/focus lock. Do not interact with the
@@ -26,7 +27,17 @@ test window or run other native UI suites concurrently. Use a focused selection
 while investigating a reproducer:
 
 ```sh
-.tools/venv/bin/python tests/ux/run_ux_suite.py --case UX-PRV-013 --runs 3
+.tools/venv/bin/python tests/ux/run_ux_suite.py --quality-only --case UX-MAC-008 --runs 3
+```
+
+The partial selected-photo keyboard regressions (Return and keypad Enter) share
+one generated PNG and use separate fresh processes in their own report domain.
+Both run automatically in both workflows; their results never qualify
+KEY015 or alter the 770-ID specification inventory. Its wrapper defines the bounded
+workload directly, so the official-inventory `--quality-only` flag is unnecessary.
+
+```sh
+.tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build-verify --runs 3 --require-build-provenance
 ```
 
 The legacy full-matrix --release-qualification command includes load workloads;
@@ -84,10 +95,15 @@ match; conflicting flags and corrupt records abort. A shorter explicit count is
 smoke evidence, not the full 10,000-action baseline. Full release qualification
 refuses that reduction.
 
-The macOS and release workflows run every applicable blocking adapter three times
-and retain generated-fixture evidence. This hosted CI regression gate supplements
-the complete local qualification; it does not replace performance/soak/hardware
-coverage or claim the current unadapted scenarios passed.
+The macOS and release workflows run reviewed functional blocking adapters three
+times with `--quality-only`. A versioned policy records reviewed bounded adapters
+and source-based load deferrals; a new adapter requires explicit policy review.
+Quality fixtures use a separate small directory and do not create the 24 MP image.
+Deferred tests retain their original inventory mode and do not count as PASS.
+This hosted functional gate is not full release qualification. The original
+100,000-row Library model contract is opt-in through
+`-DLUMA_ENABLE_SCALE_CONTRACT_TESTS=ON` for the pre-1.0.0 campaign; the default
+256-row fixture retains ordinary selection, filtering and metadata contracts.
 
 Updater tests use the public native SDK installation-callback boundary with a
 non-installing probe, real controller readiness and real QML operations. They do

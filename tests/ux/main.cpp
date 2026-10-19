@@ -10,6 +10,8 @@
 #include <optional>
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
+bool copyDestinationScenario(Context &, const QString &, const QString &);
+bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
 void prepareMissingStartupSource(const QString &, const QString &);
 } // namespace ux
@@ -84,6 +86,18 @@ int main(int argc, char **argv) {
                 !parser.isSet("seed") && !parser.isSet("actions") && !parser.isSet("replay"),
                 "seed/actions/replay are supported only by UND-017; refusing ignored flags");
         }
+        if (id == "UX-MAC-008") {
+            ux::require(
+                parser.values("variant").size() == 1 &&
+                    (parser.value("variant") == "copy" || parser.value("variant") == "export") &&
+                    !parser.isSet("stage") && !parser.isSet("state-root"),
+                "MAC-008 requires exactly one copy/export variant and forbids stage/state-root");
+        } else if (id == "CANDIDATE-MAC008-COPY-DESTINATION" ||
+                   id == "CANDIDATE-MAC008-EXPORT-DESTINATION") {
+            ux::require(
+                !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
+                "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
+        }
         if (parser.value("case") == "UX-APP-004" && parser.value("stage") == "verify")
             ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
@@ -93,7 +107,12 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
-        else if (parser.isSet("stage"))
+        else if (id == "UX-MAC-008") {
+            const auto variant = parser.value("variant");
+            ux::require(variant == "copy" ? ux::copyDestinationScenario(*context, id, variant)
+                                          : ux::removableDestinationScenario(*context, id, variant),
+                        "Removable destination operation adapter unavailable");
+        } else if (parser.isSet("stage"))
             ux::restartScenario(*context, parser.value("case"), parser.value("stage"));
         else if (parser.value("case") == "UX-BAT-013")
             ux::require(ux::updaterScenario(*context, "UX-UPD-003", "batch"),

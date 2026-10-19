@@ -1,0 +1,709 @@
+{
+  "schema": 1,
+  "reviewed_on": "2026-10-19",
+  "scope": "Current executable adapters, preserving specification mode and scenario text",
+  "quality_allowlist": [
+    "UX-ADV-001",
+    "UX-ADV-002",
+    "UX-ADV-004",
+    "UX-ADV-005",
+    "UX-ADV-006",
+    "UX-ADV-007",
+    "UX-ADV-008",
+    "UX-ADV-009",
+    "UX-ADV-010",
+    "UX-ADV-011",
+    "UX-ADV-014",
+    "UX-ADV-015",
+    "UX-APP-002",
+    "UX-APP-003",
+    "UX-APP-004",
+    "UX-APP-006",
+    "UX-APP-007",
+    "UX-APP-011",
+    "UX-APP-013",
+    "UX-BAT-007",
+    "UX-BAT-009",
+    "UX-CRP-001",
+    "UX-CRP-002",
+    "UX-CRP-003",
+    "UX-CRP-004",
+    "UX-CRP-005",
+    "UX-CRP-006",
+    "UX-CRP-007",
+    "UX-CRP-008",
+    "UX-CRP-009",
+    "UX-CRP-011",
+    "UX-CRP-012",
+    "UX-CRP-013",
+    "UX-CRP-014",
+    "UX-CRP-017",
+    "UX-CRP-018",
+    "UX-DSC-001",
+    "UX-DSC-003",
+    "UX-DSC-004",
+    "UX-DSC-005",
+    "UX-DSC-006",
+    "UX-DSC-007",
+    "UX-DSC-008",
+    "UX-DSC-009",
+    "UX-DTL-001",
+    "UX-DTL-002",
+    "UX-DTL-003",
+    "UX-DTL-004",
+    "UX-DTL-005",
+    "UX-DTL-006",
+    "UX-DTL-008",
+    "UX-DTL-009",
+    "UX-DTL-012",
+    "UX-EXP-002",
+    "UX-EXP-003",
+    "UX-EXP-004",
+    "UX-EXP-012",
+    "UX-EXP-013",
+    "UX-EXP-014",
+    "UX-EXP-015",
+    "UX-EXP-016",
+    "UX-EXP-017",
+    "UX-EXP-019",
+    "UX-EXP-022",
+    "UX-EXP-025",
+    "UX-EXP-026",
+    "UX-EXP-027",
+    "UX-EXP-029",
+    "UX-EXP-030",
+    "UX-FLT-004",
+    "UX-FLT-005",
+    "UX-FLT-007",
+    "UX-FLT-010",
+    "UX-FLT-011",
+    "UX-FLT-012",
+    "UX-FLT-013",
+    "UX-FLT-015",
+    "UX-IMP-001",
+    "UX-IMP-009",
+    "UX-IMP-010",
+    "UX-IMP-011",
+    "UX-IMP-012",
+    "UX-IMP-013",
+    "UX-IMP-014",
+    "UX-IMP-015",
+    "UX-IMP-016",
+    "UX-KEY-001",
+    "UX-KEY-002",
+    "UX-KEY-005",
+    "UX-KEY-007",
+    "UX-KEY-008",
+    "UX-KEY-009",
+    "UX-KEY-010",
+    "UX-KEY-011",
+    "UX-KEY-012",
+    "UX-KEY-013",
+    "UX-KEY-014",
+    "UX-KEY-016",
+    "UX-KEY-017",
+    "UX-LNS-001",
+    "UX-LNS-002",
+    "UX-LNS-003",
+    "UX-LNS-005",
+    "UX-LNS-006",
+    "UX-LNS-007",
+    "UX-LNS-008",
+    "UX-LNS-009",
+    "UX-LNS-010",
+    "UX-LOC-001",
+    "UX-LOC-002",
+    "UX-LOC-003",
+    "UX-LOC-004",
+    "UX-LOC-005",
+    "UX-LOC-006",
+    "UX-LOC-007",
+    "UX-LOC-008",
+    "UX-MAC-001",
+    "UX-MAC-007",
+    "UX-MAC-008",
+    "UX-MSK-001",
+    "UX-MSK-002",
+    "UX-MSK-003",
+    "UX-MSK-004",
+    "UX-MSK-006",
+    "UX-MSK-007",
+    "UX-MSK-008",
+    "UX-MSK-009",
+    "UX-MSK-010",
+    "UX-MSK-011",
+    "UX-MSK-013",
+    "UX-MSK-014",
+    "UX-MSK-015",
+    "UX-MSK-016",
+    "UX-MSK-017",
+    "UX-MSK-019",
+    "UX-MSK-020",
+    "UX-MSK-021",
+    "UX-MSK-022",
+    "UX-MSK-024",
+    "UX-MSK-026",
+    "UX-MSK-027",
+    "UX-MSK-028",
+    "UX-MSK-029",
+    "UX-MSK-031",
+    "UX-MSK-032",
+    "UX-MSK-033",
+    "UX-MSK-034",
+    "UX-MSK-035",
+    "UX-MSK-036",
+    "UX-MSK-037",
+    "UX-MSK-038",
+    "UX-MSK-040",
+    "UX-NAV-003",
+    "UX-NAV-005",
+    "UX-NAV-006",
+    "UX-NAV-007",
+    "UX-NAV-008",
+    "UX-NAV-009",
+    "UX-NAV-010",
+    "UX-PRS-001",
+    "UX-PRS-002",
+    "UX-PRS-003",
+    "UX-PRS-004",
+    "UX-PRS-005",
+    "UX-PRS-006",
+    "UX-PRS-007",
+    "UX-PRS-008",
+    "UX-PRS-009",
+    "UX-PRS-010",
+    "UX-PRS-011",
+    "UX-PRS-014",
+    "UX-PRS-015",
+    "UX-PRS-016",
+    "UX-PRS-017",
+    "UX-PRS-018",
+    "UX-PRV-004",
+    "UX-PRV-007",
+    "UX-RACE-001",
+    "UX-RACE-004",
+    "UX-RACE-006",
+    "UX-RACE-010",
+    "UX-REC-001",
+    "UX-REC-002",
+    "UX-REC-003",
+    "UX-REC-004",
+    "UX-REC-005",
+    "UX-REC-006",
+    "UX-REC-007",
+    "UX-REC-008",
+    "UX-REC-009",
+    "UX-REC-011",
+    "UX-REC-012",
+    "UX-SEL-001",
+    "UX-SEL-002",
+    "UX-SEL-003",
+    "UX-SEL-004",
+    "UX-SEL-005",
+    "UX-SEL-008",
+    "UX-SEL-009",
+    "UX-SEL-010",
+    "UX-SEL-011",
+    "UX-SEL-012",
+    "UX-SEL-015",
+    "UX-SEL-017",
+    "UX-SEL-018",
+    "UX-SLD-001",
+    "UX-SLD-003",
+    "UX-SLD-004",
+    "UX-SLD-005",
+    "UX-SLD-006",
+    "UX-SLD-007",
+    "UX-SLD-008",
+    "UX-SLD-010",
+    "UX-SLD-011",
+    "UX-SLD-012",
+    "UX-SLD-015",
+    "UX-SLD-016",
+    "UX-SLD-017",
+    "UX-SLD-018",
+    "UX-SLD-020",
+    "UX-TRN-001",
+    "UX-TRN-002",
+    "UX-TRN-003",
+    "UX-TRN-004",
+    "UX-TRN-005",
+    "UX-TRN-006",
+    "UX-TRN-007",
+    "UX-TRN-008",
+    "UX-TRN-009",
+    "UX-TRN-010",
+    "UX-TRN-012",
+    "UX-TRN-015",
+    "UX-UND-004",
+    "UX-UND-005",
+    "UX-UND-006",
+    "UX-UND-007",
+    "UX-UND-008",
+    "UX-UND-009",
+    "UX-UND-011",
+    "UX-UND-012",
+    "UX-UND-013",
+    "UX-UND-014",
+    "UX-UND-015",
+    "UX-UND-018",
+    "UX-UPD-001",
+    "UX-UPD-002",
+    "UX-UPD-005",
+    "UX-UPD-006",
+    "UX-VIS-001",
+    "UX-VIS-002"
+  ],
+  "deferred_load": {
+    "UX-ADV-003": {
+      "reason": "20 repeated channel cycles x6 arrow changes with held Curve pointer (120 switches).",
+      "source": "tests/ux/PreviewExtraScenarios.cpp:230,231"
+    },
+    "UX-ADV-012": {
+      "reason": "50 latency samples per targeted tone/HSL route; PERF_LOCAL workload.",
+      "source": "tests/ux/CurrentPerformanceScenarios.cpp:322,366"
+    },
+    "UX-ADV-013": {
+      "reason": "500 Curve/HSL edits + 200 retained Undo + 200 Redo.",
+      "source": "tests/ux/HistoryStressScenarios.cpp:109,125,142,155"
+    },
+    "UX-APP-001": {
+      "reason": "50 последовательных запусков и закрытий в runner; repeated-launch workload.",
+      "source": "tests/ux/run_ux_suite.py:362"
+    },
+    "UX-APP-005": {
+      "reason": "20 process-restart cycles; repeated-launch workload.",
+      "source": "tests/ux/run_ux_suite.py:362"
+    },
+    "UX-APP-008": {
+      "reason": "1000-source held Copy queues (IMP004 repeats 3 checkpoints at 100/500/900).",
+      "source": "tests/ux/ImportScenarios.cpp:176,178,180,192"
+    },
+    "UX-APP-009": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-APP-010": {
+      "reason": "Shared batch adapter imports and operates on 1000 documents.",
+      "source": "tests/ux/BatchScenarios.cpp:55"
+    },
+    "UX-APP-012": {
+      "reason": "100-source setup and 50 fullscreen round trips/200 workspace checks.",
+      "source": "tests/ux/AppExtraScenarios.cpp:322,395"
+    },
+    "UX-APP-015": {
+      "reason": "100-source setup and 50 fullscreen round trips/200 workspace checks.",
+      "source": "tests/ux/AppExtraScenarios.cpp:322,395"
+    },
+    "UX-BAT-001": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-002": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-003": {
+      "reason": "Shared batch adapter imports and operates on 1000 documents.",
+      "source": "tests/ux/BatchScenarios.cpp:55"
+    },
+    "UX-BAT-004": {
+      "reason": "100 documents held at actual WAL write; 25 repeated Cancel inputs.",
+      "source": "tests/ux/BatchUpdateRemainingScenarios.cpp:185,211"
+    },
+    "UX-BAT-005": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-006": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-008": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-010": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-BAT-012": {
+      "reason": "Shared batch adapter imports and operates on 1000 documents.",
+      "source": "tests/ux/BatchScenarios.cpp:55"
+    },
+    "UX-BAT-013": {
+      "reason": "Main dispatch aliases UPD003 batch variant: 1000-source import and held batch/WAL before updater callback.",
+      "source": "tests/ux/main.cpp:98; tests/ux/UpdaterScenarios.cpp:99"
+    },
+    "UX-BAT-014": {
+      "reason": "100 documents, 100 batch apply/Undo cycles (200 transactions).",
+      "source": "tests/ux/BatchUpdateRemainingScenarios.cpp:360,374"
+    },
+    "UX-BAT-015": {
+      "reason": "Shared batch adapter imports/operates on 100 documents (BAT002 injected at selected[50]).",
+      "source": "tests/ux/BatchScenarios.cpp:55,87"
+    },
+    "UX-DTL-011": {
+      "reason": "200 Detail NR/sharpen edits + immediate export/save + 200 Undo +200 Redo.",
+      "source": "tests/ux/PanelDetailStressScenarios.cpp:552,579,638,649"
+    },
+    "UX-EXP-001": {
+      "reason": "50 Export popup open/close cycles.",
+      "source": "tests/ux/ExportScenarios.cpp:51,54"
+    },
+    "UX-EXP-005": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-006": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-007": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-008": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-009": {
+      "reason": "20 repeated Cancel clicks at one held first-file callback in a 10-item queue.",
+      "source": "tests/ux/ExportExtraScenarios.cpp:165"
+    },
+    "UX-EXP-010": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-011": {
+      "reason": "Creates 100 owned report sources; VIS004/EXP011 import+export100 failures, VIS005 imports100 invalid images.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:485,493,501; tests/ux/BasicScenarios.cpp:44"
+    },
+    "UX-EXP-018": {
+      "reason": "Shared adapter imports/selects 100 real sources and starts a 100-item export queue.",
+      "source": "tests/ux/ExportScenarios.cpp:122,125,127"
+    },
+    "UX-EXP-021": {
+      "reason": "1000-source import and concurrent running 1000-item export queue.",
+      "source": "tests/ux/ExportExtraScenarios.cpp:424,426,433"
+    },
+    "UX-EXP-023": {
+      "reason": "500-output export with seeded pause/resume plan.",
+      "source": "tests/ux/ExportStressScenarios.cpp:479,484"
+    },
+    "UX-EXP-024": {
+      "reason": "100 real committed-file Start/Cancel cycles.",
+      "source": "tests/ux/ExportStressScenarios.cpp:586,650"
+    },
+    "UX-FLT-001": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-FLT-002": {
+      "reason": "100000 metadata-only catalog rows before real scroll/search interactions.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:29,52,76"
+    },
+    "UX-FLT-003": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-FLT-006": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-FLT-008": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-FLT-009": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-FLT-014": {
+      "reason": "Creates 500 collections; large-sidebar workload.",
+      "source": "tests/ux/FilterExtraScenarios.cpp:108"
+    },
+    "UX-IMP-002": {
+      "reason": "Imports 100 real sources; duplicate cases reimport 100.",
+      "source": "tests/ux/ImportScenarios.cpp:145,147,166"
+    },
+    "UX-IMP-003": {
+      "reason": "Imports 100 real sources; duplicate cases reimport 100.",
+      "source": "tests/ux/ImportScenarios.cpp:145,147,166"
+    },
+    "UX-IMP-004": {
+      "reason": "1000-source held Copy queues (IMP004 repeats 3 checkpoints at 100/500/900).",
+      "source": "tests/ux/ImportScenarios.cpp:176,178,180,192"
+    },
+    "UX-IMP-005": {
+      "reason": "20 repeated Cancel clicks while one 10-source Copy queue remains WAL-held.",
+      "source": "tests/ux/ImportExtraScenarios.cpp:440,442"
+    },
+    "UX-IMP-006": {
+      "reason": "1000-source held Copy queues (IMP004 repeats 3 checkpoints at 100/500/900).",
+      "source": "tests/ux/ImportScenarios.cpp:176,178,180,192"
+    },
+    "UX-IMP-007": {
+      "reason": "Imports 100 real sources; duplicate cases reimport 100.",
+      "source": "tests/ux/ImportScenarios.cpp:145,147,166"
+    },
+    "UX-IMP-008": {
+      "reason": "Imports 100 real sources; duplicate cases reimport 100.",
+      "source": "tests/ux/ImportScenarios.cpp:145,147,166"
+    },
+    "UX-IMP-019": {
+      "reason": "50 import/cancel/reimport cycles, 100 sessions and 1000 journal items.",
+      "source": "tests/ux/ImportExtraScenarios.cpp:422,489"
+    },
+    "UX-IMP-020": {
+      "reason": "100-source Copy held at first WAL write then process kill/restart.",
+      "source": "tests/ux/ImportScenarios.cpp:59,73,112"
+    },
+    "UX-KEY-003": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-KEY-004": {
+      "reason": "Shared selection branch imports 100 real sources; SEL016 additionally sends 100 queued shortcuts.",
+      "source": "tests/ux/SelectionScenarios.cpp:95,114"
+    },
+    "UX-KEY-006": {
+      "reason": "100 Original/Develop round trips (200 toggle inputs), shared adapter.",
+      "source": "tests/ux/BasicScenarios.cpp:230,257"
+    },
+    "UX-LIB-001": {
+      "reason": "Shared adapter imports 1000 real PNGs and traverses distant viewport.",
+      "source": "tests/ux/LibraryScenarios.cpp:32"
+    },
+    "UX-LIB-006": {
+      "reason": "Imports 64 real originals for thumbnail retry fixture.",
+      "source": "tests/ux/ThumbnailRemainingScenarios.cpp:630"
+    },
+    "UX-LIB-008": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-LIB-009": {
+      "reason": "The unchanged specification requires 50 resize cycles around cell breakpoints; defer this repeated layout workload until the pre-1.0.0 campaign. No executable adapter exists yet.",
+      "source": "tests/ux/scenarios.json (UX-LIB-009)"
+    },
+    "UX-LIB-010": {
+      "reason": "Shared adapter imports 1000 real PNGs and traverses distant viewport.",
+      "source": "tests/ux/LibraryScenarios.cpp:32"
+    },
+    "UX-LIB-011": {
+      "reason": "Shared adapter imports 1000 real PNGs and traverses distant viewport.",
+      "source": "tests/ux/LibraryScenarios.cpp:32"
+    },
+    "UX-LIB-012": {
+      "reason": "100000 metadata-only catalog rows before real scroll/search interactions.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:29,52,76"
+    },
+    "UX-LIB-014": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-LIB-015": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-LIB-016": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-LIB-017": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-LIB-018": {
+      "reason": "Imports 200 real originals for thumbnail changed-role scope.",
+      "source": "tests/ux/ThumbnailRemainingScenarios.cpp:532"
+    },
+    "UX-NAV-001": {
+      "reason": "100 Library/Develop round trips.",
+      "source": "tests/ux/BasicScenarios.cpp:102"
+    },
+    "UX-NAV-002": {
+      "reason": "100 measured UI cycles each; PERF_LOCAL workload even on small fixture.",
+      "source": "tests/ux/CurrentPerformanceScenarios.cpp:206,249,366"
+    },
+    "UX-NAV-011": {
+      "reason": "50 Settings popup open/close cycles.",
+      "source": "tests/ux/NavigationScenarios.cpp:150,157,158"
+    },
+    "UX-NAV-012": {
+      "reason": "20 repeated notification popup open/Escape cycles.",
+      "source": "tests/ux/NavigationScenarios.cpp:198,199"
+    },
+    "UX-NAV-013": {
+      "reason": "24MP 6000x4000 stress/Large.png decode/import fixture.",
+      "source": "tests/ux/LifecycleScenarios.cpp:108,120,127; tests/ux/run_ux_suite.py:170"
+    },
+    "UX-NAV-014": {
+      "reason": "25 cycles x8 immediate pointer clicks =200 burst inputs.",
+      "source": "tests/ux/NavigationScenarios.cpp:157,163"
+    },
+    "UX-NAV-015": {
+      "reason": "10 same-control drag/save/footer-geometry cycles.",
+      "source": "tests/ux/NavigationScenarios.cpp:219"
+    },
+    "UX-PERF-006": {
+      "reason": "100000 metadata-only catalog rows before real scroll/search interactions.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:29,52,76"
+    },
+    "UX-PERF-017": {
+      "reason": "200 real panel enable/disable/collapse-expand cycles.",
+      "source": "tests/ux/PanelDetailStressScenarios.cpp:404,686"
+    },
+    "UX-PERF-018": {
+      "reason": "200 real panel enable/disable/collapse-expand cycles.",
+      "source": "tests/ux/PanelDetailStressScenarios.cpp:404,686"
+    },
+    "UX-PRS-012": {
+      "reason": "Creates 512 user presets and traverses virtualized list.",
+      "source": "tests/ux/PresetRemainingScenarios.cpp:534,572,582"
+    },
+    "UX-PRS-019": {
+      "reason": "333 create/rename/delete triplets +final create =1000 real preset store UI mutations.",
+      "source": "tests/ux/PresetRemainingScenarios.cpp:658"
+    },
+    "UX-PRV-001": {
+      "reason": "100 Original/Develop round trips (200 toggle inputs), shared adapter.",
+      "source": "tests/ux/BasicScenarios.cpp:230,257"
+    },
+    "UX-PRV-002": {
+      "reason": "100 measured UI cycles each; PERF_LOCAL workload even on small fixture.",
+      "source": "tests/ux/CurrentPerformanceScenarios.cpp:206,249,366"
+    },
+    "UX-PRV-003": {
+      "reason": "100 Original/Develop round trips (200 toggle inputs), shared adapter.",
+      "source": "tests/ux/BasicScenarios.cpp:230,257"
+    },
+    "UX-PRV-006": {
+      "reason": "24MP 6000x4000 stress/Large.png decode/import fixture.",
+      "source": "tests/ux/LifecycleScenarios.cpp:108,120,127; tests/ux/run_ux_suite.py:170"
+    },
+    "UX-PRV-008": {
+      "reason": "100 distinct real filmstrip activations after 100-source import.",
+      "source": "tests/ux/PreviewExtraScenarios.cpp:383,391"
+    },
+    "UX-PRV-013": {
+      "reason": "24MP 6000x4000 stress/Large.png decode/import fixture.",
+      "source": "tests/ux/LifecycleScenarios.cpp:108,120,127; tests/ux/run_ux_suite.py:170"
+    },
+    "UX-RACE-008": {
+      "reason": "256-source import and deliberately pending uncached page callback.",
+      "source": "tests/ux/PreviewExtraScenarios.cpp:455"
+    },
+    "UX-RACE-009": {
+      "reason": "1000-source real imports in each shared Library remaining adapter; insertion cases add more.",
+      "source": "tests/ux/LibraryRemainingScenarios.cpp:330,367,424,444,543,789"
+    },
+    "UX-SEL-006": {
+      "reason": "Shared selection branch imports 100 real sources; SEL016 additionally sends 100 queued shortcuts.",
+      "source": "tests/ux/SelectionScenarios.cpp:95,114"
+    },
+    "UX-SEL-007": {
+      "reason": "Shared adapter imports 100 real PNGs; FLT008 additionally types 200 keys.",
+      "source": "tests/ux/LibraryScenarios.cpp:105,107,115"
+    },
+    "UX-SEL-013": {
+      "reason": "Shared selection branch imports 1000 real sources.",
+      "source": "tests/ux/SelectionScenarios.cpp:95"
+    },
+    "UX-SEL-014": {
+      "reason": "Shared selection branch imports 100 real sources; SEL016 additionally sends 100 queued shortcuts.",
+      "source": "tests/ux/SelectionScenarios.cpp:95,114"
+    },
+    "UX-SEL-016": {
+      "reason": "Shared selection branch imports 100 real sources; SEL016 additionally sends 100 queued shortcuts.",
+      "source": "tests/ux/SelectionScenarios.cpp:95,114"
+    },
+    "UX-SEL-019": {
+      "reason": "Shared selection branch imports 1000 real sources.",
+      "source": "tests/ux/SelectionScenarios.cpp:95"
+    },
+    "UX-SLD-013": {
+      "reason": "1000 real pointer gestures.",
+      "source": "tests/ux/HistoryStressScenarios.cpp:217"
+    },
+    "UX-SLD-014": {
+      "reason": "10 basic controls x101 held pointer moves: input storm/stale-work drainage.",
+      "source": "tests/ux/HistoryStressScenarios.cpp:239,248,304"
+    },
+    "UX-SLD-019": {
+      "reason": "Shared adapter performs 50 heterogeneous drags; Undo/Redo cases add 50 Undo + 50 Redo.",
+      "source": "tests/ux/LifecycleScenarios.cpp:226,232,257,263"
+    },
+    "UX-TRN-011": {
+      "reason": "10 repeated constrain/unconstrain pairs (20 toggles and renders).",
+      "source": "tests/ux/TransformExtraScenarios.cpp:156"
+    },
+    "UX-TRN-014": {
+      "reason": "100 Auto/Cancel cycles.",
+      "source": "tests/ux/TransformExtraScenarios.cpp:142"
+    },
+    "UX-UND-001": {
+      "reason": "Shared adapter performs 50 heterogeneous drags; Undo/Redo cases add 50 Undo + 50 Redo.",
+      "source": "tests/ux/LifecycleScenarios.cpp:226,232,257,263"
+    },
+    "UX-UND-002": {
+      "reason": "Shared adapter performs 50 heterogeneous drags; Undo/Redo cases add 50 Undo + 50 Redo.",
+      "source": "tests/ux/LifecycleScenarios.cpp:226,232,257,263"
+    },
+    "UX-UND-003": {
+      "reason": "Shared adapter performs 50 heterogeneous drags; Undo/Redo cases add 50 Undo + 50 Redo.",
+      "source": "tests/ux/LifecycleScenarios.cpp:226,232,257,263"
+    },
+    "UX-UND-010": {
+      "reason": "Shared adapter performs 50 heterogeneous drags; Undo/Redo cases add 50 Undo + 50 Redo.",
+      "source": "tests/ux/LifecycleScenarios.cpp:226,232,257,263"
+    },
+    "UX-UND-016": {
+      "reason": "500 Curve/HSL edits + 200 retained Undo + 200 Redo.",
+      "source": "tests/ux/HistoryStressScenarios.cpp:109,125,142,155"
+    },
+    "UX-UPD-003": {
+      "reason": "All operation variants use 1000-source import/Copy, batch or export queue.",
+      "source": "tests/ux/UpdaterScenarios.cpp:77,99"
+    },
+    "UX-UPD-004": {
+      "reason": "All operation variants use 1000-source import/Copy, batch or export queue.",
+      "source": "tests/ux/UpdaterScenarios.cpp:77,99"
+    },
+    "UX-VIS-004": {
+      "reason": "Creates 100 owned report sources; VIS004/EXP011 import+export100 failures, VIS005 imports100 invalid images.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:485,493,501; tests/ux/BasicScenarios.cpp:44"
+    },
+    "UX-VIS-005": {
+      "reason": "Creates 100 owned report sources; VIS004/EXP011 import+export100 failures, VIS005 imports100 invalid images.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:485,493,501; tests/ux/BasicScenarios.cpp:44"
+    },
+    "UX-VIS-006": {
+      "reason": "20 repeated same-control edit/autosave/layout-check cycles.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:624"
+    },
+    "UX-VIS-009": {
+      "reason": "10 repeated cycles x3 popup close/underlying gesture/Undo workflows.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:672,673"
+    },
+    "UX-VIS-010": {
+      "reason": "10 repeated empty disabled-control sequences plus20 repeated focused disabled-control sequences.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:733,773"
+    },
+    "UX-VIS-011": {
+      "reason": "10 repeated cycles x2 tooltip/popup workflows.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:798,799"
+    },
+    "UX-VIS-012": {
+      "reason": "20 repeated panel expansion/scroll/collapse/reflow cycles.",
+      "source": "tests/ux/VisualRemainingScenarios.cpp:885"
+    }
+  },
+  "fixture_photo_overrides": {
+    "UX-IMP-009": 20,
+    "UX-MAC-007": 2,
+    "UX-MAC-008": 2
+  },
+  "default_quality_photo_count": 10
+}

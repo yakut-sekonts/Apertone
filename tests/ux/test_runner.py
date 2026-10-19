@@ -3,6 +3,8 @@ import argparse
 import importlib.util
 import io
 import json
+import hashlib
+import run_keyboard_regression as keyboard_runner
 from pathlib import Path
 import signal
 import sqlite3
@@ -260,6 +262,7 @@ class GateTests(unittest.TestCase):
     def test_scenario_deadlines_preserve_explicit_override(self):
         defaults = argparse.Namespace(timeout=None)
         self.assertEqual(runner.scenario_timeout('UX-NAV-001', defaults), 180)
+        self.assertEqual(runner.scenario_timeout('UX-MAC-008', defaults), 300)
         self.assertEqual(runner.scenario_timeout('UX-UND-016', defaults), 600)
         self.assertEqual(runner.scenario_timeout('UX-ADV-013', defaults), 600)
         self.assertEqual(runner.scenario_timeout('UX-PRS-019', defaults), 900)
@@ -268,7 +271,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(runner.scenario_timeout('UX-NAV-002', defaults), 300)
         for value in (1, 17, 1200):
             override = argparse.Namespace(timeout=value)
-            for identifier in ('UX-NAV-001', 'UX-UND-016', 'UX-PRS-019'):
+            for identifier in ('UX-NAV-001', 'UX-UND-016', 'UX-PRS-019', 'UX-MAC-008'):
                 self.assertEqual(runner.scenario_timeout(identifier, override), value)
 
     def test_release_repeats_blockers_without_tripling_default_soaks(self):
@@ -507,18 +510,104 @@ else:
             self.assertEqual(len(result['stages']), 2)
             self.assertNotEqual(result['stages'][0]['child_pid'], result['stages'][1]['child_pid'])
 
-    def test_updater_checks_all_three_operations_in_distinct_processes(self):
+    def _fake_isolated_variant_children(self, identifier, variants, failed_variant=None):
+        # Infrastructure fixture only: no native application, volume or UI claim.
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             child = root / 'luma_ux_tests'
-            child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\nvariant=sys.argv[sys.argv.index("--variant")+1]\n(r/"result.json").write_text(json.dumps({"id":"UX-UPD-003","status":"FAIL" if variant == "batch" else "PASS","message":variant}))\n')
+            child.write_text('''#!/usr/bin/env python3
+import json,sys
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+identifier=sys.argv[sys.argv.index("--case")+1]
+variant=sys.argv[sys.argv.index("--variant")+1]
+assert "--stage" not in sys.argv and "--state-root" not in sys.argv
+sentinel=r/"process-state.txt"
+assert not sentinel.exists()
+sentinel.write_text(variant)
+failed_variant=''' + repr(failed_variant) + '''
+(r/"result.json").write_text(json.dumps({"id":identifier,"status":"FAIL" if variant == failed_variant else "PASS","message":variant}))
+''')
             child.chmod(0o755)
-            result = runner.execute_scenario({'id': 'UX-UPD-003', 'scope': 'CURRENT', 'mode': 'BLOCKING',
-                                             'severity': 'P1', 'scenario': 'Fake updater operations'},
-                                            root / 'result', argparse.Namespace(build=root, timeout=10), root)
+            destination = root / 'result'
+            # Deliberately contaminated caller namespace must not become shared state.
+            arguments = argparse.Namespace(build=root, timeout=10, stage='prepare',
+                                           state_root=root / 'forbidden-shared-state',
+                                           variant='wrong-inherited-variant')
+            row = {'id': identifier, 'scope': 'ALL', 'mode': 'REGRESSION',
+                   'severity': 'P1', 'scenario': 'Fake isolated operation children'}
+            result = runner.execute_scenario(row, destination, arguments, root)
+            expected_status = 'FAIL' if failed_variant else 'PASS'
+            self.assertEqual(result['id'], identifier)
+            self.assertEqual(result['status'], expected_status)
+            self.assertEqual(result['metric_scope'], 'final_stage')
+            self.assertEqual(len(result['stages']), len(variants))
+            self.assertEqual([stage['variant'] for stage in result['stages']], list(variants))
+            self.assertEqual([stage['message'] for stage in result['stages']], list(variants))
+            self.assertEqual(len({stage['child_pid'] for stage in result['stages']}), len(variants))
+            expected_roots = [destination / f'{index + 1:02}-{variant}'
+                              for index, variant in enumerate(variants)]
+            self.assertEqual([Path(stage['artifacts']) for stage in result['stages']], expected_roots)
+            self.assertEqual(len(set(expected_roots)), len(variants))
+            for stage, variant, case_root in zip(result['stages'], variants, expected_roots):
+                self.assertEqual(stage['id'], identifier)
+                self.assertEqual(stage['child_returncode'], 0)
+                command = json.loads((case_root / 'command.json').read_text())
+                self.assertEqual(command[command.index('--case') + 1], identifier)
+                self.assertEqual(command[command.index('--variant') + 1], variant)
+                self.assertEqual(Path(command[command.index('--root') + 1]), case_root)
+                self.assertNotIn('--stage', command)
+                self.assertNotIn('--state-root', command)
+                self.assertEqual((case_root / 'process-state.txt').read_text(), variant)
+                self.assertEqual(json.loads((case_root / 'child-result.json').read_text())['id'], identifier)
+            self.assertFalse((destination / 'state').exists())
+            self.assertFalse(arguments.state_root.exists())
+            self.assertEqual(arguments.stage, 'prepare')
+            self.assertEqual(arguments.variant, 'wrong-inherited-variant')
+            self.assertEqual(json.loads((destination / 'result.json').read_text())['status'], expected_status)
+
+    def test_updater_checks_all_three_operations_in_distinct_processes(self):
+        self._fake_isolated_variant_children('UX-UPD-003', ('import', 'export', 'batch'), 'batch')
+
+    def test_mac008_requires_both_variants_in_distinct_processes_without_shared_state(self):
+        self._fake_isolated_variant_children('UX-MAC-008', ('copy', 'export'))
+
+    def _mac008_failure_aggregation(self, failed_variant, expected_variants):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            row = {'id': 'UX-MAC-008', 'scope': 'ALL', 'mode': 'REGRESSION',
+                   'severity': 'P1', 'scenario': 'Mocked isolated variant failure accounting'}
+            calls = []
+
+            def fake_execute(received_row, destination, arguments, fixtures):
+                self.assertEqual(received_row, row)
+                self.assertEqual(fixtures, root)
+                self.assertFalse(hasattr(arguments, 'stage'))
+                self.assertFalse(hasattr(arguments, 'state_root'))
+                calls.append((destination, arguments.variant))
+                return {'id': row['id'], 'status': 'FAIL' if arguments.variant == failed_variant else 'PASS',
+                        'message': arguments.variant, 'variant': arguments.variant,
+                        'artifacts': str(destination), 'child_pid': 100 + len(calls),
+                        'wall_duration_ms': 7}
+
+            with patch.object(runner, 'execute', side_effect=fake_execute):
+                result = runner.execute_scenario(
+                    row, root / 'result', argparse.Namespace(build=root, stage='verify',
+                                                            state_root=root / 'unexpected-shared-state'), root)
+            self.assertEqual([variant for _, variant in calls], list(expected_variants))
+            self.assertEqual([path.name for path, _ in calls],
+                             [f'{index + 1:02}-{variant}' for index, variant in enumerate(expected_variants)])
+            self.assertEqual([stage['variant'] for stage in result['stages']], list(expected_variants))
             self.assertEqual(result['status'], 'FAIL')
-            self.assertEqual([stage['message'] for stage in result['stages']], ['import', 'export', 'batch'])
-            self.assertEqual(len({stage['child_pid'] for stage in result['stages']}), 3)
+            self.assertEqual(result['message'], failed_variant)
+            self.assertEqual(result['wall_duration_ms'], 7 * len(expected_variants))
+            self.assertEqual(json.loads((root / 'result' / 'result.json').read_text())['status'], 'FAIL')
+
+    def test_mac008_copy_failure_prevents_export_and_cannot_pass(self):
+        self._mac008_failure_aggregation('copy', ('copy',))
+
+    def test_mac008_export_failure_cannot_hide_behind_copy_pass(self):
+        self._mac008_failure_aggregation('export', ('copy', 'export'))
 
     def test_invalid_kill_checkpoint_never_passes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -537,6 +626,132 @@ time.sleep(30)
                                     root / 'result', argparse.Namespace(build=root, timeout=10, stage='prepare'), root)
             self.assertEqual(result['status'], 'FAIL')
             self.assertEqual(result['message'], 'Invalid intentional-kill stage marker')
+
+
+class SupplementalKeyboardTests(unittest.TestCase):
+    def _cli(self, *, status='PASS', flags=(), record='valid', changed=False):
+        # Accounting/preflight fixture only: no application, screen or native inputs.
+        subject = keyboard_runner.runner
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            build = root / 'build'
+            build.mkdir()
+            snapshot = {'source_tree_sha256': 'source', 'test_executable_sha256': 'binary',
+                        'commit': 'fixture', 'worktree_dirty': False}
+            if record != 'missing':
+                recorded = {'schema': 1, **snapshot}
+                if record == 'mismatch':
+                    recorded['test_executable_sha256'] = 'other'
+                (build / 'ux-build-provenance.json').write_text(json.dumps(recorded))
+            end = {**snapshot, 'source_tree_sha256': 'changed' if changed else 'source'}
+            (build / 'ux-report').mkdir()
+            official_report = build / 'ux-report' / 'UX_REPORT.json'
+            official_report.write_text('unchanged-official-report')
+            argv = ['run_keyboard_regression.py', '--build', str(build), '--runs', '3',
+                    '--require-build-provenance', *flags]
+            stderr = io.StringIO()
+
+            def fake_execute(row, destination, arguments, fixture_folder):
+                destination.mkdir(parents=True)
+                return {**row, 'status': status, 'child_pid': 123, 'artifacts': str(destination)}
+
+            with (patch.object(subject, 'source_phase', return_value='0.5'),
+                  patch.object(subject, 'fingerprint', side_effect=[snapshot, snapshot, end]),
+                  patch.object(keyboard_runner, 'one_png_fixture', return_value={}) as fixtures,
+                  patch.object(subject, 'execute_scenario', side_effect=fake_execute) as execute,
+                  patch.object(subject, 'qualify') as qualify,
+                  patch.object(subject, 'write_reports') as reports,
+                  patch.object(subject.fcntl, 'flock'),
+                  patch.object(subject.tempfile, 'gettempdir', return_value=str(root)),
+                  patch('sys.argv', argv), patch('sys.stderr', stderr), patch('builtins.print')):
+                try:
+                    code = keyboard_runner.main()
+                except SystemExit as error:
+                    code = error.code
+                qualify.assert_not_called()
+                self.assertEqual(official_report.read_text(), 'unchanged-official-report')
+                if reports.called:
+                    self.assertEqual(reports.call_args.args[1], build / 'ux-keyboard-report')
+                    self.assertEqual(fixtures.call_args.args[0].name, 'public-fixtures-supplemental')
+                    self.assertEqual(fixtures.call_args.args[0].parent.parent, build / 'ux-artifacts')
+                return {'code': code, 'children': execute.call_count, 'fixtures': fixtures.call_count,
+                        'summary': reports.call_args.args[0] if reports.called else None,
+                        'stderr': stderr.getvalue()}
+
+    def test_supplemental_pass_fail_and_source_change_never_qualify_official_inventory(self):
+        subject = keyboard_runner.runner
+        original_ids = [row['id'] for row in subject.INVENTORY]
+        self.assertEqual(len(original_ids), 770)
+        self.assertEqual(keyboard_runner.IDENTIFIERS,
+                         {keyboard_runner.IDENTIFIER, keyboard_runner.KEYPAD_IDENTIFIER})
+        self.assertEqual({row['id'] for row in keyboard_runner.INVENTORY},
+                         keyboard_runner.IDENTIFIERS)
+        for identifier in sorted(keyboard_runner.IDENTIFIERS):
+            with self.subTest(identifier=identifier):
+                self.assertNotIn(identifier, original_ids)
+                self.assertNotIn(identifier, subject.NATIVE)
+        for status, changed, code, execution in (('PASS', False, 0, 'PASS'),
+                                                  ('FAIL', False, 1, 'FAIL'),
+                                                  ('PASS', True, 1, 'INCOMPLETE')):
+            with self.subTest(status=status, changed=changed):
+                result = self._cli(status=status, changed=changed)
+                summary = result['summary']
+                self.assertEqual(result['code'], code)
+                self.assertEqual(result['children'], 6)
+                self.assertEqual(summary['inventory_domain'], 'supplemental')
+                self.assertEqual(summary['official_inventory_count'], 770)
+                self.assertEqual(summary['selected_inventory_count'], 2)
+                self.assertEqual(summary['release_gate'], 'NOT_QUALIFIED')
+                self.assertEqual(summary['execution_status'], execution)
+                self.assertEqual(summary['blocking_missing_or_failed'], [])
+                self.assertEqual({row['id'] for row in summary['results']},
+                                 keyboard_runner.IDENTIFIERS)
+                self.assertEqual([row['id'] for row in subject.INVENTORY], original_ids)
+
+    def test_supplemental_case_selects_each_keyboard_variant(self):
+        for identifier in sorted(keyboard_runner.IDENTIFIERS):
+            with self.subTest(identifier=identifier):
+                result = self._cli(flags=('--case', identifier))
+                self.assertEqual(result['code'], 0)
+                self.assertEqual(result['children'], 3)
+                self.assertEqual(result['fixtures'], 1)
+                self.assertEqual(result['summary']['release_gate'], 'NOT_QUALIFIED')
+                self.assertEqual({row['id'] for row in result['summary']['results']},
+                                 {identifier})
+
+    def test_supplemental_preflight_rejects_wrong_scope_flags_and_unattested_builds(self):
+        for flags in (('--release-qualification',), ('--phase', '0.5'), ('--seed', '1'),
+                      ('--actions', '1'), ('--replay', '/absent-replay'),
+                      ('--suite', 'blocking'), ('--case', 'UX-KEY-015'), ('--quality-only',)):
+            with self.subTest(flags=flags):
+                result = self._cli(flags=flags)
+                self.assertEqual(result['code'], 2)
+                self.assertEqual(result['children'], 0)
+                self.assertEqual(result['fixtures'], 0)
+                self.assertIsNone(result['summary'])
+        for record in ('missing', 'mismatch'):
+            with self.subTest(record=record):
+                result = self._cli(record=record)
+                self.assertEqual(result['code'], 2)
+                self.assertIn('Build provenance preflight failed', result['stderr'])
+                self.assertEqual(result['children'], 0)
+                self.assertEqual(result['fixtures'], 0)
+
+    def test_keyboard_fixture_uses_exactly_one_small_png_and_does_not_rewrite_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory) / 'fixtures'
+            with patch.object(keyboard_runner.runner, 'fixtures', side_effect=AssertionError('No bulk fixture setup')):
+                checksums = keyboard_runner.one_png_fixture(folder)
+                source = folder / 'Photo-0000.png'
+                before = source.stat().st_mtime_ns
+                self.assertEqual(keyboard_runner.one_png_fixture(folder), checksums)
+            raw = source.read_bytes()
+            self.assertEqual(raw[:8], b'\x89PNG\r\n\x1a\n')
+            self.assertEqual(int.from_bytes(raw[16:20], 'big'), 256)
+            self.assertEqual(int.from_bytes(raw[20:24], 'big'), 192)
+            self.assertEqual(checksums, {str(source.resolve()): hashlib.sha256(raw).hexdigest()})
+            self.assertEqual(list(folder.iterdir()), [source])
+            self.assertEqual(source.stat().st_mtime_ns, before)
 
 
 if __name__ == '__main__':

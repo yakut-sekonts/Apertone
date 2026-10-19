@@ -408,32 +408,45 @@ void firstPageOnResetTests(const std::filesystem::path &root) {
     db.verify();
 }
 
-void modelTests(const std::filesystem::path &root) {
-    const auto path = root / "large.sqlite";
+void modelTests(const std::filesystem::path &root, bool scaleContract) {
+    const int rowCount = scaleContract ? 100000 : 256;
+    const auto path = root / (scaleContract ? "large.sqlite" : "bounded-model.sqlite");
     {
         luma::Catalog db(path);
     }
-    sql(path, R"sql(BEGIN;
-        WITH RECURSIVE n(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM n WHERE i<100000)
+    const auto createRows = std::string("BEGIN; WITH RECURSIVE n(i) AS (VALUES(1) UNION ALL "
+                                        "SELECT i+1 FROM n WHERE i<") +
+                            std::to_string(rowCount) + R"sql()
         INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,width,height,orientation,camera)
         SELECT printf('%06d',i),'/fixture/'||printf('%06d',i)||'.dng',printf('%06d',i)||'.dng','dng',1,'fixture',128,96,0,'Synthetic' FROM n;
-        INSERT INTO edit_documents(asset_id) SELECT id FROM assets;COMMIT;)sql");
+        INSERT INTO edit_documents(asset_id) SELECT id FROM assets;COMMIT;)sql";
+    sql(path, createRows.c_str());
     luma::Catalog db(path);
-    require(db.libraryCount() == 100000, "Large fixture count is wrong.");
-    require(db.libraryPage({}, 99990, 128).size() == 10, "Last metadata page boundary failed.");
+    require(db.libraryCount() == rowCount, "Metadata fixture count is wrong.");
+    require(db.libraryPage({}, rowCount - 10, 128).size() == 10,
+            "Last metadata page boundary failed.");
     LibraryModel model(path);
-    wait([&] { return !model.working() && !model.loading() && model.count() == 100000; });
-    for (int page = 0; page < 40; ++page) {
-        const int row = page * 2000;
+    wait([&] {
+        return !model.working() && !model.loading() && model.count() == rowCount &&
+               model.rowCount() == rowCount;
+    });
+    const auto readPage = [&](int row) {
         model.data(model.index(row), LibraryModel::AssetID);
         wait([&] {
             return !model.data(model.index(row), LibraryModel::AssetID).toString().isEmpty();
         });
         require(model.cachedPages() <= LibraryModel::maximumPages,
                 "Page cache exceeded its bound.");
+    };
+    if (scaleContract) {
+        for (int page = 0; page < 40; ++page)
+            readPage(page * 2000);
+    } else {
+        for (const int row : {0, 128, 255})
+            readPage(row);
     }
     model.selectAll();
-    wait([&] { return model.selectedCount() == 100000; });
+    wait([&] { return model.selectedCount() == rowCount; });
     model.clearSelection();
     model.data(model.index(0), LibraryModel::AssetID);
     wait([&] { return !model.data(model.index(0), LibraryModel::AssetID).toString().isEmpty(); });
@@ -462,24 +475,32 @@ void modelTests(const std::filesystem::path &root) {
     model.rate(0);
     wait([&] { return !model.working() && !model.loading() && model.count() == 4; });
     require(metadataResets > 0, "A metadata filter retained an asset that no longer matches.");
-    std::cout
-        << "100k metadata rows: <=16 cached pages (2048 rows); selection and filters passed\n";
+    std::cout << (scaleContract ? "100k metadata rows: <=16 cached pages (2048 rows); selection "
+                                  "and filters passed\n"
+                                : "256 metadata rows: two page boundaries, selection/filter/cache "
+                                  "notifications passed; scale deferred\n");
 }
 } // namespace
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
     if (argc != 2)
         return 2;
+    const bool scaleContract = std::string(argv[1]) == "--scale-contract";
     const auto root = std::filesystem::temp_directory_path() / ("luma-library-" + luma::newID());
     std::filesystem::create_directories(root);
     try {
-        catalogTests(root, argv[1]);
-        importTests(root, argv[1]);
-        viewportTests(root);
-        firstPageOnResetTests(root);
-        modelTests(root);
+        if (scaleContract) {
+            modelTests(root, true);
+        } else {
+            catalogTests(root, argv[1]);
+            importTests(root, argv[1]);
+            viewportTests(root);
+            firstPageOnResetTests(root);
+            modelTests(root, false);
+        }
         std::filesystem::remove_all(root);
-        std::cout << "Library unit tests passed\n";
+        std::cout << (scaleContract ? "Library 100k scale contract passed\n"
+                                    : "Library functional unit tests passed\n");
         return 0;
     } catch (const std::exception &e) {
         std::filesystem::remove_all(root);

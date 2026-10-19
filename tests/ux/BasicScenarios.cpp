@@ -1,6 +1,7 @@
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include "tests/ux/UxTestIds.h"
+#include <QElapsedTimer>
 #include <QQmlComponent>
 #include <QSignalSpy>
 #include <QTest>
@@ -34,6 +35,9 @@ bool exportSettingsScenario(Context &, const QString &);
 bool exportStressScenario(Context &, const QString &);
 bool exportResizeScenario(Context &, const QString &);
 bool removableSourceScenario(Context &, const QString &);
+bool removableDestinationScenario(Context &, const QString &, const QString &);
+bool copyDestinationScenario(Context &, const QString &, const QString &);
+bool keyboardActivationCandidate(Context &, const QString &);
 bool panelDetailStressScenario(Context &, const QString &);
 bool thumbnailRemainingScenario(Context &, const QString &);
 bool retinaScenario(Context &, const QString &);
@@ -44,18 +48,19 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (removableSourceScenario(c, id) || exportResizeScenario(c, id) || retinaScenario(c, id) ||
-        thumbnailRemainingScenario(c, id) || panelDetailStressScenario(c, id) ||
-        exportStressScenario(c, id) || exportSettingsScenario(c, id) ||
-        batchUpdateRemainingScenario(c, id) || libraryRemainingScenario(c, id) ||
-        visualRemainingScenario(c, id) || gestureRemainingScenario(c, id) ||
-        whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
-        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
-        presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
-        sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
-        presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
-        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
-        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (keyboardActivationCandidate(c, id) || copyDestinationScenario(c, id, {}) ||
+        removableDestinationScenario(c, id, {}) || removableSourceScenario(c, id) ||
+        exportResizeScenario(c, id) || retinaScenario(c, id) || thumbnailRemainingScenario(c, id) ||
+        panelDetailStressScenario(c, id) || exportStressScenario(c, id) ||
+        exportSettingsScenario(c, id) || batchUpdateRemainingScenario(c, id) ||
+        libraryRemainingScenario(c, id) || visualRemainingScenario(c, id) ||
+        gestureRemainingScenario(c, id) || whiteBalanceScenario(c, id) || appExtraScenario(c, id) ||
+        exportExtraScenario(c, id) || importExtraScenario(c, id) ||
+        currentPerformanceScenario(c, id) || presetRemainingScenario(c, id) ||
+        historyStressScenario(c, id) || sliderExtraScenario(c, id) || previewExtraScenario(c, id) ||
+        recoveryExtraScenario(c, id) || presetExtraScenario(c, id) || navigationScenario(c, id) ||
+        transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
+        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;
@@ -213,16 +218,59 @@ void basicScenario(Context &c, const QString &id) {
         const auto before = c.editor.currentSettings();
         auto *flickable =
             qvariant_cast<QObject *>(d.object(ids::adjustments)->property("contentItem"));
+        require(flickable, "Adjustment ScrollView has no Flickable");
+        auto *view = qobject_cast<QQuickItem *>(flickable);
+        auto *slider = d.item(ids::exposure);
         const double y = flickable->property("contentY").toDouble();
+        const double origin = flickable->property("originY").toDouble();
+        const double height = flickable->property("height").toDouble();
+        const double contentHeight = flickable->property("contentHeight").toDouble();
+        require(view && slider->isVisible() && slider->isEnabled() &&
+                    view->contains(slider->mapToItem(view, slider->boundingRect().center())) &&
+                    !slider->property("wheelEnabled").toBool() &&
+                    flickable->property("interactive").toBool() &&
+                    !flickable->property("moving").toBool() && std::isfinite(y) &&
+                    std::isfinite(origin) && std::isfinite(height) &&
+                    std::isfinite(contentHeight) && height > 0 && y >= origin &&
+                    y < origin + contentHeight - height,
+                "GATE: wheel over Slider needs a visible target and available page scroll range");
+        QElapsedTimer elapsed;
+        elapsed.start();
         d.log({{"action", "slider_scroll_probe"},
-               {"wheel_enabled", d.item(ids::exposure)->property("wheelEnabled").toBool()},
+               {"wheel_enabled", slider->property("wheelEnabled").toBool()},
+               {"angle_delta_y", -120},
                {"content_y", y}});
         d.wheel(ids::exposure, -120);
-        d.frame();
+        // One animation tick may be time zero. Acknowledge this same wheel's
+        // actual displacement; never send a second input to rescue the test.
+        d.wait(
+            [&] {
+                return flickable->property("contentY").toDouble() > y ||
+                       c.editor.currentSettings() != before;
+            },
+            "page displacement from the single wheel over Slider", 1000);
         require(c.editor.currentSettings() == before,
                 "Page scroll over slider accidentally changed a value");
-        require(flickable->property("contentY").toDouble() > y,
-                "Page scroll was swallowed over slider");
+        d.wait(
+            [&] {
+                return !flickable->property("moving").toBool() ||
+                       c.editor.currentSettings() != before;
+            },
+            "single-wheel page scroll settled", 3000);
+        require(c.editor.currentSettings() == before,
+                "Settling page scroll over slider accidentally changed a value");
+        const double after = flickable->property("contentY").toDouble();
+        require(std::isfinite(after) && after > y && after >= origin &&
+                    after <= origin + contentHeight - height &&
+                    flickable->property("originY").toDouble() == origin &&
+                    flickable->property("height").toDouble() == height &&
+                    flickable->property("contentHeight").toDouble() == contentHeight,
+                "Page scroll was swallowed over slider or changed its viewport geometry");
+        d.log({{"action", "slider_scroll_settled"},
+               {"content_y_before", y},
+               {"content_y_after", after},
+               {"elapsed_ms", elapsed.elapsed()},
+               {"document_unchanged", true}});
     } else if (id == "UX-PRV-001" || id == "UX-PRV-003" || id == "UX-KEY-006") {
         c.openFirst();
         const auto initial = c.editor.currentSettings();

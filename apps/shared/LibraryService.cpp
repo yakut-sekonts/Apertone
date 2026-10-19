@@ -170,6 +170,9 @@ void copyAndInstall(const std::filesystem::path &source, CopyCleanup &copy,
     if (link(copy.temporary.c_str(), copy.target.c_str()) != 0)
         throw std::runtime_error("Cannot install Copy without replacing an existing file.");
     copy.published = true;
+    if (unlink(copy.temporary.c_str()) != 0)
+        throw std::runtime_error("Cannot remove imported Copy temporary.");
+    copy.temporaryOwned = false;
     Descriptor directory(open(copy.target.parent_path().c_str(), O_RDONLY));
     if (fsync(directory.value) != 0)
         throw std::runtime_error("Cannot sync Copy directory.");

@@ -210,7 +210,9 @@ luma::ImportJournal publishedCheckpoint(Context &c, const QString &destination, 
                 first.target.parent_path().parent_path() ==
                     journal.destination / ("Luma-" + journal.id) &&
                 first.target.parent_path().filename() == "0" &&
-                QFileInfo::exists(QString::fromStdString(first.temporary.string())) &&
+                !QFileInfo::exists(QString::fromStdString(first.temporary.string())) &&
+                std::filesystem::is_regular_file(first.target) &&
+                std::filesystem::hard_link_count(first.target) == 1 &&
                 hash(QString::fromStdString(first.target.string())) ==
                     hash(QString::fromStdString(first.source.string())),
             "Held Copy boundary lacks the exact owned first-file staged/published evidence");
@@ -392,9 +394,8 @@ bool importExtraScenario(Context &c, const QString &id) {
             const auto sessionDirectory = QString::fromStdString(
                 journal.items.front().target.parent_path().parent_path().string());
             DirectoryModes modes;
-            // Keep the already-published index-0 directory writable so its current
-            // CopyCleanup can unlink its own temporary hard link. New per-file
-            // directories are denied at the existing destination/session parents.
+            // The published index-0 file already has one link. Deny new per-file
+            // directories at the existing destination/session parents.
             modes.change(destination, 0555);
             modes.change(sessionDirectory, 0555);
             deniedCreate(destination);

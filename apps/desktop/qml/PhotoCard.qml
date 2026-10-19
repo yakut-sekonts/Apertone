@@ -15,11 +15,35 @@ Rectangle {
     required property bool activePhoto
     property bool compact: false
     property int retryCount: 0
+    readonly property var keyboardView: compact ? card.ListView.view : card.GridView.view
+    readonly property bool keyboardFocusEligible: assetID.length > 0 &&
+        keyboardView && keyboardView.visible && parent === keyboardView.contentItem &&
+        width > 0 && height > 0 &&
+        x >= keyboardView.contentX && x + width <= keyboardView.contentX + keyboardView.width &&
+        y >= keyboardView.contentY && y + height <= keyboardView.contentY + keyboardView.height
+    // Qt forbids clearing the Tab flag on its active focus item.
+    activeFocusOnTab: keyboardFocusEligible || activeFocus
+    function openFromKeyboard(event) {
+        event.accepted = event.modifiers === Qt.NoModifier ||
+            (event.key === Qt.Key_Enter && event.modifiers === Qt.KeypadModifier)
+        if (!event.accepted || event.isAutoRepeat || editor.busy || !card.activeFocus ||
+            !card.keyboardFocusEligible)
+            return
+        const row = card.index
+        library.select(row, false, false)
+        library.activate(row)
+    }
+    Keys.onReturnPressed: function(event) {
+        card.openFromKeyboard(event)
+    }
+    Keys.onEnterPressed: function(event) {
+        card.openFromKeyboard(event)
+    }
     onThumbnailURLChanged: retryCount = 0
     color: selected ? "#393027" : "#1b1e24"
     radius: 6
-    border.width: selected || activePhoto ? 2 : 1
-    border.color: selected ? "#dfae77" : activePhoto ? "#859ec1" : "#2a2f38"
+    border.width: selected || activePhoto || activeFocus ? 2 : 1
+    border.color: selected ? "#dfae77" : activePhoto || activeFocus ? "#859ec1" : "#2a2f38"
     Image {
         id: thumbnail
         objectName: "photoThumbnail"

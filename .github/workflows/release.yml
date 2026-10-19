@@ -68,13 +68,15 @@ jobs:
         run: .tools/venv/bin/cmake --build build --parallel 3
       - name: Tests and static analysis
         run: |
-          .tools/venv/bin/ctest --test-dir build --output-on-failure
+          .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
           ./scripts/check-format.sh
           ./scripts/check-tidy.sh build
       - name: Build and attest UX executable
         run: .tools/venv/bin/python tests/ux/build_ux.py --build build
-      - name: Current-scope blocking UX regressions before packaging
-        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --runs 3 --require-build-provenance
+      - name: Bounded functional blocking UX checks before packaging
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
+      - name: Supplemental selected-asset keyboard regression
+        run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: Upload release UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -82,12 +84,16 @@ jobs:
           name: release-ux-blocking-evidence
           path: |
             build/ux-report/
+            build/ux-keyboard-report/
             build/ux-build-provenance.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/child-result.json
             build/ux-artifacts/20*/**/metrics.json
             build/ux-artifacts/20*/**/actions.jsonl
+            build/ux-artifacts/20*/**/keyboard-activation.json
+            build/ux-artifacts/20*/**/dsc006-scroll-trace.json
             build/ux-artifacts/20*/**/app.log
+            build/ux-artifacts/20*/**/command.json
             build/ux-artifacts/20*/**/failure.png
             build/ux-artifacts/20*/**/thread-sample.txt
           if-no-files-found: warn

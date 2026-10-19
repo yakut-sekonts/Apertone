@@ -1,13 +1,17 @@
 #include "apps/shared/PresetStore.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
+#include <QElapsedTimer>
 #include <QGuiApplication>
+#include <QJsonArray>
 #include <QPointer>
 #include <QSet>
 #include <QStyleHints>
 #include <QTest>
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
+#include <exception>
 #include <optional>
 #include <vector>
 
@@ -238,6 +242,137 @@ void scrollHeight(Context &c) {
     durable(c, c.editor.photoID(), expected);
     rendered(c, expected);
 }
+// Bounded passive reload/layout evidence for UX-DSC-006. No event pumping or input.
+class ScrollPhotoTrace {
+  public:
+    ScrollPhotoTrace(Context &context, double baseline)
+        : c(context), baselineY(baseline), viewport(qobject_cast<QQuickItem *>(flickable(c))),
+          filmstrip(qobject_cast<QQuickItem *>(c.driver->find("develop.filmstrip"))),
+          control(qobject_cast<QQuickItem *>(c.driver->find(deepID))) {
+        elapsed.start();
+        require(viewport && filmstrip && control && viewport->height() > 0,
+                "Photo-switch trace requires the actual visible Develop geometry");
+        baselineViewport = viewport->height();
+        QObject::connect(&c.library, &LibraryModel::reloadStarted, &observer,
+                         [this](bool preserve) {
+                             record(preserve ? "reloadStarted.preserve" : "reloadStarted.clear");
+                         });
+        QObject::connect(&c.library, &LibraryModel::stateChanged, &observer,
+                         [this] { record("library.stateChanged"); });
+        QObject::connect(&c.library, &QAbstractItemModel::modelAboutToBeReset, &observer,
+                         [this] { record("library.modelAboutToBeReset"); });
+        QObject::connect(&c.library, &QAbstractItemModel::modelReset, &observer,
+                         [this] { record("library.modelReset"); });
+        QObject::connect(c.window, &QQuickWindow::afterAnimating, &observer,
+                         [this] { record("window.afterAnimating"); });
+        QObject::connect(c.window, &QQuickWindow::activeFocusItemChanged, &observer,
+                         [this] { record("window.activeFocusItemChanged"); });
+        if (viewport)
+            QObject::connect(viewport.data(), &QQuickItem::heightChanged, &observer,
+                             [this] { record("viewport.heightChanged"); });
+        if (filmstrip) {
+            QObject::connect(filmstrip.data(), &QQuickItem::heightChanged, &observer,
+                             [this] { record("filmstrip.heightChanged"); });
+            QObject::connect(filmstrip.data(), &QQuickItem::visibleChanged, &observer,
+                             [this] { record("filmstrip.visibleChanged"); });
+        }
+        record("installed.beforeAtoB");
+    }
+    void mark(const QString &value) {
+        phase = value;
+        record("checkpoint");
+    }
+    void save(const QString &reason) const {
+        writeJson(c.root + "/dsc006-scroll-trace.json",
+                  {{"scope", "passive DSC006 A-to-B/B-to-A layout/focus trace"},
+                   {"reason", reason},
+                   {"baseline_y", baselineY},
+                   {"baseline_viewport_height", baselineViewport},
+                   {"dropped_events", dropped},
+                   {"events", events},
+                   {"current", snapshot("write")}});
+    }
+    void verifyReloadGeometry(const QString &expectedPhase) const {
+        bool observedPendingReload = false;
+        for (const auto &value : events) {
+            const auto event = value.toObject();
+            if (event["phase"].toString() != expectedPhase || !event["library_loading"].toBool() ||
+                event["library_count"].toInt() != 0 || !event["editor_has_photo"].toBool())
+                continue;
+            observedPendingReload = true;
+            const auto scroll = event["scroll"].toObject();
+            require(event["filmstrip"].toObject()["visible"].toBool() &&
+                        std::abs(scroll["height"].toDouble() - baselineViewport) <= 1 &&
+                        std::abs(scroll["contentY"].toDouble() - baselineY) <= 1,
+                    "Photo-switch reload hid the filmstrip or moved the adjustments viewport: " +
+                        expectedPhase);
+        }
+        require(observedPendingReload && dropped == 0,
+                "Photo-switch regression missed complete pending-reload geometry: " +
+                    expectedPhase);
+    }
+
+  private:
+    static QJsonObject rect(const QRectF &r) {
+        return {{"x", r.x()}, {"y", r.y()}, {"width", r.width()}, {"height", r.height()}};
+    }
+    static QJsonObject item(QQuickItem *value) {
+        if (!value)
+            return {{"present", false}};
+        return {{"present", true},
+                {"object_name", value->objectName()},
+                {"class_name", QString::fromLatin1(value->metaObject()->className())},
+                {"identity", QString::number(reinterpret_cast<quintptr>(value), 16)},
+                {"visible", value->isVisible()},
+                {"enabled", value->isEnabled()},
+                {"active_focus", value->hasActiveFocus()},
+                {"scene_rect", rect(value->mapRectToScene(value->boundingRect()))}};
+    }
+    QJsonObject snapshot(const QString &event) const {
+        QJsonObject scroll = item(viewport.data());
+        if (viewport) {
+            for (const auto *name : {"contentY", "contentHeight", "height", "originY", "moving"})
+                scroll.insert(QString::fromLatin1(name),
+                              QJsonValue::fromVariant(viewport->property(name)));
+        }
+        QJsonObject deepControl = item(control.data());
+        if (control && viewport)
+            deepControl.insert("viewport_rect", rect(control->mapRectToItem(
+                                                    viewport.data(), control->boundingRect())));
+        return {{"elapsed_ns", elapsed.nsecsElapsed()},
+                {"event", event},
+                {"phase", phase},
+                {"scroll", scroll},
+                {"filmstrip", item(filmstrip.data())},
+                {"deep_control", deepControl},
+                {"library_count", c.library.count()},
+                {"library_loading", c.library.loading()},
+                {"library_working", c.library.working()},
+                {"photo_id", c.editor.photoID()},
+                {"editor_busy", c.editor.busy()},
+                {"editor_saving", c.editor.saving()},
+                {"editor_has_photo", c.editor.hasPhoto()},
+                {"library_mode", c.window->property("libraryMode").toBool()},
+                {"active_focus", item(c.window->activeFocusItem())}};
+    }
+    void record(const QString &event) {
+        if (events.size() < 256)
+            events.append(snapshot(event));
+        else
+            ++dropped;
+    }
+
+    Context &c;
+    double baselineY;
+    double baselineViewport = 0;
+    QPointer<QQuickItem> viewport, filmstrip, control;
+    QElapsedTimer elapsed;
+    QJsonArray events;
+    QString phase = "A-to-B";
+    int dropped = 0;
+    // Destroyed first: all callbacks disconnect before captured storage is destroyed.
+    QObject observer;
+};
 void scrollPhoto(Context &c) {
     c.openFirst();
     const auto a = c.editor.photoID();
@@ -257,22 +392,46 @@ void scrollPhoto(Context &c) {
             "Deep-scroll A/B fixture did not create distinguishable controls");
     deep(c);
     const auto y = scrollState(c).y;
-    activate(c, 1, bDoc);
-    // No reveal after activation: checking the retained deep viewport is the contract.
-    settled(c);
-    require(scrollState(c).y > scrollState(c).viewport && std::abs(scrollState(c).y - y) <= 1,
-            "Photo switch unexpectedly abandoned its deep adjustments viewport");
-    validRange(c);
-    visibleControl(c, deepID);
-    detailControls(c, bDoc);
-    rendered(c, bDoc);
-    durable(c, b, bDoc);
-    activate(c, 0, aDoc);
-    settled(c);
-    visibleControl(c, deepID);
-    detailControls(c, aDoc);
-    rendered(c, aDoc);
-    durable(c, a, aDoc);
+    ScrollPhotoTrace trace(c, y);
+    try {
+        activate(c, 1, bDoc);
+        // No reveal after activation: checking the retained deep viewport is the contract.
+        settled(c);
+        trace.mark("before.original.strict.offset.assert");
+        trace.save("before-original-strict-offset-assert");
+        trace.verifyReloadGeometry("A-to-B");
+        require(scrollState(c).y > scrollState(c).viewport && std::abs(scrollState(c).y - y) <= 1,
+                "Photo switch unexpectedly abandoned its deep adjustments viewport");
+        validRange(c);
+        visibleControl(c, deepID);
+        detailControls(c, bDoc);
+        rendered(c, bDoc);
+        durable(c, b, bDoc);
+        trace.mark("B-to-A");
+        activate(c, 0, aDoc);
+        settled(c);
+        require(scrollState(c).y > scrollState(c).viewport && std::abs(scrollState(c).y - y) <= 1,
+                "Reverse photo switch unexpectedly abandoned its deep adjustments viewport");
+        validRange(c);
+        visibleControl(c, deepID);
+        detailControls(c, aDoc);
+        rendered(c, aDoc);
+        durable(c, a, aDoc);
+        trace.verifyReloadGeometry("B-to-A");
+        trace.mark("completed");
+        trace.save("completed");
+    } catch (...) {
+        const auto failure = std::current_exception();
+        try {
+            trace.mark("failure");
+            trace.save("original-scenario-failure");
+        } catch (const std::exception &error) {
+            std::fprintf(stderr, "DSC006 diagnostic write failed: %s\n", error.what());
+        } catch (...) {
+            std::fputs("DSC006 diagnostic write failed\n", stderr);
+        }
+        std::rethrow_exception(failure);
+    }
 }
 void languageDeep(Context &c) {
     c.openFirst();
