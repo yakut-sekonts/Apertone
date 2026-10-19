@@ -5,13 +5,20 @@ Work stays in draft [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
 linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46).
 Source scope is 0.5.1; the public stable download remains 0.4.14.
 
-## Verified checkpoint, 2026-10-18
+User direction, 2026-10-19: run functional quality checks only. Stress, soak,
+chaos and performance workloads are reserved for the pre-release campaign of 1.0.0.
+Historical load-test evidence stays historical; deferred work does not count as PASS.
+Current runs use explicit functional cases, excluding large-catalog and repeated
+stress fixtures even when their inventory mode is REGRESSION.
 
-- 359 native scenario adapters and one suite-wide original-integrity adapter.
+## Verified checkpoint, 2026-10-19
+
+- 360 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent and 84 current scenarios still lack executable adapters. Prepared,
-  uncompiled adapters are not counted.
-- 23 reproduced production defects have fixes and focused regressions in
+  (MSK-005) is absent. Of the 83 remaining scenarios without executable adapters,
+  33 are functional regressions and 50 are deferred load/performance/chaos checks.
+  Prepared, uncompiled adapters are not counted.
+- 24 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -212,10 +219,10 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   preflight rejected execution with exit 2 before fixture/child execution.
   Hosted `3183ff9` then passed **282 blocking attempts** and all build/unit/static
   steps (run `39056014400`). Its uploaded source/binary proof, source consistency,
-  original SHA and 279 native catalog snapshots all passed. Its source hash is
+  original SHA and 279 native catalog-integrity results all passed. Its source hash is
   identical to the local clean-commit snapshot. This confirms the CI attestation
   path; the blocking subset is still not full current-scope release qualification.
-- Latest hosted `29074c6` run `39110825283` passed build, unit/integration and
+- Earlier hosted `29074c6` run `39110825283` passed build, unit/integration and
   attestation but failed the blocking subset: **281 PASS, one SLD-020 FAIL**,
   with 92 future NOT_IMPLEMENTED. Only its first verify process terminated
   abnormally after the visible quit path; repeats2/3 passed. The original runner
@@ -223,19 +230,48 @@ Source scope is 0.5.1; the public stable download remains 0.4.14.
   is not yet established. Raw artifact and its SHA are preserved; supervisor
   diagnostics are strengthened before targeted restart reproduction. This CI
   failure remains unresolved and cannot qualify a release.
+- Latest hosted `5af765f` run `39156735777` completed all steps successfully:
+  build, unit/integration, attestation, **282 blocking PASS**, format and tidy.
+  Downloaded artifact SHA, source/binary proof, original SHA and 279 reported
+  catalog-integrity results passed. All three SLD-020 prepare/verify pairs exited0;
+  this does not retrospectively establish the cause of the earlier failed run.
 - APP-014 remains unadapted: programmatic QWindow resize bypasses the native user
   minimum constraint, so it cannot prove the specified lower-width acceptance.
   The original failed fixture is retained, without asserting a production defect.
 
+- MAC-007 now covers real owned disk-image source detach/remount after actual
+  Add import. Full UUID/document/revision/metadata/journal/source SHA, actual
+  missing-source read error, retained control session and exact main/thumbnail
+  pixels survive recovery. This is a two-source functional fixture, with no
+  physical USB claim. It reproduced LUMA-UX-024: first-page requests were refused
+  synchronously during populated modelReset. Publishing readiness before that
+  signal fixes the blank cards; a one-shot startup/refresh/filter unit fails on
+  the original ordering and passes after the fix. Full build and **40 CTest PASS,
+  one optional Nikon SKIP** passed (101.67 seconds). Three complete native
+  candidates passed in `volume-source-qualified-candidate-native-report`;
+  previous blank-card, thumbnail-fixture and two unexplained polish failures
+  remain preserved and separately described in UX_ENVIRONMENT.md. The registered
+  final source passed **21 functional Cocoa/Metal attempts** (MAC-007 and six
+  affected cases, three repeats), `volume-source-final-native-report`,
+  `20261019T071449Z-17632`, plus **3 local software PASS**,
+  `volume-source-final-software-report`, `20261019T071619Z-18703`.
+  All 27 actual child stages exited0 with raw PASS; provenance, source stability,
+  original SHA and catalog integrity passed. Each of four final own-volume runs
+  accepted two attachment generations and checked final ordinary detach.
+  Format, 30 runner-accounting tests and focused changed-source tidy passed;
+  baseline advisory warnings remain separate. No load workloads ran in this
+  final cohort.
+
 ## Remaining qualification
 
-The pending scenarios include long editing/idle/Library sessions, large input
-storms, seeded chaos/replay, several storage/import/export races and native OS
-input boundaries. In particular, native file-panel opening is covered but its
+Pending functional quality checks include storage/import/export races and native
+OS/input boundaries. Long editing/idle/Library sessions, large input storms,
+seeded chaos/replay and performance workloads are reserved for the pre-1.0.0
+campaign. Native file-panel opening is covered but its
 Cancel input remains unqualified. Trackpad/momentum and unavailable hardware
 must be reported honestly, never counted as simulated passes.
 
 This checkpoint is not the full release gate. The Metal UI backend used by Qt
 also does not implement the planned 0.6 Metal image-processing backend.
 No phase 0.6 production work or release publication starts before the current
-scope's qualification and fixes are complete.
+scope's requested functional quality qualification and fixes are complete.

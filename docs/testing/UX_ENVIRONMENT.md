@@ -429,8 +429,8 @@ remain separate proofs that ordinary completed input preserves asset identity.
 Hosted `56e4e28` run `39036376277` completed successfully: 282 blocking attempts
 passed, as did build, unit/integration, format and clang-tidy. The retained ZIP
 SHA-256 is `eeea223928875e1698cc635d12a666b0397aaa264e8ddfa2feb3542c2a20b5c3`.
-Source consistency and original hashes passed; all 279 native-case catalog
-snapshots passed (the three suite-wide integrity results have no catalog).
+Source consistency and original hashes passed; all 279 native-case catalog-integrity
+results passed (the three suite-wide integrity results have no catalog).
 
 Its report nevertheless marks build provenance UNVERIFIED: ordinary cmake build
 never created `build/ux-build-provenance.json`. These functional PASS results
@@ -511,7 +511,7 @@ Hosted commit 3183ff9 run 39056014400/job 117464018541 passed all steps: build,
 Its source hash 15363caa5a7bc1b5397f0a9fa38bf4923de2e365b9bcea3d57f4db9faf0886fb
 matches the local clean 3183ff9 snapshot; source_commit identifies the expected PR
 merge checkout 90e23e5793e75c148b225e77d3f6d0be68b0cf77. Build provenance, source
-consistency, original SHA and all 279 native-case catalog snapshots passed.
+consistency, original SHA and all 279 native-case catalog-integrity results passed.
 The 92 future cases remain NOT_IMPLEMENTED, and the blocking subset remains
 NOT_QUALIFIED for the full current-scope release. Earlier missing-proof artifacts
 are retained unchanged.
@@ -572,8 +572,8 @@ Hosted 25bfec8 run 39075666008/job 117522182165 completed all steps successfully
 38 unit/integration PASS, one optional private Nikon SKIP (141.46 seconds),
 282 blocking UX PASS, build/provenance, format and tidy. Artifact 12117387978
 ZIP SHA-256 is d09b48c7292cffb87c82511a74953492ddbb259fd7131003b1506baf5852efa4.
-Source/binary proof, unchanged source, original SHA and 279 native-case catalog
-snapshots passed; three global integrity results have no catalog. The 92 future
+Source/binary proof, unchanged source, original SHA and 279 native-case catalog-integrity
+results passed; three global integrity results have no catalog. The 92 future
 results are NOT_IMPLEMENTED and also have no catalog. Expected PR merge checkout
 is 4545586ddfe32d73c5689519d1cbc0d1c77eb940; source hash is
 d7a321ac6dbb29c72a94fe53977d2e305badce678e65b2c9f73b55bf28df0cee.
@@ -676,7 +676,7 @@ Hosted 4fc89dc run 39107703186/job 117617029069 completed all steps successfully
 38 unit/integration PASS, one optional Nikon SKIP (168.93 seconds), 282 blocking
 UX PASS, build/provenance, format and tidy. Artifact 12129573574 ZIP SHA-256 is
 de608a1215bf3d2e466d127a80fe0b9e68950fc1922256c27a656988a92d66cf.
-Source/binary proof, original SHA and 279 native-case catalog snapshots passed.
+Source/binary proof, original SHA and 279 native-case catalog-integrity results passed.
 Source hash 009be3a715f95c76144c6fc79ade5f57f17b0db40d3d191fe9e30d467130c105
 matches local clean 4fc89dc; expected PR merge is 15a4bb3e696345b9be96acf199dae12e8e4e5d72.
 The blocking subset and 92 future NOT_IMPLEMENTED results do not qualify the
@@ -836,3 +836,101 @@ resumed. No unlock bypass or security/preference change was made. EXP-028 remain
 unqualified: deleting the original image watermark after planning correctly uses
 the immutable staged copy, as independently tested by EXP-017. That design/spec
 conflict was not relabeled an execution-failure PASS.
+
+
+## Owned removable-source recovery and first-page readiness
+
+The isolated MAC-007 fixture imports host control A and mounted source B through
+actual Add options/Start. A new private 64 MiB HFS+ disk image is created without
+sudo, force detach or arbitrary-device discovery. Its exact attach plist, backing
+inode/device, UUID, mount statfs identity and nonce sentinel are checked before
+each storage action. Ordinary detach removes the real pathname; the same image,
+mount path and UUID are remounted. Explicit checked final detach is required
+before PASS. Failure cleanup never guesses a device or turns an uncertain outcome
+into success. No physical USB/hardware-input equivalence is claimed.
+
+The scenario verifies actual failed source reread, preserved control session,
+complete saved documents/revisions/metadata, import journal, UUID/path/checksum,
+exact Ready main-preview pixels, actual thumbnail Image-node readbacks and exact
+saved-document JPEG cache pixels. It exposed LUMA-UX-024 before any card helper
+could retry lazy metadata reads. Original three blank-card native FAIL records
+and the original failed unit remain retained.
+
+The subsequent thumbnail wait was a fixture error: invalidating B increments a
+global URL counter but only notifies B. Actual unchanged A legitimately retains
+its previously notified generation0, while a fresh model getter returns1.
+Diagnostic `20261019T064438Z-14131` records both real Images Ready, their bindings,
+model URLs and retry0. The corrected wait follows each actual notified binding
+and bounded retry; exact saved-document cache pixels and scene readback remain
+required. That original fixture failure is not relabeled as a production defect.
+
+Two further Cocoa failures remain in volume-source-full-boundary-first-report
+(`20261019T070308Z-14971`) and volume-source-full-boundary-confirm-report
+(`20261019T070407Z-15140`): afterAnimating timed out during/before Add input,
+although the window reported visible. Main-loop watchdog, original SHA and SQLite
+checks passed and each own volume was normally detached. Contemporaneous native
+exposure/occlusion evidence was absent, so the cause remains unknown. No render,
+activation, event-loop or timeout workaround was introduced. New before/after
+fixture Qt snapshots record exposed/active/appState separately. The next complete
+native PASS, volume-source-native-window-diagnostic-report, has after-attach
+active=false/appState2 but exposed=true; inactivity alone cannot explain the
+older failures. Three further complete native candidates passed in
+volume-source-qualified-candidate-native-report (`20261019T070952Z-16982`).
+A complete local software run also passed (`20261019T070514Z-15334`); it is not
+a hosted or native rendering result. Provenance/source/original SHA and SQLite
+checks passed throughout; candidate coverage is registered only after these runs.
+
+The full application build and 40 available CTests passed, with one optional
+private Nikon skip (101.67 seconds). Focused tidy exposed new helper descriptor
+control-flow diagnostics; explicit throwing branches now prevent negative file
+descriptors from reaching fsync/fstat. New helper warnings were fixed without
+unrelated production refactoring. Existing header/old-code advisory diagnostics
+remain distinct from changed-line diagnostics.
+
+## Hosted diagnostic checkpoint and local storage cleanup
+
+Hosted 5af765f run39156735777/job117761405504 completed every step successfully,
+including build, unit/integration, attestation, 282 blocking attempts, format and
+tidy. Artifact12147529232 is 57,079,454 bytes; ZIP SHA-256 is
+744792e826b9584ef0c7c2c15c0f9167a3dcc2a2a4a471f65fc73355ad161577.
+Source hash1452d437301f476bcaa646bb86d9fbaba821a2ccd6495bf5263ce953cbf5541d
+matches local clean5af765f; PR merge checkout906865eb3c4cc222804b7cb57ab2352c85501deb
+is expected. All 465 raw process stages have their expected terminal status;
+SLD-020 prepare/verify exited0 in all three repeats. The 279 native-case
+catalog-integrity results are report checks, not 279 retained SQLite snapshots:
+all-PASS jobs do not preserve those databases. The earlier unexplained hosted
+29074c6 SLD-020 failure remains unresolved and is not relabeled PASS.
+
+At the user's request on2026-10-19, 47,799 obsolete generated test copies,
+old CMake build files and reproducible Swift/Python caches were removed. The
+measured disk-space increase was7,774,834,688 bytes. All source hashes including
+uncommitted work stayed identical. Latest successful cohorts, all non-PASS
+payloads, raw JSON/actions/logs/metrics/screenshots/SQLite evidence, public master
+fixtures and stable0.4.14 packages were retained. The exact deletion plan and
+per-file pre-deletion SHA manifest are in ignored .tools/cleanup. Historical
+reports still describe their original execution; removed generated PASS inputs
+are regenerable and must not be claimed to remain present on disk.
+
+The user's subsequent direction defers load testing: only explicit functional
+quality cases now run. Stress/soak/chaos/performance and large-catalog repeated
+workloads are reserved for the pre-release campaign of 1.0.0. Their earlier
+evidence is historical; deferred
+checks remain unexecuted, not passing, in future qualification decisions.
+
+
+Final registered-source functional checkpoint: volume-source-final-native-report,
+20261019T071449Z-17632, passed MAC-007 plus SEL-002, FLT-001, IMP-001, SLD-020,
+PRS-001 and EXP-001 three times (21 Cocoa/Metal PASS). No stress, soak, chaos,
+performance, large-catalog or repeated-load scenario was selected. The local
+software counterpart passed MAC-007/SEL-002/FLT-001 once each,
+volume-source-final-software-report,20261019T071619Z-18703. Source hash for both is
+e0a45f7db84de541dec98c43907a76f72dcc74832a5d5923cfb7824d22780102.
+All27 actual child stages exited0 with untouched child PASS. Four final own-image
+cases checked15 successful exact-owner storage commands, two accepted attachment
+generations, two ordinary detaches and absent final mountpath. Provenance, source
+consistency, original SHA and catalog integrity passed. Manual scene review of
+the actual missing-source state confirms retained A pixels/metadata, selected B,
+visible missing B pathname and both cached thumbnails. The infrastructure subset
+passed (30 runner cases plus metric accounting,6.03 seconds); format and focused
+new-helper/scenario tidy passed. The full CTest run above preceded the user's
+load deferral; no full load-bearing campaign was repeated after that direction.

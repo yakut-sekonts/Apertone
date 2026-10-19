@@ -3,6 +3,7 @@
 #include "core/catalog/Catalog.h"
 #include "core/render/CpuRenderer.h"
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UxPixels.h"
 #include <QBuffer>
 #include <QColorSpace>
 #include <QCryptographicHash>
@@ -730,6 +731,10 @@ void boundedRetry(Context &c) {
                {"cache_pixels_tolerance", 0}});
 }
 } // namespace
+
+void thumbnailCardPixels(Context &c, QQuickItem *card, const luma::AssetSnapshot &saved) {
+    cardPixels(c, card, saved);
+}
 
 bool thumbnailRemainingScenario(Context &c, const QString &id) {
     if (id == "UX-LIB-018")

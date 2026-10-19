@@ -244,8 +244,10 @@ void LibraryModel::reload(bool clear) {
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
-                    self->endResetModel();
+                    // Views may request their first metadata page synchronously
+                    // from modelReset. Publish readiness before that signal.
                     self->loading_ = false;
+                    self->endResetModel();
                     if (!error.isEmpty())
                         self->error_ = error;
                     emit self->viewportRestored(error.isEmpty() ? anchorRow : -1);

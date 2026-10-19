@@ -331,6 +331,83 @@ void viewportTests(const std::filesystem::path &root) {
             "Superseded reload emitted a stale viewport restoration.");
     db.verify();
 }
+void firstPageOnResetTests(const std::filesystem::path &root) {
+    const auto path = root / "first-page-reset.sqlite";
+    luma::Catalog db(path);
+    sql(path, R"sql(BEGIN;
+        INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,width,height,orientation)
+        VALUES('page-a','/fixture/A-first.dng','A-first.dng','dng',1,'page-a',16,16,0),
+              ('page-z','/fixture/Z-last.dng','Z-last.dng','dng',1,'page-z',16,16,0);
+        INSERT INTO edit_documents(asset_id) SELECT id FROM assets;COMMIT;)sql");
+
+    struct Observation {
+        int populatedResets = 0;
+        int rowsAtReset = 0;
+        std::size_t pagesAtReset = 0;
+        bool loadingAtReset = false;
+        QString initialID, notifiedID;
+        int metadataNotifications = 0, cachedMetadataNotifications = 0;
+    } observed;
+    LibraryModel model(path);
+    QObject observer; // Disconnect before model and captured observation are destroyed.
+    QObject::connect(
+        &model, &QAbstractItemModel::modelReset, &observer,
+        [&] {
+            if (model.rowCount() == 0)
+                return;
+            ++observed.populatedResets;
+            observed.rowsAtReset = model.rowCount();
+            observed.pagesAtReset = model.cachedPages();
+            observed.loadingAtReset = model.loading();
+            // This is the ONLY request on a cache miss in each phase. Simulate
+            // a real view reading synchronously from the populated modelReset.
+            observed.initialID = model.data(model.index(0), LibraryModel::AssetID).toString();
+        },
+        Qt::DirectConnection);
+    QObject::connect(
+        &model, &QAbstractItemModel::dataChanged, &observer,
+        [&](const QModelIndex &first, const QModelIndex &last, const QList<int> &roles) {
+            if (model.rowCount() == 0 || !first.isValid() || !last.isValid() || first.row() > 0 ||
+                last.row() < 0 || (!roles.isEmpty() && !roles.contains(LibraryModel::AssetID)))
+                return;
+            ++observed.metadataNotifications;
+            // Never turn a stray Selected/Active or other notification into a
+            // cache-miss retry. This two-row fixture can only have page0 cached.
+            if (model.cachedPages() != 1)
+                return;
+            observed.notifiedID = model.data(model.index(0), LibraryModel::AssetID).toString();
+            ++observed.cachedMetadataNotifications;
+        },
+        Qt::DirectConnection);
+
+    const auto verifyPhase = [&](const QString &expectedID, int expectedRows) {
+        // Observation/count/cache getters only: DO NOT poll model.data(), use a
+        // card helper, select a row, refresh, or otherwise schedule another page.
+        wait([&] {
+            return observed.populatedResets == 1 && observed.cachedMetadataNotifications > 0 &&
+                   observed.notifiedID == expectedID && !model.working() && !model.loading() &&
+                   model.count() == expectedRows && model.rowCount() == expectedRows;
+        });
+        require(observed.initialID.isEmpty() && observed.pagesAtReset == 0,
+                "First metadata page was not requested by the one-shot reset observer.");
+        require(!observed.loadingAtReset && observed.rowsAtReset == expectedRows,
+                "Populated modelReset exposed rows while rejecting first-page requests.");
+        require(
+            observed.metadataNotifications > 0 && model.cachedPages() == 1 &&
+                model.error().isEmpty(),
+            "One-shot modelReset read did not receive its actual cached metadata notification.");
+    };
+
+    verifyPhase("page-a", 2); // Initial asynchronous recovery/count publication.
+    observed = {};
+    model.refresh();
+    verifyPhase("page-a", 2); // Same rows after a real page-cache reset.
+    observed = {};
+    model.filter("Z-last", 0, -2, "any", "");
+    verifyPhase("page-z", 1); // Debounced filtered reload, different exact first UUID.
+    db.verify();
+}
+
 void modelTests(const std::filesystem::path &root) {
     const auto path = root / "large.sqlite";
     {
@@ -399,6 +476,7 @@ int main(int argc, char **argv) {
         catalogTests(root, argv[1]);
         importTests(root, argv[1]);
         viewportTests(root);
+        firstPageOnResetTests(root);
         modelTests(root);
         std::filesystem::remove_all(root);
         std::cout << "Library unit tests passed\n";

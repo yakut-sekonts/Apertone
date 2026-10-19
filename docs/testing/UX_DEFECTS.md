@@ -473,3 +473,28 @@ are tracked separately and are not counted as application failures or hidden ret
   cover NOCASE ties, combined filters, missing assets, insertion before the anchor
   and stale reloads. Full build and CTest: 38 PASS, one optional private Nikon SKIP,
   86.59 seconds. Format and five focused clang-tidy checks passed.
+
+
+## LUMA-UX-024 — Imported cards remain blank after a populated model reset
+
+- Severity: P1. Scope: CURRENT. Subsystem: Library metadata paging / import.
+- Actual Add import commits two independent private sources, but both real QML
+  cards remain blank with ellipsis filenames and never acquire an asset selector.
+  Original native failures: `20261018T192730Z-10592` and both repeats in
+  `20261018T193027Z-11218`. Import journal, source SHA and catalog integrity pass.
+- Cause: the count callback calls `endResetModel()` while `loading_` is true.
+  A real view can synchronously call `data()` from `modelReset`; `page()` refuses
+  the request during loading. No page job or subsequent metadata notification
+  exists to wake that view. Polling `data()` in older card helpers hid the defect.
+- Fix: publish `loading_ = false` before the populated `endResetModel()` signal.
+  Keep revision/closing guards, page bounds and viewport restoration unchanged.
+- Meaningful unit regression: exactly one synchronous cache-miss `data()` request
+  from each populated reset, then observation-only waits for real cached metadata
+  `dataChanged`. Startup, refresh and filtered reload require their exact first
+  UUID. The original unit fails by timeout; the fixed unit passes (5.52 seconds).
+- Verification: complete build and CTest pass, 40 available tests plus one optional
+  private Nikon skip (101.67 seconds). The real two-source native candidate passes
+  three consecutive complete detach/remount runs in
+  `volume-source-qualified-candidate-native-report`, `20261019T070952Z-16982`.
+  Original failures remain unchanged; no model-data polling retries were added
+  to the previously blank-card boundary.
