@@ -607,3 +607,57 @@ are tracked separately and are not counted as application failures or hidden ret
   `20261019T085424Z-41974`, after the Mac is observed unlocked. Both genuine reload
   directions preserve the original viewport and offset. Original failures and raw
   timelines are unchanged.
+
+
+## LUMA-UX-028 — Crop makes every handle of an existing gradient inaccessible
+
+- Severity: P1. Scope: CURRENT. Subsystem: Local gradient display/input geometry.
+- Status: fixed; bounded focused functional regression verified on Cocoa/Metal
+  and local offscreen/software. Full official UX-MSK-023 remains unqualified.
+- One generated 256×192 PNG receives real Linear and Radial masks in the upper-left
+  region and real nonneutral Exposure adjustments. Each of the six handles first
+  passes actual pointer motion, independent typed geometry, exact full document,
+  Ready pixels and one Undo/Redo/Undo. No mask geometry is injected by a setter.
+- A real top-left Crop grip drag removes that region, followed by actual Done and
+  fresh selection of both masks. Crop leaves both complete masks unchanged.
+  Every projected handle lies outside the clipped photo and has no eligible
+  integer input pixel within the actual 14-pixel nearest-handle hit region.
+  Independent integer crop translation agrees with controller and QML coordinates.
+- Original evidence: `msk023-crop-original-local-software-report`,
+  `20261019T090302Z-45002` (one FAIL), and three Cocoa/Metal FAIL in
+  `msk023-crop-original-native-report`, `20261019T090327Z-45151`.
+  Both shapes have zero reachable targets in every attempt; complete durable
+  documents, original SHA, source/binary proof and SQLite integrity pass.
+  The strict failure precedes any Transform, Undo, Reset or redraw recovery.
+- Fix: reserve a minimum 84×84 local input overlay around the actual photo, place
+  the three display handles at distinct reachable positions and use the same
+  positions for drawing circles and hit testing. Raw photo-normalized handle and
+  mask coordinates remain unchanged. Guidelines retain raw geometry clipped to
+  the photo; hollow proxy circles identify displaced controls. Only a valid
+  existing gradient handle can use the finite unbounded inverse. Its frozen
+  anchor and relative motion avoid snap and thin-padding deadzones, including
+  radial motion along the original rotated axis. Ordinary brush/range/redraw
+  bounds and coverage guards remain in force.
+- Regression: separate normal and thin Crop supplemental cases require genuine
+  post-Crop press/drag/release of all six handles in base/H/HV/V states. Independent
+  source/Crop/flip geometry, exact full documents, one Undo/Redo/Undo, Ready pixels,
+  natural persistence, source SHA and durable UUID/catalog identity are required.
+  The thin case also rejects ordinary Linear, Brush, Luminance and Color input in
+  empty padding without transient edits, range sampling or an extra Undo entry.
+  Unit cases independently check literal outside-Crop inverse coordinates and
+  H/V flips, retained source/sample bounds and rotated radial proxy deltas without
+  a no-motion grab changing the complete document.
+- Final evidence: `6` Cocoa/Metal PASS in
+  `mask-edge-verified-final-native-report`, `20261019T093709Z-53404`, plus
+  `2` local offscreen/software PASS in
+  `mask-edge-verified-final-local-software-report`, `20261019T093545Z-52990`.
+  Affected official cases pass separately in `mask-edge-verified-affected-native-report`
+  and `mask-edge-verified-affected-local-software-report`. All final provenance,
+  source/binary consistency, child exit codes, original SHA and catalog checks pass.
+  Original production failures and intermediate fixture failures remain retained;
+  their reports are not rewritten as PASS.
+- Scope: the zero-target census establishes the original loss of access; fixed
+  acceptance additionally requires real post-Crop edits and full history/pixel/data
+  checks. `run_mask_handle_regression.py` reports both rows in the supplemental
+  domain. Official UX-MSK-023 remains unregistered, and no full zoom/Transform/
+  projective/pan-recenter qualification or release publication is claimed.

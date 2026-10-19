@@ -40,6 +40,18 @@ workload directly, so the official-inventory `--quality-only` flag is unnecessar
 .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build-verify --runs 3 --require-build-provenance
 ```
 
+Crop-related gradient handle regressions also use a separate one-PNG supplemental
+domain. Normal and thin-photo fixtures exercise each Linear/Radial handle across
+four distinct H/V flip states, with exact document/history/pixel/persistence checks.
+The thin fixture also rejects ordinary brush, range and new-gradient input in
+expanded photo padding. These bounded checks run in CI but do not register or
+qualify the full MSK023 scenario; other geometry and projective edge cases remain
+separate qualification work.
+
+```sh
+.tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build-verify --runs 3 --require-build-provenance
+```
+
 The legacy full-matrix --release-qualification command includes load workloads;
 reserve it for the pre-1.0.0 campaign. Its strict full-matrix status is separate
 from the requested intermediate functional-quality checkpoint.

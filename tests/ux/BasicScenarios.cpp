@@ -38,6 +38,7 @@ bool removableSourceScenario(Context &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool keyboardActivationCandidate(Context &, const QString &);
+bool maskHandleCropLossCandidate(Context &, const QString &);
 bool panelDetailStressScenario(Context &, const QString &);
 bool thumbnailRemainingScenario(Context &, const QString &);
 bool retinaScenario(Context &, const QString &);
@@ -48,19 +49,20 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (keyboardActivationCandidate(c, id) || copyDestinationScenario(c, id, {}) ||
-        removableDestinationScenario(c, id, {}) || removableSourceScenario(c, id) ||
-        exportResizeScenario(c, id) || retinaScenario(c, id) || thumbnailRemainingScenario(c, id) ||
-        panelDetailStressScenario(c, id) || exportStressScenario(c, id) ||
-        exportSettingsScenario(c, id) || batchUpdateRemainingScenario(c, id) ||
-        libraryRemainingScenario(c, id) || visualRemainingScenario(c, id) ||
-        gestureRemainingScenario(c, id) || whiteBalanceScenario(c, id) || appExtraScenario(c, id) ||
-        exportExtraScenario(c, id) || importExtraScenario(c, id) ||
-        currentPerformanceScenario(c, id) || presetRemainingScenario(c, id) ||
-        historyStressScenario(c, id) || sliderExtraScenario(c, id) || previewExtraScenario(c, id) ||
-        recoveryExtraScenario(c, id) || presetExtraScenario(c, id) || navigationScenario(c, id) ||
-        transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
-        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (maskHandleCropLossCandidate(c, id) || keyboardActivationCandidate(c, id) ||
+        copyDestinationScenario(c, id, {}) || removableDestinationScenario(c, id, {}) ||
+        removableSourceScenario(c, id) || exportResizeScenario(c, id) || retinaScenario(c, id) ||
+        thumbnailRemainingScenario(c, id) || panelDetailStressScenario(c, id) ||
+        exportStressScenario(c, id) || exportSettingsScenario(c, id) ||
+        batchUpdateRemainingScenario(c, id) || libraryRemainingScenario(c, id) ||
+        visualRemainingScenario(c, id) || gestureRemainingScenario(c, id) ||
+        whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
+        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
+        presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
+        sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
+        presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
+        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
+        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;

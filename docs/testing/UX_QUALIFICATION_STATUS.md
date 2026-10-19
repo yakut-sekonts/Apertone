@@ -27,7 +27,7 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
   (MSK-005) is absent. Of the 82 remaining scenarios without executable adapters,
   31 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 27 reproduced production defects have fixes and focused regressions in
+- 28 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
 - 35 additional adapters cover 500-edit/history and 1,000-gesture stress,
   preset CRUD/round trips/restarts, queued preview races, retained decoded-image
@@ -342,7 +342,7 @@ selection/keyboard and DSC003/006: `quality-checkpoint-final-native-report`,
 local offscreen/software results; those are not hosted CI. Every final report
 passes build provenance, unchanged source/binary, original SHA and SQLite checks.
 
-The final source snapshot is
+The removable-destination and keyboard checkpoint used source snapshot
 `06a50ce703137085eed3e2a7f791dc7fb570574b80150a1d2d5fbec41031f4d9`;
 the tested binary SHA-256 is
 `76aae6657370eb14b34b12b4353f1551fef8ea8a61d18295c3c55ac87dec5d0b`.
@@ -351,3 +351,96 @@ tests, seven policy tests, format and three affected-source tidy checks pass;
 pre-existing advisory tidy warnings remain separate. The native lock blocker is
 resolved for this cohort, while the 31 functional adapter gaps above remain open.
 No tag, production release or phase 0.6 work has started.
+
+
+## Hosted functional artifact audit, preceding the gradient fix
+
+The downloaded artifact for hosted head `dceb3fbff0ee899ef91d0bd185f1180637fac117`,
+run `39226491030`, records **195 specification-domain PASS**, **29 deferred SKIPPED**
+and **92 future NOT_IMPLEMENTED**, with no FAIL. The PASS total comprises three
+repeats of 64 implemented blocking cases plus three suite-wide original-integrity
+results. The 29 deferrals are inventory records, not 87 completed attempts.
+A separate supplemental keyboard report records **6 PASS** across Return and
+keypad Enter. Both reports use local runner offscreen/software execution on the
+hosted macOS machine; neither is a Cocoa/Metal result.
+
+Downloaded archive SHA-256 is
+`8137c52ddc94d81c24b327c1da6f80e960d5fb9c7221a3582f63f9d5356e0ac9`.
+Build provenance, source consistency and original hashes pass in both reports;
+the main report has 192 passing catalog checks, and the keyboard report has six.
+GitHub checked out synthetic merge commit
+`c5582cf26df9208ea3c3336bf832e9c6af49f0d2`; its attested source tree matches the
+clean PR head, SHA-256
+`2387256288f548fb6f8df2afcc1dba2e8691969ce76cc5589899a099ca12964b`.
+The original archive is retained. The first local audit's incorrect requirement
+that merge checkout commit equal PR head was corrected; that audit correction is
+not a product fix or a UX result. Both reports retain `release_gate=NOT_QUALIFIED`.
+This hosted snapshot predates LUMA-UX-028 and contains no gradient-handle
+supplemental result.
+
+
+## Gradient-handle access checkpoint, 2026-10-19
+
+LUMA-UX-028 is fixed and its bounded functional regression is verified. Existing
+Linear and Radial mask geometry remains unchanged by Crop/Done, selection and
+handle layout. The local overlay now reserves at least 84×84 logical pixels,
+keeps the actual photo rectangle explicit and places all three distinct display
+handles inside its input surface. Raw mask coordinates remain unchanged; clipped
+raw guides and separate hollow proxy circles do not depict a moved mask. Proxy
+press records a frozen source/input anchor, and motion applies relative source
+deltas, including rotated radial axes, without an initial snap or a dead area in
+thin-photo padding. Ordinary brush, range sampling and empty-canvas redraw retain
+their photo and coverage bounds.
+
+Two supplemental cases each use one generated PNG and genuine Crop/Done plus
+actual pointer input. Normal and thin Crop variants require all six Linear/Radial
+handles to accept real press/drag/release in base, H, HV and V states, with an
+independent integer-Crop/source-delta oracle, exact unrelated full-document
+fields, one Undo/Redo/Undo, current Ready pixels and natural durable saves. The
+thin variant also rejects ordinary Linear redraw, Brush, Luminance and Color
+input on an actual empty padding pixel. Original bytes, UUID/path/catalog
+membership and complete documents remain required throughout.
+
+Final focused evidence: **6 Cocoa/Metal PASS** in
+`mask-edge-verified-final-native-report`, run `20261019T093709Z-53404`, and
+**2 local offscreen/software PASS** in
+`mask-edge-verified-final-local-software-report`, run `20261019T093545Z-52990`.
+Affected official cases have **51 Cocoa/Metal PASS** in
+`mask-edge-verified-affected-native-report`, run `20261019T094024Z-55062`,
+and **16 local offscreen/software PASS** in
+`mask-edge-verified-affected-local-software-report`, run
+`20261019T093648Z-53260`. All final child results exit0; build provenance,
+unchanged source/binary, original SHA and SQLite integrity pass in every report.
+The native affected cohort includes the existing Retina mapping case; the
+software results do not qualify that native boundary.
+
+Final application build and CTest pass: **42 PASS and
+one optional private Nikon SKIP**, 80.89 seconds,
+`mask-edge-verified-full-ctest.log`. Runner accounting has
+`40` passing tests and policy accounting has
+`seven`; format and the five focused changed-source tidy commands
+complete successfully. Advisory diagnostics, including test cleanup and optional-access warnings, remain
+recorded separately in the retained tidy logs; none is a command error. The
+attested final source tree SHA-256 is `dc3fe1ec0c5189e5223aa20991a94832a6acdbd76d65bc9de514f85577e7d173`; the tested
+binary SHA-256 is `7f74fbeab250b70a496ba98cc0a82e0f670d1db6ea5fcaf5ffc617d76901bba5`.
+
+The original one software FAIL and three Cocoa/Metal FAIL remain unchanged in
+`msk023-crop-original-local-software-report` and
+`msk023-crop-original-native-report`. The first fixed-source thin fixture failure
+also remains in `msk023-edge-proxy-first-local-software-report`: its supposed
+empty padding point overlapped a legitimate proxy. The corrected negative control
+finds a real empty pixel without excluding valid handles, changing production
+callbacks or weakening the no-edit/no-sampling/no-extra-history assertions.
+The initial CTest readiness failure in `mask-edge-full-ctest.log` is retained
+separately from the completed final CTest report.
+
+These two cases run through `run_mask_handle_regression.py` in a separate
+supplemental inventory domain. They do not register official UX-MSK-023 or change
+the 770-ID specification, the 361-adapter count or the 31 functional adapter gaps.
+The bounded plain-Crop/flip matrix does not qualify every zoom, Transform,
+projective, pan/recenter or display boundary in full MSK023. Exact CPU reference
+pixels use the shared renderer/ICC path and are a UI/state-coherence oracle,
+not independent numerical qualification of the renderer. The final local cohorts
+are not hosted CI for the new source. No load workload, release tag, production
+publication or phase0.6 work is implied by this checkpoint; full current-scope
+release qualification remains incomplete.

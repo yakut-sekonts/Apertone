@@ -236,6 +236,7 @@ ApplicationWindow {
                     }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
+                        Layout.minimumWidth: 84; Layout.minimumHeight: 84
                         Image {
                             id: previewImage
                             objectName: "develop.preview"
@@ -258,9 +259,11 @@ ApplicationWindow {
                             }
                         }
                         LocalOverlay {
-                            x: (previewImage.width-previewImage.paintedWidth)/2
-                            y: (previewImage.height-previewImage.paintedHeight)/2
-                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                            photoWidth: previewImage.paintedWidth
+                            photoHeight: previewImage.paintedHeight
+                            width: Math.max(84, photoWidth); height: Math.max(84, photoHeight)
+                            x: (previewImage.width-width)/2
+                            y: (previewImage.height-height)/2
                         }
                         TransformOverlay {
                             x: (previewImage.width-previewImage.paintedWidth)/2

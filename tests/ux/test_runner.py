@@ -5,6 +5,7 @@ import io
 import json
 import hashlib
 import run_keyboard_regression as keyboard_runner
+import run_mask_handle_regression as mask_runner
 from pathlib import Path
 import signal
 import sqlite3
@@ -629,9 +630,10 @@ time.sleep(30)
 
 
 class SupplementalKeyboardTests(unittest.TestCase):
-    def _cli(self, *, status='PASS', flags=(), record='valid', changed=False):
+    def _cli(self, *, status='PASS', flags=(), record='valid', changed=False,
+             module=keyboard_runner, report_name='ux-keyboard-report'):
         # Accounting/preflight fixture only: no application, screen or native inputs.
-        subject = keyboard_runner.runner
+        subject = module.runner
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
             build = root / 'build'
@@ -647,17 +649,18 @@ class SupplementalKeyboardTests(unittest.TestCase):
             (build / 'ux-report').mkdir()
             official_report = build / 'ux-report' / 'UX_REPORT.json'
             official_report.write_text('unchanged-official-report')
-            argv = ['run_keyboard_regression.py', '--build', str(build), '--runs', '3',
+            argv = [module.__name__ + '.py', '--build', str(build), '--runs', '3',
                     '--require-build-provenance', *flags]
             stderr = io.StringIO()
 
             def fake_execute(row, destination, arguments, fixture_folder):
                 destination.mkdir(parents=True)
-                return {**row, 'status': status, 'child_pid': 123, 'artifacts': str(destination)}
+                result_status = status.get(row['id'], 'PASS') if isinstance(status, dict) else status
+                return {**row, 'status': result_status, 'child_pid': 123, 'artifacts': str(destination)}
 
             with (patch.object(subject, 'source_phase', return_value='0.5'),
                   patch.object(subject, 'fingerprint', side_effect=[snapshot, snapshot, end]),
-                  patch.object(keyboard_runner, 'one_png_fixture', return_value={}) as fixtures,
+                  patch.object(module, 'one_png_fixture', return_value={}) as fixtures,
                   patch.object(subject, 'execute_scenario', side_effect=fake_execute) as execute,
                   patch.object(subject, 'qualify') as qualify,
                   patch.object(subject, 'write_reports') as reports,
@@ -665,13 +668,13 @@ class SupplementalKeyboardTests(unittest.TestCase):
                   patch.object(subject.tempfile, 'gettempdir', return_value=str(root)),
                   patch('sys.argv', argv), patch('sys.stderr', stderr), patch('builtins.print')):
                 try:
-                    code = keyboard_runner.main()
+                    code = module.main()
                 except SystemExit as error:
                     code = error.code
                 qualify.assert_not_called()
                 self.assertEqual(official_report.read_text(), 'unchanged-official-report')
                 if reports.called:
-                    self.assertEqual(reports.call_args.args[1], build / 'ux-keyboard-report')
+                    self.assertEqual(reports.call_args.args[1], build / report_name)
                     self.assertEqual(fixtures.call_args.args[0].name, 'public-fixtures-supplemental')
                     self.assertEqual(fixtures.call_args.args[0].parent.parent, build / 'ux-artifacts')
                 return {'code': code, 'children': execute.call_count, 'fixtures': fixtures.call_count,
@@ -752,6 +755,65 @@ class SupplementalKeyboardTests(unittest.TestCase):
             self.assertEqual(checksums, {str(source.resolve()): hashlib.sha256(raw).hexdigest()})
             self.assertEqual(list(folder.iterdir()), [source])
             self.assertEqual(source.stat().st_mtime_ns, before)
+
+
+class SupplementalMaskHandleTests(unittest.TestCase):
+    _cli = SupplementalKeyboardTests._cli
+
+    def test_mask_variants_preserve_official_inventory_and_propagate_failure(self):
+        subject = mask_runner.runner
+        original = [row['id'] for row in subject.INVENTORY]
+        self.assertEqual(len(original), 770)
+        for identifier in mask_runner.IDENTIFIERS:
+            self.assertNotIn(identifier, original)
+            self.assertNotIn(identifier, subject.NATIVE)
+        for status, changed, code, execution in (
+                ('PASS', False, 0, 'PASS'),
+                ({mask_runner.THIN_IDENTIFIER: 'FAIL'}, False, 1, 'FAIL'),
+                ('PASS', True, 1, 'INCOMPLETE')):
+            with self.subTest(status=status, changed=changed):
+                result = self._cli(module=mask_runner, report_name='ux-mask-handles-report',
+                                   status=status, changed=changed)
+                summary = result['summary']
+                self.assertEqual(result['code'], code)
+                self.assertEqual(result['children'], 6)
+                self.assertEqual(result['fixtures'], 1)
+                self.assertEqual(summary['inventory_domain'], 'supplemental')
+                self.assertEqual(summary['official_inventory_count'], 770)
+                self.assertEqual(summary['selected_inventory_count'], 2)
+                self.assertEqual(summary['execution_status'], execution)
+                self.assertEqual(summary['release_gate'], 'NOT_QUALIFIED')
+                self.assertEqual({r['id'] for r in summary['results']}, mask_runner.IDENTIFIERS)
+                self.assertEqual([row['id'] for row in subject.INVENTORY], original)
+                if isinstance(status, dict):
+                    self.assertEqual(summary['summary'], {'PASS': 3, 'FAIL': 3})
+
+    def test_each_mask_variant_can_run_in_its_own_process_cohort(self):
+        for identifier in sorted(mask_runner.IDENTIFIERS):
+            with self.subTest(identifier=identifier):
+                result = self._cli(module=mask_runner, report_name='ux-mask-handles-report',
+                                   flags=('--case', identifier))
+                self.assertEqual(result['code'], 0)
+                self.assertEqual(result['children'], 3)
+                self.assertEqual(result['fixtures'], 1)
+                self.assertEqual({r['id'] for r in result['summary']['results']}, {identifier})
+
+    def test_mask_wrapper_rejects_official_qualification_and_missing_attestation(self):
+        for flags in (('--release-qualification',), ('--phase', '0.5'), ('--quality-only',),
+                      ('--suite', 'blocking'), ('--case', 'UX-MSK-023'), ('--seed', '1')):
+            with self.subTest(flags=flags):
+                result = self._cli(module=mask_runner, report_name='ux-mask-handles-report',
+                                   flags=flags)
+                self.assertEqual(result['code'], 2)
+                self.assertEqual(result['children'], 0)
+                self.assertEqual(result['fixtures'], 0)
+        for record in ('missing', 'mismatch'):
+            with self.subTest(record=record):
+                result = self._cli(module=mask_runner, report_name='ux-mask-handles-report',
+                                   record=record)
+                self.assertEqual(result['code'], 2)
+                self.assertEqual(result['children'], 0)
+                self.assertEqual(result['fixtures'], 0)
 
 
 if __name__ == '__main__':

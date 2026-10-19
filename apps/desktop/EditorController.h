@@ -159,7 +159,7 @@ class EditorController final : public QObject {
     Q_INVOKABLE void setLocalEnabled(bool enabled);
     Q_INVOKABLE void setLocalInverted(bool inverted);
     Q_INVOKABLE void setLocalParameter(const QString &name, double value);
-    Q_INVOKABLE bool beginLocalGesture(int handle, double x, double y);
+    Q_INVOKABLE bool beginLocalGesture(int handle, double x, double y, bool proxy = false);
     Q_INVOKABLE void adjustLocalGesture(double x, double y);
     QVariantMap transformState() const;
     QVariantList transformGuides() const;
@@ -314,6 +314,9 @@ class EditorController final : public QObject {
         int handle;
         std::array<double, 2> anchor;
         std::optional<luma::BrushStroke> stroke;
+        bool proxy = false;
+        std::array<double, 2> inputAnchor{};
+        std::array<double, 2> outputAnchor{};
     };
     std::optional<LocalGesture> localGesture_;
     int localIndex() const;

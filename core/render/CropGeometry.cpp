@@ -57,6 +57,11 @@ std::array<double, 2> CropGeometry::source(double x, double y) const {
     if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x > width_ - 1 ||
         y > height_ - 1)
         throw std::runtime_error("Geometry target outside output.");
+    return sourceUnbounded(x, y);
+}
+std::array<double, 2> CropGeometry::sourceUnbounded(double x, double y) const {
+    if (!std::isfinite(x) || !std::isfinite(y))
+        throw std::runtime_error("Invalid geometry target point.");
     const double dx = left_ + x + 0.5 - canvasWidth_ / 2.0;
     const double dy = top_ + y + 0.5 - canvasHeight_ / 2.0;
     double bx = cosine_ * dx + sine_ * dy + baseWidth_ / 2.0 - 0.5;
@@ -87,7 +92,10 @@ std::array<double, 2> CropGeometry::source(double x, double y) const {
         sx = sourceWidth_ - 1 - sx;
     if (orientation_ & 2)
         sy = sourceHeight_ - 1 - sy;
-    return transform_.sourceFromSensorCanvas(sx, sy);
+    const auto point = transform_.sourceFromSensorCanvas(sx, sy);
+    if (!std::isfinite(point[0]) || !std::isfinite(point[1]))
+        throw std::runtime_error("Non-finite geometry source point.");
+    return point;
 }
 } // namespace luma
 

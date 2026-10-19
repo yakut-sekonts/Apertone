@@ -236,8 +236,16 @@ std::array<double, 2> sourcePoint(const luma::CropGeometry &geometry, int width,
     const auto point = geometry.source(px, py);
     return {(point[0] + 0.5) / width, (point[1] + 0.5) / height};
 }
+std::array<double, 2> proxySourcePoint(const luma::CropGeometry &geometry, int width, int height,
+                                       double x, double y) {
+    const auto point = geometry.sourceUnbounded(x, y);
+    const std::array<double, 2> normalized{(point[0] + 0.5) / width, (point[1] + 0.5) / height};
+    if (!std::isfinite(normalized[0]) || !std::isfinite(normalized[1]))
+        throw std::runtime_error("Non-finite mask gesture point.");
+    return normalized;
+}
 } // namespace
-bool EditorController::beginLocalGesture(int handle, double x, double y) {
+bool EditorController::beginLocalGesture(int handle, double x, double y, bool proxy) {
     if (!editable() || !localCanvasReady() || localIndex() < 0 || handle < -1 || handle > 2)
         return false;
     try {
@@ -247,18 +255,36 @@ bool EditorController::beginLocalGesture(int handle, double x, double y) {
         if (selected.shape == luma::MaskShape::color ||
             selected.shape == luma::MaskShape::luminance)
             return false;
+        // Only an existing gradient handle may use the expanded overlay.
+        // Brush, range sampling and a new gradient retain photo/coverage bounds.
+        if (proxy && (handle < 0 || (selected.shape != luma::MaskShape::linear &&
+                                     selected.shape != luma::MaskShape::radial)))
+            return false;
+        if (!std::isfinite(x) || !std::isfinite(y))
+            return false;
         const auto &image = *session_->preview;
         luma::CropGeometry geometry(image.width, image.height, session_->asset.metadata.orientation,
                                     history_.current());
         if (selected.shape == luma::MaskShape::brush && !viewCovered(geometry, x, y))
             return false;
-        const auto point = sourcePoint(geometry, image.width, image.height, x, y);
+        // A proxy can be in the padding around a very thin photo. Anchor its
+        // inverse inside the output, then preserve the full raw pointer delta.
+        // Clamping each move instead would create an unresponsive padding area.
+        const std::array<double, 2> outputAnchor{
+            std::clamp(x * geometry.width() - 0.5, 0.0, geometry.width() - 1.0),
+            std::clamp(y * geometry.height() - 0.5, 0.0, geometry.height() - 1.0)};
+        const auto point = proxy ? proxySourcePoint(geometry, image.width, image.height,
+                                                    outputAnchor[0], outputAnchor[1])
+                                 : sourcePoint(geometry, image.width, image.height, x, y);
         localGesture_ =
             LocalGesture{history_.current().localMasks[static_cast<std::size_t>(localIndex())],
                          geometry,
                          handle,
                          point,
-                         {}};
+                         {},
+                         proxy,
+                         {x, y},
+                         outputAnchor};
         history_.begin();
         if (selected.shape == luma::MaskShape::brush) {
             localGesture_->stroke = luma::BrushStroke{localBrushErase_,
@@ -289,7 +315,14 @@ void EditorController::adjustLocalGesture(double x, double y) {
             endEdit();
             return;
         }
-        const auto point = sourcePoint(gesture.geometry, image.width, image.height, x, y);
+        const auto point =
+            gesture.proxy
+                ? proxySourcePoint(gesture.geometry, image.width, image.height,
+                                   gesture.outputAnchor[0] +
+                                       (x - gesture.inputAnchor[0]) * gesture.geometry.width(),
+                                   gesture.outputAnchor[1] +
+                                       (y - gesture.inputAnchor[1]) * gesture.geometry.height())
+                : sourcePoint(gesture.geometry, image.width, image.height, x, y);
         auto mask = gesture.base;
         auto &primitive = localGeometry(mask);
         if (gesture.stroke) {
@@ -332,11 +365,22 @@ void EditorController::adjustLocalGesture(double x, double y) {
             primitive.y1 += dy;
         } else {
             const double radians = primitive.angle * std::numbers::pi / 180;
-            const double px = point[0] - primitive.x1, py = point[1] - primitive.y1;
-            if (gesture.handle == 1)
-                primitive.x2 = std::abs(std::cos(radians) * px + std::sin(radians) * py);
-            else
-                primitive.y2 = std::abs(-std::sin(radians) * px + std::cos(radians) * py);
+            if (gesture.proxy) {
+                // A displayed proxy is not the stored radius endpoint. Apply
+                // the source delta along its original local axis without a snap.
+                if (gesture.handle == 1)
+                    primitive.x2 =
+                        std::abs(primitive.x2 + std::cos(radians) * dx + std::sin(radians) * dy);
+                else
+                    primitive.y2 =
+                        std::abs(primitive.y2 - std::sin(radians) * dx + std::cos(radians) * dy);
+            } else {
+                const double px = point[0] - primitive.x1, py = point[1] - primitive.y1;
+                if (gesture.handle == 1)
+                    primitive.x2 = std::abs(std::cos(radians) * px + std::sin(radians) * py);
+                else
+                    primitive.y2 = std::abs(-std::sin(radians) * px + std::cos(radians) * py);
+            }
         }
         // Near-zero drags keep the previous valid geometry, without partial writes.
         if ((primitive.shape == luma::MaskShape::linear &&

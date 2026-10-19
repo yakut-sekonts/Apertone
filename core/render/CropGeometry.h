@@ -37,6 +37,9 @@ class CropGeometry {
     std::array<double, 4> frame() const;
     std::array<double, 2> output(double x, double y) const;
     std::array<double, 2> source(double x, double y) const;
+    // Explicit inverse for displaced gradient handles. Rendering and ordinary
+    // photo input must continue to use the bounded source()/covered() APIs.
+    std::array<double, 2> sourceUnbounded(double x, double y) const;
     template <class Pixel> std::array<float, 3> sample(int x, int y, const Pixel &pixel) const {
         const auto point = source(x, y);
         if (!opaque() &&

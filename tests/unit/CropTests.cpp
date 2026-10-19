@@ -139,6 +139,31 @@ void ratiosAndStraighten() {
                 std::array{3.F, -1.F, 0.5F},
             "Constant signed/HDR transform changed values.");
 }
+void unboundedHandleProjection() {
+    luma::EditDocument edits;
+    edits.crop = {0.25, 1. / 6, 0.5, 0.5, 0, 0, 0, false, false};
+    for (int flips = 0; flips < 4; ++flips) {
+        edits.crop.flipHorizontal = flips & 1;
+        edits.crop.flipVertical = flips & 2;
+        const luma::CropGeometry geometry(8, 6, 0, edits);
+        require(geometry.width() == 4 && geometry.height() == 3,
+                "Handle projection changed the ordinary crop extent.");
+        // Independent sensor pixel coordinates: crop begins at (2,1),
+        // followed by literal 8x6 sensor flips. Projection may leave the crop.
+        const auto point = geometry.sourceUnbounded(-1.5, 4.25);
+        const double x = flips & 1 ? 6.5 : 0.5;
+        const double y = flips & 2 ? -0.25 : 5.25;
+        require(point == std::array{x, y},
+                "Proxy handle projection clamped or mis-mapped an outside-crop point.");
+        const auto output = geometry.output(point[0], point[1]);
+        require(std::abs(output[0] + 1.5) < 1e-12 && std::abs(output[1] - 4.25) < 1e-12,
+                "Proxy handle projection is not inverse to the output mapping.");
+        rejects([&] { geometry.source(-1.5, 4.25); });
+        rejects([&] { geometry.sample(-1, 0, pixel); });
+        rejects([&] { geometry.sourceUnbounded(std::numeric_limits<double>::quiet_NaN(), 0); });
+        rejects([&] { geometry.sourceUnbounded(0, std::numeric_limits<double>::infinity()); });
+    }
+}
 void validation() {
     luma::EditDocument edits;
     edits.setParameters({{"crop.x", 0.2},
@@ -174,6 +199,7 @@ int main() {
     try {
         transforms();
         ratiosAndStraighten();
+        unboundedHandleProjection();
         validation();
         std::cout << "Crop exact transforms, ratios, straighten bounds, interpolation, validation "
                      "and cancellation passed\n";

@@ -9,7 +9,9 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QThread>
+#include <cmath>
 #include <memory>
+#include <numbers>
 namespace {
 void require(bool value, const char *message) {
     if (!value)
@@ -144,6 +146,51 @@ void localEditorTests(const QString &source, const QString &root, const QString 
     require(editor.currentSettings() == radial, "Delete Undo lost mask/order.");
     editor.selectLocalMask(secondID);
     editor.setLocalMode(true);
+    wait([&] { return editor.localCanvasReady(); });
+    // A displaced proxy manipulates the existing radius by a relative source
+    // delta. Merely grabbing it must not snap the radius to the proxy position.
+    const auto proxyBaseline = editor.currentSettings();
+    const auto &proxyMask = proxyBaseline.localMasks[0];
+    const double radians = 35 * std::numbers::pi / 180;
+    require(proxyMask.id == secondID.toStdString() && proxyMask.angle == 35,
+            "Proxy radius unit fixture lost its rotated radial identity.");
+    require(!editor.beginLocalGesture(-1, -.1, -.1, true) &&
+                editor.currentSettings() == proxyBaseline,
+            "A proxy flag must not permit outside-photo empty-canvas redraw.");
+    for (int handle : {1, 2}) {
+        wait([&] { return editor.localCanvasReady(); });
+        require(editor.beginLocalGesture(handle, -.1, -.1, true),
+                "Cannot start an explicit displaced gradient-handle gesture.");
+        editor.adjustLocalGesture(-.1, -.1);
+        require(editor.currentSettings() == proxyBaseline,
+                "Grabbing a proxy radius changed the stored geometry before motion.");
+        editor.adjustLocalGesture(-.05, -.07);
+        editor.endEdit();
+        auto expected = proxyBaseline;
+        auto &mask = expected.localMasks[0];
+        if (handle == 1)
+            mask.x2 = std::abs(mask.x2 + std::cos(radians) * .05 + std::sin(radians) * .03);
+        else
+            mask.y2 = std::abs(mask.y2 - std::sin(radians) * .05 + std::cos(radians) * .03);
+        const auto actual = editor.currentSettings();
+        auto normalized = actual;
+        require(std::abs(actual.localMasks[0].x2 - mask.x2) < 1e-12 &&
+                    std::abs(actual.localMasks[0].y2 - mask.y2) < 1e-12,
+                "Displaced radial handle ignored the relative delta or rotated local axis.");
+        normalized.localMasks[0].x2 = mask.x2;
+        normalized.localMasks[0].y2 = mask.y2;
+        require(actual != proxyBaseline && normalized == expected,
+                "Proxy radius changed an unrelated full-document field.");
+        editor.undo();
+        require(editor.currentSettings() == proxyBaseline,
+                "Proxy radius motion was not exactly one Undo.");
+        editor.redo();
+        require(editor.currentSettings() == actual,
+                "Proxy radius Redo changed its complete document.");
+        editor.undo();
+        require(editor.currentSettings() == proxyBaseline,
+                "Proxy unit fixture failed to restore the prior document.");
+    }
     wait([&] { return editor.localCanvasReady(); });
     require(editor.beginLocalGesture(0, .5, .5), "Cannot begin deactivation gesture.");
     editor.adjustLocalGesture(.52, .52);
