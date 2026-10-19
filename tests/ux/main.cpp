@@ -10,6 +10,7 @@
 #include <optional>
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
+bool autoTransformRaceCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -98,6 +99,10 @@ int main(int argc, char **argv) {
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "Historical MAC-008 candidate IDs forbid ignored variant/stage/state-root flags");
         }
+        if (id == "CANDIDATE-RACE005-AUTO-COMPLETION" || id == "UX-RACE-005")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "RACE005 forbids ignored variant/stage/state-root flags");
         if (parser.value("case") == "UX-APP-004" && parser.value("stage") == "verify")
             ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
@@ -107,6 +112,9 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-RACE005-AUTO-COMPLETION" || id == "UX-RACE-005")
+            ux::require(ux::autoTransformRaceCandidate(*context, id),
+                        "Genuine Auto completion regression adapter unavailable");
         else if (id == "UX-MAC-008") {
             const auto variant = parser.value("variant");
             ux::require(variant == "copy" ? ux::copyDestinationScenario(*context, id, variant)

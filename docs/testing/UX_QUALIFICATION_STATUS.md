@@ -11,7 +11,7 @@ Historical load-test evidence stays historical; deferred work does not count as 
 Current runs use explicit functional cases, excluding large-catalog and repeated
 stress fixtures even when their inventory mode is REGRESSION.
 
-The execution policy classifies 361 compiled native adapters: 249 reviewed bounded
+The execution policy classifies 362 compiled native adapters: 250 reviewed bounded
 adapters and 112 deferred implemented workloads, plus the independent integrity
 adapter. These are separate from the 51 deferred checks among unadapted scenarios.
 LIB009 is included in those deferrals because its unchanged REGRESSION contract
@@ -22,10 +22,10 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
 
 ## Verified checkpoint, 2026-10-19
 
-- 361 native scenario adapters and one suite-wide original-integrity adapter.
+- 362 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent. Of the 82 remaining scenarios without executable adapters,
-  31 are functional regressions and 51 are deferred load/performance/chaos checks.
+  (MSK-005) is absent. Of the 81 remaining scenarios without executable adapters,
+  30 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
 - 28 reproduced production defects have fixes and focused regressions in
   [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
@@ -436,7 +436,9 @@ separately from the completed final CTest report.
 
 These two cases run through `run_mask_handle_regression.py` in a separate
 supplemental inventory domain. They do not register official UX-MSK-023 or change
-the 770-ID specification, the 361-adapter count or the 31 functional adapter gaps.
+the 770-ID specification. At that checkpoint the official adapter count stayed
+361 and the functional adapter gaps stayed 31; the later official Auto-completion
+adapter is accounted for below.
 The bounded plain-Crop/flip matrix does not qualify every zoom, Transform,
 projective, pan/recenter or display boundary in full MSK023. Exact CPU reference
 pixels use the shared renderer/ICC path and are a UI/state-coherence oracle,
@@ -444,3 +446,62 @@ not independent numerical qualification of the renderer. The final local cohorts
 are not hosted CI for the new source. No load workload, release tag, production
 publication or phase0.6 work is implied by this checkpoint; full current-scope
 release qualification remains incomplete.
+
+
+## Genuine Auto completion checkpoint, 2026-10-19
+
+Official UX-RACE-005 now verifies both genuine successful OLD Auto results:
+actual Cancel, and actual filmstrip A→B switch before the original result's
+queue/delivery. The test-only worker hold starts after the real solver succeeds;
+logical revisions, source UUID/path and retained actual JobData identify the same
+result at its original success callback and stale rejection. One delivery and one
+rejection are required for each operation. No fabricated callback or solver refusal
+can satisfy the successful-result controls. Both stale callbacks are rejected by
+the existing first Auto-revision guard; the observed load-revision change does not
+independently exercise the later load guard. No production defect or change in
+normal Auto behavior is implied by this adapter.
+
+The two imported small assets have independently known complete documents and
+nonneutral pixels. Actual controls must finish their seed gestures before Auto;
+Cancel preserves the original one-entry Undo/Redo history, while B and the return
+to A load fresh histories at their persisted documents. Passive state observations,
+current Image Ready/source/provider pixels, natural catalog saves, exact saved
+revisions, source SHA and membership remain required. The CPU/ICC reference checks
+state coherence through the shared renderer; it does not independently qualify
+its numerical implementation or physical displayed-frame pixels. The file-chooser
+result is a declared setup seam; native chooser acceptance is not claimed.
+
+Final registered evidence: **27 Cocoa/Metal PASS**, nine bounded cases three times,
+`race005-registered-final-native-report`, run `20261019T095737Z-61847`.
+That includes three complete UX-RACE-005 attempts and three ordinary successful
+Auto Apply/Undo/Redo controls in UX-UND-007, plus manual/guided Transform, Cancel
+and photo-switch scroll checks. The same nine cases pass once in local
+offscreen/software, `race005-registered-final-local-software-report`, run
+`20261019T095722Z-61703`. Every child exits0 and every report passes build proof,
+unchanged source/binary, original hashes and catalog integrity. Initial candidate
+runs also passed once per backend in separate preserved supplemental reports;
+they are not added to the official result totals.
+
+Full build and CTest pass: **42 PASS, one optional private Nikon SKIP**, 81.56s,
+`race005-registered-final-full-ctest.log`. Forty runner tests, eight quality-policy
+tests, format and four focused tidy commands pass. Advisory tidy diagnostics
+remain in the original logs, separate from command errors. The tested source tree
+before documentation-only result recording is
+`1130e2e1d50029faa2434662817d0dd3cea180a2066cb71e310ea11affda4164`;
+the binary SHA-256 is
+`3f8781cbe55f545c0c2d5929f9f6a28c9a794deaf38d75e1f239f7466503bf26`.
+
+CI/release workflows execute this REGRESSION case in a separate focused quality
+step and retain its own report and operation JSON; the blocking subset alone does
+not select it. The one-PNG focused fixture also generates two small DNGs, imports
+only two assets and starts Auto twice, with no large fixture or TRN014 cycles.
+The mixed local cohort shares ten small PNGs; none becomes a bulk import.
+The probe is private to luma_ux_tests and adds no production gate or QObject ABI.
+
+This closes one functional adapter gap: **362 native adapters**, 250 reviewed
+bounded adapters and 112 deferred compiled workloads. Of 81 unadapted applicable
+scenarios, **30 remain functional gaps** and 51 remain deferred load/performance/
+chaos checks; conditional absent MSK005 and independent original-integrity remain
+separate. Full MSK023 remains unqualified. The official 770-ID inventory, 28 fixed
+production defects, stable0.4.14 and release NOT_QUALIFIED status are unchanged.
+No load test, phase0.6 work, tag or production release ran in this checkpoint.

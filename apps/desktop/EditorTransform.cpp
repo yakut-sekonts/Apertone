@@ -1,4 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+#include "tests/ux/AutoTransformProbe.h"
+#endif
 #include "core/render/TransformMapping.h"
 #include <QPointer>
 #include <algorithm>
@@ -137,10 +140,23 @@ void EditorController::autoTransform() {
     const auto metadata = session_->asset.metadata;
     const double scale = session_->previewScale;
     const QPointer<EditorController> self(this);
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+    const ux::AutoTransformOperation uxOperation{this,
+                                                 revision,
+                                                 editRevision,
+                                                 loadRevision,
+                                                 session_->asset.id,
+                                                 session_->asset.path.string(),
+                                                 {}};
+#endif
     transformJob_ = transformJobs_.submit(
         luma::JobPriority::interactive,
-        [self, image, edits, calibration, metadata, scale, revision, editRevision,
-         loadRevision](const luma::JobContext &context) {
+        [self, image, edits, calibration, metadata, scale, revision, editRevision, loadRevision
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+         ,
+         uxOperation
+#endif
+    ](const luma::JobContext &context) {
             try {
                 const auto small = luma::standardPreview(*image, 512, context.stopToken());
                 const double smallScale =
@@ -152,12 +168,32 @@ void EditorController::autoTransform() {
                 const auto guides = luma::detectPerspectiveGuides(rendered, context.stopToken());
                 const auto solved = luma::solvePerspectiveGuides(
                     guides, static_cast<double>(rendered.width - 1) / (rendered.height - 1));
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+                auto uxSuccess = uxOperation;
+                uxSuccess.job = context.data;
+                ux::holdAutoTransformSuccess(uxSuccess, solved);
+#endif
                 if (self)
                     QMetaObject::invokeMethod(
                         self,
-                        [self, solved, revision, editRevision, loadRevision] {
-                            if (!self || self->transformAutoRevision_ != revision)
+                        [self, solved, revision, editRevision, loadRevision
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+                         ,
+                         uxSuccess
+#endif
+                    ] {
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+                            ux::observeAutoTransformSuccessDelivery(uxSuccess);
+#endif
+                            if (!self || self->transformAutoRevision_ != revision) {
+#ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
+                                ux::observeAutoTransformRevisionRejection(
+                                    uxSuccess, static_cast<bool>(self),
+                                    self ? self->transformAutoRevision_ : 0,
+                                    self ? self->editRevision_ : 0, self ? self->loadRevision_ : 0);
+#endif
                                 return;
+                            }
                             self->transformAutoBusy_ = false;
                             if (self->editRevision_ == editRevision &&
                                 self->loadRevision_ == loadRevision && self->editable()) {

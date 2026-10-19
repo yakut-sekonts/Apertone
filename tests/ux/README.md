@@ -124,3 +124,19 @@ in Library and Develop; direct reject is fixture cleanup, not native cancel-inpu
 or file-selection qualification. Copy crash recovery uses an intentional process
 kill after publishing a complete file but before its catalog commit, followed by
 the real LibraryModel startup recovery in a distinct process.
+
+
+Auto Transform completion has a bounded official `UX-RACE-005` regression. Two
+actual successful solver results are held on the worker before their original
+queue/delivery; real Cancel and filmstrip photo switch must reject those exact
+operations without changing complete documents, history, Ready/provider pixels,
+natural durable revisions or source bytes. Its observed load-revision change does
+not independently exercise the later load guard because the first Auto-revision
+guard rejects both stale callbacks. The test-only probe is compiled exclusively
+into `luma_ux_tests`; the ordinary application has no gate or probe ABI.
+
+Run with `--quality-only --case UX-RACE-005`. This uses one generated PNG plus
+small Building/Lens DNG fixtures, imports two assets and starts Auto twice. There
+are no TRN014 stress cycles. The REGRESSION case needs its own focused CI/release
+step because the blocking subset does not select it. Full current-scope release
+qualification remains separate from this result.

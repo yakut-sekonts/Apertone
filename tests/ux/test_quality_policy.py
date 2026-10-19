@@ -107,6 +107,23 @@ class QualityPolicyTests(unittest.TestCase):
                 self.assertEqual((result['children'], result['fixtures']), (0, 0))
                 self.assertEqual(result['summary']['results'][0]['skip_reason'], expected_skip)
 
+    def test_auto_completion_regression_keeps_bounded_fixture_and_separate_ci_selection(self):
+        row = next(row for row in runner.INVENTORY if row['id'] == 'UX-RACE-005')
+        self.assertEqual((row['scope'], row['mode'], row['severity']),
+                         ('CURRENT', 'REGRESSION', 'P1'))
+        self.assertIn(row['id'], runner.NATIVE)
+        self.assertIsNone(policy.quality_skip_reason(row))
+        self.assertEqual(policy.quality_fixture_count([row]), 1)
+        self.assertEqual(policy.quality_fixture_count([row, {'id': 'UX-SEL-002'}]), 10)
+        self.assertEqual(policy.quality_fixture_count([row, {'id': 'UX-IMP-009'}]), 20)
+        selected = argparse.Namespace(case=[], phase=None, suite='blocking')
+        self.assertFalse(runner.row_selected(row, selected))
+        result = self.run_cli([row], flags=('--suite', 'regression', '--case', row['id']))
+        self.assertEqual(result['code'], 0)
+        self.assertEqual((result['children'], result['fixtures']), (1, 1))
+        self.assertEqual(result['fixture_options'], {'count': 1, 'include_large': False})
+        self.assertEqual(result['summary']['release_gate'], 'NOT_QUALIFIED')
+
     def test_missing_functional_adapter_keeps_unadapted_accounting(self):
         result = self.run_cli([self.row('UX-APP-002'), self.row('UX-KEY-015')],
                               native={'UX-APP-002'})

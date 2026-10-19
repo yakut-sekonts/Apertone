@@ -79,6 +79,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: Supplemental gradient handle accessibility regressions
         run: .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build --runs 3 --require-build-provenance
+      - name: Auto Transform completion regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
       - name: Upload release UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -88,6 +90,7 @@ jobs:
             build/ux-report/
             build/ux-keyboard-report/
             build/ux-mask-handles-report/
+            build/ux-auto-transform-report/
             build/ux-build-provenance.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/child-result.json
@@ -96,6 +99,7 @@ jobs:
             build/ux-artifacts/20*/**/keyboard-activation.json
             build/ux-artifacts/20*/**/dsc006-scroll-trace.json
             build/ux-artifacts/20*/**/msk023-*.json
+            build/ux-artifacts/20*/**/race005-*.json
             build/ux-artifacts/20*/**/msk023-*.png
             build/ux-artifacts/20*/**/app.log
             build/ux-artifacts/20*/**/command.json
