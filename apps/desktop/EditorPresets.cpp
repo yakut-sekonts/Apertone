@@ -6,6 +6,8 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
     if (!editable())
         return;
     try {
+        setRetouchMode(QStringLiteral("off"));
+        cancelAI();
         setLocalMode(false);
         closeTransformTool();
         setCropMode(false);
@@ -25,6 +27,8 @@ void EditorController::previewSettings(const luma::EditDocument &settings, std::
     if (!editable() || original_)
         return;
     try {
+        setRetouchMode(QStringLiteral("off"));
+        cancelAI();
         setLocalMode(false);
         closeTransformTool();
         setCropMode(false);
@@ -56,6 +60,8 @@ QString EditorController::photoID() const {
     return session_ ? QString::fromStdString(session_->asset.id) : QString();
 }
 void EditorController::prepareExternalEdits() {
+    cancelAI();
+    setRetouchMode(QStringLiteral("off"));
     setLocalMode(false);
     closeTransformTool();
     setCropMode(false);

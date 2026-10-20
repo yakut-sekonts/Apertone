@@ -9,6 +9,7 @@
 #include "core/render/PerspectiveCorrection.h"
 #include "core/render/Sharpening.h"
 #include "core/render/DevelopAccelerator.h"
+#include "core/ai/Providers.h"
 #include "platform/macos/MemoryPressure.h"
 #include <QObject>
 #include <QQuickWindow>
@@ -82,6 +83,16 @@ class EditorController final : public QObject {
     Q_PROPERTY(QSize previewPixelSize READ previewPixelSize NOTIFY stateChanged)
     Q_PROPERTY(int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
     Q_PROPERTY(bool metalPreview READ metalPreview WRITE setMetalPreview NOTIFY stateChanged)
+    Q_PROPERTY(bool aiBusy READ aiBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool aiObjectPicking READ aiObjectPicking NOTIFY stateChanged)
+    Q_PROPERTY(double aiProgress READ aiProgress NOTIFY stateChanged)
+    Q_PROPERTY(QString retouchMode READ retouchMode WRITE setRetouchMode NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap retouchState READ retouchState NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList retouchItems READ retouchItems NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap retouchOverlay READ retouchOverlay NOTIFY stateChanged)
+    Q_PROPERTY(bool retouchBusy READ retouchBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString denoiseModelName READ denoiseModelName NOTIFY stateChanged)
+    Q_PROPERTY(bool denoiseModelConfigured READ denoiseModelConfigured NOTIFY stateChanged)
     Q_PROPERTY(QString catalogPath READ catalogPath CONSTANT)
 
   public:
@@ -268,6 +279,31 @@ class EditorController final : public QObject {
     void setPreviewCacheMiB(int value);
     bool metalPreview() const { return metalPreview_; }
     void setMetalPreview(bool value);
+    bool aiBusy() const { return aiBusy_; }
+    bool aiObjectPicking() const { return aiObjectPicking_; }
+    double aiProgress() const { return aiProgress_; }
+    Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
+    Q_INVOKABLE void beginAIObjectSelection();
+    Q_INVOKABLE void cancelAI();
+    QString denoiseModelName() const;
+    bool denoiseModelConfigured() const { return !denoiseModelPath_.isEmpty(); }
+    Q_INVOKABLE void setDenoiseModel(const QUrl &url);
+    Q_INVOKABLE void denoisePhoto(double amount = 100);
+    QString retouchMode() const { return retouchMode_; }
+    void setRetouchMode(const QString &mode);
+    bool retouchBusy() const { return retouchBusy_; }
+    QVariantMap retouchState() const;
+    QVariantList retouchItems() const;
+    QVariantMap retouchOverlay() const;
+    Q_INVOKABLE void selectRetouch(const QString &id);
+    Q_INVOKABLE void removeRetouch();
+    Q_INVOKABLE void setRetouchEnabled(bool value);
+    Q_INVOKABLE void setRetouchControl(const QString &name, double value);
+    Q_INVOKABLE void pickRetouchSource(double x, double y);
+    Q_INVOKABLE void beginRetouch(double x, double y);
+    Q_INVOKABLE void continueRetouch(double x, double y);
+    Q_INVOKABLE void endRetouch();
+    Q_INVOKABLE void cancelRetouch();
     Q_INVOKABLE void clearPreviewCache();
     QString catalogPath() const;
     QString sourcePath() const;
@@ -354,6 +390,23 @@ class EditorController final : public QObject {
     bool oneToOne_ = false;
     bool metalPreview_ = true;
     std::shared_ptr<luma::DevelopAccelerator> accelerator_;
+    std::shared_ptr<luma::ai::ISegmentationProvider> segmentation_;
+    luma::JobManager aiJobs_;
+    luma::JobHandle aiJob_;
+    bool aiBusy_ = false, aiObjectPicking_ = false;
+    double aiProgress_ = 0;
+    std::uint64_t aiRevision_ = 0;
+    QString denoiseModelPath_;
+    luma::JobManager retouchJobs_;
+    luma::JobHandle retouchJob_;
+    std::uint64_t retouchRevision_ = 0;
+    bool retouchBusy_ = false;
+    QString retouchMode_ = QStringLiteral("off"), retouchSelected_;
+    double retouchRadius_ = .025, retouchFeather_ = .75, retouchOpacity_ = 1;
+    std::optional<std::array<double, 2>> retouchSource_;
+    std::optional<luma::RetouchStroke> retouchDraft_;
+    std::optional<std::array<double, 2>> retouchPoint(double x, double y) const;
+    int retouchIndex() const;
     PreviewProvider *provider_;
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;

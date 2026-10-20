@@ -3,6 +3,7 @@
 #include "core/lens/LensCorrection.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
+#include "core/render/RetouchPass.h"
 #include <algorithm>
 #include <cmath>
 namespace luma {
@@ -16,7 +17,8 @@ std::array<float, 3> sampleMaskReference(const FloatImage &source, const EditDoc
     edits.validate();
     checkCancellation(stop);
     const LensCorrectionPass optics(source, edits, metadata, stop);
-    const auto &image = optics.image();
+    const RetouchPass retouch(optics.image(), edits.retouch, stop);
+    const auto &image = retouch.image();
     const DevelopPipeline pipeline(edits, calibration);
     const NoiseReductionPass noise(image, pipeline, edits, stop, detailScale);
     const SharpeningPass sharpening(image, pipeline, edits, stop, detailScale,

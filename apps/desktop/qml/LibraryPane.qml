@@ -10,6 +10,7 @@ Rectangle {
     property url destination: ""
     property string currentCollection: ""
     property string editCollectionID: ""
+    SemanticSearchDialog { id: semanticSearch }
     Connections {
         target: library
         function onReloadStarted(preserveViewport) { grid.captureViewport(preserveViewport) }
@@ -73,6 +74,7 @@ Rectangle {
                 Label { text: qsTranslate("Luma", "LIBRARY"); font.pixelSize: 10; color: "#8290a1"; font.letterSpacing: 1.5 }
                 Button { objectName: "library.importButton"; text: qsTranslate("Luma", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 Button { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
+                Button { text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
                 Label { text: qsTranslate("Luma", "COLLECTIONS"); font.pixelSize: 10; color: "#8290a1"; Layout.topMargin: 16 }
                 ScrollView {
                     objectName: "library.collectionsScroll"
@@ -120,6 +122,7 @@ Rectangle {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 GridView {
                     id: grid; objectName: "library.grid"; anchors.fill: parent; clip: true; model: library
+                    currentIndex: -1
                     property string viewportAsset: ""
                     property real viewportOffset: 0
                     property bool restorePending: false

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 0.6.0 LANGUAGES C CXX OBJCXX)
+project(Luma VERSION 0.7.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
@@ -21,6 +21,10 @@ include(cmake/Dependencies.cmake)
 include(cmake/Sparkle.cmake)
 
 add_library(luma_core STATIC
+    core/catalog/SemanticCatalog.cpp
+    core/catalog/CatalogBackup.cpp
+    core/edits/Retouch.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
+    core/catalog/BitmapMaskMigration.cpp
     core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
     "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
     core/math/Homography.cpp core/edits/TransformSettings.cpp core/render/TransformMapping.cpp core/render/PerspectiveCorrection.cpp
@@ -38,13 +42,22 @@ add_library(luma_macos STATIC platform/macos/RasterDecoder.mm platform/macos/Adv
 target_sources(luma_macos PRIVATE platform/macos/MemoryPressure.mm)
 set_source_files_properties(platform/macos/MemoryPressure.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_sources(luma_macos PRIVATE platform/macos/MetalDevelop.mm)
+target_sources(luma_macos PRIVATE platform/macos/VisionSegmentation.mm)
+target_sources(luma_macos PRIVATE platform/macos/CoreMLDenoise.mm)
+target_sources(luma_macos PRIVATE platform/macos/SemanticEmbedding.mm)
+set_source_files_properties(platform/macos/SemanticEmbedding.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+target_link_libraries(luma_macos PRIVATE "-framework NaturalLanguage")
+set_source_files_properties(platform/macos/CoreMLDenoise.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+target_link_libraries(luma_macos PRIVATE "-framework CoreML")
+set_source_files_properties(platform/macos/VisionSegmentation.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+target_link_libraries(luma_macos PRIVATE "-framework Vision" "-framework CoreVideo")
 set_source_files_properties(platform/macos/MetalDevelop.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 target_link_libraries(luma_macos PRIVATE luma_core "-framework Metal")
 target_include_directories(luma_macos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework ImageIO" "-framework CoreText" "-framework UniformTypeIdentifiers")
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
-add_library(luma_services STATIC apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
+add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_services PUBLIC luma_core luma_macos)
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -63,9 +76,9 @@ qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
     apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
-    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
+    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/PhotoCard.qml)
+    QML_FILES apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Luma PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
@@ -132,8 +145,8 @@ if(BUILD_TESTING)
     qt_add_executable(luma_ux_tests MACOSX_BUNDLE tests/ux/main.cpp tests/ux/UxContext.cpp tests/ux/UxPixels.cpp tests/ux/UxDriver.cpp tests/ux/UxMetrics.cpp tests/ux/SqliteFault.cpp tests/ux/RecoveryScenarios.cpp tests/ux/BasicScenarios.cpp tests/ux/LibraryScenarios.cpp tests/ux/MaskScenarios.cpp tests/ux/LifecycleScenarios.cpp tests/ux/ImportScenarios.cpp tests/ux/ExportScenarios.cpp tests/ux/RestartScenarios.cpp tests/ux/BatchScenarios.cpp tests/ux/GeometryScenarios.cpp tests/ux/CropScenarios.cpp tests/ux/AccessibilityScenarios.cpp tests/ux/LibraryScaleScenarios.cpp tests/ux/SelectionScenarios.cpp tests/ux/KeyboardScenarios.cpp tests/ux/NavigationScenarios.cpp tests/ux/FilterExtraScenarios.cpp tests/ux/DetailScenarios.cpp tests/ux/LensScenarios.cpp tests/ux/AdvancedScenarios.cpp tests/ux/PresetScenarios.cpp tests/ux/PresetExtraScenarios.cpp tests/ux/PresetRemainingScenarios.cpp tests/ux/HistoryStressScenarios.cpp tests/ux/ImportExtraScenarios.cpp tests/ux/CurrentPerformanceScenarios.cpp tests/ux/WhiteBalanceScenarios.cpp tests/ux/GestureRemainingScenarios.cpp tests/ux/VisualRemainingScenarios.cpp tests/ux/LibraryRemainingScenarios.cpp tests/ux/BatchUpdateRemainingScenarios.cpp tests/ux/AppExtraScenarios.cpp tests/ux/ExportExtraScenarios.cpp tests/ux/PreviewExtraScenarios.cpp tests/ux/RecoveryExtraScenarios.cpp tests/ux/AsyncScenarios.cpp tests/ux/TransformScenarios.cpp tests/ux/TransformExtraScenarios.cpp tests/ux/LocalizationScenarios.cpp tests/ux/UpdaterScenarios.cpp
         apps/desktop/ExportController.cpp apps/shared/ExportSettings.cpp
         apps/desktop/BatchController.cpp apps/desktop/PresetController.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
-        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
-        apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/UpdateController.cpp)
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
     set_target_properties(luma_ux_tests PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.ux-tests"
@@ -218,16 +231,16 @@ if(BUILD_TESTING)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
     qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
-        apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp
+        apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/LocalCompleteEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_preset_tests PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_preset_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -281,7 +294,7 @@ if(BUILD_TESTING)
     target_compile_options(luma_copy_publication_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME copy-publication-single-link COMMAND luma_copy_publication_tests)
     set_tests_properties(copy-publication-single-link PROPERTIES TIMEOUT 30 LABELS "unit;import")
-    add_executable(luma_library_tests tests/unit/LibraryTests.cpp apps/desktop/LibraryModel.cpp)
+    add_executable(luma_library_tests tests/unit/LibraryTests.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp)
     target_link_libraries(luma_library_tests PRIVATE luma_services Qt6::Core)
     target_compile_options(luma_library_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")

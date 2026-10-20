@@ -1,5 +1,6 @@
 #include "apps/desktop/LibraryModel.h"
 #include <QPointer>
+#include <QSettings>
 #include <algorithm>
 #include <chrono>
 #include <limits>
@@ -25,16 +26,21 @@ LocalizedText summary(const luma::ImportSummary &result) {
 } // namespace
 LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     : QAbstractListModel(parent), catalog_(std::move(catalog)) {
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini", QSettings::IniFormat);
+    semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
     filterTimer_.setSingleShot(true);
     filterTimer_.setInterval(160);
     connect(&filterTimer_, &QTimer::timeout, this, [this] { reload(true); });
     const QPointer<LibraryModel> self(this);
     const auto path = catalog_;
     const auto recoveryStop = importCancellation_.token();
-    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop](const auto &) {
+    const bool clearSemantic = !semanticEnabled_;
+    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop, clearSemantic](const auto &) {
         QString error, report;
         std::vector<luma::ImportSummary> recovered;
         try {
+            if (clearSemantic)
+                luma::Catalog(path).clearSemanticIndex();
             recovered = luma::LibraryService(path).recover(recoveryStop);
             if (!recovered.empty())
                 report = ::importReport(path, recovered.back());
@@ -68,6 +74,8 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     });
 }
 LibraryModel::~LibraryModel() {
+    semanticJob_.cancel();
+    semanticJobs_.shutdown();
     importCancellation_.cancel();
     imports_.shutdown();
     writes_.shutdown();
@@ -281,7 +289,15 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
 void LibraryModel::photoOpened(const QString &id) {
     activeID_ = id;
     selectionChanged();
-    reload(false);
+    // A photo already present in a loaded page changes only its Active role.
+    // Resetting the model here destroys delegates and the user's viewport.
+    const auto known = std::any_of(pages_.begin(), pages_.end(), [&](const auto &page) {
+        return std::any_of(page.second.begin(), page.second.end(),
+                           [&](const auto &item) { return item.id == id.toStdString(); });
+    });
+    // Open-file / newly generated photos still need a fresh catalog count.
+    if (!known)
+        reload(false);
 }
 void LibraryModel::selectionChanged() {
     if (count_)
@@ -578,9 +594,10 @@ bool LibraryModel::requestClose() {
     closing_ = true;
     filterTimer_.stop();
     cancelImport();
-    return !importing_ && !writing_;
+    cancelSemantic();
+    return !importing_ && !writing_ && !semanticBusy_;
 }
 void LibraryModel::checkClose() {
-    if (closing_ && !importing_ && !writing_)
+    if (closing_ && !importing_ && !writing_ && !semanticBusy_)
         emit closeReady();
 }

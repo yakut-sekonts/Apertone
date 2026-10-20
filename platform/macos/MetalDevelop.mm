@@ -1,5 +1,5 @@
 #include "platform/macos/MetalDevelop.h"
-#include "platform/macos/BasicDevelopShader.h"
+#include "platform/macos/DevelopShader.h"
 #include "core/image/Bayer.h"
 #import <Metal/Metal.h>
 #include <algorithm>
@@ -12,9 +12,7 @@ class MetalDevelop final : public DevelopAccelerator {
   public:
     std::vector<float> develop(const FloatImage &input, const DevelopPipeline &pipeline,
                                CancellationToken stop) override {
-        const auto parameters = pipeline.basicGpuParameters();
-        if (!parameters)
-            return {};
+        const auto parameters = pipeline.gpuParameters();
         input.validateCoverage();
         checkCancellation(stop);
         // One instance owns one queue; bounded chunks allow cancellation between
@@ -33,7 +31,10 @@ class MetalDevelop final : public DevelopAccelerator {
                                                        options:MTLResourceStorageModeShared];
             id<MTLBuffer> invalid = [device_ newBufferWithLength:sizeof(std::uint32_t)
                                                         options:MTLResourceStorageModeShared];
-            if (!source || !target || !invalid)
+            id<MTLBuffer> constants = [device_ newBufferWithBytes:parameters.data()
+                                                         length:parameters.size() * sizeof(float)
+                                                        options:MTLResourceStorageModeShared];
+            if (!source || !target || !invalid || !constants)
                 return {};
             std::vector<float> result(input.rgb.size());
             for (std::size_t first = 0; first < count; first += chunkPixels) {
@@ -49,7 +50,7 @@ class MetalDevelop final : public DevelopAccelerator {
                 [encoder setComputePipelineState:pipeline_];
                 [encoder setBuffer:source offset:0 atIndex:0];
                 [encoder setBuffer:target offset:0 atIndex:1];
-                [encoder setBytes:parameters->data() length:sizeof(*parameters) atIndex:2];
+                [encoder setBuffer:constants offset:0 atIndex:2];
                 [encoder setBytes:&size length:sizeof(size) atIndex:3];
                 [encoder setBuffer:invalid offset:0 atIndex:4];
                 const auto threads = std::min<NSUInteger>(256, pipeline_.maxTotalThreadsPerThreadgroup);
@@ -93,11 +94,11 @@ class MetalDevelop final : public DevelopAccelerator {
         }
         NSError *error = nil;
         id<MTLLibrary> library =
-            [device_ newLibraryWithSource:[NSString stringWithUTF8String:basicDevelopShader]
+            [device_ newLibraryWithSource:[NSString stringWithUTF8String:developShader]
                                  options:options error:&error];
         if (!library || !queue_)
             return;
-        id<MTLFunction> function = [library newFunctionWithName:@"basicDevelop"];
+        id<MTLFunction> function = [library newFunctionWithName:@"develop"];
         if (function)
             pipeline_ = [device_ newComputePipelineStateWithFunction:function error:&error];
     }

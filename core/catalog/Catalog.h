@@ -3,6 +3,7 @@
 #include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
 #include "core/metadata/PhotoMetadata.h"
+#include "core/ai/Embedding.h"
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -94,6 +95,16 @@ class Catalog {
     ImportSummary importSummary(const std::string &sessionID) const;
     std::vector<std::string> importProblems(const std::string &sessionID) const;
     void verify() const;
+    void backupTo(const std::filesystem::path &destination, CancellationToken stop = {},
+                   const std::function<void(double)> &progress = {}) const;
+    std::vector<std::string> pendingSemanticImages(const std::string &provider,
+                                                  const std::string &after, int limit = 64) const;
+    void saveSemanticEmbedding(const std::string &id, const std::string &checksum,
+                                const std::string &provider, std::span<const float> embedding);
+    std::vector<ai::SemanticMatch> semanticSearch(const std::string &provider,
+                                                std::span<const float> embedding, int limit = 100,
+                                                CancellationToken stop = {}) const;
+    void clearSemanticIndex();
 
   private:
     enum class BatchState { none, applied, undone };
@@ -108,6 +119,10 @@ class Catalog {
     void migrateTransform();
     void migrateLocalMasks();
     void migrateMaskComponents();
+    void migrateBitmapMasks();
+    void migrateRetouch();
+    void migrateSemanticIndex();
+    void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     void execute(const char *sql) const;

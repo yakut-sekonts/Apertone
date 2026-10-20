@@ -134,15 +134,21 @@ wait for the final 1.0.0 campaign under the schedule above.
 
 Initial implementation (unbuilt and unqualified): byte-bounded decoded/rendered
 LRU caches, 1024→2560 progressive previews, on-demand full-resolution 100% view,
-cache preferences, memory-pressure eviction and a cancellable Metal basic
-Develop pass with CPU fallback. Curves/HSL, Detail, masks, optics, geometry and
-ICC conversion still use the CPU reference. GPU coverage and the final
+cache preferences, memory-pressure eviction and a cancellable Metal global
+Develop pass (including Curves/HSL) with CPU fallback. Detail, masks, optics,
+geometry and ICC conversion still use the CPU reference. The final
 qualification remain open; see [implementation status](docs/PHASE6_DEVELOPMENT.md).
 
 ## 0.7 — Advanced
 
-🗓 Planned. Optional local AI denoise, AI masks, content-aware removal and
-semantic search. Provider interfaces and privacy consent before any cloud option.
+In development, unbuilt and unqualified. Native Vision Subject/Background/Object
+bitmap selections, persisted Clone/Heal/Remove strokes, local Core ML denoise
+integration with new Float32 DNG output, and opt-in local English semantic search
+over recognized image categories are implemented in source. Catalog 11→14 adds
+bitmap storage, retouch and embeddings; a pre-migration SQLite backup is required.
+Sky selection and a redistributable qualified denoise model remain open.
+No model is silently downloaded and no photo is sent to a cloud service.
+See [implementation and remaining scope](docs/PHASE7_DEVELOPMENT.md).
 
 ## 0.8 — Merge
 

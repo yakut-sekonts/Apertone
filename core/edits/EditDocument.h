@@ -2,6 +2,7 @@
 #include "core/edits/CropSettings.h"
 #include "core/edits/LensSettings.h"
 #include "core/edits/LocalMasks.h"
+#include "core/edits/Retouch.h"
 #include "core/edits/TransformSettings.h"
 #include <array>
 #include <cmath>
@@ -83,6 +84,7 @@ struct EditDocument {
     std::array<PointCurve, 4> curves{};
     std::array<HSLBand, 8> hsl{};
     std::vector<LocalMask> localMasks{};
+    std::vector<RetouchStroke> retouch{};
     bool operator==(const EditDocument &) const = default;
     bool enabled(Correction correction) const {
         return (enabledCorrections & static_cast<std::uint32_t>(correction)) != 0;

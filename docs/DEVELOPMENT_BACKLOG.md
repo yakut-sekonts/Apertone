@@ -10,7 +10,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 ## LUMA-BUG-035 — Library scroll returns to the beginning on photo selection
 
 - GitHub: [Issue #49](https://github.com/yakut-sekonts/Luma/issues/49).
-- Status: **open — reported by user; fix pending**.
+- Status: **open — source fix implemented; confirmation deferred to final QA**.
 - Reported: 2026-10-20, after installation of the 0.5.1 release.
   The exact running build has not been independently established.
 - Reproduction supplied by the user: import photographs, scroll down through
@@ -23,5 +23,9 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   independently analyzed; the description above records the user's report.
 - Likely investigation area, not an established cause: Library selection,
   `photoOpened`, model reload/reset, and viewport restoration.
+- Source change: opening an asset already present in a loaded metadata page
+  updates Active/Selected roles without resetting the model. Card clicks set
+  the view's current index before transferring focus; the grid starts with no
+  implicit current item. This has not been run or independently confirmed.
 - Final qualification must cover click selection after deep scrolling, repeated
   selection, paged results, sort/filter combinations and asynchronous photo load.

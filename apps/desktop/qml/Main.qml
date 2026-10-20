@@ -22,7 +22,7 @@ ApplicationWindow {
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
-    onLibraryModeChanged: {if(libraryMode) { editor.localMode=false; editor.cropMode=false }}
+    onLibraryModeChanged: {if(libraryMode) { editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     function ensureActiveFocusVisible(scroll) {
         const item = root.activeFocusItem
@@ -98,6 +98,7 @@ ApplicationWindow {
     Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo() }
     Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo() }
     Shortcut { enabled: !updates.restartPending; context: Qt.ApplicationShortcut; sequences: [StandardKey.Quit]; onActivated: root.close() }
+    Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     Shortcut {
@@ -282,6 +283,21 @@ ApplicationWindow {
                             horizontalAlignment: Image.AlignHCenter
                             verticalAlignment: Image.AlignVCenter
                             MouseArea {
+                                anchors.fill: parent
+                                enabled: editor.aiObjectPicking && !editor.busy
+                                z: 1
+                                cursorShape: Qt.CrossCursor
+                                onClicked: function(mouse) {
+                                    const left = (width - previewImage.paintedWidth) / 2
+                                    const top = (height - previewImage.paintedHeight) / 2
+                                    if (previewImage.paintedWidth > 0 && previewImage.paintedHeight > 0 &&
+                                        mouse.x >= left && mouse.x <= left + previewImage.paintedWidth &&
+                                        mouse.y >= top && mouse.y <= top + previewImage.paintedHeight)
+                                        editor.generateAIMask("object", (mouse.x - left) / previewImage.paintedWidth,
+                                                              (mouse.y - top) / previewImage.paintedHeight)
+                                }
+                            }
+                            MouseArea {
                                 objectName: "develop.targetedArea"
                                 anchors.fill: parent
                                 enabled: !editor.cropMode && !editor.guidedMode && editor.targetedTool !== "none" && editor.hasPhoto && !editor.busy && !editor.original
@@ -297,6 +313,11 @@ ApplicationWindow {
                                 onReleased: { adjusting=false;editor.endTargeted() }
                                 onCanceled: { adjusting=false;editor.endTargeted() }
                             }
+                        }
+                        RetouchOverlay {
+                            x: (previewImage.width-previewImage.paintedWidth)/2
+                            y: (previewImage.height-previewImage.paintedHeight)/2
+                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
                         }
                         LocalOverlay {
                             photoWidth: previewImage.paintedWidth
@@ -393,6 +414,7 @@ ApplicationWindow {
                         TransformPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         LensPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         DetailPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
+                        RetouchPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         Button { objectName: "develop.resetButton"; text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }

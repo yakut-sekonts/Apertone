@@ -8,6 +8,7 @@
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/NoiseReduction.h"
+#include "core/render/RetouchPass.h"
 #include <algorithm>
 #include <cmath>
 
@@ -89,7 +90,8 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                  ) {
     source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
-    const auto &input = optics.image();
+    const RetouchPass retouch(optics.image(), edits.retouch, stop);
+    const auto &input = retouch.image();
     edits.validate();
     if (orientation < 0 || orientation > 7 ||
         input.rgb.size() != pixelCount(input.width, input.height) * 3) {

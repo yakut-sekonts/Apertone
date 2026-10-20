@@ -5,6 +5,7 @@
 #include "core/render/DevelopPipeline.h"
 #include "core/render/LocalAdjustments.h"
 #include "core/render/NoiseReduction.h"
+#include "core/render/RetouchPass.h"
 #include <algorithm>
 #include <cmath>
 
@@ -23,7 +24,8 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
     edits.validate();
     decoded.image.validateCoverage();
     const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
-    const auto &input = optics.image();
+    const RetouchPass retouch(optics.image(), edits.retouch, stop);
+    const auto &input = retouch.image();
     const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, edits);
     const double sourceAspect =
         decoded.metadata.width > 0 && decoded.metadata.height > 0

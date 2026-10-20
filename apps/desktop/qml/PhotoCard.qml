@@ -79,6 +79,9 @@ Rectangle {
     MouseArea {
         anchors.fill: parent
         onClicked: function(mouse) {
+            // Set the actual clicked item before activating the view's focus
+            // scope; otherwise it may reveal its stale current item (row zero).
+            if (card.keyboardView) card.keyboardView.currentIndex = card.index
             card.forceActiveFocus(Qt.MouseFocusReason)
             library.select(card.index, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0, (mouse.modifiers & Qt.ShiftModifier) !== 0)
             if (card.compact && mouse.modifiers === Qt.NoModifier && !editor.busy) library.activate(card.index)

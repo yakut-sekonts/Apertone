@@ -23,6 +23,12 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
+    Q_PROPERTY(bool semanticEnabled READ semanticEnabled NOTIFY stateChanged)
+    Q_PROPERTY(bool semanticBusy READ semanticBusy NOTIFY stateChanged)
+    Q_PROPERTY(double semanticProgress READ semanticProgress NOTIFY stateChanged)
+    Q_PROPERTY(QString semanticStatus READ semanticStatus NOTIFY stateChanged)
+    Q_PROPERTY(QString semanticError READ semanticError NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList semanticResults READ semanticResults NOTIFY stateChanged)
   public:
     enum Role {
         AssetID = Qt::UserRole + 1,
@@ -49,7 +55,7 @@ class LibraryModel final : public QAbstractListModel {
         return selected_.size();
     }
     bool working() const {
-        return importing_ || writing_ || closing_ || externalBusy_;
+        return importing_ || writing_ || closing_ || externalBusy_ || semanticBusy_;
     }
     bool selecting() const {
         return selecting_;
@@ -77,6 +83,16 @@ class LibraryModel final : public QAbstractListModel {
     QVariantList collections() const {
         return collections_;
     }
+    bool semanticEnabled() const { return semanticEnabled_; }
+    bool semanticBusy() const { return semanticBusy_; }
+    double semanticProgress() const { return semanticProgress_; }
+    QString semanticStatus() const { return semanticStatus_.text(); }
+    QString semanticError() const { return semanticError_; }
+    QVariantList semanticResults() const { return semanticResults_; }
+    Q_INVOKABLE void buildSemanticIndex();
+    Q_INVOKABLE void searchSemantic(const QString &query);
+    Q_INVOKABLE void cancelSemantic();
+    Q_INVOKABLE void disableSemantic();
     std::size_t cachedPages() const {
         return pages_.size();
     }
@@ -113,6 +129,14 @@ class LibraryModel final : public QAbstractListModel {
   private:
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
+    luma::JobManager semanticJobs_;
+    luma::JobHandle semanticJob_;
+    std::uint64_t semanticRevision_ = 0;
+    bool semanticEnabled_ = false, semanticBusy_ = false;
+    double semanticProgress_ = 0;
+    LocalizedText semanticStatus_;
+    QString semanticError_;
+    QVariantList semanticResults_;
     luma::CancellationSource importCancellation_;
     luma::JobHandle countJob_, selectionJob_;
     std::map<int, luma::JobHandle> pageJobs_;

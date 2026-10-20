@@ -1,7 +1,7 @@
 # Phase 0.6 implementation
 
 Status: **in progress — source only, no build, tests or QA executed**.
-Development branch: `codex/1.0-development`. The source version is 0.6.0;
+Development branch: `codex/1.0-development`. The source has advanced to 0.7.0;
 the published stable release remains 0.5.1. No release tag or installer is
 created from this implementation checkpoint.
 
@@ -30,15 +30,18 @@ created from this implementation checkpoint.
 - A macOS memory-pressure dispatch source evicts optional caches, rejects
   pending cache insertions, exits 100% and replaces it with a Fit preview.
   Cache retention resumes when the OS reports normal pressure.
-- Metal accelerates WB, camera-to-sRGB, Exposure, Tone, Saturation and Vibrance.
+- Metal accelerates WB, camera-to-sRGB, Exposure, Tone, Saturation, Vibrance,
+  parametric/point Curves and all eight HSL bands. The point-curve LUTs and
+  extrapolation slopes come from the CPU pipeline's PCHIP tables.
   It uses precise math and bounded 262144-pixel staging chunks with cancellation
-  between submissions. Unsupported Curves/HSL, initialization/allocation failures
-  and command failure use the CPU reference. Detail, local masks, geometry,
+  between submissions. Initialization/allocation failures and command failure
+  use the CPU reference. Detail, local masks, geometry,
   optics and ICC conversion remain shared CPU stages. Export remains CPU.
 
 ## Remaining work
 
-- Extend Metal coverage to Curves/HSL and further independent render passes.
+- Further independent GPU passes remain optional extensions; current GPU
+  coverage includes the complete global Light/Color/Curve/HSL Develop stage.
 - Assess whether full-resolution tiled processing is required on 8 GB machines
   during the final campaign; do not claim a total memory ceiling or latency.
 - At pre-1.0 qualification: compile all targets, verify image equivalence with

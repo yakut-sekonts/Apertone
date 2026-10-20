@@ -3,6 +3,7 @@
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
 #include "platform/macos/MetalDevelop.h"
+#include "platform/macos/VisionSegmentation.h"
 #include <QCryptographicHash>
 #include <QDataStream>
 #include <QGuiApplication>
@@ -25,10 +26,11 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
     QByteArray identity;
     QDataStream stream(&identity, QIODevice::WriteOnly);
     stream.setVersion(QDataStream::Qt_6_0);
-    stream << QStringLiteral("preview-pipeline-v1") << QString::fromStdString(asset.id)
+    stream << QStringLiteral("preview-pipeline-v2") << QString::fromStdString(asset.id)
            << QString::fromStdString(asset.checksum) << resolution
            << luma::encodePreset({"Preview", {}, edits, luma::allSettingsGroups})
            << QByteArray::fromStdString(luma::encodeLocalMasks(edits.localMasks))
+           << QByteArray::fromStdString(luma::encodeRetouch(edits.retouch))
            << QByteArray(reinterpret_cast<const char *>(profile.data()),
                          static_cast<qsizetype>(profile.size()))
            << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id)
@@ -57,7 +59,9 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     previewCacheMiB_ =
         std::clamp(settings.value(QStringLiteral("cacheMiB"), 256).toInt(), 64, 2048);
     metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
+    denoiseModelPath_ = settings.value(QStringLiteral("denoiseModel")).toString();
     accelerator_ = luma::macos::makeMetalDevelopAccelerator();
+    segmentation_ = luma::macos::makeVisionSegmentation();
     applyCacheBudget();
     const QPointer<EditorController> self(this);
     memoryPressure_ = std::make_unique<luma::macos::MemoryPressureMonitor>(
@@ -71,6 +75,10 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     QGuiApplication::instance()->installEventFilter(this);
 }
 EditorController::~EditorController() {
+    retouchJob_.cancel();
+    retouchJobs_.shutdown();
+    aiJob_.cancel();
+    aiJobs_.shutdown();
     memoryPressure_.reset();
     refineTimer_.stop();
     QGuiApplication::instance()->removeEventFilter(this);
@@ -147,6 +155,7 @@ QSize EditorController::previewPixelSize() const {
 }
 void EditorController::setOneToOne(bool value) {
     if (oneToOne_ == value || (value && (!editable() || cropMode_ || guidedMode_ || localMode_ ||
+                                       retouchMode_ != QStringLiteral("off") ||
                                        targetedTool_ != QStringLiteral("none"))))
         return;
     if (value && previewPixelSize().isEmpty()) {
@@ -196,6 +205,8 @@ void EditorController::handleMemoryPressure(luma::macos::MemoryPressure pressure
     pressure_ = pressure;
     applyCacheBudget();
     if (pressure != luma::macos::MemoryPressure::normal) {
+        cancelAI();
+        cancelRetouch();
         // Cancel full-resolution work before replacing it with a bounded fit
         // preview. Existing source pixels and unsaved edits remain available.
         oneToOne_ = false;
@@ -236,6 +247,11 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    cancelAI();
+    cancelRetouch();
+    retouchMode_ = QStringLiteral("off");
+    retouchSelected_.clear();
+    retouchSource_.reset();
     refineTimer_.stop();
     closeTransformTool();
     guides_.clear();
@@ -418,6 +434,8 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    cancelAI();
+    cancelRetouch();
     cancelLocalSample();
     cancelAutoTransform();
     presetPreview_.reset();
@@ -531,6 +549,8 @@ void EditorController::resetEdits() {
 void EditorController::setOriginal(bool value) {
     if (busy_)
         return;
+    cancelAI();
+    setRetouchMode(QStringLiteral("off"));
     setLocalMode(false);
     closeTransformTool();
     if (original_ == value || !session_) {
@@ -566,7 +586,7 @@ void EditorController::render(bool fullQuality) {
     // Geometry tools keep a stable canvas/sample grid throughout a gesture.
     const bool interactive = !fullQuality && session_->interactivePreview &&
                              diagnostic_ == luma::DetailDiagnostic::none && !cropMode_ &&
-                             !guidedMode_ && !localMode_ &&
+                             !guidedMode_ && !localMode_ && retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
     const bool fullResolution = fullQuality && oneToOne_ && !cropMode_ && !guidedMode_ &&
                                 !localMode_ && targetedTool_ == QStringLiteral("none");
@@ -737,6 +757,8 @@ void EditorController::cancelLoad() {
     loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
+    cancelAI();
+    cancelRetouch();
     closeTransformTool();
     if (editingLocked_)
         return false;

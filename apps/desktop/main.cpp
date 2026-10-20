@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
                          parser.isSet(QStringLiteral("test-library"));
     UpdateController updates(
         [&] {
-            return !editor.transformAutoBusy() && !editor.busy() && !editor.saving() &&
+            return !editor.aiBusy() && !editor.retouchBusy() && !editor.transformAutoBusy() && !editor.busy() && !editor.saving() &&
                    !editor.exporting() && !library.working() && !batch.working() &&
                    !exporter.working();
         },

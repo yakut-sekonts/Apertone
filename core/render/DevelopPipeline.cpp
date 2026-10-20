@@ -69,10 +69,8 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
                  std::any_of(edits.hsl.begin(), edits.hsl.end(),
                              [](const HSLBand &band) { return band != HSLBand{}; });
 }
-std::optional<std::array<float, 20>> DevelopPipeline::basicGpuParameters() const {
-    if (curvesActive_ || hslActive_)
-        return std::nullopt;
-    std::array<float, 20> parameters{};
+std::vector<float> DevelopPipeline::gpuParameters() const {
+    std::vector<float> parameters(58 + 4 * 4097);
     std::copy(calibration_.cameraToSRGB.begin(), calibration_.cameraToSRGB.end(),
               parameters.begin());
     std::copy(gains_.begin(), gains_.end(), parameters.begin() + 9);
@@ -84,6 +82,24 @@ std::optional<std::array<float, 20>> DevelopPipeline::basicGpuParameters() const
     parameters[17] = static_cast<float>(amount(edits_, Correction::whites, edits_.whites));
     parameters[18] = static_cast<float>(amount(edits_, Correction::saturation, edits_.saturation));
     parameters[19] = static_cast<float>(amount(edits_, Correction::vibrance, edits_.vibrance));
+    parameters[20] = curvesActive_ ? 1 : 0;
+    parameters[21] = hslActive_ ? 1 : 0;
+    parameters[22] = static_cast<float>(edits_.curveShadows);
+    parameters[23] = static_cast<float>(edits_.curveDarks);
+    parameters[24] = static_cast<float>(edits_.curveLights);
+    parameters[25] = static_cast<float>(edits_.curveHighlights);
+    for (std::size_t i = 0; i < edits_.hsl.size(); ++i) {
+        parameters[26 + i * 3] = static_cast<float>(edits_.hsl[i].hue);
+        parameters[27 + i * 3] = static_cast<float>(edits_.hsl[i].saturation);
+        parameters[28 + i * 3] = static_cast<float>(edits_.hsl[i].luminance);
+    }
+    for (std::size_t i = 0; i < curves_.size(); ++i) {
+        parameters[50 + i * 2] = static_cast<float>(curves_[i].startSlope());
+        parameters[51 + i * 2] = static_cast<float>(curves_[i].endSlope());
+        const auto samples = curves_[i].samples();
+        std::transform(samples.begin(), samples.end(), parameters.begin() + 58 + i * 4097,
+                       [](double value) { return static_cast<float>(value); });
+    }
     return parameters;
 }
 std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {

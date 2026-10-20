@@ -3,16 +3,16 @@
 #include "core/edits/EditDocument.h"
 #include "core/render/AdvancedColor.h"
 #include <array>
-#include <optional>
 
 namespace luma {
 class DevelopPipeline {
   public:
     explicit DevelopPipeline(EditDocument edits, RawColorCalibration calibration = {});
     std::array<float, 3> pixel(std::array<float, 3> camera) const;
-    // Matrix[9], WB[3], exposure, contrast, shadows, highlights, blacks,
-    // whites, saturation and vibrance. No active Curves/HSL in this GPU path.
-    std::optional<std::array<float, 20>> basicGpuParameters() const;
+    // Packed float layout shared with DevelopShader:
+    // basic[20], flags[2], parametric[4], HSL[24],
+    // curve endpoint slopes[8], four 4097-sample PCHIP tables.
+    std::vector<float> gpuParameters() const;
 
   private:
     EditDocument edits_;

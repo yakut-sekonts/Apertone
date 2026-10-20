@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 
 Dialog {
     id: panel
@@ -10,6 +11,12 @@ Dialog {
     anchors.centerIn: parent
     width: Math.min(parent.width - 60, 440)
     standardButtons: Dialog.Close
+    FileDialog {
+        id: denoiseModelDialog
+        title: qsTranslate("Luma", "Choose local denoise model")
+        nameFilters: ["Core ML (*.mlmodelc)"]
+        onAccepted: editor.setDenoiseModel(selectedFile)
+    }
     ColumnLayout {
         width: parent.width
         spacing: 14
@@ -49,6 +56,16 @@ Dialog {
             text: qsTranslate("Luma", "Use Metal for photo previews")
             checked: editor.metalPreview
             onToggled: editor.metalPreview = checked
+        }
+        Label {
+            text: qsTranslate("Luma", "Local AI Denoise model") + ": " +
+                  (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Luma", "Not configured"))
+            textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            Button { text: qsTranslate("Luma", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
+            Button { text: qsTranslate("Luma", "Clear"); enabled: editor.denoiseModelConfigured; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
         }
         Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
