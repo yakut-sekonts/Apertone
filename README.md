@@ -9,14 +9,18 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Current release: v0.4.14
+## Release: v0.5.1
 
-[Download for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/tag/v0.4.14) ·
-[Release notes / known issues](docs/releases/v0.4.14.md)
+[Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/latest) ·
+[0.5.1 release notes / known limitations](docs/releases/v0.5.1.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. The release includes all completed phase 0.4 work, runtime languages, ordinary images and XMP preset import.
+checksums accompany the release. Version 0.5.1 adds complete local mask tools and
+34 reproduced UX fixes to phase 0.4 work, runtime languages, ordinary images and
+XMP preset import. Publication is approved after CI with
+[23 explicitly unqualified functional contracts](docs/releases/v0.5.1-quality.md);
+this is not a full UX qualification.
 
 ## Included in source: phases 0.4–0.5
 
@@ -441,5 +445,6 @@ upgrading if rollback is needed. Depth Range requires a real depth channel and
 is not exposed without one; AI/Metal remain later roadmap phases.
 
 See [workflow and limits](docs/LOCAL_ADJUSTMENTS.md) and
-[phase acceptance](docs/PHASE5_ACCEPTANCE.md). The current published download
-above remains 0.4.14 until the next release is verified and published.
+[phase acceptance](docs/PHASE5_ACCEPTANCE.md). The download link above always
+resolves to the latest published release; 0.5.1 publication follows the CI and
+artifact checks with the documented qualification exception.

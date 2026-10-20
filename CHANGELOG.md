@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.1 / Complete local masks — source, not yet released
+## 0.5.1 / Complete local masks and UX fixes
 
 - Brush with size, feather, per-stroke opacity, continuous painting and erase.
 - Luminance/Color Range with asynchronous on-photo sampling and stable pre-local references.
@@ -8,7 +8,10 @@
 - Full-document gesture Undo/Redo, shared preview/export/thumbnail rendering and eight languages.
 - Atomic catalog 10→11 migration, bounded version-2 mask data and legacy gradient compatibility.
 - Depth Range requires a source depth channel; no synthetic depth or AI masks are claimed.
-- Release publication and the separate regression campaign remain the next step.
+- 34 reproduced UX defects fixed across preview, import, keyboard access, masks,
+  localization, scrolling and compact dialogs.
+- Publication approved after CI with 23 explicitly unqualified functional
+  contracts; see `docs/releases/v0.5.1-quality.md`. Full UX qualification remains open.
 
 ## 0.5.0 / Local gradient adjustments
 

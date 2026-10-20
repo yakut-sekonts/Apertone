@@ -1,9 +1,20 @@
 # Current-scope UX qualification
 
-Status: **in progress; no release qualification and no production publication**.
-Work stays in draft [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
+Status: **full qualification incomplete; 0.5.1 publication authorized after CI
+with explicitly accepted coverage gaps**.
+Work is tracked in [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
 linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46).
-Source scope is 0.5.1; the public stable download remains 0.4.14.
+Source/release scope is 0.5.1. The latest GitHub Release remains authoritative
+for publication status.
+
+User direction, 2026-10-20: "Выпустить 0.5.1 после CI с указанными ограничениями".
+This explicitly permits this release with the 23 remaining functional contracts
+listed in [the release qualification record](../releases/v0.5.1-quality.md).
+It supersedes the previous requirement to finish every current functional check
+before publishing 0.5.1. It does not turn missing/failed checks into PASS, waive
+CI or artifact verification, close Issue #46, qualify the entire phase, or
+authorize later phases to bypass their quality checks. Historical checkpoints
+below retain their original publication restrictions and evidence.
 
 User direction, 2026-10-19: run functional quality checks only. Stress, soak,
 chaos and performance workloads are reserved for the pre-release campaign of 1.0.0.
@@ -285,8 +296,9 @@ must be reported honestly, never counted as simulated passes.
 
 This checkpoint is not the full release gate. The Metal UI backend used by Qt
 also does not implement the planned 0.6 Metal image-processing backend.
-No phase 0.6 production work or release publication starts before the current
-scope's requested functional quality qualification and fixes are complete.
+The 2026-10-20 user decision above permits 0.5.1 publication after CI despite the
+listed gaps. Full qualification and phase 0.6 work remain separate from that
+release exception.
 
 
 ## Removable destination and keyboard checkpoint, 2026-10-19
