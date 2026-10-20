@@ -27,7 +27,7 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
   (MSK-005) is absent. Of the 74 remaining scenarios without executable adapters,
   23 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 30 production defects are reproduced and fixed with focused native/software
+- 32 production defects are reproduced and fixed with focused native/software
   evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
   Three outcomes from a native mask run with confirmed external interaction
   remain individually unattributed. Their FAIL records and subsequent controlled
@@ -1003,7 +1003,7 @@ about49; this is not a performance threshold. Only documentation changed after
 this attested cohort, with the original proof retained separately.
 
 No load/performance/soak/chaos workloads ran. This focused cohort is not a new full
-adapter sweep, a completed phase0.5 or release qualification. Work remains in
+adapter sweep, a completed phase 0.5 or release qualification. Work remains in
 draft PR47; stable public download is0.4.14 and source scope is0.5.1. No release,
 tag, main merge, production publication or phase0.6 begins at this checkpoint.
 
@@ -1105,5 +1105,104 @@ This later documentation does not inherit that source hash.
 
 APP016 remains among the 23 unadapted functional scenarios: no official
 registration, native PASS, new product defect or release acceptance is claimed.
-Further native execution waits for the user to unlock the Mac. The separately
-deferred APP017/SLD009 manual focus-return check is unchanged.
+The separately deferred APP017/SLD009 manual focus-return check is unchanged.
+
+### APP016 unlocked diagnostics
+
+After the user unlocked the Mac, `app016-unlocked-first-report` failed before
+export because the visible case window was no longer active. This report does
+not establish why focus was lost. The user then confirmed a free input interval.
+`app016-free-first-report` reached a key, active native window and a genuine first
+output, with no intervening application focus notifications, but timed out waiting
+for actual minimization. `app016-eventloop-first-report` also failed at that
+boundary despite using a bounded QEventLoop/NSApplication event loop. That
+experiment was removed; the original state assertions remain unchanged.
+
+Independent owned AppKit-only windows, with no Qt or Luma production code,
+reproduced the minimization timeout through `performMiniaturize`, both when
+spawned directly and when packaged/launched through Launch Services. A separate
+`miniaturize` probe also timed out. Each ran an actual NSApplication main loop,
+reached an active key window and received no DidMiniaturize. Their retained
+`app016-cocoa-*-result.json` artifacts are diagnostics, not application test PASS.
+A one-second read-only Dock sample shows a waiting run loop, not proof of a hung
+Dock. No system process or security/appearance setting was changed.
+
+The added lifecycle observer records native focus notifications, frontmost bundle
+and PID, and NSApplication running/active state. One intermediate diagnostic
+build failed on a GNU conditional extension under Werror; the explicit standard
+conditional build passed. APP016 remains unqualified; no product fix or native
+background-export success is inferred from these diagnostic runs.
+
+## Minimum-window keyboard workflow, 2026-10-20
+
+Two additional production defects were reproduced in both local software and
+Cocoa/Metal: at 1000×640 the partially visible PhotoCard was excluded from Tab,
+then after that fix the lower Export controls gained focus while clipped.
+LUMA-UX-031 retains `keyboard-workflow-minimum-first-software-report` and
+`keyboard-workflow-minimum-original-native-report`; LUMA-UX-032 retains
+`keyboard-workflow-card-fixed-software-report` and
+`keyboard-workflow-card-fixed-native-report`. All four original results are FAIL.
+
+The fixes retain keyboard eligibility when the card's center is inside the
+vertical viewport, and apply existing focus visibility scrolling to Export.
+The first complete fixed workflow passes once on each backend in
+`keyboard-workflow-fixed-first-software-report` and
+`keyboard-workflow-fixed-first-native-report`. Each uses one 256×192 PNG and actual
+keyboard Import→selection→Develop→0.01 EV edit→PNG export, with zero pointer events,
+exact durable document/UUID/selection/source SHA and output pixels. The native
+file chooser result is a declared fixture input, so this is supplemental, not full
+KEY015 or a new official adapter. Geometry setup is not an OS resize test.
+
+The earlier `keyboard-workflow-first-software-report` is a retained harness FAIL:
+its QImage equality included color-space metadata in the pixel comparison.
+The reference now explicitly targets sRGB, independent of the display profile;
+sample bytes and color-space declaration are checked separately. Independent
+Pillow readback confirms that the original output already has exactly the correct
+sample bytes. Both fixed outputs also match exactly and declare PNG sRGB intent 1.
+The readback audit retains its two incorrect intermediate assertions (requiring
+iCCP, then intent 0); neither is a product failure. Expected processing shares the
+CPU renderer and does not independently qualify color science.
+
+The first fixed attestation is source
+`5abe6a78ccc039916788accdc53db07c5a4b6006bd2ef11aee932c8e362c0b21`,
+binary `b50c6a3ba37c0548238b2f7a4a8dce231bf76ad6593ee8c56092f051ab14d334`.
+Subsequent workflow/documentation changes do not inherit that source hash.
+Both CI workflows now include this bounded supplemental regression.
+The prior `97413a2` hosted run 39399309108 completed successfully, including
+clang-tidy; it does not attest these newer changes.
+
+### Repeated keyboard qualification
+
+The frozen `keyboard-workflow-final` cohort passes **26 UX results: 13 native
+Cocoa/Metal DPR2 and 13 local offscreen/software**. Each backend has three complete
+minimum-window workflow repeats, both existing selected-asset keyboard variants,
+and KEY008/009/010/016/017, EXP002/004 and DSC001. All children exit0, with source
+consistency, build provenance, original SHA and catalog integrity passing.
+The independent `keyboard-workflow-final-forensic-audit.json` validates all 26
+guards plus exact decoded PNG samples, a valid sRGB declaration, pointer absence,
+lower-control visibility and SQLite integrity in all six new workflow repeats.
+
+Full application build and format pass. Functional CTest has **53 PASS and one
+optional Nikon D7500 SKIP**, no failures, 95.51 seconds. Python infrastructure has
+**141 PASS**. Three focused clang-tidy commands exit0; a new widening-conversion
+advisory in the test's QImage row stride was then corrected with explicit
+`qsizetype` arithmetic. Existing shared-header advisories remain recorded.
+The follow-up checks after that test-only type change are recorded separately.
+
+This cohort's attestation is source
+`a76af48d5f24a173b45d6078f75b6e933cea0f77f7950dc165c9275dc0a87faa`,
+binary `b50c6a3ba37c0548238b2f7a4a8dce231bf76ad6593ee8c56092f051ab14d334`.
+The explicit stride type and this later documentation do not inherit that hash.
+The official inventory remains 369 adapters/257 bounded/112 deferred, with 23
+unadapted functional scenarios. Full phase 0.5 and stable release remain incomplete.
+
+After the explicit stride-type correction, `keyboard-workflow-post-tidy` adds
+three Cocoa/Metal and three local offscreen/software PASS. Each child exits0 and
+passes source/provenance/original/catalog guards. Format and focused clang-tidy
+pass, with no remaining warning in KeyboardActivationCandidate.cpp. The full
+53 PASS/one SKIP CTest cohort above is not relabeled as a run of this later binary.
+Follow-up attestation: source
+`c103a0dec6d0064033020ab2f7cc8bd94a9bd4246ffa2955617b59b31bdcbc64`,
+binary `34cbc4877ebeb4f4ee4f28b223da21870d369fcb9a846f89be3f258bfec5f64f`.
+This final results paragraph is later documentation. No stable release, main
+merge, version tag, load workload or phase 0.6 transition was performed.

@@ -40,6 +40,20 @@ workload directly, so the official-inventory `--quality-only` flag is unnecessar
 .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build-verify --runs 3 --require-build-provenance
 ```
 
+The separate `run_keyboard_workflow_regression.py` uses one generated PNG at
+1000×640. Actual Tab/Space/Return/arrows and focused text input drive Import,
+selection, Develop, a 0.01 EV edit and PNG export. The native chooser's URL is the
+only setup input seam. No pointer input, focus/scroll setter or controller action
+is allowed in the workflow. This remains supplemental, not full native KEY015.
+The PNG samples must match the complete literal edit through the CPU reference
+with sRGB output, independently of the display profile. Profile declaration is
+checked separately from sample bytes. Both workflows run three repeats and retain
+the focus trace, pointer audit and actual/expected PNGs.
+
+```sh
+.tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build-verify --runs 3 --require-build-provenance
+```
+
 Crop-related gradient handle regressions also use a separate one-PNG supplemental
 domain. Normal and thin-photo fixtures exercise each Linear/Radial handle across
 four distinct H/V flip states, with exact document/history/pixel/persistence checks.
@@ -412,6 +426,10 @@ Run only on an unlocked Cocoa/Metal session. It is not registered as official
 APP016, included in the default suite, or counted as PASS. The original
 standard-button `performClick` experiment timed out waiting for minimization;
 the following public-action build could not activate its initial window on a
-locked Mac. Both reports are retained. `app016-minimize-evidence.json` records
+locked Mac. After unlock, active-window runs and independent AppKit-only probes
+also timed out during minimization. The QEventLoop experiment did not help and
+was removed. These failures are retained; they do not establish a Luma defect.
+`app016-minimize-evidence.json` records
 actual checkpoints reached, and `app016-restored.png` is produced only after a
-successful restore. A completed native repeat and review are still required.
+successful restore. Focus notifications and frontmost process identity are
+observed without recovery activation. A completed native repeat is still required.

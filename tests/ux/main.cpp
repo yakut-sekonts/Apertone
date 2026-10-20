@@ -116,7 +116,8 @@ int main(int argc, char **argv) {
                         "CRP010 Done candidate forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007" ||
             id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE" ||
-            id == "CANDIDATE-APP016-MINIMIZED-EXPORT")
+            id == "CANDIDATE-APP016-MINIMIZED-EXPORT" ||
+            id == "CANDIDATE-KEYBOARD-IMPORT-EDIT-EXPORT")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "Partial-render/transparent-handle candidates forbid ignored "

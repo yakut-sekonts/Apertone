@@ -2,6 +2,7 @@
 #include "tests/ux/UxDriver.h"
 #import <AppKit/AppKit.h>
 #include <QGuiApplication>
+#include <QJsonArray>
 #include <QQuickWindow>
 
 namespace ux {
@@ -21,6 +22,7 @@ NSWindow *ownedWindow(QQuickWindow &window) {
 }
 struct Counts {
     unsigned minimized = 0, restored = 0;
+    QJsonArray focusEvents;
 };
 } // namespace
 struct NativeWindowLifecycle::Impl {
@@ -48,6 +50,32 @@ struct NativeWindowLifecycle::Impl {
                                             if (const auto value = weak.lock())
                                                 ++value->restored;
                                           }]];
+        for (NSNotificationName name in @[
+                 NSApplicationDidBecomeActiveNotification, NSApplicationDidResignActiveNotification
+             ])
+            [tokens
+                addObject:[center
+                              addObserverForName:name
+                                          object:NSApp
+                                           queue:nil
+                                      usingBlock:^(NSNotification *notification) {
+                                        if (const auto value = weak.lock()) {
+                                            NSRunningApplication *front =
+                                                NSWorkspace.sharedWorkspace.frontmostApplication;
+                                            value->focusEvents.append(QJsonObject{
+                                                {"event",
+                                                 QString::fromUtf8(notification.name.UTF8String)},
+                                                {"frontmost_pid",
+                                                 static_cast<int>(front.processIdentifier)},
+                                                {"frontmost_bundle",
+                                                 front.bundleIdentifier
+                                                     ? QString::fromUtf8(
+                                                           front.bundleIdentifier.UTF8String)
+                                                     : QString{}},
+                                                {"system_uptime",
+                                                 NSProcessInfo.processInfo.systemUptime}});
+                                        }
+                                      }]];
     }
     ~Impl() {
         for (id token in tokens)
@@ -68,11 +96,19 @@ NativeWindowLifecycle::~NativeWindowLifecycle() = default;
 QJsonObject NativeWindowLifecycle::state() const {
     @autoreleasepool {
         NSWindow *native = impl_->native();
+        NSRunningApplication *front = NSWorkspace.sharedWorkspace.frontmostApplication;
         return {{"window_number", static_cast<int>(native.windowNumber)},
                 {"miniaturized", static_cast<bool>(native.miniaturized)},
                 {"visible", static_cast<bool>(native.visible)},
                 {"key", static_cast<bool>(native.keyWindow)},
                 {"application_active", static_cast<bool>(NSApp.active)},
+                {"application_running", static_cast<bool>(NSApp.running)},
+                {"application_pid", static_cast<int>(NSProcessInfo.processInfo.processIdentifier)},
+                {"frontmost_pid", static_cast<int>(front.processIdentifier)},
+                {"frontmost_bundle", front.bundleIdentifier
+                                         ? QString::fromUtf8(front.bundleIdentifier.UTF8String)
+                                         : QString{}},
+                {"focus_events", impl_->counts->focusEvents},
                 {"did_miniaturize", static_cast<int>(impl_->counts->minimized)},
                 {"did_deminiaturize", static_cast<int>(impl_->counts->restored)},
                 {"qt_window_state", static_cast<int>(impl_->window.windowState())}};

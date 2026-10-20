@@ -48,6 +48,7 @@ ApplicationWindow {
     function revealActiveFocus() {
         ensureActiveFocusVisible(presetsScroll)
         ensureActiveFocusVisible(adjustmentsScroll)
+        ensureActiveFocusVisible(exportSettings.contentItem)
     }
     onActiveFocusItemChanged: Qt.callLater(root.revealActiveFocus)
     Connections {

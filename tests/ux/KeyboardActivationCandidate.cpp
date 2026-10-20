@@ -1,6 +1,9 @@
+#include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/PresetStore.h"
+#include "core/render/CpuRenderer.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
+#include <QColorSpace>
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
@@ -8,6 +11,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QInputMethodEvent>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QKeyEvent>
@@ -26,6 +30,7 @@ namespace {
 constexpr int maximumTabSteps = 96; // One bounded actual traversal, not a stress count.
 constexpr auto candidateID = "CANDIDATE-KEYBOARD-SELECTED-ASSET-ACTIVATION";
 constexpr auto keypadCandidateID = "CANDIDATE-KEYBOARD-KEYPAD-ASSET-ACTIVATION";
+constexpr auto workflowCandidateID = "CANDIDATE-KEYBOARD-IMPORT-EDIT-EXPORT";
 struct KeyboardNavigation {
     const Qt::TabFocusBehavior previous = QGuiApplication::styleHints()->tabFocusBehavior();
     KeyboardNavigation() {
@@ -475,8 +480,195 @@ void reproduce(Context &c, bool keypadOnly) {
         std::rethrow_exception(failure);
     }
 }
+void keyboardWorkflow(Context &c) {
+    const KeyboardNavigation navigation;
+    auto &d = *c.driver;
+    // Geometry fixture only; this does not qualify actual OS resize requests.
+    c.window->resize(1000, 640);
+    d.wait([&] { return c.window->width() == 1000 && c.window->height() == 640; },
+           "minimum supported keyboard workflow viewport");
+    d.frame();
+    require(c.library.count() == 0 && !c.editor.hasPhoto(),
+            "Keyboard workflow requires an empty owned catalog");
+    const auto source = c.fixture + "/Photo-0000.png";
+    const auto sourceSHA = digest(source);
+    const auto destination = c.root + "/exports/keyboard";
+    require(QDir().mkpath(destination), "Cannot create keyboard export destination");
+    // The only input seam: the native file chooser's selected URL. Import itself,
+    // selection, opening Develop, edits and export are all real keyboard UI input.
+    require(
+        d.object("library.pane")
+            ->setProperty("sources", QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(source)})),
+        "Keyboard workflow chooser-result fixture rejected");
+    PointerAudit audit(c.window);
+    QJsonArray trace;
+    QString phase = "import";
+    const auto evidence = [&](const QString &status) {
+        writeJson(c.root + "/keyboard-workflow.json",
+                  {{"case_id", workflowCandidateID},
+                   {"status", status},
+                   {"phase", phase},
+                   {"official_KEY015_qualified", false},
+                   {"native_chooser_keyboard", false},
+                   {"chooser_result_fixture_only", true},
+                   {"viewport_width", c.window->width()},
+                   {"viewport_height", c.window->height()},
+                   {"pointer_events", audit.events},
+                   {"window_key_presses", audit.keyEvents},
+                   {"focus_trace", trace},
+                   {"source_sha256", sourceSHA},
+                   {"actual_source_sha256", digest(source)},
+                   {"document", fullDocument(c.editor.currentSettings())}});
+    };
+    const auto key = [&](Qt::Key value, Qt::KeyboardModifiers modifiers = Qt::NoModifier) {
+        require(QGuiApplication::focusWindow() == c.window && c.window->isActive(),
+                "Keyboard workflow lost its actual window; no activation fallback");
+        d.key(value, modifiers);
+        d.frame();
+        trace.append(QJsonObject{{"phase", phase},
+                                 {"key", static_cast<int>(value)},
+                                 {"focus", itemState(c.window->activeFocusItem())}});
+        require(audit.events.isEmpty(), "Pointer event crossed keyboard workflow boundary");
+    };
+    const auto tabTo = [&](const QString &id) {
+        QPointer<QQuickItem> target = d.item(id);
+        for (int i = 0; target && !target->hasActiveFocus() && i < 160; ++i)
+            key(Qt::Key_Tab);
+        require(target && target->hasActiveFocus() && centerVisible(target.data()),
+                "Keyboard workflow focused an unreachable or clipped control: " + id);
+    };
+    const auto activate = [&](const QString &id) {
+        tabTo(id);
+        key(Qt::Key_Space);
+    };
+    const auto text = [&](const QString &id, const QString &value) {
+        tabTo(id);
+        require(c.window->activeFocusItem() == d.item(id),
+                "Text entry must target the actual focused field");
+        key(Qt::Key_A, Qt::ControlModifier);
+        QInputMethodEvent input;
+        input.setCommitString(value);
+        d.log({{"action", "keyboard_workflow_ime_commit"}, {"id", id}, {"text", value}});
+        QCoreApplication::sendEvent(c.window->activeFocusItem(), &input);
+        key(Qt::Key_Tab); // Commit through the field's real editingFinished.
+        require(d.object(id)->property("text").toString() == value,
+                "Keyboard text entry changed the literal value");
+    };
+    try {
+        activate("library.importButton");
+        d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
+               "keyboard Import opened");
+        require(d.object("library.importMode")->property("currentIndex").toInt() == 0,
+                "Fresh keyboard Import must use Add");
+        activate("library.importStart");
+        d.wait(
+            [&] { return !c.library.working() && !c.library.loading() && c.library.count() == 1; },
+            "keyboard Import completed", 30000);
+        d.wait([&] { return !d.object("library.importDialog")->property("visible").toBool(); },
+               "keyboard Import closed");
+        const auto ids = luma::Catalog(c.catalogFile.toStdString()).libraryIDs({});
+        require(ids.size() == 1 && c.library.error().isEmpty(), "Keyboard Import identity failed");
+        const auto photoID = QString::fromStdString(ids.front());
+        phase = "select_and_develop";
+        activate("library.selectAll");
+        d.wait([&] { return !c.library.selecting() && c.library.selectedCount() == 1; },
+               "keyboard selection completed");
+        tabTo("library.card." + photoID);
+        key(Qt::Key_Return);
+        c.loaded();
+        require(c.editor.photoID() == photoID && c.editor.sourcePath() == source &&
+                    c.editor.currentSettings() == luma::EditDocument{} && !c.editor.canUndo(),
+                "Keyboard opened the wrong asset or document");
+        phase = "edit";
+        tabTo("develop.exposureSlider");
+        const auto step = d.object("develop.exposureSlider")->property("stepSize").toDouble();
+        require(step == .01, "Exposure keyboard step differs from 0.01 EV");
+        key(Qt::Key_Right);
+        key(Qt::Key_Tab);
+        d.wait([&] { return !c.editor.saving() && !c.editor.busy() && c.editor.canUndo(); },
+               "keyboard edit durably saved");
+        luma::EditDocument expected;
+        expected.exposure = .01;
+        require(c.editor.currentSettings() == expected, "Keyboard edit changed unrelated settings");
+        phase = "export_settings";
+        activate("exportButton");
+        d.wait([&] { return d.object("exportPanel")->property("opened").toBool(); },
+               "keyboard Export opened");
+        text("export.destination", destination);
+        text("exportNaming", "Keyboard-output");
+        tabTo("exportFormat");
+        require(d.object("exportFormat")->property("currentIndex").toInt() == 0,
+                "Fresh export must start in JPEG");
+        key(Qt::Key_Down);
+        key(Qt::Key_Tab);
+        // Visit lower settings through actual Tab. The focused controls must be
+        // visible under clipping, without wheel, pointer, focus or scroll setters.
+        for (const auto *id : {"export.colorSpace", "export.resize", "export.outputMedium",
+                               "export.metadata", "export.watermarkKind"})
+            tabTo(id);
+        const auto form = d.object("exportPanel")->property("form").toMap();
+        require(form["destination"].toString() == destination &&
+                    form["naming"].toString() == "Keyboard-output" && form["format"].toInt() == 1 &&
+                    form["colorSpace"].toInt() == 0 && form["resize"].toInt() == 0 &&
+                    form["outputMedium"].toInt() == 0 && form["watermarkKind"].toInt() == 0,
+                "Keyboard export form differs from literal settings");
+        phase = "export";
+        activate("export.current");
+        d.wait([&] { return !c.exporter.working() && c.exporter.completed() == 1; },
+               "keyboard real PNG export completed", 30000);
+        require(c.exporter.succeeded() == 1 && c.exporter.error().isEmpty() &&
+                    c.exporter.failures().isEmpty(),
+                "Keyboard export failed");
+        const auto output = destination + "/Keyboard-output.png";
+        const QImage image(output);
+        const auto decoded = luma::PhotoDecoder().decode(source.toStdString());
+        require(decoded.image.width <= 512 && decoded.image.height <= 512 &&
+                    decoded.image.alpha.empty(),
+                "Keyboard export oracle requires a small opaque fixture");
+        // Export targets sRGB independently of the current display profile.
+        // This checks the UI document/queue binding, not renderer color science.
+        const auto rendered =
+            luma::renderCPU(decoded.image, expected, decoded.metadata.orientation, {}, {},
+                            decoded.calibration, luma::DetailDiagnostic::none, 1, decoded.metadata);
+        const auto reference =
+            QImage(rendered.rgba.data(), rendered.width, rendered.height,
+                   static_cast<qsizetype>(rendered.width) * 4, QImage::Format_RGBA8888)
+                .copy();
+        require(reference.save(c.root + "/keyboard-expected-export.png"),
+                "Cannot retain keyboard export pixel oracle");
+        auto samples = image.convertToFormat(QImage::Format_RGBA8888);
+        // Compare sample bytes, separately requiring a valid output color space.
+        samples.setColorSpace({});
+        samples.setDevicePixelRatio(1);
+        require(!image.isNull() && image.colorSpace().isValid() && samples == reference,
+                "Keyboard export pixels differ from the complete expected document");
+        require(QDir(destination).entryList(QDir::Files | QDir::Hidden, QDir::Name) ==
+                    QStringList{"Keyboard-output.png"},
+                "Keyboard export created extra outputs");
+        const auto asset = luma::Catalog(c.catalogFile.toStdString()).assetByID(ids.front());
+        require(asset && asset->edits == expected && asset->checksum == sourceSHA.toStdString() &&
+                    c.library.selectionIDs() == ids && c.editor.currentSettings() == expected &&
+                    digest(source) == sourceSHA && audit.events.isEmpty(),
+                "Keyboard workflow changed source, selection or durable edits");
+        c.checkData();
+        phase = "completed";
+        evidence("PASS");
+    } catch (...) {
+        const auto failure = std::current_exception();
+        try {
+            evidence("FAIL");
+        } catch (...) {
+            std::fputs("Keyboard workflow evidence failed; retaining original failure.\n", stderr);
+        }
+        std::rethrow_exception(failure);
+    }
+}
 } // namespace
 bool keyboardActivationCandidate(Context &c, const QString &id) {
+    if (id == workflowCandidateID) {
+        keyboardWorkflow(c);
+        return true;
+    }
     if (id != candidateID && id != keypadCandidateID)
         return false;
     reproduce(c, id == keypadCandidateID);

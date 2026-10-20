@@ -20,7 +20,10 @@ Rectangle {
         keyboardView && keyboardView.visible && parent === keyboardView.contentItem &&
         width > 0 && height > 0 &&
         x >= keyboardView.contentX && x + width <= keyboardView.contentX + keyboardView.width &&
-        y >= keyboardView.contentY && y + height <= keyboardView.contentY + keyboardView.height
+        // A short Library viewport can be lower than one card. Its visible
+        // center remains a usable keyboard target even when the caption is clipped.
+        y + height / 2 >= keyboardView.contentY &&
+        y + height / 2 < keyboardView.contentY + keyboardView.height
     // Qt forbids clearing the Tab flag on its active focus item.
     activeFocusOnTab: keyboardFocusEligible || activeFocus
     function openFromKeyboard(event) {

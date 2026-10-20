@@ -745,3 +745,47 @@ are tracked separately and are not counted as application failures or hidden ret
   `4a8154f13e200998362fba1fdbb30a7b5da9e23fe5c572640e64bb9bc87a61a3`,
   binary `8d0a08fbfb3ce0690ef33a0e4e866e9c82d2a050b0e9f5e9f4d82417ef1c34f9`.
   This does not close the remaining complete UX-MSK-023 matrix.
+
+## LUMA-UX-031 — Partially clipped Library card is unreachable by keyboard
+
+- Severity: P2. Scope: CURRENT. At the supported 1000×640 viewport, the visible
+  first PhotoCard is taller than the remaining Library grid. Its image and center
+  are visible, but the full-height `keyboardFocusEligible` requirement removes it
+  from Tab navigation. Develop can therefore not be entered from that card with
+  Return. Bounded forward Tab traversal reproduces the issue after keyboard
+  Import and Select all, with no pointer events.
+- Original FAIL: `keyboard-workflow-minimum-first-software-report`
+  (`20261020T100331Z-53171`) and `keyboard-workflow-minimum-original-native-report`
+  (`20261020T100556Z-53347`). Screenshots and focus traces retain the clipped card.
+- Fix: require its vertical center to remain in the viewport; retain ownership,
+  visibility, dimensions and horizontal bounds. Fully offscreen cards remain
+  excluded. No test focus setter or fallback activation is introduced.
+- First complete fixed PASS: `keyboard-workflow-fixed-first-software-report`
+  (`20261020T100848Z-53769`) and `keyboard-workflow-fixed-first-native-report`
+  (`20261020T100852Z-53800`). Both proceed through real keyboard edit/export with
+  correct output pixels and original/durable data. The intermediate runs expose
+  LUMA-UX-032 separately. This is supplemental coverage, not full native KEY015.
+
+## LUMA-UX-032 — Keyboard focus reaches clipped Export settings
+
+- Severity: P2. Scope: CURRENT. At 1000×640, Tab reaches `export.outputMedium`
+  below the visible Export ScrollView without scrolling the focused control into
+  view. The user cannot see the setting they are about to change.
+- Original FAIL after031 is fixed: `keyboard-workflow-card-fixed-software-report`
+  (`20261020T100656Z-53550`) and `keyboard-workflow-card-fixed-native-report`
+  (`20261020T100739Z-53628`). Both fail at the actual focused/clipped control,
+  before export; source and catalog integrity remain intact.
+- Fix: include the Export ScrollView in Main's existing deferred focus visibility
+  handling. It only scrolls for an active descendant, retaining manual scrolling
+  and avoiding a separate focus or controller action.
+- The same first fixed software/native reports listed for031 pass lower-control
+  traversal, PNG export, exact expected sample bytes, source SHA, selection and
+  durable edits. The original QImage metadata comparison failure is a separate
+  harness issue; no output-pixel defect was observed.
+- Repeated evidence for 031/032: `keyboard-workflow-final-workflow-native-report`
+  and `keyboard-workflow-final-workflow-software-report`, three PASS each.
+  Two existing keyboard activation variants and eight affected navigation/export
+  cases also pass once on each backend: 26 UX PASS total. Full build, 53 functional
+  CTest (one optional Nikon SKIP), 141 Python infrastructure tests and format pass.
+  Exact source/binary attestations and the separate test-only stride type cleanup
+  are recorded in `UX_QUALIFICATION_STATUS.md`.
