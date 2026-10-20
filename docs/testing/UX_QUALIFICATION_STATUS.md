@@ -1228,6 +1228,13 @@ human-input action. No Luma product defect, globally broken Dock, native lifecyc
 PASS or release qualification follows. The separately deferred APP017/SLD009
 manual check is unchanged.
 
+The user's subsequent answer confirms that the diagnostic window minimized.
+This is a positive human observation, retained separately from the instrumented
+timeout; the original report remains unchanged. The discrepancy between the
+visible result and the probe's notification/state log is unresolved. It does
+not qualify the complete Luma APP016 export/minimize/restore scenario or justify
+attributing the timeout to a Luma defect. No repeat manual action is requested.
+
 ## Localized preset dialogs, 2026-10-20
 
 The bounded supplemental dialog slice reproduced LUMA-UX-033/034 in local
