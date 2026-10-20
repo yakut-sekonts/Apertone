@@ -1074,3 +1074,36 @@ No load/stress/soak/performance work ran in these cohorts. Later Graphify setup
 and this documentation change do not receive the older attested source hash.
 Phase0.5 and the stable-release quality gate remain incomplete; no tag, main
 merge, production publication or phase0.6 work is authorized by these results.
+
+## APP016 candidate, 2026-10-20 — native result pending
+
+The new supplemental `CANDIDATE-APP016-MINIMIZED-EXPORT` compiles with a test-only
+AppKit lifecycle observer. Its bounded contract has two literal 64x48 PNGs,
+genuine first-output completion held while minimizing, real second-output
+completion while minimized, then natural restore and data/history checks.
+Production behavior and the official adapter inventory are unchanged.
+
+The initial `app016-first-native-report` is FAIL: the standard minimize button's
+`performClick` route did not satisfy the actual native/Qt minimization predicate.
+That run reached a genuine committed first output, but it did not establish the
+required background lifecycle boundary. It is not a demonstrated product defect.
+The input driver now uses NSWindow's public `performMiniaturize` action and
+records the native state on scenario failure. The subsequent
+`app016-native-action-first-report` is also FAIL, at initial window activation;
+the actual session was observed with `IOConsoleLocked=true`. It never executed
+the candidate and gives no evidence about the revised minimize action.
+
+Both UX-target builds succeeded. On the revised source, format and three focused
+clang-tidy commands exit0; existing header advisories remain in the logs.
+An independent Pillow read verified every pixel of both literal fixture PNGs.
+Five affected local offscreen/software cases (LIB004, LIB005, RACE002, RACE007,
+VIS003) pass in `app016-integration-software-report`, with original SHA,
+catalog and provenance guards. Their attested source is
+`5f3aa86477235b5bcc1015e3b73d094fedf81a2ab8cc196eb0afbc46a09e37da`;
+binary `8babd7bb2260eff74ace7205d6ffc9526701ebe9cc530dd95a0954831e9ab9b1`.
+This later documentation does not inherit that source hash.
+
+APP016 remains among the 23 unadapted functional scenarios: no official
+registration, native PASS, new product defect or release acceptance is claimed.
+Further native execution waits for the user to unlock the Mac. The separately
+deferred APP017/SLD009 manual focus-return check is unchanged.

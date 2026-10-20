@@ -21,6 +21,7 @@ bool race002ActualResponseCandidate(Context &, const QString &);
 bool appDeactivationCandidate(Context &, const QString &);
 bool race007PartialRenderCandidate(Context &, const QString &);
 bool maskHandleTransparentCandidate(Context &, const QString &);
+bool minimizeExportCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -114,7 +115,8 @@ int main(int argc, char **argv) {
                             !parser.isSet("state-root"),
                         "CRP010 Done candidate forbids ignored variant/stage/state-root flags");
         if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007" ||
-            id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE")
+            id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE" ||
+            id == "CANDIDATE-APP016-MINIMIZED-EXPORT")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "Partial-render/transparent-handle candidates forbid ignored "
@@ -160,6 +162,9 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-APP016-MINIMIZED-EXPORT")
+            ux::require(ux::minimizeExportCandidate(*context, id),
+                        "Native minimized export candidate unavailable");
         else if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007")
             ux::require(ux::race007PartialRenderCandidate(*context, id),
                         "Actual partial-thumbnail/batch candidate unavailable");

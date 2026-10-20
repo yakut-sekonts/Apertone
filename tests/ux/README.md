@@ -388,3 +388,30 @@ actual Qt ready signal and keeps a failed pending result alive through teardown.
 This changes the capture harness, not the product render behavior. The retained
 original failures and exact completed cohorts are recorded in
 `docs/testing/UX_QUALIFICATION_STATUS.md`; a focused PASS is not release approval.
+
+### Minimize during a real export queue — unqualified candidate
+
+`CANDIDATE-APP016-MINIMIZED-EXPORT` uses two literal 64x48 PNGs and the real
+production import/export controls. Only the file chooser result is a fixture
+boundary. The first real queued completion is held after its output is installed;
+the second file must be exported while the actual owned NSWindow is miniaturized.
+AppKit notifications, Qt state and the stable native window identity are observed
+independently. The adapter uses public `performMiniaturize`/`deminiaturize` actions,
+not a simulated visibility flag; it does not claim physical pointer or Dock input.
+
+After restore, it checks literal output pixels, source hashes, all logical
+catalog tables, export settings bytes, selection and a real Redo/Undo control.
+No performance thresholds or repeated load workload are involved.
+
+```sh
+python3 tests/ux/build_ux.py --build build-verify
+python3 tests/ux/run_minimize_export_regression.py --build build-verify --runs 1 --timeout 120 --require-build-provenance
+```
+
+Run only on an unlocked Cocoa/Metal session. It is not registered as official
+APP016, included in the default suite, or counted as PASS. The original
+standard-button `performClick` experiment timed out waiting for minimization;
+the following public-action build could not activate its initial window on a
+locked Mac. Both reports are retained. `app016-minimize-evidence.json` records
+actual checkpoints reached, and `app016-restored.png` is produced only after a
+successful restore. A completed native repeat and review are still required.
