@@ -1,0 +1,8 @@
+# Keep the development graph focused on source code. --code-only is also required.
+docs/
+resources/
+*.md
+*.txt
+*.png
+*.webp
+*.gif
