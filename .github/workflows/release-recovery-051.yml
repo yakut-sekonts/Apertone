@@ -1,0 +1,214 @@
+name: Recover Luma 0.5.1 release after build timeout
+on:
+  push:
+    branches: [codex/release-recovery-0.5.1]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: release-refs/tags/v0.5.1
+  cancel-in-progress: false
+jobs:
+  signing-configuration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      configured: ${{ steps.configuration.outputs.configured }}
+    steps:
+      - name: Check signing availability without exposing the key
+        id: configuration
+        env:
+          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' || secrets.LUMA_SECRET != '' }}
+        run: echo "configured=$SIGNING_CONFIGURED" >> "$GITHUB_OUTPUT"
+      - name: Sparkle signing key is configured
+        if: steps.configuration.outputs.configured == 'true'
+        run: echo 'Release archives will be signed and verified against the embedded public key.'
+      - name: Sparkle signing key is missing
+        if: steps.configuration.outputs.configured != 'true'
+        run: |
+          echo 'A configured Sparkle signing key is required to publish v0.5.1.' >&2
+          exit 1
+  build-package:
+    needs: signing-configuration
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: d113495cb1d92bf8232e0a6943d972c9fbf0e01a
+          fetch-depth: 0
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      # The workflow is new; all shipped source and verification scripts come
+      # from the original immutable tag. No failed verification is waived.
+      - name: Validate immutable source and original CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(git rev-parse HEAD)" = d113495cb1d92bf8232e0a6943d972c9fbf0e01a
+          test "$(git rev-parse 'refs/tags/v0.5.1^{commit}')" = "$(git rev-parse HEAD)"
+          git merge-base --is-ancestor HEAD origin/main
+          python - <<'PYTHON'
+          import json, subprocess
+          def run(run_id):
+              return json.loads(subprocess.check_output([
+                  "gh", "api", f"repos/yakut-sekonts/Luma/actions/runs/{run_id}"
+              ], text=True))
+          source = "d113495cb1d92bf8232e0a6943d972c9fbf0e01a"
+          original = run(39419726586)
+          assert original["head_sha"] == source
+          assert original["event"] == "push" and original["head_branch"] == "v0.5.1"
+          assert original["path"] == ".github/workflows/release.yml"
+          assert original["status"] == "completed" and original["conclusion"] == "cancelled"
+          ci = run(39419726319)
+          assert ci["head_sha"] == source and ci["head_branch"] == "main"
+          assert ci["path"] == ".github/workflows/macos.yml"
+          assert ci["status"] == "completed" and ci["conclusion"] == "success"
+          print("Original main CI passed; rebuilding unchanged v0.5.1 after the 60-minute job timeout.")
+          PYTHON
+      - name: Install fixed toolchain and Qt
+        run: ./scripts/bootstrap.sh
+      - name: Configure
+        run: |
+          .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
+      - name: Validate signing key before building
+        if: needs.signing-configuration.outputs.configured == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
+        run: .tools/venv/bin/python scripts/create-appcast.py --check-key --signer build/_deps/sparkle-src/bin/sign_update
+      - name: Build
+        run: .tools/venv/bin/cmake --build build --parallel 3
+      - name: Tests and static analysis
+        run: |
+          .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
+          ./scripts/check-format.sh
+          ./scripts/check-tidy.sh build
+      - name: Build and attest UX executable
+        run: .tools/venv/bin/python tests/ux/build_ux.py --build build
+      - name: Bounded functional blocking UX checks before packaging
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
+      - name: Supplemental selected-asset keyboard regression
+        run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
+      - name: Keyboard import edit export at minimum window
+        run: .tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build --runs 3 --require-build-provenance
+      - name: Localized preset dialogs at minimum window
+        run: .tools/venv/bin/python tests/ux/run_localized_dialog_regression.py --build build --runs 3 --timeout 240 --require-build-provenance
+      - name: Supplemental gradient handle accessibility regressions
+        run: .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build --runs 3 --require-build-provenance
+      - name: Supplemental PhotoCard flag localization regression
+        run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
+      - name: Actual thumbnail response regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-004 --runs 3 --require-build-provenance --report build/ux-thumbnail-response-report
+      - name: Thumbnail away and back before pending completion
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-005 --runs 3 --require-build-provenance --report build/ux-thumbnail-away-back-report
+      - name: Batch commit during actual partial thumbnail render
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-007 --runs 3 --require-build-provenance --report build/ux-thumbnail-partial-render-report
+      - name: Thumbnail invalidation during an actual response
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-002 --runs 3 --require-build-provenance --report build/ux-thumbnail-invalidation-report
+      - name: Missing private watermark snapshot regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-EXP-028 --runs 3 --require-build-provenance --report build/ux-watermark-snapshot-report
+      - name: Legal UTF-8 current export filename regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-VIS-003 --runs 3 --require-build-provenance --report build/ux-export-current-filename-report
+      - name: Auto Transform completion regression
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
+      - name: Upload release UX evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-ux-blocking-evidence
+          path: |
+            build/ux-report/
+            build/ux-keyboard-report/
+            build/ux-keyboard-workflow-report/
+            build/ux-localized-dialog-report/
+            build/ux-mask-handles-report/
+            build/ux-auto-transform-report/
+            build/ux-card-flags-report/
+            build/ux-thumbnail-response-report/
+            build/ux-thumbnail-away-back-report/
+            build/ux-thumbnail-invalidation-report/
+            build/ux-thumbnail-partial-render-report/
+            build/ux-watermark-snapshot-report/
+            build/ux-export-current-filename-report/
+            build/ux-build-provenance.json
+            build/ux-artifacts/20*/fixture-manifest.json
+            build/ux-artifacts/20*/**/result.json
+            build/ux-artifacts/20*/**/child-result.json
+            build/ux-artifacts/20*/**/metrics.json
+            build/ux-artifacts/20*/**/actions.jsonl
+            build/ux-artifacts/20*/**/keyboard-activation.json
+            build/ux-artifacts/20*/**/keyboard-workflow.json
+            build/ux-artifacts/20*/**/localized-dialogs.json
+            build/ux-artifacts/20*/**/dialog-*.png
+            build/ux-artifacts/20*/**/keyboard-expected-export.png
+            build/ux-artifacts/20*/**/exports/keyboard/Keyboard-output.png
+            build/ux-artifacts/20*/**/dsc006-scroll-trace.json
+            build/ux-artifacts/20*/**/msk023-*.json
+            build/ux-artifacts/20*/**/race005-*.json
+            build/ux-artifacts/20*/**/race002-*.json
+            build/ux-artifacts/20*/**/race007-*.json
+            build/ux-artifacts/20*/**/race007-node-*.png
+            build/ux-artifacts/20*/**/exp028-evidence.json
+            build/ux-artifacts/20*/**/vis003-approved-evidence.json
+            build/ux-artifacts/20*/**/vis003-current-label-*.png
+            build/ux-artifacts/20*/**/vis003-active-export-*.png
+            build/ux-artifacts/20*/**/card-flags-*.json
+            build/ux-artifacts/20*/**/card-flags-*.png
+            build/ux-artifacts/20*/**/lib004-*.json
+            build/ux-artifacts/20*/**/lib005-*.json
+            build/ux-artifacts/20*/**/msk023-*.png
+            build/ux-artifacts/20*/**/app.log
+            build/ux-artifacts/20*/**/command.json
+            build/ux-artifacts/20*/**/failure.png
+            build/ux-artifacts/20*/**/thread-sample.txt
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Package ZIP and DMG
+        run: ./scripts/release-artifacts.sh build
+      - name: Verify standalone application
+        run: .tools/venv/bin/python scripts/verify-bundle.py
+      - name: Verify mounted installer and version
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Luma.app/Contents/Info.plist)
+          .tools/venv/bin/python scripts/verify-dmg.py "dist/release/Luma-$version-macos-arm64.dmg"
+      - name: Sign update archive and prepare appcast
+        if: needs.signing-configuration.outputs.configured == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
+        run: |
+          if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY (or LUMA_SECRET) before publishing updater-enabled releases.' >&2
+            exit 1
+          fi
+          .tools/venv/bin/python scripts/create-appcast.py --signer build/_deps/sparkle-src/bin/sign_update
+      - name: Upload verified assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: macos-release
+          path: dist/release/*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+  publish:
+    needs: build-package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          ref: d113495cb1d92bf8232e0a6943d972c9fbf0e01a
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: macos-release
+          path: dist/release
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/publish-release.py --tag v0.5.1 --source-commit d113495cb1d92bf8232e0a6943d972c9fbf0e01a
