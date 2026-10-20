@@ -3,7 +3,8 @@
 Status: **full qualification incomplete; 0.5.1 publication authorized after CI
 with explicitly accepted coverage gaps**.
 Work is tracked in [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
-linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46).
+linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46);
+remaining qualification continues in [Issue #48](https://github.com/yakut-sekonts/Luma/issues/48).
 Source/release scope is 0.5.1. The latest GitHub Release remains authoritative
 for publication status.
 
@@ -12,7 +13,7 @@ This explicitly permits this release with the 23 remaining functional contracts
 listed in [the release qualification record](../releases/v0.5.1-quality.md).
 It supersedes the previous requirement to finish every current functional check
 before publishing 0.5.1. It does not turn missing/failed checks into PASS, waive
-CI or artifact verification, close Issue #46, qualify the entire phase, or
+CI or artifact verification, complete the remaining qualification, qualify the entire phase, or
 authorize later phases to bypass their quality checks. Historical checkpoints
 below retain their original publication restrictions and evidence.
 
