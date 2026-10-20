@@ -36,6 +36,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: Keyboard import edit export at minimum window
         run: .tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build --runs 3 --require-build-provenance
+      - name: Localized preset dialogs at minimum window
+        run: .tools/venv/bin/python tests/ux/run_localized_dialog_regression.py --build build --runs 3 --timeout 240 --require-build-provenance
       - name: Supplemental gradient handle accessibility regressions
         run: .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build --runs 3 --require-build-provenance
       - name: Supplemental PhotoCard flag localization regression
@@ -63,6 +65,7 @@ jobs:
             build/ux-report/
             build/ux-keyboard-report/
             build/ux-keyboard-workflow-report/
+            build/ux-localized-dialog-report/
             build/ux-mask-handles-report/
             build/ux-auto-transform-report/
             build/ux-card-flags-report/
@@ -80,6 +83,8 @@ jobs:
             build/ux-artifacts/20*/**/actions.jsonl
             build/ux-artifacts/20*/**/keyboard-activation.json
             build/ux-artifacts/20*/**/keyboard-workflow.json
+            build/ux-artifacts/20*/**/localized-dialogs.json
+            build/ux-artifacts/20*/**/dialog-*.png
             build/ux-artifacts/20*/**/keyboard-expected-export.png
             build/ux-artifacts/20*/**/exports/keyboard/Keyboard-output.png
             build/ux-artifacts/20*/**/dsc006-scroll-trace.json

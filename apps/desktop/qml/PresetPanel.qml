@@ -9,6 +9,7 @@ ColumnLayout {
     property string selectedId: ""
     property var selected: null
     property string hoverPreviewId: ""
+    readonly property Item editorScrollView: editScroll
     function previewHoveredPreset(presetId) {
         hoverPreviewId = presetId
         presets.preview(presetId)
@@ -144,32 +145,51 @@ ColumnLayout {
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
+        height: Math.min(implicitHeight, parent.height - 32)
         title: copyMode ? qsTranslate("Luma", "Copy settings") : presetId.length ? qsTranslate("Luma", "Edit preset") : qsTranslate("Luma", "Save preset")
-        ColumnLayout {
-            width: parent.width; spacing: 10
-            TextField { id: nameField; objectName: "presetName"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Name"); maximumLength: 80; Layout.fillWidth: true }
-            TextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Folder (optional)"); maximumLength: 80; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", "Settings groups"); color: "#d5d8de" }
-            Repeater {
-                model: [qsTranslate("Luma", "Light"), qsTranslate("Luma", "Color"), qsTranslate("Luma", "Curve"), "HSL", qsTranslate("Luma", "Detail"), qsTranslate("Luma", "Crop"), qsTranslate("Luma", "Optics"), qsTranslate("Luma", "Geometry")]
-                CheckBox {
-                    required property string modelData
-                    required property int index
-                    objectName: "presetGroup" + index
-                    text: modelData; checked: (editDialog.groups & (1 << index)) !== 0
-                    onClicked: editDialog.groups = checked ? editDialog.groups | (1 << index) : editDialog.groups & ~(1 << index)
+        contentItem: ScrollView {
+            id: editScroll
+            objectName: "preset.editorScroll"
+            clip: true
+            implicitHeight: editFields.implicitHeight
+            contentWidth: availableWidth
+            rightPadding: effectiveScrollBarWidth
+            ColumnLayout {
+                id: editFields
+                width: editScroll.availableWidth; spacing: 10
+                TextField { id: nameField; objectName: "presetName"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Name"); maximumLength: 80; Layout.fillWidth: true }
+                TextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Folder (optional)"); maximumLength: 80; Layout.fillWidth: true }
+                Label { text: qsTranslate("Luma", "Settings groups"); color: "#d5d8de" }
+                Repeater {
+                    model: [qsTranslate("Luma", "Light"), qsTranslate("Luma", "Color"), qsTranslate("Luma", "Curve"), "HSL", qsTranslate("Luma", "Detail"), qsTranslate("Luma", "Crop"), qsTranslate("Luma", "Optics"), qsTranslate("Luma", "Geometry")]
+                    CheckBox {
+                        required property string modelData
+                        required property int index
+                        objectName: "presetGroup" + index
+                        text: modelData; checked: (editDialog.groups & (1 << index)) !== 0
+                        onClicked: editDialog.groups = checked ? editDialog.groups | (1 << index) : editDialog.groups & ~(1 << index)
+                    }
                 }
+                CheckBox {
+                    id: capture; objectName: "preset.capture"; visible: !editDialog.copyMode && editDialog.presetId.length > 0
+                    text: qsTranslate("Luma", "Replace settings with current edits")
+                    enabled: editor.hasPhoto && !editor.busy
+                    Layout.fillWidth: true
+                    contentItem: Label {
+                        text: capture.text
+                        font: capture.font
+                        color: capture.palette.windowText
+                        leftPadding: capture.indicator.width + capture.spacing
+                        verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.Wrap
+                    }
+                }
+                Label { objectName: "preset.editorHelp"; visible: !editDialog.copyMode; text: qsTranslate("Luma", "Renaming or moving preserves settings. Replace with current edits to add new groups."); color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
+                Label { objectName: "preset.editorError"; text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             }
-            CheckBox {
-                id: capture; objectName: "preset.capture"; visible: !editDialog.copyMode && editDialog.presetId.length > 0
-                text: qsTranslate("Luma", "Replace settings with current edits")
-                enabled: editor.hasPhoto && !editor.busy
-            }
-            Label { visible: !editDialog.copyMode; text: qsTranslate("Luma", "Renaming or moving preserves settings. Replace with current edits to add new groups."); color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
-            Label { objectName: "preset.editorError"; text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
         }
         footer: DialogButtonBox {
-            Button { text: qsTranslate("Luma", "Cancel"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: editDialog.close() }
+            Button { objectName: "preset.cancel"; text: qsTranslate("Luma", "Cancel"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: editDialog.close() }
             Button {
                 objectName: "presetSave"
                 text: editDialog.copyMode ? qsTranslate("Luma", "Copy") : qsTranslate("Luma", "Save")

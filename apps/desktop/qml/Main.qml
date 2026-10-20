@@ -49,6 +49,7 @@ ApplicationWindow {
         ensureActiveFocusVisible(presetsScroll)
         ensureActiveFocusVisible(adjustmentsScroll)
         ensureActiveFocusVisible(exportSettings.contentItem)
+        ensureActiveFocusVisible(presetSettings.editorScrollView)
     }
     onActiveFocusItemChanged: Qt.callLater(root.revealActiveFocus)
     Connections {
@@ -217,7 +218,7 @@ ApplicationWindow {
                         Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
                         Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
-                        PresetPanel { Layout.fillWidth: true; Layout.fillHeight: true }
+                        PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
                         Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                         Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }

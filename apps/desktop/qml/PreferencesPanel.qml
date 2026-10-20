@@ -14,7 +14,7 @@ Dialog {
         width: parent.width
         spacing: 14
         Label { objectName: "settingsVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 20; font.weight: Font.DemiBold; Layout.fillWidth: true }
-        Label { text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { objectName: "settingsLanguageLabel"; text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
         ComboBox {
             id: languageChoice
             objectName: "languageChoice"
@@ -30,7 +30,7 @@ Dialog {
             onActivated: localization.selectLanguage(model[currentIndex].code)
             Accessible.name: qsTranslate("Luma", "Interface language")
         }
-        Label { text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

@@ -789,3 +789,36 @@ are tracked separately and are not counted as application failures or hidden ret
   CTest (one optional Nikon SKIP), 141 Python infrastructure tests and format pass.
   Exact source/binary attestations and the separate test-only stride type cleanup
   are recorded in `UX_QUALIFICATION_STATUS.md`.
+
+## LUMA-UX-033 — Preset dialog body is obscured by its footer at minimum height
+
+- Severity: P2. Scope: CURRENT. At 1000×640, the unbounded Create/Edit preset
+  ColumnLayout paints beneath the fixed Save/Cancel footer. The explanatory
+  label is obscured; Edit additionally places the replace-current-settings
+  checkbox behind the footer. There is no dialog scroll route.
+- Original runtime FAIL: `localized-dialog-footer-original-software-report` and
+  `localized-dialog-footer-original-native-report`, at `preset.editorHelp`.
+  Actual screenshots and input traces are retained. The earlier minimum-body
+  allocation heuristic failed sooner at Geometry; that overly strict heuristic
+  is not the product oracle. The final oracle checks actual footer intersection.
+- Fix: bound the dialog to the window, put its body in a clipped ScrollView
+  with a scrollbar gutter, and include this view in the existing deferred
+  active-focus reveal. Manual scroll and preset semantics remain intact.
+- First complete fixed PASS: `localized-dialog-wrap-software-report` and
+  `localized-dialog-wrap-native-report`, one repeat on each backend, including
+  eight languages, actual wheel/Tab/Space/Cancel and persistence/pixel guards.
+  The repeat cohort is recorded separately in `UX_QUALIFICATION_STATUS.md`.
+
+## LUMA-UX-034 — Long translated replace-settings checkbox is clipped horizontally
+
+- Severity: P2. Scope: CURRENT. After vertical scrolling exposes Edit's capture
+  checkbox, its Armenian caption extends beyond the dialog's right edge.
+  Additional vertical scrolling cannot reveal the missing end of the sentence.
+- Original FAIL after033's scrolling fix: `localized-dialog-scroll-software-report`
+  and `localized-dialog-scroll-native-report`, at Armenian `preset.capture`.
+  Screenshots retain the truncated right-hand caption.
+- Fix: constrain that checkbox to the body width and wrap its label, preserving
+  the indicator spacing, font, palette, checked state and activation semantics.
+- The same first fixed software/native reports listed above pass all eight
+  languages. Actual Tab/Space toggles and restores capture; Cancel leaves the
+  original preset file, photo document and history unchanged.

@@ -27,7 +27,7 @@ require workload review. Default CTest uses 256 Library metadata rows; the origi
   (MSK-005) is absent. Of the 74 remaining scenarios without executable adapters,
   23 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 32 production defects are reproduced and fixed with focused native/software
+- 34 production defects are reproduced and fixed with focused native/software
   evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
   Three outcomes from a native mask run with confirmed external interaction
   remain individually unattributed. Their FAIL records and subsequent controlled
@@ -480,7 +480,7 @@ That includes three complete UX-RACE-005 attempts and three ordinary successful
 Auto Apply/Undo/Redo controls in UX-UND-007, plus manual/guided Transform, Cancel
 and photo-switch scroll checks. The same nine cases pass once in local
 offscreen/software, `race005-registered-final-local-software-report`, run
-`20261019T095722Z-61703`. Every child exits0 and every report passes build proof,
+`20261019T095722Z-61703`. Every child exits 0 and every report passes build proof,
 unchanged source/binary, original hashes and catalog integrity. Initial candidate
 runs also passed once per backend in separate preserved supplemental reports;
 they are not added to the official result totals.
@@ -1193,11 +1193,11 @@ This cohort's attestation is source
 `a76af48d5f24a173b45d6078f75b6e933cea0f77f7950dc165c9275dc0a87faa`,
 binary `b50c6a3ba37c0548238b2f7a4a8dce231bf76ad6593ee8c56092f051ab14d334`.
 The explicit stride type and this later documentation do not inherit that hash.
-The official inventory remains 369 adapters/257 bounded/112 deferred, with 23
+The official inventory remains 369 adapters / 257 bounded / 112 deferred, with 23
 unadapted functional scenarios. Full phase 0.5 and stable release remain incomplete.
 
 After the explicit stride-type correction, `keyboard-workflow-post-tidy` adds
-three Cocoa/Metal and three local offscreen/software PASS. Each child exits0 and
+three Cocoa/Metal and three local offscreen/software PASS. Each child exits 0 and
 passes source/provenance/original/catalog guards. Format and focused clang-tidy
 pass, with no remaining warning in KeyboardActivationCandidate.cpp. The full
 53 PASS/one SKIP CTest cohort above is not relabeled as a run of this later binary.
@@ -1206,3 +1206,89 @@ Follow-up attestation: source
 binary `34cbc4877ebeb4f4ee4f28b223da21870d369fcb9a846f89be3f258bfec5f64f`.
 This final results paragraph is later documentation. No stable release, main
 merge, version tag, load workload or phase 0.6 transition was performed.
+
+## APP016 UI comparison and manual probe, 2026-10-20
+
+The user reports that ordinary Finder/Safari windows minimize normally.
+Two owned AppKit UI probes still timed out: one used the native UI tool's
+minimize accessibility control, the other screenshot-grounded button input.
+The screenshots show a purple control indicator replacing the traffic lights
+after UI control begins; this is an observation, not an established cause.
+Separate probes without UI-tool attachment also failed after three seconds of
+startup stabilization, both with and without a standard application/Window menu.
+Their windows were key/main, miniaturizable, on the active Space, with an enabled
+visible minimize button and default presentation options. No DidMiniaturize came.
+
+After the user confirmed readiness for a manual click, the owned
+`App016HumanProbe.app` waited 180 seconds and timed out without Will/DidMiniaturize
+or DidDeminiaturize. The retained result is
+`app016-human-result-20261020T105026Z.json`. Whether the user actually clicked
+remains unconfirmed at this checkpoint; this is not evidence of a failed
+human-input action. No Luma product defect, globally broken Dock, native lifecycle
+PASS or release qualification follows. The separately deferred APP017/SLD009
+manual check is unchanged.
+
+## Localized preset dialogs, 2026-10-20
+
+The bounded supplemental dialog slice reproduced LUMA-UX-033/034 in local
+offscreen/software and Cocoa/Metal. Both original footer-overlap reports and both
+intermediate Armenian-caption failures remain retained. The first draft also
+clicked Copy before scrolling the sidebar; that timeout is a harness error.
+A later body-allocation-only heuristic was too strict and was replaced by actual
+footer overlap plus real ancestor clipping, without weakening text/visibility
+assertions. Neither harness correction counts as a production defect.
+
+The dialog now bounds its height, scrolls its content, reveals focused descendants
+and wraps the long capture caption. First complete verification:
+`localized-dialog-wrap-software-report` and `localized-dialog-wrap-native-report`,
+one PASS each. Every repeat covers eight languages and four scene families with
+256 explicit text bindings, 32 screenshots, genuine Tab/Space/wheel/Cancel input,
+unchanged preset bytes/source SHA/full documents/revisions/metadata/selection/
+history and exact retained preview pixels. Expected strings come from the
+declared language resource; this does not qualify linguistic correctness.
+
+The official inventory stays 369 adapters / 257 bounded / 112 deferred, including 23
+unadapted functional scenarios. VIS007/VIS008 require further surfaces; this
+finite slice is not promoted to either official ID. Full phase 0.5 and stable
+release remain incomplete. Both workflows now run three supplemental dialog
+repeats and retain their trace, binding ledger and screenshots.
+
+The `localized-dialog-final` cohort passes 24 UX results: 12 Cocoa/Metal and 12
+local offscreen/software. Each backend runs the new dialog slice three times,
+the keyboard import/edit/export workflow once, and eight affected preset,
+localization and focus scenarios once. Every child exits 0; source/provenance,
+original SHA and catalog checks pass. The six dialog ledgers contain 1,536
+explicit text observations and 192 screenshots. Independent report auditing
+confirmed exact locale/binding counts; its first attempt misread the
+`source_consistency` string as an object and raised TypeError, then was corrected.
+That is an audit-script error, not a product or scenario failure.
+
+Full application build, 53 functional CTest PASS plus one optional Nikon SKIP,
+141 Python infrastructure tests and format pass. CTest took 93.96 seconds with
+no failures. Two focused clang-tidy commands exit 0; new optional-access warnings
+in the supplemental adapter were subsequently corrected with an explicit
+missing-asset branch. Existing shared-header advisories remain retained.
+Attestation: source
+`4fe4d2344fe85ba6b10e00a1829979e436c1a85438324044ef0fd284fe43d186`,
+binary `be1d925793a81d9cd78fe34c74465c5e8c330d4929c7a2d75f136e99252c56f3`.
+
+The subsequent test-only strengthening uses a genuine non-neutral Exposure edit,
+an independent expected preview and final real Undo/Redo with complete durable
+documents. Its verification is recorded separately, not attributed to the
+earlier cohort or binary. Hosted CI run 39407429384 for preceding commit
+`b9a089a9681bf29ee6392b9f34ea240a69283672` completed successfully; it does not
+cover these later dialog changes.
+
+The strengthened `localized-dialog-history-final` adapter passes three
+Cocoa/Metal and three local offscreen/software repeats. Every child exits 0
+with passing source/provenance/original/catalog guards. Independent artifact
+auditing confirms 256 distinct bindings, 32 screenshots, a positive Exposure
+edit and completed real Undo/Redo in each of the six runs. Format passes;
+focused clang-tidy exits 0 with no warning in the new adapter (existing shared
+header advisories remain). Follow-up attestation: source
+`a895295d07dc3f986b154c931fde47c9b39b3a726e46214fe84d60ae7ff80f56`,
+binary `20a199e309ce9e10a66fa203bf77212691311862e0a3534b40b5758c670d8837`.
+The full CTest cohort above is not relabeled as a run of this later test binary.
+This results paragraph is later documentation. The combined cohorts have
+30 UX PASS; official inventory counts and the incomplete stable release gate
+remain unchanged.

@@ -12,6 +12,7 @@ namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
 bool cardFlagLocalizationCandidate(Context &, const QString &);
+bool localizedDialogCandidate(Context &, const QString &);
 bool exportWatermarkSnapshotMissingCandidate(Context &, const QString &);
 bool exportCurrentFilenameLegalCandidate(Context &, const QString &);
 bool lib004ActualResponseCandidate(Context &, const QString &);
@@ -117,7 +118,8 @@ int main(int argc, char **argv) {
         if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007" ||
             id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE" ||
             id == "CANDIDATE-APP016-MINIMIZED-EXPORT" ||
-            id == "CANDIDATE-KEYBOARD-IMPORT-EDIT-EXPORT")
+            id == "CANDIDATE-KEYBOARD-IMPORT-EDIT-EXPORT" ||
+            id == "CANDIDATE-LOCALIZED-PRESET-DIALOGS")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "Partial-render/transparent-handle candidates forbid ignored "
@@ -196,6 +198,9 @@ int main(int argc, char **argv) {
         else if (id == "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION")
             ux::require(ux::cardFlagLocalizationCandidate(*context, id),
                         "Card flag localization candidate adapter unavailable");
+        else if (id == "CANDIDATE-LOCALIZED-PRESET-DIALOGS")
+            ux::require(ux::localizedDialogCandidate(*context, id),
+                        "Localized dialog candidate adapter unavailable");
         else if (id == "CANDIDATE-RACE005-AUTO-COMPLETION" || id == "UX-RACE-005")
             ux::require(ux::autoTransformRaceCandidate(*context, id),
                         "Genuine Auto completion regression adapter unavailable");

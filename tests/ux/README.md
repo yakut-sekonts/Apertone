@@ -433,3 +433,27 @@ was removed. These failures are retained; they do not establish a Luma defect.
 actual checkpoints reached, and `app016-restored.png` is produced only after a
 successful restore. Focus notifications and frontmost process identity are
 observed without recovery activation. A completed native repeat is still required.
+
+### Localized preset dialogs — bounded visual and keyboard slice
+
+`run_localized_dialog_regression.py` uses one generated PNG and one preset made
+through actual UI. At 1000×640 it visits Settings and preset Create/Edit/Copy in
+all eight languages. Its 256 explicit text bindings compare the actual paint
+node with the language resource, check wrapping/elision and ancestor clipping,
+and reject body content overlapped by the separately painted footer. This is
+resource/render consistency, not human linguistic or glyph-shape qualification.
+Real sidebar/dialog wheel input exposes fields; actual Tab/Space round trips
+exercise Geometry and the replace-current-settings option without focus setters.
+Cancel preserves the preset file, full current/durable document, revision,
+source bytes, metadata, selection, history flags and preview pixels.
+The fixture makes a real Exposure edit before the dialog tour. After all eight
+languages, actual Undo must recover the complete neutral document and Redo must
+recover the exact edited document and pixels; both are naturally persisted.
+
+```sh
+python3 tests/ux/run_localized_dialog_regression.py --build build-verify --runs 3 --timeout 240 --require-build-provenance
+```
+
+Both workflows retain the binding ledger, input trace and 32 screenshots per
+repeat. This supplemental domain does not register VIS007/VIS008 or qualify
+every product surface, native chooser, translation meaning or physical scanout.
