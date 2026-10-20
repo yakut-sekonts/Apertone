@@ -42,6 +42,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-004 --runs 3 --require-build-provenance --report build/ux-thumbnail-response-report
       - name: Thumbnail away and back before pending completion
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-005 --runs 3 --require-build-provenance --report build/ux-thumbnail-away-back-report
+      - name: Batch commit during actual partial thumbnail render
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-007 --runs 3 --require-build-provenance --report build/ux-thumbnail-partial-render-report
       - name: Thumbnail invalidation during an actual response
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-002 --runs 3 --require-build-provenance --report build/ux-thumbnail-invalidation-report
       - name: Missing private watermark snapshot regression
@@ -64,6 +66,7 @@ jobs:
             build/ux-thumbnail-response-report/
             build/ux-thumbnail-away-back-report/
             build/ux-thumbnail-invalidation-report/
+            build/ux-thumbnail-partial-render-report/
             build/ux-watermark-snapshot-report/
             build/ux-export-current-filename-report/
             build/ux-build-provenance.json
@@ -77,6 +80,8 @@ jobs:
             build/ux-artifacts/20*/**/msk023-*.json
             build/ux-artifacts/20*/**/race005-*.json
             build/ux-artifacts/20*/**/race002-*.json
+            build/ux-artifacts/20*/**/race007-*.json
+            build/ux-artifacts/20*/**/race007-node-*.png
             build/ux-artifacts/20*/**/exp028-evidence.json
             build/ux-artifacts/20*/**/vis003-approved-evidence.json
             build/ux-artifacts/20*/**/vis003-current-label-*.png

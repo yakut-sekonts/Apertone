@@ -1,6 +1,7 @@
 #include "apps/shared/PresetStore.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UxPixels.h"
 #include <QColorSpace>
 #include <QCryptographicHash>
 #include <QDir>
@@ -415,10 +416,7 @@ QJsonObject geometry(Context &c, const QString &expected, int variant) {
     // Nonempty actual item readback is UI paint evidence, not OCR or physical scanout.
     QPointer<QQuickItem> guarded(label);
     const auto logicalSize = label->size();
-    const auto capture = label->grabToImage();
-    require(!capture.isNull(), "VIS003 cannot start actual current-label readback");
-    c.driver->wait([&] { return !guarded || !capture->image().isNull(); },
-                   "VIS003 actual current-label node readback", 5000);
+    const auto capture = readyItemGrab(c, *label, "VIS003 actual current-label node readback");
     require(guarded && guarded.data() == c.driver->item("export.currentFilename") &&
                 guarded->size() == logicalSize &&
                 guarded->property("text").toString() == expected &&

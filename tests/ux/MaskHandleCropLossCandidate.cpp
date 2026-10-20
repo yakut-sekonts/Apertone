@@ -1,6 +1,7 @@
 #include "apps/shared/PresetStore.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
+#include <QColor>
 #include <QCryptographicHash>
 #include <QCursor>
 #include <QElapsedTimer>
@@ -9,7 +10,10 @@
 #include <QJSValue>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QLineF>
 #include <QMap>
+#include <QSGRendererInterface>
+#include <QSignalSpy>
 #include <QTest>
 #include <algorithm>
 #include <array>
@@ -17,7 +21,9 @@
 #include <cstdio>
 #include <exception>
 #include <limits>
+#include <memory>
 #include <numbers>
+#include <sqlite3.h>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -1047,6 +1053,552 @@ bool maskHandleCropLossCandidate(Context &c, const QString &id) {
                 QString::fromStdString(finalRecord->path.string()) == source,
             "Post-Crop input/history/Flip checks changed source identity or final durable state");
     c.checkData();
+    return true;
+}
+} // namespace ux
+
+// Append-only candidate to the existing MaskHandleCropLossCandidate.cpp TU.
+// Reuses its read-only evidence/pixel/pointer guards; does not dispatch old cases.
+namespace ux {
+namespace {
+struct TransparentPhoto {
+    double x, y, width, height;
+    QQuickItem *area;
+    explicit TransparentPhoto(Context &c) {
+        area = c.driver->item("localMaskGestureArea");
+        auto *image = c.driver->item("develop.preview");
+        width = image->property("paintedWidth").toDouble();
+        height = image->property("paintedHeight").toDouble();
+        x = (area->width() - width) / 2;
+        y = (area->height() - height) / 2;
+        require(width > 100 && height > 100 && area->width() >= width && area->height() >= height,
+                "Transparent-handle actual photo/input fixture is too small");
+        const auto expected =
+            image->mapToScene({(image->width() - width) / 2, (image->height() - height) / 2});
+        const auto actual = area->mapToScene({x, y});
+        require(QLineF(expected, actual).length() < 1e-6,
+                "Transparent-handle photo and actual input origins disagree");
+    }
+    QPointF fraction(QPointF photo) const {
+        return {(x + photo.x() * width) / area->width(), (y + photo.y() * height) / area->height()};
+    }
+    QPointF actual(Context &c, QPointF input) const {
+        const auto local = area->mapFromScene(c.driver->point("localMaskGestureArea", input));
+        return {(local.x() - x) / width, (local.y() - y) / height};
+    }
+};
+QVariantList transparentPainted(Context &c) {
+    auto property = c.driver->object("localPhotoOverlay")->property("handles");
+    if (property.metaType() == QMetaType::fromType<QJSValue>())
+        property = property.value<QJSValue>().toVariant();
+    return property.toList();
+}
+QJsonObject transparentState(Context &c) {
+    QJsonArray painted;
+    for (const auto &entry : transparentPainted(c))
+        painted.append(QJsonObject::fromVariantMap(entry.toMap()));
+    auto *area = c.driver->object("localMaskGestureArea");
+    return {{"document", documentJSON(c.editor.currentSettings())},
+            {"photo_id", c.editor.photoID()},
+            {"source", c.editor.sourcePath()},
+            {"error", c.editor.error()},
+            {"local_ready", c.editor.localCanvasReady()},
+            {"local_gesture", c.editor.localGestureActive()},
+            {"history_gesture", c.editor.uxHistoryGestureActive()},
+            {"pressed", area->property("pressed").toBool()},
+            {"adjusting", area->property("adjusting").toBool()},
+            {"can_undo", c.editor.canUndo()},
+            {"can_redo", c.editor.canRedo()},
+            {"painted_handles", painted}};
+}
+QPointF transparentHit(Context &c, int wanted, QPointF expectedPhoto, QJsonObject &evidence) {
+    const TransparentPhoto photo(c);
+    const auto controller = c.editor.localHandles();
+    const auto painted = transparentPainted(c);
+    require(controller.size() == 3 && painted.size() == 3,
+            "Transparent-handle identities disappeared");
+    QMap<int, QVariantMap> raw, display;
+    for (const auto &entry : controller) {
+        const auto v = entry.toMap();
+        const int key = v.value("handle", -1).toInt();
+        require(key >= 0 && key < 3 && !raw.contains(key), "Invalid raw handle IDs");
+        raw.insert(key, v);
+    }
+    for (const auto &entry : painted) {
+        const auto v = entry.toMap();
+        const int key = v.value("handle", -1).toInt();
+        require(key >= 0 && key < 3 && !display.contains(key), "Invalid displayed handle IDs");
+        display.insert(key, v);
+    }
+    require(std::abs(raw[wanted]["x"].toDouble() - expectedPhoto.x()) < 1e-10 &&
+                std::abs(raw[wanted]["y"].toDouble() - expectedPhoto.y()) < 1e-10,
+            "Actual raw handle differs from independent scale/source projection");
+    const auto point = display[wanted];
+    const QPointF center(point["x"].toDouble() * photo.area->width(),
+                         point["y"].toDouble() * photo.area->height());
+    require(std::isfinite(center.x()) && std::isfinite(center.y()), "Nonfinite displayed handle");
+    bool found = false;
+    QPoint best;
+    double bestDistance = std::numeric_limits<double>::infinity();
+    int examined = 0;
+    const auto region =
+        photo.area->mapRectToScene(QRectF(center - QPointF(14, 14), QSizeF(28, 28)))
+            .intersected(QRectF(0, 0, c.window->width() - 1, c.window->height() - 1));
+    for (int y = static_cast<int>(std::ceil(region.top())); y <= std::floor(region.bottom()); ++y)
+        for (int x = static_cast<int>(std::ceil(region.left())); x <= std::floor(region.right());
+             ++x) {
+            const QPoint scene(x, y);
+            if (scene.isNull())
+                continue;
+            const auto local = photo.area->mapFromScene(scene);
+            if (!insideClips(c, photo.area, local))
+                continue;
+            ++examined;
+            int nearest = -1;
+            double distance = 14 * 14;
+            for (const auto &entry : painted) {
+                const auto p = entry.toMap();
+                const double dx = local.x() - p["x"].toDouble() * photo.area->width(),
+                             dy = local.y() - p["y"].toDouble() * photo.area->height(),
+                             squared = dx * dx + dy * dy;
+                if (squared < distance) {
+                    distance = squared;
+                    nearest = p["handle"].toInt();
+                }
+            }
+            const QPointF fraction(local.x() / photo.area->width(),
+                                   local.y() / photo.area->height());
+            if (nearest == wanted && distance < bestDistance &&
+                c.driver->point("localMaskGestureArea", fraction) == scene) {
+                found = true;
+                best = scene;
+                bestDistance = distance;
+            }
+        }
+    evidence = {{"handle", wanted},
+                {"expected_photo_x", expectedPhoto.x()},
+                {"expected_photo_y", expectedPhoto.y()},
+                {"raw_x", raw[wanted]["x"].toDouble()},
+                {"raw_y", raw[wanted]["y"].toDouble()},
+                {"display_x", point["x"].toDouble()},
+                {"display_y", point["y"].toDouble()},
+                {"observed_proxy", point["proxy"].toBool()},
+                {"integer_hit_available", found},
+                {"integer_pixels_examined", examined},
+                {"scene_x", best.x()},
+                {"scene_y", best.y()}};
+    require(found, "Visible transparent-region handle has no real eligible input pixel");
+    const auto local = photo.area->mapFromScene(best);
+    return {local.x() / photo.area->width(), local.y() / photo.area->height()};
+}
+void transparentGoldControl(Context &c, QPointF fraction, QJsonObject &evidence) {
+    auto *area = c.driver->item("localMaskGestureArea");
+    const auto center =
+        area->mapToScene({fraction.x() * area->width(), fraction.y() * area->height()});
+    QImage capture;
+    int hits = 0;
+    c.driver->wait(
+        [&] {
+            capture = c.window->grabWindow();
+            if (capture.isNull())
+                return false;
+            const double sx = double(capture.width()) / c.window->width(),
+                         sy = double(capture.height()) / c.window->height();
+            hits = 0;
+            const int radius = static_cast<int>(std::ceil(8 * std::max(sx, sy)));
+            for (int y = static_cast<int>(std::floor(center.y() * sy)) - radius;
+                 y <= center.y() * sy + radius; ++y)
+                for (int x = static_cast<int>(std::floor(center.x() * sx)) - radius;
+                     x <= center.x() * sx + radius; ++x) {
+                    if (x < 0 || y < 0 || x >= capture.width() || y >= capture.height())
+                        continue;
+                    const auto color = capture.pixelColor(x, y);
+                    if (std::abs(color.red() - 223) <= 1 && std::abs(color.green() - 174) <= 1 &&
+                        std::abs(color.blue() - 119) <= 1 && color.alpha() == 255)
+                        ++hits;
+                }
+            return hits >= 5;
+        },
+        "Actual composited gold gradient handle is visible", 5000);
+    require(capture.save(c.root + "/msk023-transparent-visible-handle.png"),
+            "Cannot save actual visible handle scene");
+    evidence["actual_gold_pixels"] = hits;
+    evidence["scene_width"] = capture.width();
+    evidence["scene_height"] = capture.height();
+    evidence["physical_scanout_claimed"] = false;
+}
+Document transparentNear(Context &c, const Document &expected, const QString &reason) {
+    const auto actual = c.editor.currentSettings();
+    auto compared = actual;
+    require(actual.localMasks.size() == 1 && expected.localMasks.size() == 1,
+            "Transparent fixture mask cardinality changed");
+    auto &value = compared.localMasks[0];
+    const auto &want = expected.localMasks[0];
+    require(std::abs(value.x1 - want.x1) < 1e-12 && std::abs(value.y1 - want.y1) < 1e-12 &&
+                std::abs(value.x2 - want.x2) < 1e-12 && std::abs(value.y2 - want.y2) < 1e-12,
+            reason);
+    value.x1 = want.x1;
+    value.y1 = want.y1;
+    value.x2 = want.x2;
+    value.y2 = want.y2;
+    require(compared == expected, reason + " (unrelated complete field changed)");
+    return actual;
+}
+} // namespace
+
+namespace {
+QJsonObject metadataJSON(const luma::PhotoMetadata &m) {
+    return {{"camera", QString::fromStdString(m.camera)},
+            {"lens", QString::fromStdString(m.lens)},
+            {"iso", m.iso ? QJsonValue(*m.iso) : QJsonValue(QJsonValue::Null)},
+            {"shutter",
+             m.shutterSeconds ? QJsonValue(*m.shutterSeconds) : QJsonValue(QJsonValue::Null)},
+            {"aperture", m.aperture ? QJsonValue(*m.aperture) : QJsonValue(QJsonValue::Null)},
+            {"focal", m.focalLength ? QJsonValue(*m.focalLength) : QJsonValue(QJsonValue::Null)},
+            {"capture", m.captureTimestamp ? QJsonValue(QString::number(*m.captureTimestamp))
+                                           : QJsonValue(QJsonValue::Null)},
+            {"width", m.width},
+            {"height", m.height},
+            {"orientation", m.orientation}};
+}
+QJsonObject rowJSON(const luma::LibraryItem &r) {
+    return {{"id", QString::fromStdString(r.id)},
+            {"path", QString::fromStdString(r.path.string())},
+            {"filename", QString::fromStdString(r.filename)},
+            {"checksum", QString::fromStdString(r.checksum)},
+            {"width", r.width},
+            {"height", r.height},
+            {"orientation", r.orientation},
+            {"rating", r.rating},
+            {"flag", r.flag},
+            {"label", QString::fromStdString(r.label)},
+            {"camera", QString::fromStdString(r.camera)}};
+}
+QJsonArray readRows(Context &c, const char *query) {
+    sqlite3 *opened = nullptr;
+    const int result =
+        sqlite3_open_v2(c.catalogFile.toUtf8().constData(), &opened, SQLITE_OPEN_READONLY, nullptr);
+    const std::unique_ptr<sqlite3, decltype(&sqlite3_close)> db(opened, sqlite3_close);
+    require(result == SQLITE_OK && db, "Cannot open readonly MSK023 transparent journal");
+    require(sqlite3_busy_timeout(db.get(), 1000) == SQLITE_OK,
+            "Cannot bound MSK023 transparent journal read");
+    sqlite3_stmt *prepared = nullptr;
+    const int preparation = sqlite3_prepare_v2(db.get(), query, -1, &prepared, nullptr);
+    const std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> statement(prepared,
+                                                                               sqlite3_finalize);
+    require(preparation == SQLITE_OK && statement,
+            "Cannot prepare MSK023 transparent journal query");
+    QJsonArray rows;
+    int step = SQLITE_OK;
+    while ((step = sqlite3_step(statement.get())) == SQLITE_ROW) {
+        QJsonArray row;
+        for (int column = 0; column < sqlite3_column_count(statement.get()); ++column)
+            row.append(sqlite3_column_type(statement.get(), column) == SQLITE_NULL
+                           ? QJsonValue(QJsonValue::Null)
+                           : QJsonValue(QString::fromUtf8(reinterpret_cast<const char *>(
+                                 sqlite3_column_text(statement.get(), column)))));
+        rows.append(QJsonValue(row));
+    }
+    require(step == SQLITE_DONE, "Cannot finish MSK023 transparent readonly journal query");
+    return rows;
+}
+QJsonObject journal(Context &c) {
+    return {
+        {"imports",
+         readRows(
+             c, "SELECT id,mode,destination,state,owner_pid,skip_duplicates,created_at,finished_at "
+                "FROM import_sessions ORDER BY id")},
+        {"items",
+         readRows(c, "SELECT "
+                     "session_id,position,source_path,target_path,temporary_path,checksum,filesize,"
+                     "state,asset_id,error FROM import_items ORDER BY session_id,position")},
+        {"session", readRows(c, "SELECT slot,asset_id FROM session ORDER BY slot")}};
+}
+} // namespace
+bool maskHandleTransparentCandidate(Context &c, const QString &id) {
+    if (id != "CANDIDATE-MSK023-TRANSPARENT-HANDLE")
+        return false;
+    auto &d = *c.driver;
+    require(QGuiApplication::platformName() == "cocoa" && c.window->isActive() &&
+                c.window->isExposed() &&
+                c.window->rendererInterface()->graphicsApi() == QSGRendererInterface::Metal,
+            "Transparent handle scene control requires actual active Cocoa/Metal");
+    MaskReadyTrace trace(c);
+    const QString input = c.fixture + "/Photo-0000.png";
+    QImage literal(input);
+    require(literal.size() == QSize(256, 192), "Transparent fixture dimensions changed");
+    for (int y = 0; y < 192; ++y)
+        for (int x = 0; x < 256; ++x) {
+            const int gray = 32 + (x % 17) * 3 + (y % 11) * 2;
+            require(literal.pixelColor(x, y) == QColor(gray, gray, gray),
+                    "Transparent fixture is not its independent literal grayscale pattern");
+        }
+    c.import(1);
+    d.wait([&] { return !d.object("library.importDialog")->property("visible").toBool(); },
+           "Actual Import modal closed");
+    d.doubleClick(c.card(0));
+    c.loaded();
+    d.wait([&] { return !c.editor.saving() && !c.library.loading(); },
+           "Neutral transparent fixture naturally settled");
+    const auto asset = c.editor.photoID(), source = c.editor.sourcePath();
+    const auto original = digest(source);
+    const auto originalHex = QString::fromLatin1(original.toHex());
+    luma::Catalog initialCatalog(c.catalogFile.toStdString());
+    const auto initial = initialCatalog.assetSnapshot(asset.toStdString());
+    const auto initialRows = initialCatalog.libraryPage({}, 0, 2);
+    require(source == input && initial && initial->revision == 0 &&
+                initial->asset.edits == Document{} && initialRows.size() == 1 &&
+                initialRows[0].id == asset.toStdString() && initialRows[0].rating == 0 &&
+                initialRows[0].flag == 0 && initialRows[0].label.empty() &&
+                initial->asset.metadata.width == 256 && initial->asset.metadata.height == 192 &&
+                initial->asset.metadata.orientation == 0,
+            "Transparent fixture is not exactly one neutral upright generated source");
+    const auto pinnedMetadata = metadataJSON(initial->asset.metadata),
+               pinnedRow = rowJSON(initialRows[0]), pinnedJournal = journal(c);
+    require(pinnedJournal["imports"].toArray().size() == 1 &&
+                pinnedJournal["items"].toArray().size() == 1 &&
+                pinnedJournal["session"].toArray().size() == 1,
+            "Transparent fixture journal cardinality mismatch");
+    require(pinnedJournal["imports"].toArray()[0].toArray()[3].toString() == "completed" &&
+                pinnedJournal["items"].toArray()[0].toArray()[7].toString() == "committed" &&
+                pinnedJournal["session"].toArray()[0].toArray()[1].toString() == asset,
+            "Transparent setup is not one completed committed Add with current session identity");
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    require(saves.isValid(), "Cannot observe natural saves");
+    QJsonArray checkpoints;
+    QJsonObject evidence{{"scenario", id},
+                         {"inventory_domain", "supplemental"},
+                         {"official_MSK023_qualified", false},
+                         {"full_release_qualified", false},
+                         {"input_boundary", "QT_QTEST_WINDOW_INPUT"},
+                         {"hardware_pointer_events_exercised", false},
+                         {"source", source},
+                         {"source_sha256", originalHex},
+                         {"metadata", pinnedMetadata},
+                         {"library_row", pinnedRow},
+                         {"journal", pinnedJournal},
+                         {"scope", "one radial radius over uncovered inside-output region after "
+                                   "actual Scale50/ConstrainOff"}};
+    const auto checkpoint = [&](const QString &phase) {
+        auto point = transparentState(c);
+        point["phase"] = phase;
+        point["successful_saves"] = saves.count();
+        const auto snap =
+            luma::Catalog(c.catalogFile.toStdString()).assetSnapshot(asset.toStdString());
+        if (snap) {
+            point["durable_revision"] = QString::number(snap->revision);
+            point["durable_document"] = documentJSON(snap->asset.edits);
+        }
+        checkpoints.append(point);
+        evidence["checkpoints"] = checkpoints;
+        json(c.root + "/msk023-transparent-evidence.json", evidence);
+    };
+    const auto persisted = [&](const Document &expected) {
+        durable(c, asset, expected);
+        luma::Catalog cat(c.catalogFile.toStdString());
+        const auto snap = cat.assetSnapshot(asset.toStdString());
+        const auto rows = cat.libraryPage({}, 0, 2);
+        require(snap && snap->asset.edits == expected && snap->asset.path == initial->asset.path &&
+                    snap->asset.checksum == originalHex.toStdString() &&
+                    metadataJSON(snap->asset.metadata) == pinnedMetadata && rows.size() == 1 &&
+                    rowJSON(rows[0]) == pinnedRow &&
+                    cat.libraryIDs({}) == std::vector<std::string>{asset.toStdString()} &&
+                    cat.collections().empty() && journal(c) == pinnedJournal &&
+                    c.editor.photoID() == asset && c.editor.sourcePath() == source &&
+                    digest(source) == original && c.editor.currentSettings() == expected &&
+                    c.editor.error().isEmpty() && snap->revision == saves.count(),
+                "Transparent full document/revision/source/row/journal changed unexpectedly");
+        return snap->revision;
+    };
+    c.addMask(1);
+    readyMask(c);
+    noPointer(c);
+    overlayOff(c);
+    auto baseline = c.editor.currentSettings();
+    require(baseline.localMasks.size() == 1 &&
+                baseline.localMasks[0].shape == luma::MaskShape::radial &&
+                baseline.localMasks[0].x1 == .5 && baseline.localMasks[0].y1 == .5 &&
+                baseline.localMasks[0].x2 == .3 && baseline.localMasks[0].y2 == .25 &&
+                baseline.localMasks[0].angle == 0 && baseline.crop == luma::CropSettings{} &&
+                baseline.transform == luma::TransformSettings{},
+            "Actual Add Radial did not yield declared initial geometry");
+    Document declaredBaseline;
+    luma::LocalMask declaredMask;
+    declaredMask.id = baseline.localMasks[0].id;
+    declaredMask.name = baseline.localMasks[0].name;
+    declaredMask.shape = luma::MaskShape::radial;
+    declaredMask.x1 = declaredMask.y1 = .5;
+    declaredMask.x2 = .3;
+    declaredMask.y2 = .25;
+    declaredBaseline.localMasks.push_back(std::move(declaredMask));
+    require(baseline == declaredBaseline, "Actual Add Radial changed a complete neutral document "
+                                          "field outside its explicit default mask");
+    const auto neutralPixels = fixtureReference(c, baseline, source);
+    c.reveal("local_exposure");
+    d.drag("local_exposure", d.sliderThumb("local_exposure"), {.65, .5});
+    auto expected = baseline;
+    expected.localMasks[0].adjustments[0] =
+        d.object("local_exposure")->property("value").toDouble();
+    require(std::abs(expected.localMasks[0].adjustments[0]) > .5 &&
+                !d.object("local_exposure")->property("pressed").toBool(),
+            "Actual local Exposure fixture did not finish");
+    exact(c, expected, "Exposure fixture changed unrelated fields");
+    baseline = expected;
+    rendered(c, baseline);
+    require(c.provider->requestImage({}, nullptr, {}) != neutralPixels,
+            "Actual local Exposure produced no positive rendered-pixel difference");
+    persisted(baseline);
+    checkpoint("created_non_neutral_radial");
+    const auto perform = [&](const QString &phase, QPointF start, QPointF finish,
+                             const Document &before, const Document &want) {
+        ReleasePointer pointer{c, d.point("localMaskGestureArea", start)};
+        pointer.stage = phase;
+        pointer.handle = phase == "center_to_edge" ? 0 : 1;
+        try {
+            d.press("localMaskGestureArea", start);
+            pointer.down = true;
+            checkpoint(phase + "_actual_press_before_guard");
+            require(c.editor.localGestureActive() && c.editor.uxHistoryGestureActive() &&
+                        d.object("localMaskGestureArea")->property("pressed").toBool() &&
+                        d.object("localMaskGestureArea")->property("adjusting").toBool(),
+                    "Visible identified radius/center handle rejected actual pointer press: " +
+                        phase);
+            exact(c, before, "Actual handle grab snapped or mutated the full document");
+            for (int step = 1; step <= 6; ++step) {
+                const auto point = start + (finish - start) * (double(step) / 6);
+                pointer.last = d.point("localMaskGestureArea", point);
+                d.move("localMaskGestureArea", point);
+            }
+            pointer.last = d.point("localMaskGestureArea", finish);
+            d.release("localMaskGestureArea", finish);
+            pointer.down = false;
+            noPointer(c);
+            require(!c.editor.uxHistoryGestureActive(), "Real release retained history gesture");
+            readyMask(c);
+            const auto after =
+                transparentNear(c, want, "Independent transparent handle geometry mismatch");
+            rendered(c, after);
+            persisted(after);
+            checkpoint(phase + "_completed");
+            return after;
+        } catch (const std::exception &error) {
+            evidence["status"] = "FAIL";
+            evidence["failure"] = QString::fromUtf8(error.what());
+            try {
+                checkpoint(phase + "_failure_before_pointer_cleanup");
+            } catch (...) {
+                std::fputs("Cannot preserve transparent handle failure checkpoint\n", stderr);
+            }
+            throw;
+        }
+    };
+    // A genuine radius drag works before the output gets a transparent border.
+    QJsonObject positiveHit;
+    const auto initialHit = transparentHit(c, 1, {.8, .5}, positiveHit);
+    const TransparentPhoto initialPhoto(c);
+    const auto initialFinish = initialPhoto.fraction({.82, .5});
+    expected = baseline;
+    const auto initialPoint = initialPhoto.actual(c, initialFinish);
+    expected.localMasks[0].x2 = std::abs(initialPoint.x() - .5);
+    const auto positive =
+        perform("covered_radius_positive", initialHit, initialFinish, baseline, expected);
+    evidence["covered_radius_positive_hit"] = positiveHit;
+    d.click("main.undoButton");
+    exact(c, baseline, "Initial radius positive control was not one Undo");
+    rendered(c, baseline);
+    persisted(baseline);
+    require(c.editor.canRedo(), "Initial radius Undo did not expose Redo");
+    d.click("main.redoButton");
+    exact(c, positive, "Initial radius Redo changed full document");
+    rendered(c, positive);
+    persisted(positive);
+    d.click("main.undoButton");
+    exact(c, baseline, "Initial radius final Undo lost baseline");
+    rendered(c, baseline);
+    persisted(baseline);
+    QJsonObject centerHit;
+    const auto center = transparentHit(c, 0, {.5, .5}, centerHit);
+    const TransparentPhoto bodyPhoto(c);
+    const auto centerFinish = bodyPhoto.fraction({.85, .5});
+    const auto actualFrom = bodyPhoto.actual(c, center),
+               actualTo = bodyPhoto.actual(c, centerFinish);
+    expected = baseline;
+    expected.localMasks[0].x1 += actualTo.x() - actualFrom.x();
+    expected.localMasks[0].y1 += actualTo.y() - actualFrom.y();
+    auto moved = perform("center_to_edge", center, centerFinish, baseline, expected);
+    require(moved.localMasks[0].x1 > .84 && moved.localMasks[0].x1 + moved.localMasks[0].x2 > 1.1,
+            "Actual center drag did not place the existing radius beyond the source");
+    c.reveal("transformConstrain");
+    require(d.object("transformConstrain")->property("checked").toBool(),
+            "Constrain fixture was not initially enabled");
+    d.click("transformConstrain");
+    expected = moved;
+    expected.transform.constrainCrop = false;
+    exact(c, expected, "Constrain click changed unrelated fields");
+    rendered(c, expected);
+    persisted(expected);
+    const QString scale = "develop.transform.scaleSlider";
+    c.reveal(scale);
+    d.drag(scale, d.sliderThumb(scale), {0, .5});
+    expected.transform.scale = 50;
+    require(d.object(scale)->property("value").toDouble() == 50 &&
+                !d.object(scale)->property("pressed").toBool(),
+            "Actual Scale slider did not finish at50");
+    exact(c, expected, "Scale50 changed unrelated complete fields");
+    readyMask(c);
+    rendered(c, expected);
+    persisted(expected);
+    noPointer(c);
+    const auto restricted = expected;
+    const auto &mask = restricted.localMasks[0];
+    const QPointF rawSource(mask.x1 + mask.x2, mask.y1),
+        projected(.25 + .5 * rawSource.x(), .25 + .5 * rawSource.y());
+    require(projected.x() > .05 && projected.x() < .95 && projected.y() > .05 &&
+                projected.y() < .95 && rawSource.x() > 1,
+            "Independent target is not inside output while outside source coverage");
+    QJsonObject problemHit;
+    const auto start = transparentHit(c, 1, projected, problemHit);
+    const TransparentPhoto problemPhoto(c);
+    const auto dispatched = problemPhoto.actual(c, start);
+    const QPointF inverse(2 * dispatched.x() - .5, 2 * dispatched.y() - .5);
+    require(inverse.x() > 1 + .5 / 256 && inverse.y() > .5 / 192 && inverse.y() < 1 - .5 / 192,
+            "Actual eligible integer input pixel is not in the independent transparent region");
+    transparentGoldControl(c, start, problemHit);
+    problemHit["source_endpoint_x"] = rawSource.x();
+    problemHit["source_endpoint_y"] = rawSource.y();
+    problemHit["actual_input_inverse_x"] = inverse.x();
+    problemHit["actual_input_inverse_y"] = inverse.y();
+    problemHit["independent_covered"] = false;
+    evidence["problem_handle_before_input"] = problemHit;
+    checkpoint("visible_inside_output_uncovered_before_real_input");
+    const auto finish = problemPhoto.fraction({dispatched.x() + .035, dispatched.y()});
+    const auto actualFinish = problemPhoto.actual(c, finish);
+    expected = restricted;
+    expected.localMasks[0].x2 = std::abs(mask.x2 + 2 * (actualFinish.x() - dispatched.x()));
+    expected.validate();
+    // Expected is independent finite relative source-delta, never read from new
+    // covered/proxy fields or the actual resulting geometry. No product fix here.
+    const auto after = perform("uncovered_radius_reacquire", start, finish, restricted, expected);
+    d.click("main.undoButton");
+    exact(c, restricted, "Transparent radius drag was not exactly one Undo");
+    rendered(c, restricted);
+    persisted(restricted);
+    d.click("main.redoButton");
+    exact(c, after, "Transparent radius Redo changed full document");
+    rendered(c, after);
+    persisted(after);
+    d.click("main.undoButton");
+    exact(c, restricted, "Transparent radius final Undo did not restore exact baseline");
+    rendered(c, restricted);
+    persisted(restricted);
+    noPointer(c);
+    require(!c.editor.uxHistoryGestureActive(),
+            "Transparent final history gesture remained active");
+    c.checkData();
+    evidence["status"] = "PASS";
+    evidence["expected_after_radius_drag"] = documentJSON(expected);
+    evidence["observed_after_radius_drag"] = documentJSON(after);
+    checkpoint("final_restored_restricted_document");
     return true;
 }
 } // namespace ux

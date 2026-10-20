@@ -189,6 +189,7 @@
     "UX-RACE-004",
     "UX-RACE-005",
     "UX-RACE-006",
+    "UX-RACE-007",
     "UX-RACE-010",
     "UX-REC-001",
     "UX-REC-002",
@@ -711,7 +712,8 @@
     "UX-IMP-009": 20,
     "UX-MAC-007": 2,
     "UX-MAC-008": 2,
-    "UX-RACE-005": 1
+    "UX-RACE-005": 1,
+    "UX-RACE-007": 3
   },
   "default_quality_photo_count": 10
 }

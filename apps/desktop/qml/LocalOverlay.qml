@@ -56,7 +56,8 @@ Item {
             // occur for finite valid handles; never merge handle identities.
             if(chosen===null)return []
             result.push({x:chosen.x/width,y:chosen.y/height,handle:raw.handle,
-                         proxy:chosen.x!==rx||chosen.y!==ry})
+                         // Empty Transform edges need the same unbounded inverse as displaced handles.
+                         proxy:raw.covered===false||chosen.x!==rx||chosen.y!==ry})
         }
         return result
     }

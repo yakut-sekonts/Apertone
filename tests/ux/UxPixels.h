@@ -2,13 +2,19 @@
 #include "core/edits/EditDocument.h"
 #include "core/render/Sharpening.h"
 #include <QImage>
+#include <QSharedPointer>
 #include <QString>
 class QQuickItem;
+class QQuickItemGrabResult;
 namespace luma {
 struct AssetSnapshot;
 }
 namespace ux {
 class Context;
+// Wait for GUI ready before reading pixels; keep a failed pending result until
+// Context's engine/window has been destroyed, rather than destroy it mid-render.
+QSharedPointer<QQuickItemGrabResult> readyItemGrab(Context &context, QQuickItem &item,
+                                                   const QString &reason, int timeout = 5000);
 // Independent document-to-pixels oracle for the small generated public fixtures.
 // This checks UI/state coherence; renderer numerical correctness has separate tests.
 QImage fixtureReference(Context &context,

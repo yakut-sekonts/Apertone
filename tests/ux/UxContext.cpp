@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QQmlContext>
+#include <QQuickItemGrabResult>
 #include <QSGRendererInterface>
 #include <QScreen>
 #include <algorithm>

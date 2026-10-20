@@ -19,6 +19,8 @@ bool lib005ActualResponseCandidate(Context &, const QString &);
 bool cropDoneResidueCandidate(Context &, const QString &);
 bool race002ActualResponseCandidate(Context &, const QString &);
 bool appDeactivationCandidate(Context &, const QString &);
+bool race007PartialRenderCandidate(Context &, const QString &);
+bool maskHandleTransparentCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
@@ -111,6 +113,12 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "CRP010 Done candidate forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007" ||
+            id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Partial-render/transparent-handle candidates forbid ignored "
+                        "variant/stage/state-root flags");
         if (id == "CANDIDATE-LIB005-AWAY-BACK" || id == "UX-LIB-005")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -152,6 +160,12 @@ int main(int argc, char **argv) {
                                                 parser.value("state-root"), updaterProbe);
         if (chaos)
             ux::runHistoryChaos(*context, *chaos);
+        else if (id == "CANDIDATE-RACE007-PARTIAL-THUMBNAIL" || id == "UX-RACE-007")
+            ux::require(ux::race007PartialRenderCandidate(*context, id),
+                        "Actual partial-thumbnail/batch candidate unavailable");
+        else if (id == "CANDIDATE-MSK023-TRANSPARENT-HANDLE")
+            ux::require(ux::maskHandleTransparentCandidate(*context, id),
+                        "Actual uncovered radius handle candidate unavailable");
         else if (id == "CANDIDATE-CRP010-DONE-RESIDUE" || id == "UX-CRP-010")
             ux::require(ux::cropDoneResidueCandidate(*context, id),
                         "Actual Crop Done-only residue candidate unavailable");

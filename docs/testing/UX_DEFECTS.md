@@ -706,3 +706,42 @@ are tracked separately and are not counted as application failures or hidden ret
   unchanged strict visibility/data/caption assertions. It contains no contentY
   assignment, blind retry, extra resize or relaxed translation oracle. Original
   production and fixture failures remain separate and unchanged.
+
+
+## LUMA-UX-030 — Visible gradient handles reject input over transparent Transform edges
+
+- Severity: P1. Scope: CURRENT. Subsystem: Local gradient input / Transform coverage.
+- A real Radial mask first passes a covered radius drag and Undo/Redo/Undo. Real
+  center motion followed by Scale50 and Constrain Crop off leaves the existing
+  radius handle inside the visible output, over an uncovered transparent edge.
+  Independent source/output inverse geometry, an eligible integer14px hit and
+  297 gold pixels in the actual Cocoa/Metal scene prove that the handle is visible
+  and hit-testable. This differs from the earlier outside-Crop handle loss.
+- Original evidence: `transparent-handle-initial-reproduction-native-report`, run
+  `20261019T143620Z-31195`, one FAIL. The genuine press reports
+  `Mask gesture is outside image coverage.` before any problem-handle move or
+  cleanup. Pressed/adjusting/local/history flags remain false; the complete current
+  and durable document, revision9, source SHA and catalog/session/import facts stay
+  unchanged. The strict original failure and scene/SQL/input evidence are retained.
+- Cause: an undisplaced visible handle used the ordinary covered-input inverse.
+  A transparent Transform edge therefore rejected an existing control even though
+  its displayed target remained inside the output.
+- Minimal fix: expose a read-only `covered` fact for projected existing handles,
+  checking output bounds before `geometry.covered`; treat an uncovered handle as
+  an existing proxy in LocalOverlay. The established frozen-anchor/relative-motion
+  inverse then handles the drag without snapping. Raw mask coordinates and shape
+  are unchanged; ordinary brush/range/new-mask coverage restrictions remain intact.
+- First fixed evidence: `transparent-handle-fixed-v2-native-report`, run
+  `20261019T144714Z-33748`, one Cocoa/Metal DPR2 PASS. It requires actual reacquire,
+  move/release, independent full geometry/document/history/pixel checks, natural
+  persistence and source/catalog preservation. This is one bounded supplemental
+  Radial/Scale50 route, not the complete UX-MSK-023 matrix or release qualification.
+- The separate missing-include build failure and Image-node readback helper
+  correction are test infrastructure issues, not additional product defects.
+- Subsequent `transparent-ready-regression` evidence has 45 PASS (31 native,
+  14 software), including three transparent-edge repeats and affected normal/thin
+  handle, readback and local-control routes. The later `race007-official-final`
+  cohort adds three native transparent-edge PASS on source
+  `4a8154f13e200998362fba1fdbb30a7b5da9e23fe5c572640e64bb9bc87a61a3`,
+  binary `8d0a08fbfb3ce0690ef33a0e4e866e9c82d2a050b0e9f5e9f4d82417ef1c34f9`.
+  This does not close the remaining complete UX-MSK-023 matrix.

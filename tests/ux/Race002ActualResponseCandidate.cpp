@@ -328,10 +328,8 @@ QJsonObject cardPixels(Context &c, QQuickItem *card, const Pin &pin, const QUrl 
     require(cached.isFile() && !cached.isSymLink() &&
                 pixels(QImage(cached.filePath())) == pin.jpegPixels,
             "RACE002 actual saved cache differs from independent original/expected-document JPEG");
-    const auto capture = imageGuard->grabToImage();
-    require(!capture.isNull(), "Cannot begin actual RACE002 Image-node readback");
-    c.driver->wait([&] { return !cardGuard || !imageGuard || !capture->image().isNull(); },
-                   "RACE002 actual thumbnail Image-node readback", 5000);
+    const auto capture =
+        readyItemGrab(c, *imageGuard, "RACE002 actual thumbnail Image-node readback");
     require(cardGuard && imageGuard && imageFor(cardGuard.data()) == imageGuard.data() &&
                 imageGuard->size() == geometry,
             "RACE002 current Image rebound during actual readback");

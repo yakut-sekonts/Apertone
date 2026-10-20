@@ -10,7 +10,9 @@
 #include "tests/ux/SqliteFault.h"
 #include "tests/ux/UxDriver.h"
 #include <QQmlApplicationEngine>
+#include <QSharedPointer>
 #include <memory>
+class QQuickItemGrabResult;
 namespace ux {
 class Context {
   public:
@@ -29,6 +31,9 @@ class Context {
     UpdateController updates;
     QStringList warnings;
     std::unique_ptr<LocalizationController> localization;
+    // A failed readback stays alive past engine/window/render-thread teardown.
+    // No second readback may start after this first unfinished failure.
+    QSharedPointer<QQuickItemGrabResult> unfinishedItemGrab;
     QQmlApplicationEngine engine;
     QQuickWindow *window = nullptr;
     Metrics metrics;

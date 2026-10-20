@@ -12,6 +12,7 @@ from native_bundle_provenance import native_bundle_info, launch_executable
 from quality_policy import quality_skip_reason, quality_fixture_count
 from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
 from crop_done_fixtures import OFFICIAL_CASE as CROP_DONE_CASE, official_fixture as crop_done_fixture
+from race007_fixtures import OFFICIAL_CASE as PARTIAL_RENDER_CASE, official_fixture as partial_render_fixture
 from export_watermark_fixtures import (OFFICIAL_CASE as WATERMARK_CASE,
                                        official_fixture as watermark_fixture,
                                        child_environment as watermark_child_environment)
@@ -31,7 +32,7 @@ import sys
 import time
 import zlib
 
-CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE}
+CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE}
 
 # These adapters have explicit actual-native render contracts. NATIVE below means
 # implemented adapter, not compatibility with every requested Qt backend.
@@ -142,6 +143,7 @@ NATIVE.add('UX-RACE-002')
 NATIVE.add(WATERMARK_CASE)
 NATIVE.add(CROP_DONE_CASE)
 NATIVE.add(CURRENT_FILENAME_CASE)
+NATIVE.add(PARTIAL_RENDER_CASE)
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -715,6 +717,8 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                 extra_checksums, profile = crop_done_fixture(folder, owned_root=run_root)
             elif row['id'] == CURRENT_FILENAME_CASE:
                 extra_checksums, profile = current_filename_fixture(folder, owned_root=run_root)
+            elif row['id'] == PARTIAL_RENDER_CASE:
+                extra_checksums, profile = partial_render_fixture(folder, owned_root=run_root)
             else:
                 extra_checksums, profile = thumbnail_fixture(folder, owned_root=run_root, case_id=row['id'])
             case_fixture_folders[row['id']] = folder

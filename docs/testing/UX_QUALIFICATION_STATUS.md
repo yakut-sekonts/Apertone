@@ -11,7 +11,7 @@ Historical load-test evidence stays historical; deferred work does not count as 
 Current runs use explicit functional cases, excluding large-catalog and repeated
 stress fixtures even when their inventory mode is REGRESSION.
 
-The execution policy classifies 368 compiled native adapters: 256 reviewed bounded
+The execution policy classifies 369 compiled native adapters: 257 reviewed bounded
 adapters and 112 deferred implemented workloads, plus the independent integrity
 adapter. These are separate from the 51 deferred checks among unadapted scenarios.
 LIB009 is included in those deferrals because its unchanged REGRESSION contract
@@ -20,14 +20,14 @@ The policy preserves inventory modes and marks deferral SKIPPED. New adapters
 require workload review. Default CTest uses 256 Library metadata rows; the original
 100k contract remains opt-in with `LUMA_ENABLE_SCALE_CONTRACT_TESTS=OFF` by default.
 
-## Verified checkpoint, 2026-10-19
+## Verified checkpoint, 2026-10-20
 
-- 368 native scenario adapters and one suite-wide original-integrity adapter.
+- 369 native scenario adapters and one suite-wide original-integrity adapter.
   Of 445 scenarios through the current phase, conditional mask duplication
-  (MSK-005) is absent. Of the 75 remaining scenarios without executable adapters,
-  24 are functional regressions and 51 are deferred load/performance/chaos checks.
+  (MSK-005) is absent. Of the 74 remaining scenarios without executable adapters,
+  23 are functional regressions and 51 are deferred load/performance/chaos checks.
   Prepared, uncompiled adapters are not counted.
-- 29 production defects are reproduced and fixed with focused native/software
+- 30 production defects are reproduced and fixed with focused native/software
   evidence in [UX_DEFECTS.md](UX_DEFECTS.md). Raw original failures remain retained.
   Three outcomes from a native mask run with confirmed external interaction
   remain individually unattributed. Their FAIL records and subsequent controlled
@@ -1006,3 +1006,71 @@ No load/performance/soak/chaos workloads ran. This focused cohort is not a new f
 adapter sweep, a completed phase0.5 or release qualification. Work remains in
 draft PR47; stable public download is0.4.14 and source scope is0.5.1. No release,
 tag, main merge, production publication or phase0.6 begins at this checkpoint.
+
+
+## Transparent-edge handles and official partial-render race checkpoint
+
+LUMA-UX-030 is reproduced and fixed: an existing visible Radial radius handle
+rejects input over a transparent Transform edge. The original native FAIL remains
+in `transparent-handle-initial-reproduction-native-report`; the first fixed PASS
+remains in `transparent-handle-fixed-v2-native-report`. See UX_DEFECTS.md for the
+independent geometry/pixel/data oracles and the unchanged ordinary-input limits.
+The following `transparent-ready-regression` cohort has **45 PASS**: 31 native
+and 14 software, covering transparent/normal/thin handles, affected Image-node
+captures and local controls. It does not qualify the full UX-MSK-023 matrix.
+
+Image-node captures now use `readyItemGrab`: actual QQuickItemGrabResult `ready`
+acknowledgment precedes pixel access. A failed pending capture stays owned until
+Context engine/window teardown; another readback is refused. Existing binding,
+geometry and pixel assertions remain unchanged. This is test infrastructure,
+not a production renderer defect. The original missing-include build failure
+executed no app children and remains separate from the original product FAIL.
+
+UX-RACE-007 is now an official bounded adapter. A genuine OLD first converted
+RGBA row stays held across an actual UI batch commit. Literal independent row
+controls reject the wrong source/revision, and current NEW Image Ready/pixels
+must be observed before OLD release. The actual cancellation terminal is checked;
+all audited runs observed Aborted, not Returned. This demonstrates the declared
+partial-render interleaving, not simultaneous OLD CPU instructions during COMMIT.
+Pure CPU-row equivalence and shipping-symbol isolation are separate CTest checks.
+The UX-only observer is excluded from the shipping renderer path.
+
+Final attested source:
+`4a8154f13e200998362fba1fdbb30a7b5da9e23fe5c572640e64bb9bc87a61a3`;
+binary: `8d0a08fbfb3ce0690ef33a0e4e866e9c82d2a050b0e9f5e9f4d82417ef1c34f9`.
+The eight `race007-official-final-*report` reports contain **41 PASS**: 37 official
+results and four supplemental results; 40 actual children (29 Cocoa/Metal and
+11 local offscreen/software) plus one global integrity result. RACE007 passed
+three dedicated native and three software repeats, three native mixed runs and
+one software mixed run. The legacy candidate passed once in software; transparent
+handles passed three times natively. Provenance, original SHA and catalog guards
+pass. An independent read-only audit rechecked 11 actual RACE children, 187 PNGs
+and 55 complete SQL snapshots. NEW references share production CPU/ICC logic;
+this is not independent color-science, physical-scanout or native-chooser proof.
+
+The full build passed. The original 54-test CTest invocation has **52 PASS,
+one timeout and one optional private Nikon SKIP**; it remains FAIL in
+`race007-official-final-FAILURE.json` and its original LastTest log is preserved.
+`synthetic-raw-restart` printed its success result but exceeded the CTest wall
+limit while the recorded session entered Clamshell Sleep. Three restart tests
+overlap the documented sleep/wake periods. A separately attested focused rerun
+of exactly those three passed: synthetic 1.78 s, complete-mask 14.31 s and
+local-mask 6.78 s. This does not rewrite the original full invocation as green.
+Format and nine focused clang-tidy commands passed in
+`race007-static-resume-SUMMARY.json`; advisory warnings remain recorded.
+The Python infrastructure suite has 141 PASS. Both workflows run official
+RACE007 three times and retain its actual-row/binding/pixel artifacts.
+
+A separate native Cancel experiment observed one real NSOpenPanel AX Cancel:
+rejected1, accepted0, closed panel, no selected file, unchanged logical catalog.
+Its original run still FAILs on natural focus return and never reaches its full
+positive control. It does not qualify NAV004 or establish a product focus defect.
+The user-deferred manual APP017/SLD009 return check remains unqualified.
+
+The resulting inventory is **369 adapters: 257 bounded and 112 deferred**,
+plus global integrity. Of 445 through-phase scenarios, conditional MSK005 is
+absent; 74 applicable scenarios remain unadapted: **23 functional and 51 deferred**.
+No load/stress/soak/performance work ran in these cohorts. Later Graphify setup
+and this documentation change do not receive the older attested source hash.
+Phase0.5 and the stable-release quality gate remain incomplete; no tag, main
+merge, production publication or phase0.6 work is authorized by these results.

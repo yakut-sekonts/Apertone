@@ -5,6 +5,7 @@
 #include "core/render/CpuRenderer.h"
 #include "tests/ux/ThumbnailResponseTrace.h"
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UxPixels.h"
 #include <QBuffer>
 #include <QColorSpace>
 #include <QCryptographicHash>
@@ -335,10 +336,7 @@ QJsonObject cardPixels(Context &c, QQuickItem *card, const Pin &pin, const Pins 
     require(cached.isFile() && !cached.isSymLink() &&
                 pixels(QImage(cached.filePath())) == pin.jpegPixels,
             "Actual provider cache differs from independent original/document JPEG pixels");
-    const auto capture = imageGuard->grabToImage();
-    require(!capture.isNull(), "Cannot start actual thumbnail Image readback");
-    c.driver->wait([&] { return !cardGuard || !imageGuard || !capture->image().isNull(); },
-                   "LIB004 actual Image-node readback", 5000);
+    const auto capture = readyItemGrab(c, *imageGuard, "LIB004 actual Image-node readback");
     require(cardGuard && imageGuard && imageFor(cardGuard.data()) == imageGuard.data() &&
                 imageGuard->size() == geometry,
             "Card rebound/destroyed during Image-node capture");

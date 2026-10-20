@@ -16,6 +16,7 @@ class State {
     std::optional<GateSpec> gate;
     std::vector<Request> requests;
     std::vector<Event> events;
+    std::vector<CpuRenderEvent> cpuRenders;
     std::uint64_t nextSequence = 1, gatedSerial = 0;
     bool gateEntered = false, gateTimedOut = false, released = false, closing = false;
 };
@@ -33,7 +34,7 @@ namespace {
 constexpr std::size_t maximumRequests = 4096, maximumEvents = 65536;
 void appendLocked(State &state, std::uint64_t serial, Kind kind, std::uint64_t revision = 0,
                   bool successfulPixels = false) {
-    if (state.events.size() == maximumEvents) {
+    if (state.events.size() + state.cpuRenders.size() >= maximumEvents) {
         state.failed.store(true);
         return;
     }
@@ -60,7 +61,7 @@ void Token::beforeFinishedQueue(bool successfulPixels) const noexcept {
     try {
         std::unique_lock lock(state_->mutex);
         appendLocked(*state_, serial_, Kind::WorkerResultReady, 0, successfulPixels);
-        if (state_->gatedSerial != serial_)
+        if (state_->gatedSerial != serial_ || state_->gate->point != GatePoint::BeforeFinishedQueue)
             return;
         if (!successfulPixels || state_->released || state_->closing) {
             appendLocked(*state_, serial_, Kind::GateSkipped);
@@ -84,6 +85,91 @@ void Token::beforeFinishedQueue(bool successfulPixels) const noexcept {
         state_->failed.store(true);
     }
 }
+bool Token::requiresPartialCpuProbe() const noexcept {
+    if (!state_)
+        return false;
+    try {
+        std::lock_guard lock(state_->mutex);
+        return state_->gatedSerial == serial_ && state_->gate &&
+               state_->gate->point == GatePoint::AfterFirstCpuRow && !state_->released &&
+               !state_->closing;
+    } catch (...) {
+        state_->failed.store(true);
+        return false;
+    }
+}
+void Token::noteCpuStage(CpuStage stage, std::uint64_t revision, int width,
+                         int height) const noexcept {
+    if (!state_)
+        return;
+    try {
+        std::lock_guard lock(state_->mutex);
+        if (state_->gatedSerial != serial_ || !state_->gate ||
+            state_->gate->point != GatePoint::AfterFirstCpuRow)
+            return;
+        if (stage == CpuStage::FirstRowCompleted ||
+            state_->events.size() + state_->cpuRenders.size() >= maximumEvents) {
+            state_->failed.store(true);
+            return;
+        }
+        state_->cpuRenders.push_back({state_->nextSequence++,
+                                      serial_,
+                                      stage,
+                                      revision,
+                                      reinterpret_cast<quintptr>(QThread::currentThreadId()),
+                                      width,
+                                      height,
+                                      0,
+                                      {}});
+    } catch (...) {
+        state_->failed.store(true);
+    }
+}
+void Token::afterActualCpuRow(std::uint64_t revision, int width, int height,
+                              std::span<const std::uint8_t> completedRow) const noexcept {
+    if (!state_)
+        return;
+    try {
+        std::unique_lock lock(state_->mutex);
+        if (state_->gatedSerial != serial_ || !state_->gate ||
+            state_->gate->point != GatePoint::AfterFirstCpuRow)
+            return;
+        // A one-row image is already complete and cannot prove this boundary.
+        // Invalid evidence fails closed, while the original renderer continues.
+        if (width < 1 || width > 384 || height < 2 || height > 384 ||
+            completedRow.size() != static_cast<std::size_t>(width) * 4 || state_->gateEntered ||
+            state_->events.size() + state_->cpuRenders.size() >= maximumEvents) {
+            state_->failed.store(true);
+            return;
+        }
+        state_->cpuRenders.push_back(
+            {state_->nextSequence++, serial_, CpuStage::FirstRowCompleted, revision,
+             reinterpret_cast<quintptr>(QThread::currentThreadId()), width, height, 1,
+             QByteArray(reinterpret_cast<const char *>(completedRow.data()),
+                        static_cast<qsizetype>(completedRow.size()))});
+        if (state_->released || state_->closing) {
+            appendLocked(*state_, serial_, Kind::GateSkipped, revision);
+            return;
+        }
+        state_->gateEntered = true;
+        appendLocked(*state_, serial_, Kind::GateEntered, revision);
+        // Actual renderCPU stack, after one complete row and before later rows.
+        // No SQL/cache/state locks are held. wait_until releases this trace mutex.
+        const auto deadline = std::chrono::steady_clock::now() + state_->gate->timeout;
+        if (state_->changed.wait_until(lock, deadline,
+                                       [&] { return state_->released || state_->closing; })) {
+            appendLocked(*state_, serial_, Kind::GateReleased, revision);
+        } else {
+            state_->gateTimedOut = true;
+            state_->failed.store(true);
+            appendLocked(*state_, serial_, Kind::GateTimedOut, revision);
+        }
+        // No cancellation override/check is inserted: renderer's next original
+        // row begins with checkCancellation(stop), preserving the actual outcome.
+    } catch (...) {
+        state_->failed.store(true);
+    }
+}
 Session::Session(std::shared_ptr<Slot> slot, std::optional<GateSpec> gate)
     : slot_(std::move(slot)), state_(std::make_shared<State>()) {
     if (!slot_)
@@ -91,7 +177,9 @@ Session::Session(std::shared_ptr<Slot> slot, std::optional<GateSpec> gate)
     if (gate && (!gate->fullURL.isValid() || gate->fullURL.scheme() != "image" ||
                  gate->fullURL.host() != "thumbnail" || gate->fullURL.path().isEmpty() ||
                  !gate->requestedSize.isValid() || gate->timeout.count() < 1 ||
-                 gate->timeout > std::chrono::milliseconds(30000)))
+                 gate->timeout > std::chrono::milliseconds(30000) ||
+                 (gate->point != GatePoint::BeforeFinishedQueue &&
+                  gate->point != GatePoint::AfterFirstCpuRow)))
         throw std::invalid_argument("Invalid or unbounded actual thumbnail gate");
     state_->gate = std::move(gate);
     std::lock_guard lock(slot_->mutex);
@@ -138,7 +226,8 @@ Snapshot Session::snapshot() const {
             state_->closing,
             state_->gatedSerial,
             state_->requests,
-            state_->events};
+            state_->events,
+            state_->cpuRenders};
 }
 Token observeActualResponse(const std::shared_ptr<Slot> &slot, QQuickImageResponse *response,
                             const QString &providerRequestID, const QSize &requestedSize) noexcept {

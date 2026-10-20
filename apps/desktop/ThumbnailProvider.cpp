@@ -1,5 +1,6 @@
 #include "apps/desktop/ThumbnailProvider.h"
 #if defined(LUMA_UX_THUMBNAIL_TRACE)
+#include "tests/ux/ThumbnailCpuRenderProbe.h"
 #include "tests/ux/ThumbnailResponseTrace.h"
 #endif
 #include "apps/shared/PhotoDecoder.h"
@@ -94,9 +95,15 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
     auto small = luma::standardPreview(decoded.image, 384, stop);
     const double scale = std::min(static_cast<double>(small.width) / decoded.image.width,
                                   static_cast<double>(small.height) / decoded.image.height);
+#if defined(LUMA_UX_THUMBNAIL_TRACE)
+    auto pixels = ux::thumbnail_trace::renderThumbnailWithCpuProbe(
+        trace, snapshot->revision, small, asset.edits, asset.metadata.orientation, {}, stop,
+        decoded.calibration, luma::DetailDiagnostic::none, scale, asset.metadata);
+#else
     auto pixels =
         luma::renderCPU(small, asset.edits, asset.metadata.orientation, {}, stop,
                         decoded.calibration, luma::DetailDiagnostic::none, scale, asset.metadata);
+#endif
     if (!decoded.image.alpha.empty()) {
         for (std::size_t i = 0; i < pixels.rgba.size(); i += 4) {
             for (std::size_t c = 0; c < 3; ++c)

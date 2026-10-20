@@ -422,8 +422,13 @@ QVariantList EditorController::localHandles() const {
         for (std::size_t i = 0; i < points.size(); ++i) {
             const auto point = geometry.output(points[i][0] * image.width - 0.5,
                                                points[i][1] * image.height - 0.5);
+            const bool covered =
+                std::isfinite(point[0]) && std::isfinite(point[1]) && point[0] >= 0 &&
+                point[1] >= 0 && point[0] <= geometry.width() - 1 &&
+                point[1] <= geometry.height() - 1 && geometry.covered(point[0], point[1]);
             result.append(QVariantMap{{"x", (point[0] + 0.5) / geometry.width()},
                                       {"y", (point[1] + 0.5) / geometry.height()},
+                                      {"covered", covered},
                                       {"handle", static_cast<int>(i)}});
         }
     } catch (const std::exception &) {

@@ -1,4 +1,7 @@
 #include "core/render/CpuRenderer.h"
+#if defined(LUMA_UX_CPU_RENDER_ROWS)
+#include "tests/ux/CpuRenderRowProbe.h"
+#endif
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
 #include "core/lens/LensCorrection.h"
@@ -9,6 +12,7 @@
 #include <cmath>
 
 namespace luma {
+#if !defined(LUMA_UX_CPU_RENDER_ROWS)
 float applyExposure(float linearValue, double ev) {
     EditDocument{ev}.validate();
     return linearValue * static_cast<float>(std::exp2(ev));
@@ -67,10 +71,18 @@ FloatImage standardPreview(const FloatImage &input, int maximumDimension,
     return result;
 }
 
+#endif
+
+#if defined(LUMA_UX_CPU_RENDER_ROWS)
+DisplayImage renderCPUWithUxRows(ux_test::CpuRowObserver &observer, const FloatImage &source,
+                                 EditDocument edits, int orientation,
+#else
 DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orientation,
-                       std::span<const std::uint8_t> displayProfile, luma::CancellationToken stop,
-                       RawColorCalibration calibration, DetailDiagnostic diagnostic,
-                       double detailScale, PhotoMetadata metadata, MaskOverlay overlay) {
+#endif
+                                 std::span<const std::uint8_t> displayProfile,
+                                 luma::CancellationToken stop, RawColorCalibration calibration,
+                                 DetailDiagnostic diagnostic, double detailScale,
+                                 PhotoMetadata metadata, MaskOverlay overlay) {
     source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const auto &input = optics.image();
@@ -168,6 +180,12 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                         std::lround(value * (1 - coverage) + 255 * overlay.color[c] * coverage));
                 }
             }
+#if defined(LUMA_UX_CPU_RENDER_ROWS)
+        // This is real converted output, after alpha/mask composition. The next
+        // iteration retains the original cancellation check. Shipping has no hook.
+        if (y == 0)
+            observer.firstRowCompleted(result);
+#endif
     }
     return result;
 }

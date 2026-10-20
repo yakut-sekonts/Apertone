@@ -2,6 +2,7 @@
 #if !defined(LUMA_UX_THUMBNAIL_TRACE)
 #error "ThumbnailResponseTrace is test-target-only"
 #endif
+#include <QByteArray>
 #include <QQuickImageResponse>
 #include <QSize>
 #include <QString>
@@ -10,6 +11,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <span>
 #include <vector>
 
 namespace ux::thumbnail_trace {
@@ -39,10 +41,22 @@ struct Event {
     quintptr threadID = 0;
     bool successfulPixels = false;
 };
+enum class GatePoint { BeforeFinishedQueue, AfterFirstCpuRow };
+enum class CpuStage { Entered, FirstRowCompleted, Returned, Aborted };
+struct CpuRenderEvent {
+    std::uint64_t sequence = 0, serial = 0;
+    CpuStage stage = CpuStage::Entered;
+    std::uint64_t revision = 0;
+    quintptr threadID = 0;
+    int width = 0, height = 0, completedRows = 0;
+    // Owned exact RGBA of the first completed row only; empty on other stages.
+    QByteArray completedRowRGBA;
+};
 struct GateSpec {
     QUrl fullURL;
     QSize requestedSize;
     std::chrono::milliseconds timeout{15000};
+    GatePoint point = GatePoint::BeforeFinishedQueue;
 };
 struct Snapshot {
     bool diagnosticFailure = false, gateEntered = false, gateTimedOut = false;
@@ -50,6 +64,7 @@ struct Snapshot {
     std::uint64_t gatedSerial = 0;
     std::vector<Request> requests;
     std::vector<Event> events;
+    std::vector<CpuRenderEvent> cpuRenders;
 };
 class State;
 class Slot;
@@ -61,6 +76,11 @@ class Token {
     Token() = default;
     void note(Kind kind, std::uint64_t revision = 0) const noexcept;
     void beforeFinishedQueue(bool successfulPixels) const noexcept;
+    bool requiresPartialCpuProbe() const noexcept;
+    void noteCpuStage(CpuStage stage, std::uint64_t revision, int width = 0,
+                      int height = 0) const noexcept;
+    void afterActualCpuRow(std::uint64_t revision, int width, int height,
+                           std::span<const std::uint8_t> completedRow) const noexcept;
 
   private:
     Token(std::shared_ptr<State> state, std::uint64_t serial) noexcept;

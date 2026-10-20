@@ -52,6 +52,28 @@ separate qualification work.
 .tools/venv/bin/python tests/ux/run_mask_handle_regression.py --build build-verify --runs 3 --require-build-provenance
 ```
 
+The transparent-Transform Radial handle regression has a different generated
+one-PNG fixture and its own supplemental wrapper. It exercises the visible radius
+above an uncovered output region after real center motion, Constrain Off and
+Scale50, then verifies genuine press/move/release, independent relative geometry,
+complete document/history/persistence, current pixels and original bytes. It is
+native-only: the unchanged scene control requires an active/exposed Cocoa/Metal
+window and actual composited gold handle pixels. It does not qualify the full
+MSK023 scenario or hardware pointer/physical scanout behavior.
+
+Run this on a logged-in local macOS desktop with actual Cocoa/Metal and matching
+build provenance. Existing screen/focus locking applies:
+
+```sh
+.tools/venv/bin/python tests/ux/run_mask_transparent_regression.py --build build-verify --runs 3 --require-build-provenance --report build-verify/ux-mask-transparent-report
+```
+
+Hosted offscreen/software workflows run the fixture/accounting unit test through
+CTest; they do not execute or report PASS for this native-only scene scenario.
+An incompatible backend is still rejected by the strict C++ runtime guard; this
+supplemental wrapper does not fake backend observations or add official SKIP/PASS
+rows. Its RGB grayscale fixture remains separate from the two Crop/thin cases.
+
 The legacy full-matrix --release-qualification command includes load workloads;
 reserve it for the pre-1.0.0 campaign. Its strict full-matrix status is separate
 from the requested intermediate functional-quality checkpoint.
@@ -340,3 +362,29 @@ suite has122 PASS. The final focused cohort has39 PASS and3 SKIPPED in42 rows,
 with38 actual children, one global result and three no-child policy SKIPs. It is
 not a full adapter sweep or release qualification. Both workflows run VIS003
 three times and upload its JSON, current-label and active-export artifacts.
+
+
+### Partial thumbnail render across a batch commit
+
+`UX-RACE-007` is an official bounded functional adapter. Its owned fixture has
+three literal 256x192 PNGs. The OLD thumbnail is held after a genuine converted
+RGBA row while a real UI batch operation commits; current NEW Ready/pixels must
+precede OLD release. The runner verifies original hashes, SQL integrity and
+attested build provenance. The complete emitted JSON and row/node PNG artifacts
+are needed to audit the result. This is not a simultaneous CPU-instruction claim.
+
+```sh
+python3 tests/ux/build_ux.py --build build-verify
+python3 tests/ux/run_ux_suite.py --build build-verify --quality-only --case UX-RACE-007 --runs 3 --require-build-provenance
+```
+
+Native runs require Cocoa/Metal and an unlocked session. Local software routing
+is supplemental and does not imply hosted-CI success. Both GitHub workflows
+include three RACE007 repeats. The row observer is test-target-only; CTest checks
+CPU equivalence and shipping binary symbol isolation separately.
+
+LIB004/LIB005/RACE002/VIS003/RACE007 share `readyItemGrab`, which acknowledges the
+actual Qt ready signal and keeps a failed pending result alive through teardown.
+This changes the capture harness, not the product render behavior. The retained
+original failures and exact completed cohorts are recorded in
+`docs/testing/UX_QUALIFICATION_STATUS.md`; a focused PASS is not release approval.
