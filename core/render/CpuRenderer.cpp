@@ -82,7 +82,11 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                  std::span<const std::uint8_t> displayProfile,
                                  luma::CancellationToken stop, RawColorCalibration calibration,
                                  DetailDiagnostic diagnostic, double detailScale,
-                                 PhotoMetadata metadata, MaskOverlay overlay) {
+                                 PhotoMetadata metadata, MaskOverlay overlay
+#if !defined(LUMA_UX_CPU_RENDER_ROWS)
+                                 , DevelopAccelerator *accelerator
+#endif
+                                 ) {
     source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const auto &input = optics.image();
@@ -105,15 +109,26 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                     [](double v) { return !std::isfinite(v) || v < 0 || v > 1; }))
         throw std::runtime_error("Invalid mask overlay settings.");
     const DevelopPipeline pipeline(edits, calibration);
-    const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic);
+    std::vector<float> developedPixels;
+#if !defined(LUMA_UX_CPU_RENDER_ROWS)
+    if (accelerator)
+        developedPixels = accelerator->develop(input, pipeline, stop);
+#endif
+    if (!developedPixels.empty() && developedPixels.size() != input.rgb.size())
+        throw std::runtime_error("Invalid accelerated Develop buffer.");
+    const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic, {},
+                                    developedPixels);
     const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
-                                    &noise);
+                                    &noise, developedPixels);
     const auto referencePixel = [&](int sx, int sy) {
         const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
         const auto developed =
             noise.active()
                 ? noise.pixel({}, sx, sy)
-                : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
+                : !developedPixels.empty()
+                    ? std::array{developedPixels[offset], developedPixels[offset + 1],
+                                 developedPixels[offset + 2]}
+                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
         return sharpening.pixel(developed, sx, sy);
     };
     DisplayTransform transform(displayProfile);

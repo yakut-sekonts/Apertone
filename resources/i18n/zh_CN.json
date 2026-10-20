@@ -473,6 +473,9 @@
     "Preset actions": "预设操作",
     "Rotate crop left 90°": "将裁剪向左旋转 90°",
     "Rotate crop right 90°": "将裁剪向右旋转 90°",
-    "Enable white balance": "启用白平衡"
+    "Enable white balance": "启用白平衡",
+    "Clear preview cache": "清空预览缓存",
+    "Preview cache (MiB)": "预览缓存（MiB）",
+    "Use Metal for photo previews": "使用 Metal 处理照片预览"
   }
 }

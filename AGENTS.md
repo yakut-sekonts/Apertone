@@ -8,6 +8,10 @@
 - Graphify 0.9.92 does not structurally parse QML. Inspect QML bindings, signal
   connections and UI behavior separately.
 - Keep generated graphs and caches out of Git and application dependencies.
-- Run functional and quality checks before publishing a stable release.
-  Load, stress, soak and performance testing remain deferred until pre-1.0.0.
-  Keep failed and skipped results explicit; never count them as passes.
+- User direction, 2026-10-20: implement the remaining roadmap toward 1.0.0
+  without intermediate builds, test runs, static-analysis or QA campaigns.
+  Record reported defects in `docs/DEVELOPMENT_BACKLOG.md`.
+  Run the complete functional, image-quality, UX, load, stress, recovery and
+  performance qualification before the final release; fix and retest then.
+  Do not publish intermediate development builds or mark deferred checks PASS.
+  Keep the existing release gates and historical failure evidence.

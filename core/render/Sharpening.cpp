@@ -67,13 +67,16 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
                                const EditDocument &edits, CancellationToken stop, double scale,
                                DetailDiagnostic diagnostic,
                                const std::function<void(double)> &progress,
-                               const NoiseReductionPass *noise)
+                               const NoiseReductionPass *noise,
+                               std::span<const float> developedPixels)
     : width_(input.width), height_(input.height), amount_(edits.sharpenAmount / 100),
       detail_(edits.sharpenDetail / 100), masking_(edits.sharpenMasking / 100),
       diagnostic_(diagnostic) {
     edits.validate();
     input.validateCoverage();
     const auto count = pixelCount(width_, height_);
+    if (!developedPixels.empty() && developedPixels.size() != input.rgb.size())
+        throw std::runtime_error("Invalid accelerated sharpening input.");
     if (input.rgb.size() != count * 3 || !std::isfinite(scale) || scale < 1.0 / 20000 ||
         scale > 1 || diagnostic < DetailDiagnostic::none ||
         diagnostic > DetailDiagnostic::noiseColor)
@@ -93,8 +96,11 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
             const auto offset = index * 3;
             const auto rgb = noise && noise->active()
                                  ? noise->pixel({}, x, y)
-                                 : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
-                                                   input.rgb[offset + 2]});
+                                 : !developedPixels.empty()
+                                     ? std::array{developedPixels[offset], developedPixels[offset + 1],
+                                                  developedPixels[offset + 2]}
+                                     : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                       input.rgb[offset + 2]});
             luminance_[index] = static_cast<float>(luminance(rgb));
             if (!std::isfinite(luminance_[index]))
                 throw std::runtime_error("Non-finite luminance in sharpening.");

@@ -1,7 +1,7 @@
 name: macOS Apple Silicon
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: [main, 'codex/**', '!codex/1.0-development']
   pull_request:
     branches: [main, 'codex/**']
 permissions:
@@ -11,6 +11,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build-test:
+    # The dedicated implementation branch accumulates unqualified 1.0 work.
+    # Release branches/tags retain their independent mandatory checks.
+    if: github.head_ref != 'codex/1.0-development'
     runs-on: macos-15
     timeout-minutes: 60
     steps:

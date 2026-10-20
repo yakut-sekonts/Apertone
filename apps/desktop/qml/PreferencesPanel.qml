@@ -31,6 +31,25 @@ Dialog {
             Accessible.name: qsTranslate("Luma", "Interface language")
         }
         Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: qsTranslate("Luma", "Preview cache (MiB)"); Layout.fillWidth: true }
+        SpinBox {
+            objectName: "settings.previewCache"
+            Layout.fillWidth: true
+            from: 64; to: 2048; stepSize: 64
+            value: editor.previewCacheMiB
+            editable: true
+            onValueModified: editor.previewCacheMiB = value
+            Accessible.name: qsTranslate("Luma", "Preview cache (MiB)")
+        }
+        Button {
+            text: qsTranslate("Luma", "Clear preview cache")
+            onClicked: editor.clearPreviewCache()
+        }
+        CheckBox {
+            text: qsTranslate("Luma", "Use Metal for photo previews")
+            checked: editor.metalPreview
+            onToggled: editor.metalPreview = checked
+        }
         Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
     }
 }

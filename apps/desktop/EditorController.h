@@ -8,6 +8,8 @@
 #include "core/render/LocalAdjustments.h"
 #include "core/render/PerspectiveCorrection.h"
 #include "core/render/Sharpening.h"
+#include "core/render/DevelopAccelerator.h"
+#include "platform/macos/MemoryPressure.h"
 #include <QObject>
 #include <QQuickWindow>
 #include <QTimer>
@@ -76,6 +78,10 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY stateChanged)
+    Q_PROPERTY(bool oneToOne READ oneToOne WRITE setOneToOne NOTIFY stateChanged)
+    Q_PROPERTY(QSize previewPixelSize READ previewPixelSize NOTIFY stateChanged)
+    Q_PROPERTY(int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
+    Q_PROPERTY(bool metalPreview READ metalPreview WRITE setMetalPreview NOTIFY stateChanged)
     Q_PROPERTY(QString catalogPath READ catalogPath CONSTANT)
 
   public:
@@ -252,6 +258,17 @@ class EditorController final : public QObject {
         return error_;
     }
     QString previewUrl() const;
+    bool oneToOne() const {
+        return oneToOne_ && !cropMode_ && !guidedMode_ && !localMode_ &&
+               targetedTool_ == QStringLiteral("none");
+    }
+    void setOneToOne(bool value);
+    QSize previewPixelSize() const;
+    int previewCacheMiB() const { return previewCacheMiB_; }
+    void setPreviewCacheMiB(int value);
+    bool metalPreview() const { return metalPreview_; }
+    void setMetalPreview(bool value);
+    Q_INVOKABLE void clearPreviewCache();
     QString catalogPath() const;
     QString sourcePath() const;
     bool presetPreview() const {
@@ -329,6 +346,14 @@ class EditorController final : public QObject {
     luma::MaskOverlay localRenderOverlay() const;
     std::filesystem::path catalog_;
     luma::SessionService service_;
+    std::shared_ptr<luma::ByteLruCache<std::string, QImage>> renderedCache_ =
+        std::make_shared<luma::ByteLruCache<std::string, QImage>>(64ULL * 1024 * 1024);
+    std::unique_ptr<luma::macos::MemoryPressureMonitor> memoryPressure_;
+    luma::macos::MemoryPressure pressure_ = luma::macos::MemoryPressure::normal;
+    int previewCacheMiB_ = 256;
+    bool oneToOne_ = false;
+    bool metalPreview_ = true;
+    std::shared_ptr<luma::DevelopAccelerator> accelerator_;
     PreviewProvider *provider_;
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;
@@ -345,6 +370,7 @@ class EditorController final : public QObject {
     luma::JobHandle renderJob_;
     std::optional<luma::PhotoSession> session_;
     QTimer saveTimer_;
+    QTimer refineTimer_;
     QQuickWindow *window_ = nullptr;
     std::vector<std::uint8_t> displayProfile_;
     bool busy_ = false;
@@ -388,7 +414,9 @@ class EditorController final : public QObject {
     void applyTransform(luma::TransformSettings settings);
     void advancedFailure(const std::exception &failure);
     void load(std::optional<std::filesystem::path> source);
-    void render();
+    void render(bool fullQuality = false);
+    void applyCacheBudget();
+    void handleMemoryPressure(luma::macos::MemoryPressure pressure);
     void editsChanged(bool renderPreview = true);
     bool editable() const;
     void flushSave();

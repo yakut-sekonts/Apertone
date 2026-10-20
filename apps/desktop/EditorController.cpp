@@ -1,10 +1,15 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/shared/PresetStore.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
+#include "platform/macos/MetalDevelop.h"
+#include <QCryptographicHash>
+#include <QDataStream>
 #include <QGuiApplication>
 #include <QMetaObject>
 #include <QPointer>
 #include <QScreen>
+#include <QSettings>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -12,6 +17,25 @@
 namespace {
 QString display(std::optional<double> value, const QString &suffix = {}) {
     return value ? QString::number(*value, 'g', 4) + suffix : QStringLiteral("—");
+}
+std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
+                           int resolution, const std::vector<std::uint8_t> &profile,
+                           luma::DetailDiagnostic diagnostic, const luma::MaskOverlay &overlay,
+                           bool accelerated) {
+    QByteArray identity;
+    QDataStream stream(&identity, QIODevice::WriteOnly);
+    stream.setVersion(QDataStream::Qt_6_0);
+    stream << QStringLiteral("preview-pipeline-v1") << QString::fromStdString(asset.id)
+           << QString::fromStdString(asset.checksum) << resolution
+           << luma::encodePreset({"Preview", {}, edits, luma::allSettingsGroups})
+           << QByteArray::fromStdString(luma::encodeLocalMasks(edits.localMasks))
+           << QByteArray(reinterpret_cast<const char *>(profile.data()),
+                         static_cast<qsizetype>(profile.size()))
+           << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id)
+           << overlay.opacity << accelerated;
+    for (const auto component : overlay.color)
+        stream << component;
+    return QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().toStdString();
 }
 } // namespace
 
@@ -21,9 +45,34 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     saveTimer_.setSingleShot(true);
     saveTimer_.setInterval(180);
     connect(&saveTimer_, &QTimer::timeout, this, &EditorController::flushSave);
+    refineTimer_.setSingleShot(true);
+    refineTimer_.setInterval(180);
+    connect(&refineTimer_, &QTimer::timeout, this, [this] {
+        if (!busy_ && !closing_ && !history_.gestureActive())
+            render(true);
+    });
+    QSettings settings(
+        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
+        QSettings::IniFormat);
+    previewCacheMiB_ =
+        std::clamp(settings.value(QStringLiteral("cacheMiB"), 256).toInt(), 64, 2048);
+    metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
+    accelerator_ = luma::macos::makeMetalDevelopAccelerator();
+    applyCacheBudget();
+    const QPointer<EditorController> self(this);
+    memoryPressure_ = std::make_unique<luma::macos::MemoryPressureMonitor>(
+        [self](luma::macos::MemoryPressure pressure) {
+            if (self)
+                QMetaObject::invokeMethod(self, [self, pressure] {
+                    if (self)
+                        self->handleMemoryPressure(pressure);
+                }, Qt::QueuedConnection);
+        });
     QGuiApplication::instance()->installEventFilter(this);
 }
 EditorController::~EditorController() {
+    memoryPressure_.reset();
+    refineTimer_.stop();
     QGuiApplication::instance()->removeEventFilter(this);
     exportCancellation_.cancel();
     loadCancellation_.cancel();
@@ -81,6 +130,79 @@ QString EditorController::previewUrl() const {
     return previewReady_ ? QStringLiteral("image://preview/current?v=%1").arg(imageRevision_)
                          : QString();
 }
+QSize EditorController::previewPixelSize() const {
+    if (!session_)
+        return {};
+    const auto &metadata = session_->asset.metadata;
+    const auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    try {
+        const luma::CropGeometry geometry(metadata.width, metadata.height, metadata.orientation,
+                                          edits);
+        return {geometry.width(), geometry.height()};
+    } catch (const std::exception &) {
+        // Full-resolution limits may reject geometry that is valid for a reduced
+        // preview. Qt property access must not propagate that exception into QML.
+        return {};
+    }
+}
+void EditorController::setOneToOne(bool value) {
+    if (oneToOne_ == value || (value && (!editable() || cropMode_ || guidedMode_ || localMode_ ||
+                                       targetedTool_ != QStringLiteral("none"))))
+        return;
+    if (value && previewPixelSize().isEmpty()) {
+        error_ = QStringLiteral("Full-resolution preview exceeds the supported image dimensions.");
+        emit stateChanged();
+        return;
+    }
+    oneToOne_ = value;
+    emit stateChanged();
+    render();
+}
+void EditorController::setPreviewCacheMiB(int value) {
+    if (value < 64 || value > 2048 || previewCacheMiB_ == value)
+        return;
+    previewCacheMiB_ = value;
+    QSettings settings(
+        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
+        QSettings::IniFormat);
+    settings.setValue(QStringLiteral("cacheMiB"), value);
+    applyCacheBudget();
+    emit stateChanged();
+}
+void EditorController::applyCacheBudget() {
+    const std::size_t bytes = pressure_ == luma::macos::MemoryPressure::normal
+                                  ? static_cast<std::size_t>(previewCacheMiB_) * 1024 * 1024
+                                  : 0;
+    service_.setCacheBudget(bytes * 3 / 4);
+    renderedCache_->setBudget(bytes / 4);
+}
+void EditorController::setMetalPreview(bool value) {
+    if (metalPreview_ == value)
+        return;
+    metalPreview_ = value;
+    QSettings settings(
+        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
+        QSettings::IniFormat);
+    settings.setValue(QStringLiteral("metal"), value);
+    renderedCache_->clear();
+    render();
+    emit stateChanged();
+}
+void EditorController::clearPreviewCache() {
+    service_.clearCache();
+    renderedCache_->clear();
+}
+void EditorController::handleMemoryPressure(luma::macos::MemoryPressure pressure) {
+    pressure_ = pressure;
+    applyCacheBudget();
+    if (pressure != luma::macos::MemoryPressure::normal) {
+        // Cancel full-resolution work before replacing it with a bounded fit
+        // preview. Existing source pixels and unsaved edits remain available.
+        oneToOne_ = false;
+        render();
+        emit stateChanged();
+    }
+}
 
 void EditorController::setWindow(QQuickWindow *window) {
     window_ = window;
@@ -114,6 +236,7 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    refineTimer_.stop();
     closeTransformTool();
     guides_.clear();
     localMode_ = false;
@@ -178,6 +301,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             self->previewReady_ = false;
                             self->history_ = luma::EditHistory(self->session_->asset.edits);
                             self->original_ = false;
+                            self->oneToOne_ = false;
                             self->render();
                             emit self->photoLoaded(
                                 QString::fromStdString(self->session_->asset.id));
@@ -282,12 +406,15 @@ void EditorController::beginEdit() {
         history_.begin();
 }
 void EditorController::endEdit() {
+    const bool wasEditing = history_.gestureActive();
     cancelLocalSample();
     clearDetailDiagnostic();
     clearPreviewSettings();
     targeted_.reset();
     localGesture_.reset();
     history_.end();
+    if (wasEditing && session_ && !busy_ && !closing_)
+        render(true);
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
@@ -416,8 +543,9 @@ void EditorController::setOriginal(bool value) {
     emit stateChanged();
     render();
 }
-void EditorController::render() {
-    if (!session_) {
+void EditorController::render(bool fullQuality) {
+    refineTimer_.stop();
+    if (!session_ || busy_ || closing_) {
         return;
     }
     renderJob_.cancel();
@@ -435,7 +563,14 @@ void EditorController::render() {
         emit stateChanged();
     }
     const auto overlay = localRenderOverlay();
-    const auto image = session_->preview;
+    // Geometry tools keep a stable canvas/sample grid throughout a gesture.
+    const bool interactive = !fullQuality && session_->interactivePreview &&
+                             diagnostic_ == luma::DetailDiagnostic::none && !cropMode_ &&
+                             !guidedMode_ && !localMode_ &&
+                             targetedTool_ == QStringLiteral("none");
+    const bool fullResolution = fullQuality && oneToOne_ && !cropMode_ && !guidedMode_ &&
+                                !localMode_ && targetedTool_ == QStringLiteral("none");
+    const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
     auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
@@ -453,32 +588,62 @@ void EditorController::render() {
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;
-    const auto detailScale = session_->previewScale;
+    const auto detailScale = interactive ? session_->interactiveScale : session_->previewScale;
+    const auto asset = session_->asset;
+    const auto cache = renderedCache_;
+    const auto generation = cache->generation();
+    const int resolution = fullResolution ? 0 : (interactive ? 1024 : 2560);
+    const auto accelerator = metalPreview_ &&
+                                     pressure_ == luma::macos::MemoryPressure::normal &&
+                                     diagnostic == luma::DetailDiagnostic::none
+                                 ? accelerator_ : std::shared_ptr<luma::DevelopAccelerator>{};
+    const auto key =
+        renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
+                       static_cast<bool>(accelerator));
+    const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
-         metadata, overlay](const luma::JobContext &context) {
+         metadata, overlay, asset, service, fullResolution, cache, generation,
+         key, accelerator, interactive](const luma::JobContext &context) {
             try {
-                const auto pixels =
-                    luma::renderCPU(*image, edits, orientation, profile, context.stopToken(),
-                                    calibration, diagnostic, detailScale, metadata, overlay);
-                QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
-                              QImage::Format_RGBA8888);
-                auto owned = output.copy();
+                auto cached = cache->get(key);
+                if (!cached) {
+                    const auto decoded = fullResolution
+                                             ? service.fullResolution(asset, context.stopToken())
+                                             : std::shared_ptr<const luma::DecodedImage>{};
+                    const auto pixels = luma::renderCPU(
+                        decoded ? decoded->image : *image, edits, orientation, profile,
+                        context.stopToken(), decoded ? decoded->calibration : calibration,
+                        diagnostic, decoded ? 1 : detailScale, metadata, overlay,
+                        accelerator.get());
+                    QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
+                                  QImage::Format_RGBA8888);
+                    auto owned = output.copy();
+                    if (owned.isNull())
+                        throw std::runtime_error("Cannot allocate the photo preview.");
+                    cached = std::make_shared<QImage>(std::move(owned));
+                    luma::checkCancellation(context.stopToken());
+                    cache->put(key, cached, static_cast<std::size_t>(cached->sizeInBytes()),
+                               generation);
+                }
+                luma::checkCancellation(context.stopToken());
                 if (self) {
                     QMetaObject::invokeMethod(
                         self,
-                        [self, revision, owned = std::move(owned)]() mutable {
+                        [self, revision, cached, interactive] {
                             if (!self || self->renderRevision_ != revision) {
                                 return;
                             }
-                            self->provider_->update(std::move(owned));
+                            self->provider_->update(*cached);
                             ++self->imageRevision_;
                             self->previewReady_ = true;
                             self->cropCanvasReady_ = self->cropMode_;
                             self->guidedCanvasReady_ = self->guidedMode_;
                             self->localCanvasReady_ = self->localMode_;
+                            if (interactive && !self->history_.gestureActive())
+                                self->refineTimer_.start();
                             emit self->stateChanged();
                         },
                         Qt::QueuedConnection);
@@ -491,9 +656,13 @@ void EditorController::render() {
                 if (self) {
                     QMetaObject::invokeMethod(
                         self,
-                        [self, revision, message] {
+                        [self, revision, message, fullResolution] {
                             if (self && self->renderRevision_ == revision) {
                                 self->error_ = message;
+                                if (fullResolution) {
+                                    self->oneToOne_ = false;
+                                    self->render();
+                                }
                                 emit self->stateChanged();
                             }
                         },

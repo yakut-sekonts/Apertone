@@ -69,6 +69,23 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
                  std::any_of(edits.hsl.begin(), edits.hsl.end(),
                              [](const HSLBand &band) { return band != HSLBand{}; });
 }
+std::optional<std::array<float, 20>> DevelopPipeline::basicGpuParameters() const {
+    if (curvesActive_ || hslActive_)
+        return std::nullopt;
+    std::array<float, 20> parameters{};
+    std::copy(calibration_.cameraToSRGB.begin(), calibration_.cameraToSRGB.end(),
+              parameters.begin());
+    std::copy(gains_.begin(), gains_.end(), parameters.begin() + 9);
+    parameters[12] = exposureGain_;
+    parameters[13] = static_cast<float>(amount(edits_, Correction::contrast, edits_.contrast));
+    parameters[14] = static_cast<float>(amount(edits_, Correction::shadows, edits_.shadows));
+    parameters[15] = static_cast<float>(amount(edits_, Correction::highlights, edits_.highlights));
+    parameters[16] = static_cast<float>(amount(edits_, Correction::blacks, edits_.blacks));
+    parameters[17] = static_cast<float>(amount(edits_, Correction::whites, edits_.whites));
+    parameters[18] = static_cast<float>(amount(edits_, Correction::saturation, edits_.saturation));
+    parameters[19] = static_cast<float>(amount(edits_, Correction::vibrance, edits_.vibrance));
+    return parameters;
+}
 std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
     for (std::size_t c = 0; c < 3; ++c) {
         if (!std::isfinite(camera[c]))

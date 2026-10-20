@@ -473,6 +473,9 @@
     "Preset actions": "Acciones de preajustes",
     "Rotate crop left 90°": "Girar el recorte 90° a la izquierda",
     "Rotate crop right 90°": "Girar el recorte 90° a la derecha",
-    "Enable white balance": "Activar balance de blancos"
+    "Enable white balance": "Activar balance de blancos",
+    "Clear preview cache": "Vaciar caché de previsualización",
+    "Preview cache (MiB)": "Caché de previsualización (MiB)",
+    "Use Metal for photo previews": "Usar Metal para previsualizar fotos"
   }
 }

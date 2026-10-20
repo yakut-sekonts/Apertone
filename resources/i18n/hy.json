@@ -473,6 +473,9 @@
     "Preset actions": "Նախադրվածքների գործողություններ",
     "Rotate crop left 90°": "Պտտել կադրումը 90° ձախ",
     "Rotate crop right 90°": "Պտտել կադրումը 90° աջ",
-    "Enable white balance": "Միացնել սպիտակի հաշվեկշիռը"
+    "Enable white balance": "Միացնել սպիտակի հաշվեկշիռը",
+    "Clear preview cache": "Մաքրել նախադիտման քեշը",
+    "Preview cache (MiB)": "Նախադիտման քեշ (ՄիԲ)",
+    "Use Metal for photo previews": "Օգտագործել Metal՝ լուսանկարների նախադիտման համար"
   }
 }

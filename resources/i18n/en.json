@@ -473,6 +473,9 @@
     "Preset actions": "Preset actions",
     "Rotate crop left 90°": "Rotate crop left 90°",
     "Rotate crop right 90°": "Rotate crop right 90°",
-    "Enable white balance": "Enable white balance"
+    "Enable white balance": "Enable white balance",
+    "Clear preview cache": "Clear preview cache",
+    "Preview cache (MiB)": "Preview cache (MiB)",
+    "Use Metal for photo previews": "Use Metal for photo previews"
   }
 }

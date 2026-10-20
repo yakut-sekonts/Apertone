@@ -234,15 +234,53 @@ ApplicationWindow {
                         Layout.fillWidth: true
                         Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
-                        Label { text: qsTranslate("Luma", "FIT"); color: "#777f8b"; font.pixelSize: 10 }
+                        Button {
+                            text: qsTranslate("Luma", "FIT")
+                            checkable: true; checked: !editor.oneToOne
+                            enabled: editor.hasPhoto && !editor.busy
+                            onClicked: editor.oneToOne = false
+                        }
+                        Button {
+                            objectName: "develop.actualPixels"
+                            text: "100%"
+                            checkable: true; checked: previewViewport.pixelMode
+                            enabled: editor.hasPhoto && !editor.busy && !editor.cropMode &&
+                                     !editor.guidedMode && !editor.localMode &&
+                                     editor.targetedTool === "none"
+                            onClicked: editor.oneToOne = true
+                        }
                     }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
                         Layout.minimumWidth: 84; Layout.minimumHeight: 84
+                        Flickable {
+                            id: previewViewport
+                            anchors.fill: parent
+                            clip: true
+                            property bool pixelMode: editor.oneToOne && !editor.cropMode &&
+                                                     !editor.guidedMode && !editor.localMode &&
+                                                     editor.targetedTool === "none"
+                            contentWidth: pixelMode ? Math.max(width, editor.previewPixelSize.width / Screen.devicePixelRatio) : width
+                            contentHeight: pixelMode ? Math.max(height, editor.previewPixelSize.height / Screen.devicePixelRatio) : height
+                            interactive: pixelMode
+                            boundsBehavior: Flickable.StopAtBounds
+                            onPixelModeChanged: {
+                                cancelFlick()
+                                contentX = pixelMode ? Math.max(0, (contentWidth - width) / 2) : 0
+                                contentY = pixelMode ? Math.max(0, (contentHeight - height) / 2) : 0
+                            }
+                            ScrollBar.horizontal: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
+                            ScrollBar.vertical: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
                         Image {
                             id: previewImage
                             objectName: "develop.preview"
-                            anchors.fill: parent; source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy
+                            width: previewViewport.pixelMode ? editor.previewPixelSize.width / Screen.devicePixelRatio : previewViewport.contentWidth
+                            height: previewViewport.pixelMode ? editor.previewPixelSize.height / Screen.devicePixelRatio : previewViewport.contentHeight
+                            x: (previewViewport.contentWidth - width) / 2
+                            y: (previewViewport.contentHeight - height) / 2
+                            source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy
+                            horizontalAlignment: Image.AlignHCenter
+                            verticalAlignment: Image.AlignVCenter
                             MouseArea {
                                 objectName: "develop.targetedArea"
                                 anchors.fill: parent
@@ -276,6 +314,7 @@ ApplicationWindow {
                             x: (previewImage.width-previewImage.paintedWidth)/2
                             y: (previewImage.height-previewImage.paintedHeight)/2
                             width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                        }
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy

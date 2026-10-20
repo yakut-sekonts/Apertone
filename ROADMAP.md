@@ -1,18 +1,19 @@
 # Roadmap
 
 This follows the supplied requirements, renamed from Photon to Luma. Each stage
-ships an end-to-end workflow with persistent data, error handling and tests.
+implements an end-to-end workflow with persistent data and error handling.
 No dates are promised before measuring scope and performance.
 
-## Validation schedule — user direction, 2026-10-19
+## Validation schedule — user direction, 2026-10-20
 
-Before 1.0.0, validate functionality, image quality, persistence, data integrity,
-error recovery and UX. After each phase, fix defects and repeat the affected
-functional checks before publishing that phase. Stress, load, performance,
-chaos and long soak campaigns are reserved for the pre-release qualification
-of 1.0.0. Do not run them during intermediate phases or claim deferred results
-as PASS. Performance features may still be implemented and checked for functional
-correctness; scale/latency/resource benchmarks wait for the 1.0.0 campaign.
+Continue implementation toward 1.0.0 without intermediate builds, test runs,
+static-analysis or QA campaigns. All functional, image-quality, data-integrity,
+recovery, UX, load, performance and stress qualification is deferred to the
+final pre-release campaign. Fix and retest its findings before publishing 1.0.0.
+Do not publish intermediate development builds or count deferred checks as PASS.
+The published stable version remains 0.5.1. Its accepted qualification gaps
+remain open for that final campaign. Track new reports in
+[the development backlog](docs/DEVELOPMENT_BACKLOG.md).
 
 ## M0 — RAW Vertical Slice / 0.1 Foundation
 
@@ -121,16 +122,22 @@ masks. See [phase acceptance](docs/PHASE5_ACCEPTANCE.md),
 
 Depth Range is conditional on an actual source depth channel; the current
 pipeline has none, so no synthetic Depth control is exposed. Metal and AI remain
-0.6/0.7. Full release publication and the separate regression campaign follow
-phase completion; the public download remains 0.4.14 until then.
+0.6/0.7. Version 0.5.1 was published after CI with the 23 functional qualification
+gaps explicitly accepted by the user; those gaps remain open.
 
 ## 0.6 — Performance
 
-🗓 Planned. Metal processing backend, CPU/GPU tolerance tests, bounded LRU,
+In development. Metal processing backend, CPU/GPU tolerance tests, bounded LRU,
 progressive quality, true 1:1 rendering, memory pressure handling and latency
-benchmarks on 8/16 GB Apple Silicon machines. Numerical/functional validation
-accompanies implementation; load and benchmark campaigns run before 1.0.0
-under the validation schedule above.
+benchmarks on 8/16 GB Apple Silicon machines. All validation and benchmarks
+wait for the final 1.0.0 campaign under the schedule above.
+
+Initial implementation (unbuilt and unqualified): byte-bounded decoded/rendered
+LRU caches, 1024→2560 progressive previews, on-demand full-resolution 100% view,
+cache preferences, memory-pressure eviction and a cancellable Metal basic
+Develop pass with CPU fallback. Curves/HSL, Detail, masks, optics, geometry and
+ICC conversion still use the CPU reference. GPU coverage and the final
+qualification remain open; see [implementation status](docs/PHASE6_DEVELOPMENT.md).
 
 ## 0.7 — Advanced
 

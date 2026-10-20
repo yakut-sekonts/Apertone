@@ -473,6 +473,9 @@
     "Preset actions": "Actions des préréglages",
     "Rotate crop left 90°": "Tourner le recadrage de 90° à gauche",
     "Rotate crop right 90°": "Tourner le recadrage de 90° à droite",
-    "Enable white balance": "Activer la balance des blancs"
+    "Enable white balance": "Activer la balance des blancs",
+    "Clear preview cache": "Vider le cache des aperçus",
+    "Preview cache (MiB)": "Cache des aperçus (Mio)",
+    "Use Metal for photo previews": "Utiliser Metal pour les aperçus photo"
   }
 }
