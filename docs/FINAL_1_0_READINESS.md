@@ -92,6 +92,25 @@ artifacts on dark inputs, recorded separately as LUMA-BUG-037. LUMA-BUG-036 is
 not closed. No photographic, installation, update or whole-campaign gate is
 waived by the numerical improvement. Historical v1 reports remain unchanged.
 
+### Source-quality gate and CI compatibility follow-up — 2026-10-21
+
+The independent macOS 15.7.9 / Xcode 16.4 [v2 CI report](qualification/2026-10-21/model-numerics-ci-v2.json)
+also passes 9/11 numerical cases and fails dark noise/impulse. Source quality now
+has an independent mandatory CI/release gate against analytical clean images:
+[5/7 inputs pass, overall FAIL](qualification/2026-10-21/denoise-quality-v2.json).
+Both dark failures extend into the runtime's interior crop. Seven oracle tests
+pass, including rejection of identity, bright, over-smoothed, invalid and isolated
+amplified outputs. This gate does not replace photographic qualification and
+does not modify the current model or relax numerical limits.
+
+CI additionally exposed unsupported `std::jthread` / `std::stop_token` usage in
+the diagnostic writer on Xcode 16.4. A mutex-protected stop flag and joined
+`std::thread` preserve queue draining without that library dependency. The app
+and new real-writer lifecycle test build locally; the test passes. Affected
+clang-tidy passes its blocking checks, with existing nonblocking warnings.
+Xcode 16.4 validation must still come from the next CI run. No new native UI
+session, signed installer or release was exercised in this follow-up.
+
 ## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and

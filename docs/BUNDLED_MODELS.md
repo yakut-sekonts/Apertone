@@ -98,6 +98,24 @@ CI continues independent application checks after a failed comparison, then
 requires its successful outcome in a final mandatory step. The release workflow
 still stops immediately; neither path permits a failed model gate to pass.
 
+Source quality has a separate mandatory gate:
+
+```sh
+.tools/model-venv/bin/python scripts/check-denoise-quality.py build/models --report build/denoise-quality.json
+```
+
+It compares predictions with analytical clean ramps/colors and a known impulse
+corruption, independently of Core ML. For noisy inputs, squared error must
+decrease and peak error must not exceed the input's peak error; noiseless uniform
+colors must remain exact. Both the full tensor and the runtime's 64-pixel crop
+must pass. These are fixed criteria, not limits fitted to the current model.
+Identity, bright-output and detail-destroying predictors are explicitly rejected
+by oracle tests. The current v2 source result is **5/7 PASS, overall FAIL**: both
+nonuniform dark cases fail, including the interior crop. The same failure occurs
+before Core ML and cannot be waived by source/native numerical agreement.
+CI preserves both reports and requires both outcomes; release packaging stops
+on either failure. Photographic and runtime quality still need separate evidence.
+
 Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
 comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,
 orientation/crop alignment, CPU fallback, cancellation and 8/16 GB resource tests.

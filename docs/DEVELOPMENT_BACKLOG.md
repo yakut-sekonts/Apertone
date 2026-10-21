@@ -90,3 +90,23 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   and verify photographic shadow/detail/noise quality before accepting numerical
   agreement as evidence for release. Matching an incorrect source output is not
   sufficient.
+- Follow-up: `check-denoise-quality.py` now makes this a mandatory CI/release
+  gate against analytical clean images. The v2 source passes 5/7 inputs and
+  fails both nonuniform dark cases, in the full image and the runtime crop.
+  [Retained report](qualification/2026-10-21/denoise-quality-v2.json).
+  Replicate/reflect padding experiments also produced artifacts and were not
+  adopted. Weights, conversion recipe and numerical limits remain unchanged.
+
+## LUMA-BUG-038 — Diagnostic writer prevents the supported CI build
+
+- Status: **source fix and local regression PASS; Xcode 16.4 CI retest pending**.
+- [CI run](https://github.com/yakut-sekonts/Luma/actions/runs/39612524379) fails
+  compiling `DiagnosticSession`: Xcode 16.4's libc++ has no `std::jthread` or
+  `std::stop_token`. Local Xcode 27 builds did not expose this incompatibility.
+- Replaced the writer with `std::thread` and a stop flag protected by the same
+  mutex as its queue. The destructor still wakes, drains and joins the writer.
+- A new test exercises immediate shutdown with queued events, event order,
+  clean/unclean final markers, disabled logging and symlink-root refusal.
+  It uses the production writer and stubs only crash capture/formatting;
+  PLCrashReporter, rotation, load and all diagnostic failure modes are not
+  qualified by this test.
