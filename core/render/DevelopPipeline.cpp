@@ -1,46 +1,10 @@
 #include "core/render/DevelopPipeline.h"
+#include "core/color/WhiteBalance.h"
 #include <algorithm>
 #include <cmath>
 
 namespace luma {
 namespace {
-std::array<double, 9> inverse(const std::array<float, 9> &m) {
-    const double d = m[0] * (m[4] * m[8] - m[5] * m[7]) - m[1] * (m[3] * m[8] - m[5] * m[6]) +
-                     m[2] * (m[3] * m[7] - m[4] * m[6]);
-    if (!std::isfinite(d) || std::abs(d) < 1e-9)
-        throw std::runtime_error("Camera matrix cannot support manual WB.");
-    return {(m[4] * m[8] - m[5] * m[7]) / d, (m[2] * m[7] - m[1] * m[8]) / d,
-            (m[1] * m[5] - m[2] * m[4]) / d, (m[5] * m[6] - m[3] * m[8]) / d,
-            (m[0] * m[8] - m[2] * m[6]) / d, (m[2] * m[3] - m[0] * m[5]) / d,
-            (m[3] * m[7] - m[4] * m[6]) / d, (m[1] * m[6] - m[0] * m[7]) / d,
-            (m[0] * m[4] - m[1] * m[3]) / d};
-}
-std::array<float, 3> manualGains(double temperature, double tint,
-                                 const RawColorCalibration &calibration) {
-    // Kang et al. 2002 Planckian locus approximation, 2000–25000 K.
-    const double t = 1000 / temperature;
-    const double x = temperature <= 4000
-                         ? -0.2661239 * t * t * t - 0.2343589 * t * t + 0.8776956 * t + 0.179910
-                         : -3.0258469 * t * t * t + 2.1070379 * t * t + 0.2226347 * t + 0.240390;
-    const double y0 =
-        temperature <= 2222
-            ? -1.1063814 * x * x * x - 1.34811020 * x * x + 2.18555832 * x - 0.20219683
-        : temperature <= 4000
-            ? -0.9549476 * x * x * x - 1.37418593 * x * x + 2.09137015 * x - 0.16748867
-            : 3.0817580 * x * x * x - 5.87338670 * x * x + 3.75112997 * x - 0.37001483;
-    const double y = y0 + tint * 0.0001;
-    const double X = x / y, Z = (1 - x - y) / y;
-    const std::array<double, 3> rgb{3.2404542 * X - 1.5371385 - 0.4985314 * Z,
-                                    -0.9692660 * X + 1.8760108 + 0.0415560 * Z,
-                                    0.0556434 * X - 0.2040259 + 1.0572252 * Z};
-    const auto m = inverse(calibration.cameraToSRGB);
-    std::array<double, 3> neutral{};
-    for (std::size_t c = 0; c < 3; ++c)
-        neutral[c] =
-            std::max(0.01, m[c * 3] * rgb[0] + m[c * 3 + 1] * rgb[1] + m[c * 3 + 2] * rgb[2]);
-    return {static_cast<float>(neutral[1] / neutral[0]), 1,
-            static_cast<float>(neutral[1] / neutral[2])};
-}
 double amount(const EditDocument &edits, Correction correction, double value) {
     return edits.enabled(correction) ? value / 100 : 0;
 }
@@ -57,7 +21,7 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
         if (!std::isfinite(value) || value <= 0)
             throw std::runtime_error("Invalid As Shot WB.");
     if (edits.customWhiteBalance && edits.enabled(Correction::whiteBalance))
-        gains_ = manualGains(edits.temperature, edits.tint, calibration);
+        gains_ = whiteBalanceGains(edits.temperature, edits.tint, calibration);
     exposureGain_ =
         static_cast<float>(std::exp2(edits.enabled(Correction::exposure) ? edits.exposure : 0));
     curvesActive_ = edits.enabled(Correction::curves) &&

@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "细节诊断视图中不提供直方图和剪切叠加提示。",
     "Invalid histogram coverage.": "直方图像素覆盖率无效。",
     "Non-finite histogram pixel.": "直方图像素值非有限数。",
-    "Invalid clipping preview mode.": "剪切预览模式无效。"
+    "Invalid clipping preview mode.": "剪切预览模式无效。",
+    "Auto white balance": "自动白平衡",
+    "White balance eyedropper": "白平衡吸管",
+    "Eyedropper": "吸管",
+    "Estimating white balance…": "正在估算白平衡…",
+    "Select a neutral area": "选择中性区域",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "点击中性灰色区域。按 Escape 取消吸管。",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "根据可见裁剪区域估算白平衡。色彩偏重的场景可能需要手动调整。",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "已应用支持的色温／色调范围内最接近的白平衡。",
+    "White balance set from the neutral sample.": "已根据中性样本设置白平衡。",
+    "Auto white balance applied. Review Temperature and Tint.": "已应用自动白平衡。请检查色温和色调。",
+    "This sample cannot produce a neutral white balance.": "无法根据此样本计算中性白平衡。",
+    "Invalid white balance sample position.": "白平衡采样位置无效。",
+    "Choose a midtone neutral area away from transparency and clipping.": "请选择远离透明及剪切区域的中性中间调区域。",
+    "Not enough usable pixels to estimate white balance.": "可用像素不足，无法估算白平衡。"
   }
 }

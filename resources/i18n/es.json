@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "El histograma y las superposiciones de recorte no están disponibles en las vistas de diagnóstico de Detalle.",
     "Invalid histogram coverage.": "Cobertura de píxel no válida para el histograma.",
     "Non-finite histogram pixel.": "Valor de píxel no finito en el histograma.",
-    "Invalid clipping preview mode.": "Modo de vista previa de recorte no válido."
+    "Invalid clipping preview mode.": "Modo de vista previa de recorte no válido.",
+    "Auto white balance": "Balance de blancos automático",
+    "White balance eyedropper": "Cuentagotas de balance de blancos",
+    "Eyedropper": "Cuentagotas",
+    "Estimating white balance…": "Calculando el balance de blancos…",
+    "Select a neutral area": "Selecciona una zona neutra",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Haz clic en una zona gris neutra. Escape cancela el cuentagotas.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Estima el balance de blancos del recorte visible. Las escenas con un color dominante pueden requerir ajustes manuales.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Se aplicó el balance de blancos más cercano dentro del rango de temperatura y matiz admitido.",
+    "White balance set from the neutral sample.": "Balance de blancos establecido a partir de la muestra neutra.",
+    "Auto white balance applied. Review Temperature and Tint.": "Balance de blancos automático aplicado. Revisa la temperatura y el matiz.",
+    "This sample cannot produce a neutral white balance.": "Esta muestra no permite calcular un balance de blancos neutro.",
+    "Invalid white balance sample position.": "Posición de muestra de balance de blancos no válida.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Elige una zona neutra de tonos medios, sin transparencia ni recorte tonal.",
+    "Not enough usable pixels to estimate white balance.": "No hay suficientes píxeles válidos para estimar el balance de blancos."
   }
 }

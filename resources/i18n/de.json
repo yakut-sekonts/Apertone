@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "Histogramm und Beschneidungsmarkierungen sind in Detail-Diagnoseansichten nicht verfügbar.",
     "Invalid histogram coverage.": "Ungültige Pixeldeckung für das Histogramm.",
     "Non-finite histogram pixel.": "Nicht endlicher Histogramm-Pixelwert.",
-    "Invalid clipping preview mode.": "Ungültiger Beschneidungsvorschaumodus."
+    "Invalid clipping preview mode.": "Ungültiger Beschneidungsvorschaumodus.",
+    "Auto white balance": "Automatischer Weißabgleich",
+    "White balance eyedropper": "Weißabgleich-Pipette",
+    "Eyedropper": "Pipette",
+    "Estimating white balance…": "Weißabgleich wird berechnet…",
+    "Select a neutral area": "Neutralen Bereich auswählen",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Auf einen neutralgrauen Bereich klicken. Escape beendet die Pipette.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Schätzt den Weißabgleich anhand des sichtbaren Ausschnitts. Stark farbige Szenen können manuelle Korrekturen erfordern.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Der nächstmögliche Weißabgleich im unterstützten Temperatur-/Tönungsbereich wurde angewendet.",
+    "White balance set from the neutral sample.": "Weißabgleich anhand der neutralen Probe eingestellt.",
+    "Auto white balance applied. Review Temperature and Tint.": "Automatischer Weißabgleich angewendet. Temperatur und Tönung überprüfen.",
+    "This sample cannot produce a neutral white balance.": "Aus dieser Probe lässt sich kein neutraler Weißabgleich berechnen.",
+    "Invalid white balance sample position.": "Ungültige Position der Weißabgleich-Probe.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Einen neutralen Mitteltonbereich ohne Transparenz oder Clipping wählen.",
+    "Not enough usable pixels to estimate white balance.": "Nicht genügend geeignete Pixel zur Schätzung des Weißabgleichs."
   }
 }

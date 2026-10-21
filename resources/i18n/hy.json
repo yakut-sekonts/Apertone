@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "Detail-ի ախտորոշիչ դիտումներում հիստոգրամը և սահմանափակման ցուցադրումը հասանելի չեն։",
     "Invalid histogram coverage.": "Հիստոգրամի պիքսելի ծածկույթն անվավեր է։",
     "Non-finite histogram pixel.": "Հիստոգրամի պիքսելի արժեքը վերջավոր չէ։",
-    "Invalid clipping preview mode.": "Սահմանափակման նախադիտման ռեժիմն անվավեր է։"
+    "Invalid clipping preview mode.": "Սահմանափակման նախադիտման ռեժիմն անվավեր է։",
+    "Auto white balance": "Սպիտակի ավտոմատ հաշվեկշիռ",
+    "White balance eyedropper": "Սպիտակի հաշվեկշռի կաթոցիկ",
+    "Eyedropper": "Կաթոցիկ",
+    "Estimating white balance…": "Սպիտակի հաշվեկշռի հաշվարկ…",
+    "Select a neutral area": "Ընտրեք չեզոք հատված",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Սեղմեք չեզոք մոխրագույն հատվածի վրա։ Escape-ը չեղարկում է կաթոցիկը։",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Գնահատում է սպիտակի հաշվեկշիռը կադրի տեսանելի հատվածից։ Գերակշռող գույնով տեսարանները կարող են ձեռքով ճշգրտման կարիք ունենալ։",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Կիրառվել է ջերմաստիճանի և երանգի թույլատրելի միջակայքի ամենամոտ սպիտակի հաշվեկշիռը։",
+    "White balance set from the neutral sample.": "Սպիտակի հաշվեկշիռը սահմանվել է չեզոք նմուշից։",
+    "Auto white balance applied. Review Temperature and Tint.": "Սպիտակի ավտոմատ հաշվեկշիռը կիրառված է։ Ստուգեք ջերմաստիճանն ու երանգը։",
+    "This sample cannot produce a neutral white balance.": "Այս նմուշից հնարավոր չէ հաշվարկել չեզոք սպիտակի հաշվեկշիռ։",
+    "Invalid white balance sample position.": "Սպիտակի հաշվեկշռի նմուշի դիրքն անվավեր է։",
+    "Choose a midtone neutral area away from transparency and clipping.": "Ընտրեք միջին պայծառության չեզոք հատված՝ առանց թափանցիկության և տոնային կորստի։",
+    "Not enough usable pixels to estimate white balance.": "Սպիտակի հաշվեկշիռը գնահատելու համար բավարար պիտանի պիքսելներ չկան։"
   }
 }

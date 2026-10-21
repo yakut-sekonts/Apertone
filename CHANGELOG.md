@@ -10,6 +10,10 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
   monitor ICC conversion, approximate clipping percentages and red/blue overlays.
   Histogram tone gestures use Undo/autosave; Option on Whites/Blacks provides a
   temporary clipping overlay. Eight-language UI; analysis/overlays are view-only.
+- Auto white balance and neutral eyedropper: source-space, alpha-aware sampling
+  through crop/transform/optics/retouch, bounded Temperature/Tint fitting using
+  the existing render model, one-step Undo/autosave and cancellable worker with
+  stale-result guards. Eight-language guidance; Custom results persist normally.
 - Native local AI Subject/Background/Object selections stored as editable masks.
 - Local Core ML Sky mask adapter, sharing bitmap persistence and Undo.
 - Parametric Clone/Heal/Remove, source repositioning, persistence and Undo.

@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "L’histogramme et les surimpressions d’écrêtage sont indisponibles dans les vues de diagnostic Détail.",
     "Invalid histogram coverage.": "Couverture de pixel invalide pour l’histogramme.",
     "Non-finite histogram pixel.": "Valeur de pixel non finie dans l’histogramme.",
-    "Invalid clipping preview mode.": "Mode d’aperçu de l’écrêtage invalide."
+    "Invalid clipping preview mode.": "Mode d’aperçu de l’écrêtage invalide.",
+    "Auto white balance": "Balance des blancs automatique",
+    "White balance eyedropper": "Pipette de balance des blancs",
+    "Eyedropper": "Pipette",
+    "Estimating white balance…": "Calcul de la balance des blancs…",
+    "Select a neutral area": "Sélectionnez une zone neutre",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Cliquez sur une zone gris neutre. Échap annule la pipette.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Estime la balance des blancs à partir du recadrage visible. Les scènes à dominante colorée peuvent nécessiter un réglage manuel.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "La balance des blancs la plus proche dans la plage de température et de teinte prise en charge a été appliquée.",
+    "White balance set from the neutral sample.": "Balance des blancs définie à partir de l’échantillon neutre.",
+    "Auto white balance applied. Review Temperature and Tint.": "Balance des blancs automatique appliquée. Vérifiez la température et la teinte.",
+    "This sample cannot produce a neutral white balance.": "Cet échantillon ne permet pas de calculer une balance des blancs neutre.",
+    "Invalid white balance sample position.": "Position d’échantillonnage de balance des blancs invalide.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Choisissez une zone neutre de tons moyens, sans transparence ni écrêtage.",
+    "Not enough usable pixels to estimate white balance.": "Pixels exploitables insuffisants pour estimer la balance des blancs."
   }
 }

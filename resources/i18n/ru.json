@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "Гистограмма и подсветка clipping недоступны в диагностических режимах Detail.",
     "Invalid histogram coverage.": "Недопустимое покрытие пикселя для гистограммы.",
     "Non-finite histogram pixel.": "Неконечное значение пикселя гистограммы.",
-    "Invalid clipping preview mode.": "Недопустимый режим подсветки clipping."
+    "Invalid clipping preview mode.": "Недопустимый режим подсветки clipping.",
+    "Auto white balance": "Автоматический баланс белого",
+    "White balance eyedropper": "Пипетка баланса белого",
+    "Eyedropper": "Пипетка",
+    "Estimating white balance…": "Расчёт баланса белого…",
+    "Select a neutral area": "Выберите нейтральный участок",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Нажмите на нейтральный серый участок. Escape отменяет пипетку.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Оценивает баланс белого по видимой области кадра. Сцены с преобладанием одного цвета могут потребовать ручной коррекции.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Применён ближайший баланс белого в доступном диапазоне температуры и оттенка.",
+    "White balance set from the neutral sample.": "Баланс белого установлен по нейтральному образцу.",
+    "Auto white balance applied. Review Temperature and Tint.": "Автоматический баланс белого применён. При необходимости уточните температуру и оттенок.",
+    "This sample cannot produce a neutral white balance.": "По этому образцу нельзя рассчитать нейтральный баланс белого.",
+    "Invalid white balance sample position.": "Недопустимая позиция образца баланса белого.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Выберите нейтральный участок средней яркости без прозрачности и клиппинга.",
+    "Not enough usable pixels to estimate white balance.": "Недостаточно подходящих пикселей для расчёта баланса белого."
   }
 }

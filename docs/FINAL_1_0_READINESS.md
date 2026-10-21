@@ -41,6 +41,13 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   and 1:1 updates, keyboard/Option/focus handling, UI size/languages and cost on
   supported hardware. These are preview estimates, not RAW sensor saturation or
   an export-profile soft proof. See [Histogram behavior](PHASE9_DEVELOPMENT.md#histogram-and-clipping).
+- Requirement §18 Auto WB / neutral eyedropper now have source implementations.
+  Qualify gray-world scene bias and the shared Temperature/Tint solver against
+  independent photographic/numerical references; cover camera calibration,
+  alpha/clipping/geometry, source-versus-display semantics, one-step Undo,
+  persistence/export, stale-result/cancel/shutdown handling and native UI in all
+  languages. The result is Custom WB, not a live Auto mode. See
+  [WB behavior and limits](PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
 
 ## Final campaign
 

@@ -71,6 +71,18 @@ includes clipping mode as well as ICC, resolution and diagnostic/mask state.
 See [ADR 0028](docs/adr/0028-preview-histogram.md) and the unqualified
 [workflow/limits](docs/PHASE9_DEVELOPMENT.md#histogram-and-clipping).
 
+## White balance estimation
+
+`WhiteBalance` shares the existing manual gain model between DevelopPipeline
+and a bounded Temperature/Tint fit. `WhiteBalanceSampler` uses optics/retouch
+source-preview RGB and CropGeometry for a gray-world crop estimate or a neutral
+patch, with alpha-aware interpolation and conservative As Shot sample admission.
+`EditorWhiteBalance` owns cancellation/generation guards and commits one ordinary
+EditHistory change. The resolved Custom values use the existing document,
+catalog, preset and export representation; no new persisted mode is introduced.
+The picker waits for its stable Fit canvas. See [ADR 0029](docs/adr/0029-white-balance-estimation.md).
+All runtime and photographic qualification is deferred.
+
 ## Local diagnostics and crash capture
 
 `DiagnosticSession` owns a private, unique process directory and a bounded

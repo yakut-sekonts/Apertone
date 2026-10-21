@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "Histogram and clipping overlays are unavailable in Detail diagnostic views.",
     "Invalid histogram coverage.": "Invalid histogram coverage.",
     "Non-finite histogram pixel.": "Non-finite histogram pixel.",
-    "Invalid clipping preview mode.": "Invalid clipping preview mode."
+    "Invalid clipping preview mode.": "Invalid clipping preview mode.",
+    "Auto white balance": "Auto white balance",
+    "White balance eyedropper": "White balance eyedropper",
+    "Eyedropper": "Eyedropper",
+    "Estimating white balance…": "Estimating white balance…",
+    "Select a neutral area": "Select a neutral area",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Click a neutral gray area. Escape cancels the eyedropper.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Applied the closest white balance within the supported Temperature/Tint range.",
+    "White balance set from the neutral sample.": "White balance set from the neutral sample.",
+    "Auto white balance applied. Review Temperature and Tint.": "Auto white balance applied. Review Temperature and Tint.",
+    "This sample cannot produce a neutral white balance.": "This sample cannot produce a neutral white balance.",
+    "Invalid white balance sample position.": "Invalid white balance sample position.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Choose a midtone neutral area away from transparency and clipping.",
+    "Not enough usable pixels to estimate white balance.": "Not enough usable pixels to estimate white balance."
   }
 }

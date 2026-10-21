@@ -22,7 +22,7 @@ ApplicationWindow {
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
-    onLibraryModeChanged: {if(libraryMode) { editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
+    onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
@@ -101,7 +101,7 @@ ApplicationWindow {
     Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canUndo : root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canUndo) ? batch.undo() : editor.undo() }
     Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canRedo : root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canRedo) ? batch.redo() : editor.redo() }
     Shortcut { enabled: !updates.restartPending; context: Qt.ApplicationShortcut; sequences: [StandardKey.Quit]; onActivated: root.close() }
-    Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch() } }
+    Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing || editor.whiteBalanceBusy || editor.whiteBalancePicking; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch(); editor.cancelWhiteBalance() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     Shortcut {
@@ -264,7 +264,7 @@ ApplicationWindow {
                             checkable: true; checked: previewViewport.pixelMode
                             enabled: editor.hasPhoto && !editor.busy && !editor.cropMode &&
                                      !editor.guidedMode && !editor.localMode &&
-                                     editor.targetedTool === "none"
+                                     editor.targetedTool === "none" && !editor.whiteBalancePicking
                             onClicked: editor.oneToOne = true
                         }
                     }
@@ -277,7 +277,7 @@ ApplicationWindow {
                             clip: true
                             property bool pixelMode: editor.oneToOne && !editor.cropMode &&
                                                      !editor.guidedMode && !editor.localMode &&
-                                                     editor.targetedTool === "none"
+                                                     editor.targetedTool === "none" && !editor.whiteBalancePicking
                             contentWidth: pixelMode ? Math.max(width, editor.previewPixelSize.width / Screen.devicePixelRatio) : width
                             contentHeight: pixelMode ? Math.max(height, editor.previewPixelSize.height / Screen.devicePixelRatio) : height
                             interactive: pixelMode
@@ -312,6 +312,23 @@ ApplicationWindow {
                                         mouse.y >= top && mouse.y <= top + previewImage.paintedHeight)
                                         editor.generateAIMask("object", (mouse.x - left) / previewImage.paintedWidth,
                                                               (mouse.y - top) / previewImage.paintedHeight)
+                                }
+                            }
+                            MouseArea {
+                                objectName: "develop.whiteBalance.sampleArea"
+                                anchors.fill: parent
+                                enabled: editor.whiteBalancePicking && editor.hasPhoto && !editor.busy
+                                z: 2
+                                cursorShape: editor.whiteBalanceCanvasReady ? Qt.CrossCursor : Qt.WaitCursor
+                                onClicked: function(mouse) {
+                                    if (!editor.whiteBalanceCanvasReady || previewImage.status !== Image.Ready) return
+                                    const left = (width - previewImage.paintedWidth) / 2
+                                    const top = (height - previewImage.paintedHeight) / 2
+                                    if (previewImage.paintedWidth > 0 && previewImage.paintedHeight > 0 &&
+                                        mouse.x >= left && mouse.x <= left + previewImage.paintedWidth &&
+                                        mouse.y >= top && mouse.y <= top + previewImage.paintedHeight)
+                                        editor.sampleWhiteBalance((mouse.x - left) / previewImage.paintedWidth,
+                                                                  (mouse.y - top) / previewImage.paintedHeight)
                                 }
                             }
                             MouseArea {
@@ -375,6 +392,13 @@ ApplicationWindow {
                         Button { objectName: "develop.processedButton"; text: qsTranslate("Luma", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         Button { objectName: "develop.originalButton"; text: qsTranslate("Luma", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                     }
+                    Label {
+                        visible: editor.whiteBalancePicking
+                        text: qsTranslate("Luma", "Click a neutral gray area. Escape cancels the eyedropper.")
+                        color: "#dfae77"; font.pixelSize: 11
+                        wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
+                        Layout.fillWidth: true
+                    }
                     Label { visible:editor.targetedTool!=="none";text:qsTranslate("Luma", "Click a tone or color and drag up / down");color:"#dfae77";font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
                 }
             }
@@ -407,6 +431,45 @@ ApplicationWindow {
                             currentIndex: editor.customWhiteBalance ? 6 : 0
                             enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
                             onActivated: editor.setWhiteBalancePreset(model[currentIndex].value)
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Button {
+                                objectName: "develop.whiteBalance.auto"
+                                text: qsTranslate("Luma", "Auto")
+                                Accessible.name: qsTranslate("Luma", "Auto white balance")
+                                Layout.fillWidth: true
+                                enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                                         !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
+                                onClicked: editor.autoWhiteBalance()
+                                ToolTip.visible: hovered
+                                ToolTip.text: qsTranslate("Luma", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
+                            }
+                            Button {
+                                objectName: "develop.whiteBalance.eyedropper"
+                                text: qsTranslate("Luma", "Eyedropper")
+                                Accessible.name: qsTranslate("Luma", "White balance eyedropper")
+                                Layout.fillWidth: true
+                                checkable: true; checked: editor.whiteBalancePicking
+                                enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                                         !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
+                                onClicked: editor.whiteBalancePicking = !editor.whiteBalancePicking
+                            }
+                        }
+                        RowLayout {
+                            visible: editor.whiteBalanceBusy || editor.whiteBalancePicking
+                            Layout.fillWidth: true
+                            BusyIndicator { running: editor.whiteBalanceBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
+                            Label {
+                                text: editor.whiteBalanceBusy ? qsTranslate("Luma", "Estimating white balance…") : qsTranslate("Luma", "Select a neutral area")
+                                Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
+                            }
+                            Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelWhiteBalance() }
+                        }
+                        Label {
+                            objectName: "develop.whiteBalance.message"
+                            visible: text.length > 0; text: editor.whiteBalanceMessage
+                            Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: "#dfae77"
                         }
                         DevelopSlider { parameter: "temperature"; label: qsTranslate("Luma", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
                         DevelopSlider { parameter: "tint"; label: qsTranslate("Luma", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }

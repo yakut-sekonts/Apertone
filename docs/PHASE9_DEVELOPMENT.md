@@ -198,6 +198,53 @@ composition. They never enter EditDocument, catalog, presets, versions or export
 The compact panel, explanations and accessibility labels have eight-language
 source translations. All behavior remains unbuilt and unqualified.
 
+## Auto white balance and neutral eyedropper
+
+Requirement §18 now has a source workflow in Develop → White Balance. Auto
+estimates the visible crop; Eyedropper switches to Fit and waits for a matching
+2560-edge source-preview render before accepting a neutral-area click. Both
+produce Custom Temperature/Tint, one labeled Undo step and normal autosave.
+As Shot and the existing illuminant presets remain available. The result is
+ordinary edit data used by presets, named versions, thumbnails and export; no
+Auto operation reruns implicitly on reopening or crop changes.
+
+The sampler operates on camera-space preview pixels after LensCorrectionPass
+and RetouchPass. CropGeometry maps EXIF orientation, crop/straighten/flips and
+perspective into that source. It excludes current WB, global tone/detail, local
+layers, monitor ICC and overlays. Bilinear samples are weighted by straight
+coverage, so hidden RGB in transparent pixels does not affect the estimate.
+Auto samples at most 192×192 grid positions and averages usable source RGB
+(gray-world). Eyedropper samples up to 5×5 output-preview positions and refuses
+an unusable center instead of silently choosing a neighboring opaque pixel.
+
+Admission requires positive finite camera channels and As Shot working-sRGB
+channels in [0.002, 0.98). Auto requires up to 16 usable grid positions; the
+coverage sum must also exceed 10% of that minimum. These are preview heuristics,
+not RAW sensor-clipping detection. Black, white, strongly colored or almost
+transparent images can yield an explicit insufficient-sample error. Dominant
+scene colors, mixed lighting and downsampling may bias the gray-world estimate;
+the UI asks users to review the result. Creative HSL/local adjustments can keep
+a selected area colored even after its source reference is neutralized.
+
+The solver shares the exact existing manual gain model with DevelopPipeline.
+It fits the ratios needed for neutral working RGB, searching reciprocal
+Temperature 40…500 mired (25000…2000 K) and Tint −150…150, then refining. Values
+are rounded to 1 K / 0.01 Tint. A log gain-ratio residual above 0.03 shows a
+closest-supported-result message. This is not a colorimetric error guarantee or
+an Adobe matching claim. Existing edit/catalog schemas are unchanged.
+
+A separate worker has bounded grid/search work and cooperative cancellation.
+Completion checks operation, load/edit revision, history generation/revision
+and gesture state. New edits, tool switches, photo changes, Library, Original,
+focus loss, Escape/Cancel and close invalidate work. Successful changes use the
+normal Undo/autosave/render path. Failed sampling keeps the picker available
+for another point; user cancellation leaves edits unchanged. Worker shutdown
+joins before controller destruction. Progress/errors/history labels support all
+eight languages. See [ADR 0029](adr/0029-white-balance-estimation.md).
+
+This is source-only implementation; no build, numerical, image-quality or UX
+qualification has run.
+
 ## Backup and recovery
 
 Settings → Catalog and backups provides Every launch, Daily, Weekly or Manual
@@ -353,6 +400,16 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
   row-probe coverage to analysis-enabled renders during the final campaign; its
   existing instrumentation currently uses the default disabled-analysis path.
   Measure added preview latency and cache/active memory only in final QA.
+- Qualify Auto/picker WB against independent neutral patches and known casts,
+  non-identity camera matrices, every supported temperature/tint boundary and
+  model mismatch. Include opaque/alpha/HDR/black/white/monochrome/dominant-color
+  and tiny images, gray-world bias, crop/orientation/flips/perspective/optics/
+  retouch mapping, display-profile/overlay independence and existing manual/As
+  Shot render equivalence after extracting the shared gain helper. Cover one-step
+  Undo/Redo, no-op estimates, catalog/preset/version/export consistency, stale
+  completions across load/edit/history/close, cancellation, failed samples/retry,
+  worker submission/shutdown and native Fit/keyboard/focus/all-language layout.
+  Build and fix all app/CLI/test targets before claiming readiness.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
 - Cover startup cancellation, missing volumes, multiple windows, stale markers,

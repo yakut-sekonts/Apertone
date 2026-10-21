@@ -81,6 +81,8 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     QGuiApplication::instance()->installEventFilter(this);
 }
 EditorController::~EditorController() {
+    whiteBalanceJob_.cancel();
+    whiteBalanceJobs_.shutdown();
     retouchJob_.cancel();
     retouchJobs_.shutdown();
     aiJob_.cancel();
@@ -161,7 +163,7 @@ QSize EditorController::previewPixelSize() const {
 }
 void EditorController::setOneToOne(bool value) {
     if (oneToOne_ == value || (value && (!editable() || cropMode_ || guidedMode_ || localMode_ ||
-                                       retouchMode_ != QStringLiteral("off") ||
+                                       whiteBalancePicking_ || retouchMode_ != QStringLiteral("off") ||
                                        targetedTool_ != QStringLiteral("none"))))
         return;
     if (value && previewPixelSize().isEmpty()) {
@@ -433,6 +435,7 @@ QVariantMap EditorController::correctionStates() const {
     return values;
 }
 void EditorController::beginEdit() {
+    cancelWhiteBalance();
     clearDetailDiagnostic();
     clearPreviewSettings();
     histogramGesture_.reset();
@@ -440,6 +443,7 @@ void EditorController::beginEdit() {
         history_.begin();
 }
 void EditorController::endEdit() {
+    cancelWhiteBalance();
     const bool wasEditing = history_.gestureActive();
     cancelLocalSample();
     clearDetailDiagnostic();
@@ -453,6 +457,7 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    cancelWhiteBalance();
     cancelAI();
     cancelRetouch();
     cancelLocalSample();
@@ -511,6 +516,11 @@ void EditorController::setCorrectionEnabled(const QString &name, bool enabled) {
     }
 }
 void EditorController::setWhiteBalancePreset(const QString &name) {
+    if (name == QStringLiteral("Auto")) {
+        autoWhiteBalance();
+        return;
+    }
+    cancelWhiteBalance();
     clearPreviewSettings();
     if (!editable())
         return;
@@ -569,6 +579,7 @@ void EditorController::resetEdits() {
     }
 }
 void EditorController::setOriginal(bool value) {
+    cancelWhiteBalance();
     if (busy())
         return;
     cancelAI();
@@ -608,14 +619,18 @@ void EditorController::render(bool fullQuality) {
         localCanvasReady_ = false;
         emit stateChanged();
     }
+    if (whiteBalanceCanvasReady_) {
+        whiteBalanceCanvasReady_ = false;
+        emit stateChanged();
+    }
     const auto overlay = localRenderOverlay();
     // Geometry tools keep a stable canvas/sample grid throughout a gesture.
     const bool interactive = !fullQuality && session_->interactivePreview &&
-                             diagnostic_ == luma::DetailDiagnostic::none && !cropMode_ &&
-                             !guidedMode_ && !localMode_ && retouchMode_ == QStringLiteral("off") &&
+                             diagnostic_ == luma::DetailDiagnostic::none && !whiteBalancePicking_ &&
+                             !cropMode_ && !guidedMode_ && !localMode_ && retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
-    const bool fullResolution = fullQuality && oneToOne_ && !cropMode_ && !guidedMode_ &&
-                                !localMode_ && targetedTool_ == QStringLiteral("none");
+    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ &&
+                                !cropMode_ && !guidedMode_ && !localMode_ && targetedTool_ == QStringLiteral("none");
     const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
@@ -689,6 +704,7 @@ void EditorController::render(bool fullQuality) {
                             self->cropCanvasReady_ = self->cropMode_;
                             self->guidedCanvasReady_ = self->guidedMode_;
                             self->localCanvasReady_ = self->localMode_;
+                            self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
                             self->publishHistogram(cached->histogram);
                             if (interactive && !self->history_.gestureActive())
                                 self->refineTimer_.start();
@@ -786,6 +802,7 @@ void EditorController::cancelLoad() {
     loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
+    cancelWhiteBalance();
     cancelAI();
     cancelRetouch();
     closeTransformTool();

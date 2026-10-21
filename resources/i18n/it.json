@@ -705,6 +705,20 @@
     "Histogram and clipping overlays are unavailable in Detail diagnostic views.": "L’istogramma e le sovrapposizioni di ritaglio non sono disponibili nelle viste diagnostiche di Dettagli.",
     "Invalid histogram coverage.": "Copertura del pixel non valida per l’istogramma.",
     "Non-finite histogram pixel.": "Valore del pixel non finito nell’istogramma.",
-    "Invalid clipping preview mode.": "Modalità di anteprima del ritaglio non valida."
+    "Invalid clipping preview mode.": "Modalità di anteprima del ritaglio non valida.",
+    "Auto white balance": "Bilanciamento del bianco automatico",
+    "White balance eyedropper": "Contagocce del bilanciamento del bianco",
+    "Eyedropper": "Contagocce",
+    "Estimating white balance…": "Calcolo del bilanciamento del bianco…",
+    "Select a neutral area": "Seleziona un’area neutra",
+    "Click a neutral gray area. Escape cancels the eyedropper.": "Fai clic su un’area grigia neutra. Escape annulla il contagocce.",
+    "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.": "Stima il bilanciamento del bianco dal ritaglio visibile. Le scene con colori dominanti possono richiedere correzioni manuali.",
+    "Applied the closest white balance within the supported Temperature/Tint range.": "Applicato il bilanciamento del bianco più vicino nell’intervallo di temperatura e tinta supportato.",
+    "White balance set from the neutral sample.": "Bilanciamento del bianco impostato dal campione neutro.",
+    "Auto white balance applied. Review Temperature and Tint.": "Bilanciamento del bianco automatico applicato. Controlla temperatura e tinta.",
+    "This sample cannot produce a neutral white balance.": "Questo campione non consente di calcolare un bilanciamento del bianco neutro.",
+    "Invalid white balance sample position.": "Posizione del campione di bilanciamento del bianco non valida.",
+    "Choose a midtone neutral area away from transparency and clipping.": "Scegli un’area neutra di mezzitoni senza trasparenza né clipping.",
+    "Not enough usable pixels to estimate white balance.": "Pixel utilizzabili insufficienti per stimare il bilanciamento del bianco."
   }
 }

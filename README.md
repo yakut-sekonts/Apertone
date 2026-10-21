@@ -27,7 +27,7 @@ this is not a full UX qualification.
 The `codex/1.0-development` branch additionally contains **unbuilt, unqualified
 0.6–0.9 development**: Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
-RGB/luminance Histogram with clipping overlays. These features are not in the published
+RGB/luminance Histogram with clipping overlays, Auto WB and a neutral eyedropper. These features are not in the published
 0.5.1 installer. See [final readiness](docs/FINAL_1_0_READINESS.md) before using
 or distributing a new build. All testing is deferred to final qualification.
 
@@ -126,9 +126,12 @@ licenses; see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 Temperature spans 2000–25000 K and Tint spans −150…150. Manual WB uses a
 reference white-point approximation; As Shot uses the RAW camera gains.
-Auto WB, eyedropper, highlight reconstruction, persistent history, Versions,
-detail and calibrated camera profiles remain planned. Undo/Redo retains
-up to 200 operations in the current active-photo session. Double-click resets a
+The development branch adds Auto WB and a neutral eyedropper that resolve to
+Custom values with one-step Undo; see [behavior and limits](docs/PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
+Named versions and the session History browser also have source implementations.
+These additions remain unbuilt/unqualified; highlight reconstruction, persistent
+history and calibrated camera profiles are not claimed. Undo/Redo retains up to
+200 operations in the current active-photo session. Double-click resets a
 slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
 Export uses an immutable edit snapshot, the original resolution, sRGB and no

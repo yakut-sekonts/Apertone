@@ -181,6 +181,10 @@ The §17 Histogram source workflow adds sampled RGB/luminance distributions,
 output-referred clipping indicators/overlays and five tone controls with gesture
 Undo. It follows the visible preview, excludes transparency and display overlays,
 and does not change export settings. Runtime/image-quality qualification is pending.
+The §18 Auto WB and neutral eyedropper source workflows now resolve source
+samples to ordinary Custom Temperature/Tint, with cancellable work, stale-result
+guards and one-step Undo. Gray-world estimation and reference white-point fitting
+remain subject to final photographic/numerical and UX qualification.
 Per-process rotating event logs and local crash capture are also implemented in
 source; reports stay local and are excluded from the shareable JSON.
 Large catalogs, fault injection, UI/performance regression and all QA are

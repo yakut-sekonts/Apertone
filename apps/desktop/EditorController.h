@@ -62,6 +62,10 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool presetPreview READ presetPreview NOTIFY stateChanged)
     Q_PROPERTY(QString detailDiagnostic READ detailDiagnostic NOTIFY stateChanged)
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
+    Q_PROPERTY(bool whiteBalanceBusy READ whiteBalanceBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool whiteBalancePicking READ whiteBalancePicking WRITE setWhiteBalancePicking NOTIFY stateChanged)
+    Q_PROPERTY(bool whiteBalanceCanvasReady READ whiteBalanceCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(QString whiteBalanceMessage READ whiteBalanceMessage NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
     Q_PROPERTY(bool exporting READ exporting NOTIFY stateChanged)
@@ -393,6 +397,16 @@ class EditorController final : public QObject {
     Q_INVOKABLE void setParameter(const QString &name, double value);
     Q_INVOKABLE void setCorrectionEnabled(const QString &name, bool enabled);
     Q_INVOKABLE void setWhiteBalancePreset(const QString &name);
+    bool whiteBalanceBusy() const { return whiteBalanceBusy_; }
+    bool whiteBalancePicking() const { return whiteBalancePicking_; }
+    bool whiteBalanceCanvasReady() const {
+        return whiteBalancePicking_ && whiteBalanceCanvasReady_ && !whiteBalanceBusy_ && !busy();
+    }
+    QString whiteBalanceMessage() const { return whiteBalanceMessage_.text(); }
+    void setWhiteBalancePicking(bool enabled);
+    Q_INVOKABLE void autoWhiteBalance();
+    Q_INVOKABLE void sampleWhiteBalance(double x, double y);
+    Q_INVOKABLE void cancelWhiteBalance();
     Q_INVOKABLE void undo();
     Q_INVOKABLE void redo();
     Q_INVOKABLE void resetEdits();
@@ -492,6 +506,12 @@ class EditorController final : public QObject {
     PreviewProvider *provider_;
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;
+    luma::JobManager whiteBalanceJobs_;
+    luma::JobHandle whiteBalanceJob_;
+    std::uint64_t whiteBalanceRevision_ = 0;
+    bool whiteBalanceBusy_ = false, whiteBalancePicking_ = false, whiteBalanceCanvasReady_ = false;
+    LocalizedText whiteBalanceMessage_;
+    void runWhiteBalance(std::optional<std::array<double, 2>> point);
     luma::JobManager transformJobs_;
     luma::JobHandle transformJob_;
     bool guidedMode_ = false, guidedCanvasReady_ = false, transformAutoBusy_ = false;
