@@ -48,6 +48,25 @@ Dialog {
             Label { text: "Qt " + (diagnostics.snapshot.qtVersion || "—") + " · SQLite " + (diagnostics.snapshot.sqliteVersion || "—"); wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Cache sizes count retained entries; active operations can use additional memory."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "The report contains technical details only. Photos, filenames, catalog paths, metadata, model paths and credentials are excluded."); wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label {
+                visible: !!diagnostics.snapshot.localDiagnostics
+                text: diagnostics.snapshot.localDiagnostics && diagnostics.snapshot.localDiagnostics.crashCaptureEnabled
+                    ? qsTranslate("Luma", "Local crash recording is enabled.") : qsTranslate("Luma", "Local crash recording is unavailable.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Label {
+                visible: !!diagnostics.snapshot.localDiagnostics
+                text: diagnostics.snapshot.localDiagnostics && diagnostics.snapshot.localDiagnostics.loggingAvailable
+                    ? qsTranslate("Luma", "Local event logging is enabled.") : qsTranslate("Luma", "Local event logging is unavailable.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Label {
+                visible: !!diagnostics.snapshot.localDiagnostics && diagnostics.snapshot.localDiagnostics.droppedLogEvents > 0
+                text: qsTranslate("Luma", "Unwritten log events: %1").arg(diagnostics.snapshot.localDiagnostics ? diagnostics.snapshot.localDiagnostics.droppedLogEvents : 0)
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Button { text: qsTranslate("Luma", "Open local logs and crash reports"); enabled: diagnostics.localFolder.toString().length > 0; onClicked: Qt.openUrlExternally(diagnostics.localFolder); Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.fillWidth: true
                 Button { text: qsTranslate("Luma", "Refresh"); enabled: !diagnostics.busy; onClicked: diagnostics.refresh(); Layout.fillWidth: true }

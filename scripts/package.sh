@@ -33,6 +33,7 @@ cp "$build_directory/_deps/libraw-src/LICENSE.LGPL" "$notices/LibRaw-LGPL.txt"
 cp "$build_directory/_deps/libraw-src/COPYRIGHT" "$notices/LibRaw-COPYRIGHT.txt"
 cp "$build_directory/_deps/lcms-src/LICENSE" "$notices/LittleCMS-LICENSE.txt"
 test -s "$notices/Sparkle-LICENSE.txt"
+test -s "$notices/PLCrashReporter-LICENSE.txt"
 mkdir -p "$notices/Lensfun"
 cp "$build_directory/_deps/lens_database-src/docs/cc-by-sa-3.0.txt" "$notices/Lensfun/LICENSE.txt"
 cp "$build_directory/_deps/lens_database-src/README.md" "$notices/Lensfun/UPSTREAM_README.md"
@@ -87,7 +88,7 @@ info = {"version": version, "source_commit": commit, "platform": "macOS 14+", "a
         "signing": "developer-id" if signed else "ad-hoc",
         "bundled_models": json.loads(models_manifest)["models"],
         "models_manifest_sha256": hashlib.sha256(models_manifest).hexdigest(),
-        "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0", "LensfunDatabase": "0.3.4"}}
+        "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0", "LensfunDatabase": "0.3.4", "PLCrashReporter": "1.12.2"}}
 if signed:
     info["notarization_policy"] = "required; acceptance recorded in release BUILD_INFO.json"
 else:

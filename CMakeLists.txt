@@ -19,6 +19,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/.tools/qt/6.10.3/macos")
 endif()
 include(cmake/Dependencies.cmake)
 include(cmake/Sparkle.cmake)
+include(cmake/CrashReporter.cmake)
 
 add_library(luma_core STATIC
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
@@ -78,6 +79,7 @@ qt_add_resources(luma_localization luma_languages PREFIX "/luma/i18n" BASE "reso
           resources/i18n/de.json resources/i18n/es.json resources/i18n/it.json resources/i18n/fr.json)
 
 qt_add_executable(Luma MACOSX_BUNDLE
+    apps/desktop/DiagnosticSession.cpp apps/desktop/DiagnosticSession.h platform/macos/CrashCapture.mm
     apps/desktop/CatalogStartup.cpp apps/desktop/CatalogStartup.h
     apps/desktop/DiagnosticsController.cpp apps/desktop/DiagnosticsController.h
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
@@ -88,6 +90,9 @@ qt_add_executable(Luma MACOSX_BUNDLE
 qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Luma PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
+target_link_libraries(Luma PRIVATE luma_crashreporter "-framework Foundation" "-framework CoreServices")
+target_link_options(Luma PRIVATE -ObjC)
+set_source_files_properties(platform/macos/CrashCapture.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
 add_custom_command(TARGET Luma POST_BUILD
@@ -96,7 +101,9 @@ add_custom_command(TARGET Luma POST_BUILD
         "$<TARGET_BUNDLE_DIR:Luma>/Contents/Frameworks/Sparkle.framework"
     COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty"
     COMMAND ${CMAKE_COMMAND} -E copy "${sparkle_SOURCE_DIR}/LICENSE"
-        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt")
+        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${plcrashreporter_SOURCE_DIR}/LICENSE"
+        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt")
 target_compile_definitions(Luma PRIVATE LUMA_VERSION="${PROJECT_VERSION}")
 set_source_files_properties(resources/branding/Luma.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 target_sources(Luma PRIVATE resources/branding/Luma.icns)

@@ -612,6 +612,13 @@
     "At most 256 creators are supported per photo.": "Մեկ լուսանկարի համար աջակցվում է առավելագույնը 256 հեղինակ։",
     "Creator names must not be empty.": "Հեղինակների անունները չպետք է դատարկ լինեն։",
     "Invalid XMP rating.": "XMP գնահատականը սխալ է։",
-    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP-ի կոտորակային գնահատականները հնարավոր չէ ներկայացնել գրադարանի ամբողջ աստղերով։"
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP-ի կոտորակային գնահատականները հնարավոր չէ ներկայացնել գրադարանի ամբողջ աստղերով։",
+    "Local crash recording is enabled.": "Խափանումների տեղային գրանցումը միացված է։",
+    "Local crash recording is unavailable.": "Խափանումների տեղային գրանցումն անհասանելի է։",
+    "Open local logs and crash reports": "Բացել տեղային մատյաններն ու խափանումների զեկույցները",
+    "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON.": "Մատյաններն ու խափանումների զեկույցները մնում են այս Mac-ում և չեն ներառվում ախտորոշման JSON-ում։",
+    "Local event logging is enabled.": "Իրադարձությունների տեղային գրանցումը միացված է։",
+    "Local event logging is unavailable.": "Իրադարձությունների տեղային գրանցումն անհասանելի է։",
+    "Unwritten log events: %1": "Չգրանցված իրադարձություններ՝ %1"
   }
 }

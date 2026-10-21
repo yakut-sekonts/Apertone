@@ -1,4 +1,5 @@
 #include "apps/desktop/DiagnosticsController.h"
+#include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/EditorController.h"
 #include "core/catalog/SqliteStatement.h"
 #include "platform/macos/SystemDiagnostics.h"
@@ -46,10 +47,11 @@ void writeReport(const QString &destination, const QVariantMap &report) {
         throw std::runtime_error("Cannot save the diagnostic report. Choose a new writable filename.");
 }
 }
-DiagnosticsController::DiagnosticsController(std::filesystem::path catalog, EditorController &editor,
+DiagnosticsController::DiagnosticsController(std::filesystem::path catalog, EditorController &editor, luma::desktop::DiagnosticSession &session,
                                              QObject *parent)
-    : QObject(parent), catalog_(std::move(catalog)), editor_(editor) {}
+    : QObject(parent), catalog_(std::move(catalog)), editor_(editor), session_(session) {}
 DiagnosticsController::~DiagnosticsController() { jobs_.shutdown(); }
+QUrl DiagnosticsController::localFolder() const { return session_.folder(); }
 void DiagnosticsController::refresh() { collect({}); }
 void DiagnosticsController::exportReport(const QUrl &file) {
     if (file.isLocalFile()) collect(file.toLocalFile());
@@ -63,10 +65,13 @@ void DiagnosticsController::collect(const QString &destination) {
     const bool metal = editor_.metalPreview();
     const bool denoiseConfigured = editor_.denoiseModelConfigured();
     const bool skyConfigured = editor_.skyModelConfigured();
+    const QVariantMap localDiagnostics{{"loggingAvailable", session_.loggingAvailable()},
+        {"crashCaptureEnabled", session_.crashCaptureEnabled()},
+        {"droppedLogEvents", QVariant::fromValue(static_cast<qulonglong>(session_.droppedEvents()))}};
     const auto catalog = catalog_;
     const QPointer<DiagnosticsController> self(this);
     jobs_.submit(luma::JobPriority::background,
-        [self, catalog, caches, version, metal, denoiseConfigured, skyConfigured, destination](const auto &) {
+        [self, catalog, caches, version, metal, denoiseConfigured, skyConfigured, localDiagnostics, destination](const auto &) {
             QVariantMap report;
             QString error;
             try {
@@ -84,6 +89,7 @@ void DiagnosticsController::collect(const QString &destination) {
                     {"residentMemoryBytes", QVariant::fromValue(static_cast<qulonglong>(system.residentMemory))},
                     {"decodedPreviewCache", cache(caches[0])}, {"fullResolutionCache", cache(caches[1])},
                     {"renderedPreviewCache", cache(caches[2])},
+                    {"localDiagnostics", localDiagnostics},
                     {"denoiseModelConfigured", denoiseConfigured}, {"skyModelConfigured", skyConfigured}};
                 if (!destination.isEmpty()) writeReport(destination, report);
             } catch (const std::exception &failure) {

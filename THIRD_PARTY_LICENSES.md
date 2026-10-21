@@ -21,6 +21,12 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
 - **Sparkle 2.10.0** — https://github.com/sparkle-project/Sparkle/releases/tag/2.10.0
   Native macOS update installation and EdDSA verification. Dynamically linked
   under its permissive Sparkle license; the complete upstream LICENSE is included.
+- **PLCrashReporter 1.12.2** — https://github.com/microsoft/plcrashreporter/tree/1.12.2
+  Local macOS crash capture, statically linked from commit
+  `0254f941c646b1ed17b243654723d0f071e990d0`. **MIT**, with inherited notices
+  including Apache-2.0 protobuf-c components. The complete upstream LICENSE is
+  copied to `ThirdParty/PLCrashReporter-LICENSE.txt`. Only the macOS static target
+  is built; upstream demo applications, utilities and tests are not distributed.
 - **Lensfun database v0.3.4** — https://github.com/lensfun/lensfun/tree/v0.3.4/data/db
   Lens calibration and camera/mount metadata, **CC BY-SA 3.0 Unported**.
   Attribution: Lensfun contributors and Tom Niemann (original PTLens data).
@@ -29,7 +35,7 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   Generated calibration data retain CC BY-SA 3.0; Luma's independent profile
   reader and optical mathematics are original Apache-2.0 code. Lensfun's
   LGPL library, GPL applications and build system are not compiled or linked.
-- **Apple system frameworks** — CommonCrypto, AppKit, ColorSync, ImageIO, CoreText and
+- **Apple system frameworks** — CommonCrypto, AppKit, Foundation, CoreServices, ColorSync, ImageIO, CoreText and
   UniformTypeIdentifiers from the system SDK. Used for hashing, color, image
   decoding/encoding, text and native format identification; no Apple SDK or framework
   binary is redistributed.

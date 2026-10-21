@@ -612,6 +612,13 @@
     "At most 256 creators are supported per photo.": "Для одного фото поддерживается не более 256 авторов.",
     "Creator names must not be empty.": "Имена авторов не должны быть пустыми.",
     "Invalid XMP rating.": "Некорректный рейтинг XMP.",
-    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Дробный рейтинг XMP нельзя представить целым числом звёзд в библиотеке."
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Дробный рейтинг XMP нельзя представить целым числом звёзд в библиотеке.",
+    "Local crash recording is enabled.": "Локальная запись отчётов о сбоях включена.",
+    "Local crash recording is unavailable.": "Локальная запись отчётов о сбоях недоступна.",
+    "Open local logs and crash reports": "Открыть локальные журналы и отчёты о сбоях",
+    "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON.": "Журналы и отчёты о сбоях остаются на этом Mac и не включаются в диагностический JSON.",
+    "Local event logging is enabled.": "Локальный журнал событий включён.",
+    "Local event logging is unavailable.": "Локальный журнал событий недоступен.",
+    "Unwritten log events: %1": "Незаписанные события журнала: %1"
   }
 }

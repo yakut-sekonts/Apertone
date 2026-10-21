@@ -612,6 +612,13 @@
     "At most 256 creators are supported per photo.": "每张照片最多支持 256 位作者。",
     "Creator names must not be empty.": "作者姓名不能为空。",
     "Invalid XMP rating.": "XMP 评分无效。",
-    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP 小数评分无法用图库中的整数星级表示。"
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP 小数评分无法用图库中的整数星级表示。",
+    "Local crash recording is enabled.": "本地崩溃记录已启用。",
+    "Local crash recording is unavailable.": "本地崩溃记录不可用。",
+    "Open local logs and crash reports": "打开本地日志和崩溃报告",
+    "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON.": "日志和崩溃报告保留在此 Mac 上，不会包含在诊断 JSON 中。",
+    "Local event logging is enabled.": "本地事件日志已启用。",
+    "Local event logging is unavailable.": "本地事件日志不可用。",
+    "Unwritten log events: %1": "未写入的日志事件：%1"
   }
 }

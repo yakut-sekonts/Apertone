@@ -19,6 +19,10 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   Fractional ratings are refused visibly, not rounded. Migration 17 and all
   import/edit/sidecar/export paths require final qualification; see
   [metadata semantics](PHASE9_DEVELOPMENT.md#metadata-and-xmp).
+- Local rotating logs and PLCrashReporter capture are implemented in source;
+  no capture/rotation/formatting execution has taken place. The dependency is
+  pinned, its license travels with the bundle and reports remain local. See
+  [diagnostics design and limits](PHASE9_DEVELOPMENT.md#local-logs-and-crash-reports).
 
 ## Final campaign
 
@@ -49,7 +53,13 @@ and repeat the affected regression coverage before final acceptance.
 Startup recovery and local Diagnostics now have source implementations. Include
 missing/locked/corrupt catalogs, interrupted-session detection, worker shutdown,
 restore-without-replacement and diagnostic-report privacy in this campaign.
-OS crash-dump capture/rotation is not implemented by the session marker.
+Qualify the separate local crash reporter, signal/exception capture, bounded
+binary/text reports, queue overflow, rotation/retention, inactive-session locks,
+multiple processes, debugger/acceptance opt-outs and disk/permission failures.
+Preserve matching final application/library dSYMs before stripping or removing
+build objects and demonstrate offline symbolication against their Mach-O UUIDs.
+Crash reports contain binary paths/process details; never automatically append
+them to the privacy-limited diagnostic JSON or upload them.
 
 ## Distribution
 

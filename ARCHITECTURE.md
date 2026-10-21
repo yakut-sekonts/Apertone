@@ -31,19 +31,41 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/image`: Float32 Bayer data, bilinear interpolation, camera color matrix.
 - `core/render`: area-averaged camera RGB preview and shared CPU Develop reference path.
 - `core/color`: scene-linear sRGB to arbitrary RGB monitor ICC, via LittleCMS.
-- `core/metadata`: typed EXIF values; absent numbers remain `std::optional`.
+- `core/metadata`: typed EXIF and descriptive/XMP values, ordered creators and exact label text; absent numbers remain `std::optional`.
 - `core/edits`: validated typed Develop document; global schema version 8.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations through 8.
+- `core/catalog`: SQLite connection per worker operation and migrations through 17, with pre-migration backups.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
 - `apps/desktop`: Qt editor controller, bounded paged LibraryModel and asynchronous thumbnail provider.
 - `apps/cli`: explicit-catalog machine-readable commands.
 
-Future `core/masks`, `cache`, `search`, `ai` are described by
-the roadmap and will be created with their first implementation. Empty feature
-classes are not counted as functionality.
+Source implementations of masks, bounded caches, local AI and category-based
+semantic search are described in the phase 0.6–0.9 development records. They are
+unbuilt and unqualified until the final release campaign.
+
+## Local diagnostics and crash capture
+
+`DiagnosticSession` owns a private, unique process directory and a bounded
+asynchronous JSONL writer. Its API accepts event/level enums and boolean state,
+never free-form errors, photo names, paths or credentials. Log rotation is per
+process; retention only visits recognized inactive sessions under Luma's own
+diagnostics root while holding their session locks. Acceptance launches do not
+start capture or modify the user's diagnostic history.
+
+The macOS adapter uses a pinned source build of PLCrashReporter 1.12.2. Each
+process gets its own reporter base path, capped binary report and no in-process
+symbolication. Existing reports are converted to text on a background worker
+after their owning process exits; raw reports are retained. Crash capture never
+calls SQLite or the Qt logger from a signal/exception callback. The existing
+catalog marker and pre-migration backups remain responsible for recovery.
+
+Preferences exposes the local diagnostic folder. The shareable diagnostic JSON
+includes capability/status counts only; logs and raw/text crash reports are not
+automatically included or uploaded. Crash records can contain process/OS details
+and binary paths. Keep them private and preserve dSYMs separately for final
+symbolication. All capture, rotation and crash/recovery behavior is unqualified.
 
 ## RAW and color pipeline
 

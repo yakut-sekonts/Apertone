@@ -29,6 +29,9 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
   no automatic replacement of missing or unreadable catalogs.
 - Local Diagnostics with system/cache information and a privacy-limited JSON
   export that refuses to replace existing files.
+- Local rotating event logs and pinned PLCrashReporter crash capture, isolated
+  per process. Inactive reports are formatted on the next launch; local folder
+  access and capability status are available in all eight languages. No upload.
 - SQLite pre-migration backups; catalog 11→17 migrations.
 - Source-only Developer ID/hardened-runtime/notarization packaging with isolated
   Actions setup and refusal of unsigned/non-notarized 1.x publication.

@@ -612,6 +612,13 @@
     "At most 256 creators are supported per photo.": "Pro Foto werden höchstens 256 Urheber unterstützt.",
     "Creator names must not be empty.": "Urhebernamen dürfen nicht leer sein.",
     "Invalid XMP rating.": "Ungültige XMP-Bewertung.",
-    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP-Bewertungen mit Nachkommastellen lassen sich nicht als ganze Sterne in der Bibliothek darstellen."
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP-Bewertungen mit Nachkommastellen lassen sich nicht als ganze Sterne in der Bibliothek darstellen.",
+    "Local crash recording is enabled.": "Die lokale Absturzaufzeichnung ist aktiviert.",
+    "Local crash recording is unavailable.": "Die lokale Absturzaufzeichnung ist nicht verfügbar.",
+    "Open local logs and crash reports": "Lokale Protokolle und Absturzberichte öffnen",
+    "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON.": "Protokolle und Absturzberichte bleiben auf diesem Mac und werden nicht in die Diagnose-JSON aufgenommen.",
+    "Local event logging is enabled.": "Das lokale Ereignisprotokoll ist aktiviert.",
+    "Local event logging is unavailable.": "Das lokale Ereignisprotokoll ist nicht verfügbar.",
+    "Unwritten log events: %1": "Nicht geschriebene Protokollereignisse: %1"
   }
 }

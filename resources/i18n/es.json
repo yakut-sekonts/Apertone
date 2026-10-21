@@ -612,6 +612,13 @@
     "At most 256 creators are supported per photo.": "Se admiten como máximo 256 creadores por foto.",
     "Creator names must not be empty.": "Los nombres de los creadores no pueden estar vacíos.",
     "Invalid XMP rating.": "Valoración XMP no válida.",
-    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Las valoraciones XMP fraccionarias no se pueden representar con estrellas enteras en la biblioteca."
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Las valoraciones XMP fraccionarias no se pueden representar con estrellas enteras en la biblioteca.",
+    "Local crash recording is enabled.": "El registro local de fallos está activado.",
+    "Local crash recording is unavailable.": "El registro local de fallos no está disponible.",
+    "Open local logs and crash reports": "Abrir registros locales e informes de fallos",
+    "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON.": "Los registros e informes de fallos permanecen en este Mac y no se incluyen en el JSON de diagnóstico.",
+    "Local event logging is enabled.": "El registro local de eventos está activado.",
+    "Local event logging is unavailable.": "El registro local de eventos no está disponible.",
+    "Unwritten log events: %1": "Eventos de registro no escritos: %1"
   }
 }

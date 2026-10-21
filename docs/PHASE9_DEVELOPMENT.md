@@ -103,7 +103,8 @@ read-only SQLite integrity/foreign-key inspection before writable opening, then
 offers Recover previous session or Continue in Library without decoding the last
 photo. This is interrupted-session detection, not a crash dump or proof of a
 specific crash cause. Historical saved edits stay in SQLite; unsaved slider
-gestures are not invented or reconstructed. OS crash reports remain external.
+gestures are not invented or reconstructed. Separate local crash capture is
+described below; neither the marker nor the crash report modifies saved edits.
 
 The last successfully opened catalog is remembered for ordinary app/update
 launches. Acceptance launches bypass the recovery window and do not change this
@@ -123,6 +124,52 @@ catalog/model paths, metadata, credentials, host names and hardware identifiers.
 The active catalog path appears only in the local Settings UI. No report is
 automatically sent or uploaded. Diagnostics are application features, not a
 substitute for the deferred functional/performance qualification.
+
+### Local logs and crash reports
+
+Normal desktop launches create a private process directory beneath the app's
+local data `diagnostics/` folder. `DiagnosticSession` records UTC, application
+version, level, workflow and typed event codes only. Free-form errors, filenames,
+photo content, metadata and credentials never enter this log API. Trace, Debug,
+Info, Warning and Error levels are supported; the current callers record startup,
+recovery and busy/error transitions in Library, Editor and Export. This is not
+a capture of arbitrary Qt/third-party console output.
+
+Writing runs on a dedicated worker with at most 512 queued events. A full queue
+drops additional events and increments the diagnostic counter. File failures
+disable logging and discard the remaining queue without blocking photo work.
+Each process retains the current 256 KiB JSONL file and up to three rotated files.
+Startup, Warning and Error records are synced; clean shutdown drains the queue.
+Abrupt termination can lose queued or unsynced records, so the counter is not a
+guarantee that every pre-crash event reached durable storage.
+
+PLCrashReporter 1.12.2 is compiled from a pinned source archive for local macOS
+Mach/signal and uncaught Objective-C exception capture. Each process has its own
+reporter base path and an 8 MiB binary report limit. A debugger suppresses capture.
+On a later launch, a background worker formats recognized inactive sessions into
+bounded `crash.txt` files using same-folder temporary files, fsync and no-replace
+installation. Incomplete temporary text is never treated as a completed report.
+Raw reports are retained even if formatting fails. No crash callback touches
+SQLite or the Qt logger; existing WAL/recovery/backup protocols handle the catalog.
+
+The newest 12 recognized inactive sessions are retained; active sessions are
+excluded. Inspection, formatting and deletion require the corresponding
+`QLockFile` and matching schema/name marker. Unknown folders and directory
+symlinks are skipped. Sessions use mode 0700; event/text files use mode 0600.
+Acceptance launches neither enable crash capture nor alter diagnostic history.
+
+Diagnostics exposes logging/capture availability, a dropped-event count and a
+button to open the local folder. Raw/text crash reports can contain process/OS
+information, register/stack addresses and binary paths. They stay local and are
+not included in the exported diagnostic JSON or sent over the network. This is
+a bounded crash report, not a full process-memory core dump. Startup failures
+before initialization, SIGKILL, power loss, disk failures and some OS terminations
+cannot be promised a report. Final builds need retained matching dSYMs for
+offline symbolication; production capture deliberately disables symbolication
+inside the crashing process.
+
+All of this is source implementation only. No crash has been induced, no report
+has been captured, and no logging/retention/permission behavior is qualified.
 
 ## Missing files and external changes
 
@@ -153,6 +200,11 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
   newer/corrupt catalogs, skipped photo recovery, lock lifetime and clean exit.
 - Exercise Diagnostics snapshots/export, no-replace failures and privacy of the
   actual JSON output; wire the Diagnostics dependency into isolated UI fixtures.
+- Qualify PLCrashReporter linkage, supported crash signals/exceptions, next-launch
+  text conversion, matching binary UUID/dSYM symbolication and catalog recovery.
+  Exercise queue saturation, rotation/retention, concurrent catalog processes,
+  debugger/acceptance opt-outs, corrupt reports, disk/permission failures and
+  interruptions while formatting. Inspect actual logs/reports for privacy.
 - Cover moved roots, duplicates, disconnected volumes, checksums, selected-photo
   reopening and preservation of viewport/selection. LUMA-BUG-035 remains open.
 - Run 10k/100k/500k catalog and 8/16 GB resource tests only during final QA.
@@ -166,3 +218,4 @@ Platform references: [ImageIO metadata](https://developer.apple.com/documentatio
 [XMP string access](https://developer.apple.com/documentation/imageio/cgimagemetadatacopystringvaluewithpath(_:_:_:)).
 Interoperability definitions: [Adobe XMP Rating and Label](https://developer.adobe.com/xmp/docs/xmp-namespaces/xmp/),
 [Dublin Core creator sequence](https://developer.adobe.com/xmp/docs/xmp-namespaces/dc/).
+Crash capture: [PLCrashReporter source and integration](https://github.com/microsoft/plcrashreporter/tree/1.12.2).

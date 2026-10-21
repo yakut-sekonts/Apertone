@@ -1,6 +1,7 @@
 #include "apps/desktop/BatchController.h"
 #include "apps/desktop/CatalogStartup.h"
 #include "apps/desktop/DiagnosticsController.h"
+#include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryAcceptance.h"
@@ -90,6 +91,7 @@ int main(int argc, char **argv) {
     const bool unattended = std::any_of(options.begin(), options.end(), [](const QString &option) {
         return option.startsWith(QStringLiteral("test-")) || option == QStringLiteral("smoke-test");
     });
+    luma::desktop::DiagnosticSession diagnosticSession(!unattended);
     const auto remembered = unattended ? QString() : CatalogStartup::rememberedCatalog();
     const bool explicitCatalog = parser.isSet(QStringLiteral("catalog"));
     const auto initialCatalog = explicitCatalog ? parser.value(QStringLiteral("catalog"))
@@ -97,17 +99,35 @@ int main(int argc, char **argv) {
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
                 QStringLiteral("/catalog.sqlite"));
     CatalogStartup startup;
-    if (!startup.prepare(initialCatalog, !explicitCatalog && remembered.isEmpty(), !unattended))
+    QObject::connect(&startup, &CatalogStartup::changed, &startup, [&, recoveryObserved = false]() mutable {
+        if (startup.recoveryPending() && !recoveryObserved)
+            diagnosticSession.record(luma::desktop::LogLevel::warning, luma::desktop::LogEvent::recoveryRequested);
+        recoveryObserved = startup.recoveryPending();
+    });
+    if (!startup.prepare(initialCatalog, !explicitCatalog && remembered.isEmpty(), !unattended)) {
+        if (!unattended && startup.quitting()) diagnosticSession.markCleanExit();
         return unattended ? 1 : 0;
+    }
+    diagnosticSession.record(luma::desktop::LogLevel::info, luma::desktop::LogEvent::catalogReady);
     const auto catalog = startup.catalogPath();
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
-    DiagnosticsController diagnostics(std::filesystem::path(catalog.toStdString()), editor);
+    DiagnosticsController diagnostics(std::filesystem::path(catalog.toStdString()), editor, diagnosticSession);
     PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),
                              editor);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
     BatchController batch(std::filesystem::path(catalog.toStdString()), editor, library, presets);
     ExportController exporter(std::filesystem::path(catalog.toStdString()), editor, library);
+    QObject::connect(&library, &LibraryModel::stateChanged, &library, [&] {
+        diagnosticSession.observe(luma::desktop::LoggedWorkflow::library, library.working(), !library.error().isEmpty());
+    });
+    QObject::connect(&editor, &EditorController::stateChanged, &editor, [&] {
+        diagnosticSession.observe(luma::desktop::LoggedWorkflow::editor,
+            editor.busy() || editor.saving() || editor.aiBusy() || editor.retouchBusy(), !editor.error().isEmpty());
+    });
+    QObject::connect(&exporter, &ExportController::changed, &exporter, [&] {
+        diagnosticSession.observe(luma::desktop::LoggedWorkflow::exportQueue, exporter.working(), !exporter.error().isEmpty());
+    });
     const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
                          parser.isSet(QStringLiteral("test-edit")) ||
                          parser.isSet(QStringLiteral("test-restore")) ||
@@ -704,6 +724,9 @@ int main(int argc, char **argv) {
         editor.restore();
     }
     const int result = app.exec();
-    if (result == 0) startup.markCleanExit();
+    if (result == 0) {
+        startup.markCleanExit();
+        diagnosticSession.markCleanExit();
+    }
     return result;
 }
