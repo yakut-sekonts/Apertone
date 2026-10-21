@@ -1,9 +1,10 @@
 # Bundled offline model delivery
 
 Decision: the user requested installer-bundled models on 2026-10-21. This is a
-source implementation under final qualification. Both models compiled on
-2026-10-21 with Xcode 27.1, but **are not qualified**: the Denoise numerical
-comparison currently fails. No installer was published. Stable remains 0.5.1.
+source implementation under final qualification. Bundle v3 compiled on
+2026-10-21 with Xcode 27.1 and passed synthetic source-quality and native CPU/ALL
+comparisons. Photographic, runtime and distribution qualification remain open.
+No installer was published. Stable remains 0.5.1.
 
 ## Runtime
 
@@ -25,13 +26,19 @@ license hashes and model contracts. `resources/models/NOTICE.md` documents
 upstream attribution and Luma's changes. Both notices and full upstream licenses
 travel with the compiled artifacts.
 
-- NAFNet SIDD width32: MIT with retained BasicSR notices, 512×512 Float32 tensors
+- DRUNet color: MIT, 512×512 Float32 tensors
   and a 64-pixel halo. The sRGB-trained model is wrapped by linear↔sRGB conversion.
   Any RGB pixel outside [0,1] passes through unchanged; no RAW-trained quality
-  claim is made. Adaptation v2 preserves spatially uniform RGB tiles exactly and
+  claim is made. Adaptation v3 preserves spatially uniform RGB tiles exactly and
   uses checkpoint-equivalent spatial slicing/1×1 convolution to avoid the
-  observed native stride-2 convolution error. Model ID is recorded with denoised
-  DNG provenance; original weights are unchanged.
+  observed native stride-2 convolution error. Non-overlapping upsampling is
+  expressed as 1×1 convolution/PixelShuffle with the original coefficients.
+  The fourth input channel carries a per-tile sRGB Gaussian-noise estimate from
+  mean absolute orthonormal Haar HH coefficients times sqrt(pi/2). Texture can
+  raise this estimate; photographic detail and tile consistency need QA.
+  Model ID `drunet-color-haar-v1` is recorded with denoised DNG provenance;
+  original weights are unchanged. The prior NAFNet candidate was retired after
+  it failed the fixed dark-input quality and numerical gates.
 - U²-Net Sky: MIT, the author's ONNX model from the pinned attributed mirror,
   320×320 sRGB input with ImageNet normalization and the first prediction output.
   No per-image min/max stretching is applied to the probability map.
@@ -71,8 +78,8 @@ and Sparkle ZIP; there is no independently downloaded model/update channel.
 
 ## Qualification
 
-The conversion recipe and Core ML compilation have run. The synthetic CPU
-comparison passes for Sky and fails for Denoise; see
+The conversion recipe and Core ML compilation have run. The v3 synthetic
+CPU and ALL comparisons pass for both models; see
 [the qualification record](FINAL_1_0_READINESS.md#completed-baseline-and-current-blockers).
 In particular, coremltools 9.0 documents
 testing with an earlier PyTorch version than this recipe's patched 2.10 loader;
@@ -90,9 +97,11 @@ isolated impulse) and three Sky inputs, finite Float32 tensor contracts, Sky
 bounds, and exact Denoise passthrough for uniform tiles/out-of-range pixels.
 Use `--compute-units all` or `--compute-units cpu-and-gpu` to check another Core
 ML execution policy. The policy does not establish actual device placement.
-The latest local v2 result is 9/11 PASS on CPU and 10/11 with ALL; dark nonuniform
-inputs still fail. It is an additional CI/release gate, not photographic or tiling
-qualification. Native
+The local v3 result is 11/11 PASS on CPU and 11/11 with ALL at unchanged limits.
+Where analytical clean inputs exist, the native output must also pass the same
+quality oracle as the source prediction. This prevents small numerical errors
+from concealing relative quality regressions on dark inputs.
+It is an additional CI/release gate, not photographic or tiling qualification. Native
 prediction failures and signals fail the report; reports are never overwritten.
 CI continues independent application checks after a failed comparison, then
 requires its successful outcome in a final mandatory step. The release workflow
@@ -110,9 +119,9 @@ decrease and peak error must not exceed the input's peak error; noiseless unifor
 colors must remain exact. Both the full tensor and the runtime's 64-pixel crop
 must pass. These are fixed criteria, not limits fitted to the current model.
 Identity, bright-output and detail-destroying predictors are explicitly rejected
-by oracle tests. The current v2 source result is **5/7 PASS, overall FAIL**: both
-nonuniform dark cases fail, including the interior crop. The same failure occurs
-before Core ML and cannot be waived by source/native numerical agreement.
+by oracle tests. The v3 source result is **7/7 PASS**, including both previously
+failing nonuniform dark cases and their interior crop. Historical v1/v2 failures
+remain in the qualification record; they are not reclassified as passing.
 CI preserves both reports and requires both outcomes; release packaging stops
 on either failure. Photographic and runtime quality still need separate evidence.
 

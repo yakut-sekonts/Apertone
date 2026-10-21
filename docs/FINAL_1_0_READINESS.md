@@ -111,10 +111,51 @@ clang-tidy passes its blocking checks, with existing nonblocking warnings.
 Xcode 16.4 validation must still come from the next CI run. No new native UI
 session, signed installer or release was exercised in this follow-up.
 
+### DRUNet v3 and current UX fixtures — 2026-10-21
+
+The source-quality failures persisted in an exploratory Baseline SIDD model, so
+it was not adopted. Bundle v3 instead uses the author's hash-pinned MIT DRUNet
+color checkpoint, equivalent down/up-sampling and a per-tile Haar noise estimate.
+Original weight bytes are unchanged. The same analytical-clean gate now passes
+[7/7 source cases](qualification/2026-10-21/denoise-quality-v3.json), including
+the two dark failures. The native outputs also pass that quality oracle and
+source comparison on [CPU 11/11](qualification/2026-10-21/model-numerics-v3-cpu.json)
+and [ALL 11/11](qualification/2026-10-21/model-numerics-v3-all.json). Maximum
+errors are 1.44e-6 and 3.46e-6 respectively, below the unchanged 0.0005 limit.
+This resolves the exact BUG-036/037 reproductions for the replacement model;
+photographic/noise/texture/tile acceptance remains open. Eleven adaptation tests
+and seven independent quality-oracle tests pass. Both application bundles contain
+the same verified v3 manifest; eight affected CTest regressions pass.
+
+[CI on 5ef81d3](https://github.com/yakut-sekonts/Luma/actions/runs/39616268298)
+built successfully on Xcode 16.4: 58 CTest cases passed and the private Nikon
+fixture was skipped. This closes the reported BUG-038 build failure. Its UX
+step still failed (15 PASS, 180 FAIL, 29 SKIPPED, 92 NOT_IMPLEMENTED), often because
+chooser fixtures wrote retired LibraryPane properties. Tests now assign the
+actual ImportDialog, use all 12 preset groups through visible UI clicks, and
+scroll to the recapture control before clicking. The real DiagnosticsController
+is included in the UX context with logging/capture disabled like unattended
+production startup; the rerun has no QML warnings.
+
+Four targeted import/selection/export cases passed in offscreen/software. A
+dependent eight-case run passed seven, then the recapture scrolling correction
+passed its single affected retest: twelve distinct cases have passing results,
+not a full suite pass. Two UX bundle/isolation CTest checks also pass. Formatting
+and affected clang-tidy pass blocking checks; existing nonblocking warnings remain.
+The local offscreen runs explicitly used the existing `GITHUB_ACTIONS=1` backend
+route; their `hosted_ci` metadata therefore does not mean they ran on GitHub.
+An earlier broad CTest invocation was stopped after it included native UI tests;
+its partial results are not used as additional qualified native coverage.
+See [follow-up record](qualification/2026-10-21/drunet-ux-followup.json).
+
+The new commits still need independent CI. Full new-workflow/native UX,
+photographic model quality, resource/load/recovery and signed distribution gates
+remain open. Stable remains 0.5.1; there is no new installer, tag or appcast.
+
 ## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and
-  Sparkle archive. Pinned NAFNet SIDD and U²-Net Sky sources/licenses, conversion,
+  Sparkle archive. Pinned DRUNet color and U²-Net Sky sources/licenses, conversion,
   default model lookup and packaging guards are implemented in source. The
   compiled models now exist, but the installer and model qualification remain
   open. See [model delivery](BUNDLED_MODELS.md).
@@ -190,8 +231,9 @@ SKIP/NOT_RUN/blocked cases as passing.
 
 Build the offline models before configuring the final app. Qualify the pinned
 Python/PyTorch/ONNX/Core ML conversion path, source-to-Core-ML numerical agreement,
-model tensor contracts and toolchain compatibility. Both models now compile, but
-the native CPU/source numerical comparison blocks acceptance of Denoise.
+model tensor contracts and toolchain compatibility. Bundle v3 now passes the
+synthetic source-quality and native CPU/ALL comparisons; cross-platform and
+photographic/runtime qualification remain open.
 Use representative photographs to assess denoise texture/color/highlights/tiles
 and Sky boundaries/no-sky errors, then CPU fallback, cancellation and 8/16 GB
 resource use. Exercise first launch without network, installation in Applications,

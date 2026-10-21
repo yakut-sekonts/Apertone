@@ -34,7 +34,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 
 ## LUMA-BUG-036 — Compiled Denoise differs from its source network
 
-- Status: **open — native downsampling error fixed; dark-input numerical failures remain**.
+- Status: **reproduced synthetic failures resolved by v3 replacement; cross-platform CI retest pending**.
 - Environment: Apple Silicon, macOS 27.0.1, Xcode 27.1; pinned source weights,
   coremltools 9.0 conversion, Float32 ML Program and native CPU_ONLY prediction.
 - Three synthetic cases (noisy gradient, black, negative/HDR gradient) exceed
@@ -78,7 +78,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 
 ## LUMA-BUG-037 — Source Denoise invents bright structure on nonuniform dark input
 
-- Status: **open — reproduced; blocks photographic model acceptance**.
+- Status: **reproduced synthetic failures resolved by v3 replacement; photographic acceptance remains open**.
 - This occurs in the pinned source network before Core ML conversion. A linear
   dark ramp plus noise, whose maximum is 0.00109, produces values up to 0.642.
   A black tile with one 0.001 impulse produces values up to 1.0 and mean 0.0651.
@@ -99,7 +99,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 
 ## LUMA-BUG-038 — Diagnostic writer prevents the supported CI build
 
-- Status: **source fix and local regression PASS; Xcode 16.4 CI retest pending**.
+- Status: **closed for the reported build failure — local and Xcode 16.4 CI PASS**.
 - [CI run](https://github.com/yakut-sekonts/Luma/actions/runs/39612524379) fails
   compiling `DiagnosticSession`: Xcode 16.4's libc++ has no `std::jthread` or
   `std::stop_token`. Local Xcode 27 builds did not expose this incompatibility.
@@ -110,3 +110,51 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   It uses the production writer and stubs only crash capture/formatting;
   PLCrashReporter, rotation, load and all diagnostic failure modes are not
   qualified by this test.
+
+### DRUNet and CI follow-up — 2026-10-21
+
+- BUG-036/037: NAFNet was replaced with hash-pinned MIT DRUNet color and a
+  per-tile Haar noise estimate. No darkness cutoff, input suppression or relaxed
+  quality/numerical threshold was introduced. The fixed source-quality cases
+  pass 7/7; native CPU and ALL comparisons pass 11/11 each. The native outputs
+  additionally pass the same analytical-clean quality oracle. See
+  [source quality](qualification/2026-10-21/denoise-quality-v3.json),
+  [CPU](qualification/2026-10-21/model-numerics-v3-cpu.json) and
+  [ALL](qualification/2026-10-21/model-numerics-v3-all.json).
+- The replacement resolves these exact synthetic reproductions only. Real
+  camera noise, fine texture, color and per-tile estimate consistency still
+  require photographic/runtime qualification; ALL does not prove device placement.
+- BUG-038: [CI run 39616268298](https://github.com/yakut-sekonts/Luma/actions/runs/39616268298)
+  built successfully with Xcode 16.4 and passed the diagnostic lifecycle test
+  as part of unit/integration. This does not qualify all crash-reporter paths.
+
+## LUMA-BUG-039 — UX import fixtures target the retired LibraryPane properties
+
+- Status: **test harness corrected; four affected offscreen scenarios PASS; full CI rerun pending**.
+- CI after the build fix reports 180 UX failures, frequently at unavailable
+  `library.importStart`. Since advanced import, `sources` and `destination`
+  belong to `library.importDialog`; old fixtures wrote unused dynamic properties
+  on `library.pane`, leaving Start disabled.
+- Chooser-result fixtures and selection snapshots now use the actual dialog.
+  The shared import helpers assert successful property assignment. Subsequent
+  import, selection, edits and export continue through production UI controls.
+  Native file-panel selection remains an explicit untested fixture boundary.
+- The previous failing CI record is retained. This cause does not establish
+  that every one of its 180 failures will pass after the fixture correction.
+
+## LUMA-BUG-040 — UX preset fixtures omit new groups and DiagnosticsController
+
+- Status: **source fixtures corrected; affected offscreen cases PASS; full/native retest pending**.
+- The old Light-only selection unchecked seven groups but left the four new
+  creative groups enabled. Shared fixture selection now covers the current
+  group mask, scrolls controls into view, clicks them and asserts the exact mask.
+  Localization coverage includes all 12 labels; its native candidate has not
+  been rerun here.
+- The preset metadata scenario additionally clicked the recapture checkbox
+  below the clipped viewport. Actual scrolling and checked-state acknowledgement
+  fix the setup without changing the save/recapture/UUID invariants. Its initial
+  failure is retained and its affected retest passes.
+- The UX context now supplies the real DiagnosticsController with a disabled
+  DiagnosticSession, matching unattended startup. This removes the observed
+  undefined-context QML warnings; it does not qualify crash capture or diagnostics UI.
+- Evidence: [follow-up](qualification/2026-10-21/drunet-ux-followup.json).
