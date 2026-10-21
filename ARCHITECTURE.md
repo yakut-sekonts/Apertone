@@ -57,6 +57,20 @@ existing Undo/autosave/render path after geometry and generation checks.
 See [phase-0.9 version semantics](docs/PHASE9_DEVELOPMENT.md#named-processing-versions).
 The implementation has not been built or qualified.
 
+## Preview histogram and clipping
+
+`ImageHistogram` consumes processed linear-sRGB samples after geometry, noise,
+sharpening and local adjustments, before monitor conversion and display overlays.
+An optional renderer analysis request enables a bounded regular sampling grid
+and transient clipping overlays. Existing non-desktop renderer callers use the
+default disabled analysis request. Export options/documents remain independent.
+`RenderedPreview` couples the QImage and histogram in the same bounded cache
+entry; cache accounting includes both. The existing render generation check
+publishes them together and rejects superseded work. The pipeline-v3 cache key
+includes clipping mode as well as ICC, resolution and diagnostic/mask state.
+See [ADR 0028](docs/adr/0028-preview-histogram.md) and the unqualified
+[workflow/limits](docs/PHASE9_DEVELOPMENT.md#histogram-and-clipping).
+
 ## Local diagnostics and crash capture
 
 `DiagnosticSession` owns a private, unique process directory and a bounded

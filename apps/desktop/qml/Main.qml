@@ -392,6 +392,7 @@ ApplicationWindow {
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
                         spacing: 14
+                        HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
                         Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
                         RowLayout {

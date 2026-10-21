@@ -34,6 +34,13 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   Qualify branch/gesture semantics, stale handles/confirmation, snapshot fidelity,
   keyboard/scroll behavior and autosave/close coordination. Persistent history is
   not implemented. See [History behavior](PHASE9_DEVELOPMENT.md#history-browser).
+- The §17 Histogram and §18 Option clipping previews now have source workflows:
+  bounded RGB/luminance sampling before display ICC, alpha-weighted counts,
+  output-referred clipping overlays and five tone controls with gesture Undo.
+  Qualify numerical/visual correctness, stale-render/cache behavior, progressive
+  and 1:1 updates, keyboard/Option/focus handling, UI size/languages and cost on
+  supported hardware. These are preview estimates, not RAW sensor saturation or
+  an export-profile soft proof. See [Histogram behavior](PHASE9_DEVELOPMENT.md#histogram-and-clipping).
 
 ## Final campaign
 

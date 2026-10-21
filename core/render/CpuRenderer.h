@@ -7,7 +7,9 @@
 #include "core/render/LocalAdjustments.h"
 #include "core/render/DevelopAccelerator.h"
 #include "core/render/Sharpening.h"
+#include "core/render/ImageHistogram.h"
 #include <cstdint>
+#include <optional>
 #include <span>
 
 namespace luma {
@@ -15,6 +17,7 @@ struct DisplayImage {
     int width;
     int height;
     std::vector<std::uint8_t> rgba;
+    std::optional<ImageHistogram> histogram = std::nullopt;
 };
 FloatImage standardPreview(const FloatImage &input, int maximumDimension,
                            luma::CancellationToken stop = {});
@@ -23,6 +26,7 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                        luma::CancellationToken stop = {}, RawColorCalibration calibration = {},
                        DetailDiagnostic diagnostic = DetailDiagnostic::none, double detailScale = 1,
                        PhotoMetadata metadata = {}, MaskOverlay overlay = {},
-                       DevelopAccelerator *accelerator = nullptr);
+                       DevelopAccelerator *accelerator = nullptr,
+                       PreviewAnalysisOptions analysis = {});
 float applyExposure(float linearValue, double ev);
 } // namespace luma

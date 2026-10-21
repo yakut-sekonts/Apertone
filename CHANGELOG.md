@@ -6,6 +6,10 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 
 - Bounded preview/source caches, progressive resolution, full-resolution view,
   memory-pressure handling and Metal Light/Color/Curves/HSL.
+- RGB/luminance Histogram with bounded, alpha-weighted preview sampling before
+  monitor ICC conversion, approximate clipping percentages and red/blue overlays.
+  Histogram tone gestures use Undo/autosave; Option on Whites/Blacks provides a
+  temporary clipping overlay. Eight-language UI; analysis/overlays are view-only.
 - Native local AI Subject/Background/Object selections stored as editable masks.
 - Local Core ML Sky mask adapter, sharing bitmap persistence and Undo.
 - Parametric Clone/Heal/Remove, source repositioning, persistence and Undo.

@@ -108,6 +108,11 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantList processingHistory READ processingHistory NOTIFY stateChanged)
     Q_PROPERTY(QString historyRevision READ historyRevision NOTIFY stateChanged)
     Q_PROPERTY(QString historyError READ historyError NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap histogram READ histogram NOTIFY histogramChanged)
+    Q_PROPERTY(bool histogramPending READ histogramPending NOTIFY histogramChanged)
+    Q_PROPERTY(bool shadowClipping READ shadowClipping WRITE setShadowClipping NOTIFY stateChanged)
+    Q_PROPERTY(bool highlightClipping READ highlightClipping WRITE setHighlightClipping NOTIFY stateChanged)
+    Q_PROPERTY(int previewClipping READ previewClipping NOTIFY stateChanged)
 
   public:
     EditorController(std::filesystem::path catalog, PreviewProvider *provider,
@@ -349,6 +354,16 @@ class EditorController final : public QObject {
     Q_INVOKABLE void jumpToHistory(const QString &id);
     Q_INVOKABLE void clearHistory(const QString &revision);
     Q_INVOKABLE void saveHistoryVersion(const QString &id, const QString &name);
+    QVariantMap histogram() const { return histogram_; }
+    bool histogramPending() const { return histogramPending_; }
+    bool shadowClipping() const { return shadowClipping_; }
+    bool highlightClipping() const { return highlightClipping_; }
+    int previewClipping() const { return static_cast<int>(clippingPreview_); }
+    void setShadowClipping(bool value);
+    void setHighlightClipping(bool value);
+    Q_INVOKABLE bool beginHistogramEdit(const QString &parameter);
+    Q_INVOKABLE void updateHistogramEdit(double delta);
+    Q_INVOKABLE void endHistogramEdit();
     QString sourcePath() const;
     bool presetPreview() const {
         return presetPreview_.has_value();
@@ -390,6 +405,7 @@ class EditorController final : public QObject {
     Q_INVOKABLE void cancelLoad();
   signals:
     void progressChanged();
+    void histogramChanged();
     void stateChanged();
     void photoLoaded(const QString &id);
     void editsSaved(const QString &id);
@@ -408,6 +424,12 @@ class EditorController final : public QObject {
     std::optional<std::uint64_t> resolveHistoryHandle(const QString &id) const;
     std::uint64_t historyGeneration_ = 0;
     QString historyError_;
+    QVariantMap histogram_;
+    bool histogramPending_ = false, shadowClipping_ = false, highlightClipping_ = false;
+    luma::ClippingPreview clippingPreview_ = luma::ClippingPreview::none;
+    void publishHistogram(const std::optional<luma::ImageHistogram> &histogram);
+    struct HistogramGesture { QString parameter; double initial; std::uint64_t revision; };
+    std::optional<HistogramGesture> histogramGesture_;
     void runMerge(const QString &operation,
                   std::function<std::filesystem::path(luma::CancellationToken,
                       const std::function<void(double)> &)> work);
@@ -440,8 +462,8 @@ class EditorController final : public QObject {
     luma::MaskOverlay localRenderOverlay() const;
     std::filesystem::path catalog_;
     luma::SessionService service_;
-    std::shared_ptr<luma::ByteLruCache<std::string, QImage>> renderedCache_ =
-        std::make_shared<luma::ByteLruCache<std::string, QImage>>(64ULL * 1024 * 1024);
+    std::shared_ptr<luma::ByteLruCache<std::string, RenderedPreview>> renderedCache_ =
+        std::make_shared<luma::ByteLruCache<std::string, RenderedPreview>>(64ULL * 1024 * 1024);
     std::unique_ptr<luma::macos::MemoryPressureMonitor> memoryPressure_;
     luma::macos::MemoryPressure pressure_ = luma::macos::MemoryPressure::normal;
     int previewCacheMiB_ = 256;

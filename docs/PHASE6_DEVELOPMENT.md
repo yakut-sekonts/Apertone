@@ -16,6 +16,9 @@ created from this implementation checkpoint.
 - Rendered preview identity includes asset/checksum, serialized settings and
   masks, requested resolution, display ICC profile, diagnostic/overlay state,
   backend choice and pipeline version.
+  The later Histogram integration stores image/analysis together, accounts for
+  histogram storage and adds clipping mode to pipeline-v3 identities. See
+  [Histogram design](adr/0028-preview-histogram.md); no latency claim is made.
 - Ordinary interactions first request a 1024 preview and refine after settling.
   Releasing a gesture requests final quality. Geometry and sampling tools retain
   their existing stable canvas resolution.

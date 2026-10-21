@@ -1,6 +1,14 @@
 #pragma once
+#include "core/render/ImageHistogram.h"
 #include <QQuickImageProvider>
 #include <mutex>
+#include <optional>
+
+// One cache entry owns both the pixels and the analysis of that exact render.
+struct RenderedPreview {
+    QImage image;
+    std::optional<luma::ImageHistogram> histogram;
+};
 
 class PreviewProvider final : public QQuickImageProvider {
   public:

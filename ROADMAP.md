@@ -177,6 +177,10 @@ originals; restoration is one Undo step. The session History browser lists retai
 steps, supports arbitrary navigation/clear and creates a persistent named version
 from any retained state. Its 200-step journal resets at photo/batch boundaries;
 it is not persistent history across reopening.
+The §17 Histogram source workflow adds sampled RGB/luminance distributions,
+output-referred clipping indicators/overlays and five tone controls with gesture
+Undo. It follows the visible preview, excludes transparency and display overlays,
+and does not change export settings. Runtime/image-quality qualification is pending.
 Per-process rotating event logs and local crash capture are also implemented in
 source; reports stay local and are excluded from the shareable JSON.
 Large catalogs, fault injection, UI/performance regression and all QA are

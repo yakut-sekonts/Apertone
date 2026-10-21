@@ -146,6 +146,58 @@ The source implements the §33 browsing/clear/snapshot workflows with this expli
 session lifetime. No persistence extension or 1.0 qualification is claimed. See
 [ADR 0027](adr/0027-session-history-browser.md).
 
+## Histogram and clipping
+
+Develop's Histogram panel implements the §17 source workflow: RGB and luminance
+plots, a shared linear/log count scale, approximate shadow/highlight clipping
+percentages, red/blue display overlays and Exposure/Highlights/Shadows/Whites/
+Blacks editing. A regular grid takes at most 512 × 512 sample positions from
+the current rendered canvas. The 256 bins use sRGB encoding of each linear RGB
+channel, and sRGB encoding of linear luminance (0.2126 R + 0.7152 G + 0.0722 B).
+Counts/percentages are weighted by alpha; fully transparent and uncovered
+geometry pixels contribute nothing. An empty/transparent sample set displays
+no data instead of inventing a histogram.
+
+Analysis happens after the shared optics/retouch/Develop/Detail/local/crop chain,
+before monitor ICC conversion, local-mask overlay and clipping overlay. This
+keeps analysis independent of the monitor and UI colors. It follows the current
+preview: Original, preset hover and temporary crop/Guided canvases use their
+respective rendered content. Detail diagnostic modes deliberately expose no
+photo histogram or clipping overlay; their grayscale images are not ordinary
+processing output.
+
+Shadow clipping means all three processed linear channels are <= 0; highlight
+clipping means at least one is >= 1. Percentages estimate the sampled visible
+content. Overlay classification uses every covered output pixel of that preview,
+so a small clipped feature may appear in the overlay but miss the sample grid.
+Thresholds are output-referred to sRGB, not raw sensor saturation or irreversible
+data loss. They are not a soft proof for the selected export color profile.
+Progressive/1:1 resolution changes can change the estimate; no exact full-RAW
+statistics or realtime latency guarantee is claimed.
+
+Image and histogram travel together in a `RenderedPreview` cache entry with
+accounting for both, including on cache hits. A pipeline-v3 key includes clipping
+mode. The existing render-generation/cancellation guard publishes only the latest
+requested result; the panel marks updates pending and clears failed/no-photo
+analysis. No separate analysis render or retained full-resolution float buffer is
+introduced. Non-desktop callers default to analysis/overlays disabled.
+
+The five equal-width tone zones run Blacks, Shadows, Exposure, Highlights, Whites.
+Dragging right increases the chosen value, within existing parameter bounds; one
+drag produces one History step and ordinary autosave. The selector, minus/plus
+buttons and Left/Right keys provide keyboard alternatives (Shift gives ten steps).
+Disabled corrections cannot be edited through the histogram. Navigation, new edit
+gestures, Undo/Redo, reset and application deactivation end/invalidate the active
+histogram gesture so late pointer events cannot resume it against a newer state.
+
+Shadow/highlight toggles are session view state. Holding Option while dragging
+Whites or Blacks, in either panel, temporarily selects the corresponding clipping
+overlay. Releasing Option or ending the gesture restores the toggles' state.
+The indicator colors preserve output alpha and are applied after monitor/mask
+composition. They never enter EditDocument, catalog, presets, versions or export.
+The compact panel, explanations and accessibility labels have eight-language
+source translations. All behavior remains unbuilt and unqualified.
+
 ## Backup and recovery
 
 Settings → Catalog and backups provides Every launch, Daily, Weekly or Manual
@@ -289,6 +341,18 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
   keyboard navigation, translated labels, mask names containing markup/percent
   signs and viewport retention during render/autosave notifications. Durable
   history across reopening is not implemented; verify the visible lifetime note.
+- Qualify Histogram bins against independent synthetic linear ramps/patches,
+  negative/HDR values, alpha weighting, empty/transparent images and crop/transform
+  borders. Cover ICC independence, local-mask overlay exclusion, CPU/Metal,
+  cache hits/eviction, out-of-order completion, load/cancel/failure, Original and
+  preset hover, progressive versus 1:1 and unsupported Detail diagnostics.
+  Verify export/original invariants with clipping enabled, overlay thresholds,
+  sample-grid aliasing limitations, gesture bounds/Undo/branching, Option release,
+  focus loss and interrupted input. Update UI fixtures for the new panel and
+  exercise minimum size, keyboard access and all translations. Extend the native
+  row-probe coverage to analysis-enabled renders during the final campaign; its
+  existing instrumentation currently uses the default disabled-analysis path.
+  Measure added preview latency and cache/active memory only in final QA.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
 - Cover startup cancellation, missing volumes, multiple windows, stale markers,

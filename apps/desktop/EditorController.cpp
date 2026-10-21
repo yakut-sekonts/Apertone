@@ -23,11 +23,11 @@ QString display(std::optional<double> value, const QString &suffix = {}) {
 std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
                            int resolution, const std::vector<std::uint8_t> &profile,
                            luma::DetailDiagnostic diagnostic, const luma::MaskOverlay &overlay,
-                           bool accelerated) {
+                           bool accelerated, luma::ClippingPreview clipping) {
     QByteArray identity;
     QDataStream stream(&identity, QIODevice::WriteOnly);
     stream.setVersion(QDataStream::Qt_6_0);
-    stream << QStringLiteral("preview-pipeline-v2") << QString::fromStdString(asset.id)
+    stream << QStringLiteral("preview-pipeline-v3") << QString::fromStdString(asset.id)
            << QString::fromStdString(asset.checksum) << resolution
            << luma::encodePreset({"Preview", {}, edits, luma::allSettingsGroups})
            << QByteArray::fromStdString(luma::encodeLocalMasks(edits.localMasks))
@@ -35,7 +35,7 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
            << QByteArray(reinterpret_cast<const char *>(profile.data()),
                          static_cast<qsizetype>(profile.size()))
            << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id)
-           << overlay.opacity << accelerated;
+           << overlay.opacity << accelerated << static_cast<int>(clipping);
     for (const auto component : overlay.color)
         stream << component;
     return QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().toStdString();
@@ -283,6 +283,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     const auto revision = ++loadRevision_;
     ++renderRevision_;
     busy_ = true;
+    publishHistogram(std::nullopt);
     progress_ = 0;
     emit progressChanged();
     error_.clear();
@@ -434,6 +435,7 @@ QVariantMap EditorController::correctionStates() const {
 void EditorController::beginEdit() {
     clearDetailDiagnostic();
     clearPreviewSettings();
+    histogramGesture_.reset();
     if (editable())
         history_.begin();
 }
@@ -444,6 +446,7 @@ void EditorController::endEdit() {
     clearPreviewSettings();
     targeted_.reset();
     localGesture_.reset();
+    histogramGesture_.reset();
     history_.end();
     if (wasEditing && session_ && !busy_ && !closing_)
         render(true);
@@ -536,6 +539,7 @@ void EditorController::undo() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canUndo()) {
+        histogramGesture_.reset();
         localGesture_.reset();
         targeted_.reset();
         history_.undo();
@@ -546,6 +550,7 @@ void EditorController::redo() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.canRedo()) {
+        histogramGesture_.reset();
         localGesture_.reset();
         targeted_.reset();
         history_.redo();
@@ -557,6 +562,7 @@ void EditorController::resetEdits() {
     clearDetailDiagnostic();
     clearPreviewSettings();
     if (editable() && history_.current() != luma::EditDocument{}) {
+        histogramGesture_.reset();
         history_.end();
         history_.apply({}, "Reset edits");
         editsChanged();
@@ -586,6 +592,10 @@ void EditorController::render(bool fullQuality) {
     }
     renderJob_.cancel();
     const auto revision = ++renderRevision_;
+    if (!histogramPending_) {
+        histogramPending_ = true;
+        emit histogramChanged();
+    }
     if (cropMode_ && cropCanvasReady_) {
         cropCanvasReady_ = false;
         emit stateChanged();
@@ -624,6 +634,7 @@ void EditorController::render(bool fullQuality) {
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;
+    const auto clipping = clippingPreview_;
     const auto detailScale = interactive ? session_->interactiveScale : session_->previewScale;
     const auto asset = session_->asset;
     const auto cache = renderedCache_;
@@ -635,33 +646,33 @@ void EditorController::render(bool fullQuality) {
                                  ? accelerator_ : std::shared_ptr<luma::DevelopAccelerator>{};
     const auto key =
         renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
-                       static_cast<bool>(accelerator));
+                       static_cast<bool>(accelerator), clipping);
     const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
          metadata, overlay, asset, service, fullResolution, cache, generation,
-         key, accelerator, interactive](const luma::JobContext &context) {
+         key, accelerator, interactive, clipping](const luma::JobContext &context) {
             try {
                 auto cached = cache->get(key);
                 if (!cached) {
                     const auto decoded = fullResolution
                                              ? service.fullResolution(asset, context.stopToken())
                                              : std::shared_ptr<const luma::DecodedImage>{};
-                    const auto pixels = luma::renderCPU(
+                    auto pixels = luma::renderCPU(
                         decoded ? decoded->image : *image, edits, orientation, profile,
                         context.stopToken(), decoded ? decoded->calibration : calibration,
                         diagnostic, decoded ? 1 : detailScale, metadata, overlay,
-                        accelerator.get());
+                        accelerator.get(), {true, clipping});
                     QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
                                   QImage::Format_RGBA8888);
                     auto owned = output.copy();
                     if (owned.isNull())
                         throw std::runtime_error("Cannot allocate the photo preview.");
-                    cached = std::make_shared<QImage>(std::move(owned));
+                    cached = std::make_shared<RenderedPreview>(RenderedPreview{std::move(owned), std::move(pixels.histogram)});
                     luma::checkCancellation(context.stopToken());
-                    cache->put(key, cached, static_cast<std::size_t>(cached->sizeInBytes()),
+                    cache->put(key, cached, static_cast<std::size_t>(cached->image.sizeInBytes()) + sizeof(RenderedPreview),
                                generation);
                 }
                 luma::checkCancellation(context.stopToken());
@@ -672,12 +683,13 @@ void EditorController::render(bool fullQuality) {
                             if (!self || self->renderRevision_ != revision) {
                                 return;
                             }
-                            self->provider_->update(*cached);
+                            self->provider_->update(cached->image);
                             ++self->imageRevision_;
                             self->previewReady_ = true;
                             self->cropCanvasReady_ = self->cropMode_;
                             self->guidedCanvasReady_ = self->guidedMode_;
                             self->localCanvasReady_ = self->localMode_;
+                            self->publishHistogram(cached->histogram);
                             if (interactive && !self->history_.gestureActive())
                                 self->refineTimer_.start();
                             emit self->stateChanged();
@@ -695,6 +707,7 @@ void EditorController::render(bool fullQuality) {
                         [self, revision, message, fullResolution] {
                             if (self && self->renderRevision_ == revision) {
                                 self->error_ = message;
+                                self->publishHistogram(std::nullopt);
                                 if (fullResolution) {
                                     self->oneToOne_ = false;
                                     self->render();

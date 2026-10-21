@@ -85,9 +85,14 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                  DetailDiagnostic diagnostic, double detailScale,
                                  PhotoMetadata metadata, MaskOverlay overlay
 #if !defined(LUMA_UX_CPU_RENDER_ROWS)
-                                 , DevelopAccelerator *accelerator
+                                 , DevelopAccelerator *accelerator, PreviewAnalysisOptions analysis
 #endif
                                  ) {
+#if defined(LUMA_UX_CPU_RENDER_ROWS)
+    const PreviewAnalysisOptions analysis{};
+#endif
+    if (static_cast<unsigned>(analysis.clipping) > 3)
+        throw std::runtime_error("Invalid clipping preview mode.");
     source.validateCoverage();
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const RetouchPass retouch(optics.image(), edits.retouch, stop);
@@ -100,6 +105,13 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const CropGeometry geometry(input.width, input.height, orientation, edits);
     const int width = geometry.width(), height = geometry.height();
     DisplayImage result{width, height, std::vector<std::uint8_t>(pixelCount(width, height) * 4)};
+    std::optional<HistogramSamplingGrid> histogramGrid;
+    if (analysis.histogram && diagnostic == DetailDiagnostic::none) {
+        result.histogram.emplace();
+        histogramGrid.emplace(width, height);
+    }
+    const auto clipping = diagnostic == DetailDiagnostic::none ? analysis.clipping : ClippingPreview::none;
+    std::vector<std::uint8_t> rowClipping(clipping == ClippingPreview::none ? 0 : static_cast<std::size_t>(width));
     const double sourceAspect = metadata.width > 0 && metadata.height > 0
                                     ? static_cast<double>(metadata.width) / metadata.height
                                     : static_cast<double>(input.width) / input.height;
@@ -147,6 +159,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                         value *= input.coverage(sx, sy);
                 return color;
             });
+            const bool histogramSample = histogramGrid && histogramGrid->contains(x, y);
+            float coverage = 1.F;
+            if ((histogramSample || !rowClipping.empty()) && !geometry.opaque() && !geometry.covered(x, y))
+                coverage = 0.F;
             if (!input.alpha.empty()) {
                 const auto alpha = geometry.sample(x, y, [&](int sx, int sy) {
                     const auto value = input.coverage(sx, sy);
@@ -154,7 +170,11 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                 })[0];
                 for (auto &value : rgb)
                     value = alpha > 1e-8F ? value / alpha : 0;
+                coverage = std::clamp(alpha, 0.F, 1.F);
             }
+            if (histogramSample) result.histogram->add(rgb, coverage);
+            if (!rowClipping.empty())
+                rowClipping[static_cast<std::size_t>(x)] = coverage > 0 ? clippingFlags(rgb) : 0;
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }
@@ -196,6 +216,17 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                     value = static_cast<std::uint8_t>(
                         std::lround(value * (1 - coverage) + 255 * overlay.color[c] * coverage));
                 }
+            }
+        if (!rowClipping.empty())
+            for (int x = 0; x < width; ++x) {
+                const auto flags = rowClipping[static_cast<std::size_t>(x)] & static_cast<std::uint8_t>(clipping);
+                const auto offset = static_cast<std::size_t>(x) * 4;
+                if (!flags || destination[offset + 3] == 0) continue;
+                // UI overlay colors, applied after ICC and mask overlays. Alpha
+                // and the clean histogram are preserved; exports opt out.
+                destination[offset] = flags & 2 ? 255 : 32;
+                destination[offset + 1] = flags & 2 ? 32 : 96;
+                destination[offset + 2] = flags & 2 ? 32 : 255;
             }
 #if defined(LUMA_UX_CPU_RENDER_ROWS)
         // This is real converted output, after alpha/mask composition. The next
