@@ -67,14 +67,14 @@ def source_file(model, cache):
 
 def denoise_network(path):
     import torch
-    from models.nafnet import NAFNet, LinearDenoise
+    from models.drunet import DRUNet, LinearDenoise, NoiseConditioned
     # Never unpickle arbitrary checkpoint objects or run upstream repository code.
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
-    if not isinstance(checkpoint, dict) or "params" not in checkpoint:
-        raise ValueError("Unexpected NAFNet checkpoint format.")
-    model = NAFNet()
-    model.load_state_dict(checkpoint["params"], strict=True)
-    return LinearDenoise(model).eval()
+    if not isinstance(checkpoint, dict) or not checkpoint:
+        raise ValueError("Unexpected DRUNet checkpoint format.")
+    model = DRUNet()
+    model.load_state_dict(checkpoint, strict=True)
+    return LinearDenoise(NoiseConditioned(model)).eval()
 
 
 def sky_network(path):

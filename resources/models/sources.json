@@ -1,27 +1,27 @@
 {
   "schema": 1,
-  "bundle_version": 2,
+  "bundle_version": 3,
   "delivery": "bundled-offline",
   "models": [
     {
       "role": "denoise",
-      "id": "nafnet-sidd-width32-v2",
-      "display_name": "NAFNet SIDD · Luma 2",
+      "id": "drunet-color-haar-v1",
+      "display_name": "DRUNet Color · Luma 1",
       "bundle": "LumaDenoise.mlmodelc",
       "input": "noisy",
       "output": "denoised",
       "size": 512,
       "halo": 64,
-      "license": "MIT; Apache-2.0 (BasicSR notices)",
-      "license_file": "NAFNet-LICENSE.txt",
-      "upstream": "https://github.com/megvii-research/NAFNet/tree/2b4af71ebe098a92a75910c233a3965a3e93ede4",
+      "license": "MIT",
+      "license_file": "DRUNet-LICENSE.txt",
+      "upstream": "https://github.com/cszn/DPIR/tree/15bca3fcc1f3cc51a1f99ccf027691e278c19354",
       "source": {
-        "url": "https://drive.usercontent.google.com/download?id=1lsByk21Xw-6aW7epCwOQxvm6HYCQZPHZ&export=download&confirm=t",
-        "filename": "NAFNet-SIDD-width32.pth",
-        "size": 116861841,
-        "sha256": "89c70e808d1783b6c07911306e106aaf0d4f7f3da8c61078b99ff7f8929a26f4"
+        "url": "https://github.com/cszn/KAIR/releases/download/v1.0/drunet_color.pth",
+        "filename": "drunet_color.pth",
+        "size": 130579305,
+        "sha256": "479abe3c5327dfd10ff54a80ec7d4098ca80752a5c9492cdff31cee430bec4b4"
       },
-      "license_sha256": "a29ecef3456149898f08e4c71b11b33e7d333664e087bc212e84e18ddd6599ad"
+      "license_sha256": "afd973a2b98d60d178342477feed2c5673640288b0663e83e33e0e63ece9634c"
     },
     {
       "role": "sky",

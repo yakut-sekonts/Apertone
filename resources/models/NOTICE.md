@@ -9,33 +9,38 @@ Python, PyTorch and conversion tools are build dependencies and are not shipped.
 The generated `manifest.json` records the conversion recipe, toolchain and every
 artifact checksum. It records provenance, not a successful quality qualification.
 
-## Denoise: NAFNet SIDD width32
+## Denoise: DRUNet color
 
-Copyright (c) 2022 megvii-model. Upstream NAFNet is MIT-licensed; its full license
-and inherited BasicSR Apache-2.0 notices are in `licenses/NAFNet-LICENSE.txt`.
-Source: https://github.com/megvii-research/NAFNet/tree/2b4af71ebe098a92a75910c233a3965a3e93ede4
-The checkpoint is the author's SIDD width32 model linked from that revision's
-`readme.md`; the download URL, size and SHA-256 are recorded in `sources.json`.
+Copyright (c) 2020 Kai Zhang. The MIT license is in `licenses/DRUNet-LICENSE.txt`.
+Source: https://github.com/cszn/DPIR/tree/15bca3fcc1f3cc51a1f99ccf027691e278c19354
+The checkpoint is the author's `drunet_color.pth`, distributed through his KAIR
+v1.0 release and linked by DPIR's model download script. Its exact URL, size and
+SHA-256 are recorded in `sources.json`; the original weight bytes are unchanged.
 
 Luma modifications: an inference-only architecture preserving checkpoint keys,
-ordinary tensor LayerNorm, fixed 512×512 input, Float32 Core ML conversion,
+fixed 512×512 input, Float32 Core ML conversion,
 linear-sRGB to sRGB input conversion and the inverse output conversion. The
 native adapter uses reflected padding and a 64-pixel halo. RGB pixels with any
 input channel outside [0,1] pass through unchanged to preserve negative samples
 and HDR highlights; Amount blends the prediction with the original.
 
-Adaptation v2 expresses stride-2 downsampling as four spatial slices followed by
-a 1×1 convolution, preserving the checkpoint's coefficients and bias. This
+Downsampling uses four spatial slices followed by a 1×1 convolution. This
 avoids incorrect boundary values observed in the native Core ML Float32 CPU
-2×2 convolution on macOS 27. Spatially uniform RGB tiles pass through exactly:
-they contain no observed variation to denoise, and the source SIDD network can
-invent bright structure on black or near-black constants. This guard has no
-brightness threshold; nonuniform dark tiles still use the model and require
-photographic qualification. The original source weight bytes are unchanged.
+2×2 convolution on macOS 27. The non-overlapping transpose convolution is
+expressed as a 1×1 convolution and PixelShuffle. Both preserve checkpoint
+coefficients exactly; no training is performed.
 
-The training domain is display-referred SIDD, not RAW sensor data. This is not a
-claim of camera-independent RAW denoise accuracy. Fine detail, color, highlights,
-tile boundaries and noise behavior require photographic qualification. No
+DRUNet's fourth input channel is a noise-level map. Luma estimates a single sRGB
+sigma per tile from the mean absolute orthonormal Haar HH coefficients, scaled
+by sqrt(pi/2). Constants and planar ramps cancel; there is no brightness cutoff
+or minimum sigma. Exactly uniform RGB tiles pass through unchanged. Fine texture
+can increase the estimate, and neighboring tiles can yield different estimates;
+these cases require photographic qualification.
+
+The pretrained model targets Gaussian noise in display-referred images, not RAW
+sensor data or a calibrated camera noise distribution. This is not a claim of
+camera-independent RAW denoise accuracy. Fine detail, color, highlights, tile
+boundaries and real noise behavior require photographic qualification. No
 training dataset or upstream training code is included in the app.
 
 ## Sky: U²-Net Sky

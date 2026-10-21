@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCES = ROOT / "resources/models/sources.json"
 RECIPE_FILES = (
     "resources/models/sources.json", "resources/models/NOTICE.md",
-    "scripts/convert-models.py", "scripts/models/nafnet.py", "scripts/model_assets.py",
+    "scripts/convert-models.py", "scripts/models/drunet.py", "scripts/model_assets.py",
     "scripts/model-requirements.txt",
 )
 
