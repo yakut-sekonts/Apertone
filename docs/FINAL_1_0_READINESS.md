@@ -152,6 +152,44 @@ The new commits still need independent CI. Full new-workflow/native UX,
 photographic model quality, resource/load/recovery and signed distribution gates
 remain open. Stable remains 0.5.1; there is no new installer, tag or appcast.
 
+### Photographic Denoise and runtime tiling — 2026-10-21
+
+The first photographic campaign exposed LUMA-BUG-041: bundle v3 passes only
+four of six noisy photo cases despite nine passing source/native comparisons.
+With weak added noise, its mean-based Haar estimate over-smooths the portrait
+and landscape; channel errors and landscape seam/gradient errors increase.
+[The failure report](qualification/2026-10-21/denoise-photographs-v3-failure.json)
+is preserved. Bundle v4 replaces that mean with a lower absolute median,
+calibrated to Gaussian sigma and exported as topk/amax. The checkpoint, halo,
+color conversion and acceptance limits are unchanged.
+
+The corrected actual-runtime campaign passes [all six noisy photo cases and
+nine source/native tiled comparisons](qualification/2026-10-21/denoise-photographs-v4.json).
+The three unchanged photographs are observational controls, not certified
+noise-free sensor references or extra quality passes. At Amount 1, each RGB
+channel improves in both linear and sRGB MSE, and gradient errors improve along
+both axes and actual tile seams. Maximum source/native error is 3.82e-6 against
+the fixed 0.0005 limit. Native contracts also pass Amount 0 identity, Amount 0.5
+linear blend, alpha/input preservation, tile progress, pre-/mid-loop cancellation
+and invalid-amount rejection. Neither ALL nor these checks establish actual
+accelerator placement or CPU-fallback behavior.
+
+The synthetic gates remain [7/7 source](qualification/2026-10-21/denoise-quality-v4.json),
+[11/11 CPU](qualification/2026-10-21/model-numerics-v4-cpu.json) and
+[11/11 ALL](qualification/2026-10-21/model-numerics-v4-all.json). Thirteen adaptation
+tests and 13 independent quality-oracle tests pass. The application build,
+model installation/manifest verification in both bundles, eight affected CTest
+regressions, formatting and native-probe clang-tidy pass. The photographic gate
+is required in CI and release packaging, with reports and comparison sheets
+retained as artifacts. [Evidence and visual-review limits](qualification/2026-10-21/denoise-photographic-followup.json)
+record the exact model/probe identities, including an initial run superseded
+after the probe rebuilt; only the fresh run with a stable probe is accepted.
+
+This is bounded qualification on three small developed PNGs with deterministic
+added Gaussian noise. Real camera noise, full-resolution RAW texture/color,
+Sky scene quality, native UX, resource/load/recovery and signed distribution
+remain open. No new native UI session or release was performed.
+
 ## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and
@@ -231,9 +269,9 @@ SKIP/NOT_RUN/blocked cases as passing.
 
 Build the offline models before configuring the final app. Qualify the pinned
 Python/PyTorch/ONNX/Core ML conversion path, source-to-Core-ML numerical agreement,
-model tensor contracts and toolchain compatibility. Bundle v3 now passes the
-synthetic source-quality and native CPU/ALL comparisons; cross-platform and
-photographic/runtime qualification remain open.
+model tensor contracts and toolchain compatibility. Bundle v4 now passes the
+synthetic source-quality, native CPU/ALL and bounded photographic/runtime checks;
+cross-platform and complete photographic/runtime qualification remain open.
 Use representative photographs to assess denoise texture/color/highlights/tiles
 and Sky boundaries/no-sky errors, then CPU fallback, cancellation and 8/16 GB
 resource use. Exercise first launch without network, installation in Applications,

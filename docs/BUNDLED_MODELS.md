@@ -6,6 +6,10 @@ source implementation under final qualification. Bundle v4 compiled on
 comparisons. Complete photographic, runtime and distribution qualification remain open.
 No installer was published. Stable remains 0.5.1.
 
+The bounded v4 runtime campaign passes six noisy photographic cases and nine
+source/native tiled comparisons. See the scope and remaining gaps below; this
+does not qualify real sensor noise or the complete 1.0 release.
+
 ## Runtime
 
 The app resolves `Contents/Resources/Models/LumaDenoise.mlmodelc` and

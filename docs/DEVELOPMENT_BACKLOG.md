@@ -158,3 +158,29 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   DiagnosticSession, matching unattended startup. This removes the observed
   undefined-context QML warnings; it does not qualify crash capture or diagnostics UI.
 - Evidence: [follow-up](qualification/2026-10-21/drunet-ux-followup.json).
+
+## LUMA-BUG-041 — Per-tile noise estimate mistakes texture for Gaussian noise
+
+- Status: **exact bounded reproductions fixed and retested; full photographic acceptance remains open**.
+- With seeded sRGB sigma 0.01, bundle v3 over-smooths the portrait and landscape
+  fixtures. The portrait's blue error exceeds the noisy input; the landscape
+  also worsens gradient and tile-seam errors. Four of six noisy photographic
+  cases pass; [the original FAIL report](qualification/2026-10-21/denoise-photographs-v3-failure.json)
+  is retained. All nine source/native comparisons already passed, isolating a
+  source-quality defect rather than a Core ML numerical conversion error.
+- Bundle v4 uses the lower median of absolute Haar HH coefficients divided by
+  the Gaussian calibration constant. The estimator is resistant to sparse
+  texture/edge outliers and uses exportable topk/amax. Weights, halo, domain
+  preservation and all quality/numerical criteria remain unchanged.
+- [Native photographic retest](qualification/2026-10-21/denoise-photographs-v4.json):
+  **6/6 noisy cases PASS**, **9/9 tiled source comparisons PASS**. Three unchanged
+  photographs are observational controls, not additional quality passes.
+  Amount 0/0.5/1, alpha, unchanged input, progress, cancellation before/during
+  processing and rejected invalid amounts pass with the actual provider.
+- The synthetic source gate remains 7/7 PASS; CPU and ALL comparisons remain
+  11/11 PASS each. Thirteen adaptation tests, seven synthetic-oracle tests and
+  six photographic-oracle tests pass. Eight affected CTest regressions and
+  the application build pass. CI and release now require the photographic gate.
+- This does not qualify real sensor noise, full-size RAW, every texture, Sky,
+  fallback device placement, resource/load behavior or signed installation.
+  See [the follow-up evidence](qualification/2026-10-21/denoise-photographic-followup.json).
