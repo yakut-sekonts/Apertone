@@ -4,6 +4,15 @@ cd "$(dirname "$0")/.."
 build_directory="${1:-build}"
 sdk="$PWD/.tools/qt/6.10.3/macos"
 output="$PWD/dist"
+version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$build_directory/Luma.app/Contents/Info.plist")
+if [[ "${version%%.*}" -ge 1 && ( -z "${LUMA_SIGNING_IDENTITY:-}" || -z "${LUMA_NOTARY_PROFILE:-}" ) ]]; then
+    echo 'Luma 1.0 and later require Developer ID signing and a configured notarytool Keychain profile.' >&2
+    exit 1
+fi
+if [[ -n "${LUMA_SIGNING_IDENTITY:-}" && -z "${LUMA_NOTARY_PROFILE:-}" ]]; then
+    echo 'Developer ID packaging requires LUMA_NOTARY_PROFILE.' >&2
+    exit 1
+fi
 mkdir -p "$output"
 # Only generated output in dist is replaced; sources and catalogs are untouched.
 if [[ -d "$output/Luma.app" ]]; then
@@ -64,18 +73,27 @@ for path in re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset", comm
         subprocess.run(["install_name_tool", "-delete_rpath", path, executable], check=True)
 PYTHON
 .tools/venv/bin/python - "$output/Luma.app" <<'PYTHON'
-import json, plistlib, subprocess, sys
+import json, os, plistlib, subprocess, sys
 from pathlib import Path
 app = Path(sys.argv[1])
 with (app / "Contents/Info.plist").open("rb") as file:
     version = plistlib.load(file)["CFBundleShortVersionString"]
 commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+signed = bool(os.environ.get("LUMA_SIGNING_IDENTITY"))
 info = {"version": version, "source_commit": commit, "platform": "macOS 14+", "architecture": "arm64",
-        "signing": "ad-hoc", "notarized": False,
+        "signing": "developer-id" if signed else "ad-hoc",
         "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0", "LensfunDatabase": "0.3.4"}}
+if signed:
+    info["notarization_policy"] = "required; acceptance recorded in release BUILD_INFO.json"
+else:
+    info["notarized"] = False
 (app / "Contents/Resources/BUILD_INFO.json").write_text(json.dumps(info, indent=2) + "\n")
 PYTHON
-codesign --force --deep --sign - "$output/Luma.app"
+if [[ -n "${LUMA_SIGNING_IDENTITY:-}" ]]; then
+    .tools/venv/bin/python scripts/sign-app.py app "$output/Luma.app"
+else
+    codesign --force --deep --sign - "$output/Luma.app"
+fi
 codesign --verify --deep --strict "$output/Luma.app"
 ditto -c -k --sequesterRsrc --keepParent "$output/Luma.app" "$output/Luma-macos-arm64.zip"
 (cd "$output" && shasum -a 256 Luma-macos-arm64.zip > SHA256SUMS)

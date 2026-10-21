@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       configured: ${{ steps.configuration.outputs.configured }}
+      apple_configured: ${{ steps.apple.outputs.configured }}
     steps:
       - name: Check signing availability without exposing the key
         id: configuration
@@ -23,6 +24,17 @@ jobs:
       - name: Sparkle signing key is configured
         if: steps.configuration.outputs.configured == 'true'
         run: echo 'Release archives will be signed and verified against the embedded public key.'
+      - name: Check Developer ID and notarization configuration
+        id: apple
+        env:
+          APPLE_CONFIGURED: ${{ secrets.APPLE_CERTIFICATE_P12 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_NOTARY_KEY_P8 != '' && secrets.APPLE_NOTARY_KEY_ID != '' && secrets.APPLE_NOTARY_ISSUER_ID != '' && vars.APPLE_SIGNING_IDENTITY != '' }}
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          echo "configured=$APPLE_CONFIGURED" >> "$GITHUB_OUTPUT"
+          if [[ "$RELEASE_REF" =~ ^refs/tags/v[1-9][0-9]*\. && "$APPLE_CONFIGURED" != true ]]; then
+            echo 'Luma 1.0 and later require configured Developer ID and notarization credentials.' >&2
+            exit 1
+          fi
       - name: Sparkle signing key is missing
         if: steps.configuration.outputs.configured != 'true'
         env:
@@ -36,7 +48,7 @@ jobs:
   build-package:
     needs: signing-configuration
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4.2.2
         with:
@@ -151,8 +163,21 @@ jobs:
             build/ux-artifacts/20*/**/thread-sample.txt
           if-no-files-found: warn
           retention-days: 7
+      - name: Prepare isolated Apple signing Keychain
+        if: needs.signing-configuration.outputs.apple_configured == 'true'
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_NOTARY_KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_SIGNING_IDENTITY: ${{ vars.APPLE_SIGNING_IDENTITY }}
+        run: .tools/venv/bin/python scripts/configure-apple-signing.py
       - name: Package ZIP and DMG
         run: ./scripts/release-artifacts.sh build
+      - name: Remove isolated Apple signing Keychain
+        if: always() && needs.signing-configuration.outputs.apple_configured == 'true'
+        run: python3 scripts/configure-apple-signing.py --clean
       - name: Verify standalone application
         run: .tools/venv/bin/python scripts/verify-bundle.py
       - name: Verify mounted installer and version

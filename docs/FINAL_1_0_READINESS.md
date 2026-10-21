@@ -41,6 +41,10 @@ distribution also needs Developer ID signing, hardened runtime and notarization,
 standalone Applications installation/launch, DMG/ZIP checksums, updater signature
 verification, bell notification, upgrade/relaunch and data preservation. Apple
 Developer signing credentials have not been supplied or inspected by this work.
+The [Developer ID packaging path](DEVELOPER_ID_RELEASE.md) is now implemented
+in source, including isolated Actions credential setup and accepted/stapled
+app/DMG tickets. It is unexecuted; final signing and installation evidence is
+still required. The source guards refuse an ad-hoc 1.x publication.
 
 Publish only after all required results are documented and accepted. Keep the
 post-1.0 Impeccable/Taste frontend redesign outside this qualification scope.

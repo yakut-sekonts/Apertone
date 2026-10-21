@@ -30,6 +30,13 @@ if not re.fullmatch(r"[0-9a-f]{40}", arguments.source_commit):
     raise SystemExit("Release requires a full source commit SHA.")
 if info["version"] != version or info["source_commit"] != arguments.source_commit:
     raise SystemExit("Asset version/source commit does not match the release tag.")
+if int(version.split(".")[0]) >= 1:
+    receipts = info.get("notarization", {})
+    if (info.get("signing") != "developer-id" or info.get("notarized") is not True or
+            any(receipts.get(kind, {}).get("status") != "Accepted" or
+                not re.fullmatch(r"[0-9a-fA-F-]{36}", receipts.get(kind, {}).get("submission_id", ""))
+                for kind in ("app", "dmg"))):
+        raise SystemExit("Luma 1.0 and later require Developer ID signing and accepted app/DMG notarization.")
 paths = [folder / f"Luma-{version}-macos-arm64.zip", folder / f"Luma-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
 if info.get("dependencies", {}).get("Sparkle"):
     ns = "http://www.andymatuschak.org/xml-namespaces/sparkle"

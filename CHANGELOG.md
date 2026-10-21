@@ -19,6 +19,8 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Catalog backup scheduling/retention/restore, create/open catalog windows,
   missing-original relinking and bounded folder watching.
 - SQLite pre-migration backups; catalog 11→16 migrations.
+- Source-only Developer ID/hardened-runtime/notarization packaging with isolated
+  Actions setup and refusal of unsigned/non-notarized 1.x publication.
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
   opening and bind card focus to the clicked item before activating the view.
 
