@@ -80,7 +80,10 @@ checkpoint-equivalent spatial slices/1×1 convolution. It also preserves exactly
 uniform RGB tiles to prevent the source model from inventing structure on them.
 Five adaptation tests passed (algebra, channel/spatial order, uniform preservation,
 nonuniform processing and HDR/negative-pixel preservation); the four toolchain
-preflight tests and native-probe clang-tidy also passed.
+preflight tests and native-probe clang-tidy also passed. The application rebuilt
+with v2 installed and verified in both bundles. Six affected packaging, update
+and offscreen smoke CTest regressions passed; they overlap the earlier baseline.
+See [follow-up evidence](qualification/2026-10-21/model-followup.json).
 
 The expanded comparison remains **FAIL**: [CPU 9/11](qualification/2026-10-21/model-numerics-v2-cpu.json)
 and [ALL 10/11](qualification/2026-10-21/model-numerics-v2-all.json). Dark nonuniform
