@@ -9,9 +9,10 @@
 int main(int argc, char **argv) {
     @autoreleasepool {
         try {
-            if (argc != 8)
+            if (argc != 8 && argc != 9)
                 throw std::runtime_error(
-                    "Expected model, input, output, input name, output name, size and channels.");
+                    "Expected model, input, output, input name, output name, size, channels and "
+                    "optional compute units.");
             const int size = std::stoi(argv[6]), channels = std::stoi(argv[7]);
             if ((size != 320 && size != 512) || (channels != 1 && channels != 3))
                 throw std::runtime_error("Unexpected test tensor dimensions.");
@@ -25,6 +26,15 @@ int main(int argc, char **argv) {
             NSError *error = nil;
             MLModelConfiguration *configuration = [[MLModelConfiguration alloc] init];
             configuration.computeUnits = MLComputeUnitsCPUOnly;
+            if (argc == 9) {
+                const std::string units = argv[8];
+                if (units == "all")
+                    configuration.computeUnits = MLComputeUnitsAll;
+                else if (units == "cpu-and-gpu")
+                    configuration.computeUnits = MLComputeUnitsCPUAndGPU;
+                else if (units != "cpu")
+                    throw std::runtime_error("Unsupported compute units.");
+            }
             MLModel *model = [MLModel modelWithContentsOfURL:[NSURL fileURLWithPath:modelPath]
                                                configuration:configuration
                                                        error:&error];

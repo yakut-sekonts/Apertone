@@ -34,7 +34,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 
 ## LUMA-BUG-036 — Compiled Denoise differs from its source network
 
-- Status: **open — reproduced during final qualification; blocks release**.
+- Status: **open — native downsampling error fixed; dark-input numerical failures remain**.
 - Environment: Apple Silicon, macOS 27.0.1, Xcode 27.1; pinned source weights,
   coremltools 9.0 conversion, Float32 ML Program and native CPU_ONLY prediction.
 - Three synthetic cases (noisy gradient, black, negative/HDR gradient) exceed
@@ -54,3 +54,39 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   `final-denoise-diagnostic-1.log`, and `final-denoise-layers-*.log`.
 - Sky passes the same synthetic CPU comparison. This does not establish its
   photographic quality, no-sky behavior, GPU/ANE results or memory limits.
+
+### Follow-up — 2026-10-21
+
+- The same v1 recipe on macOS 15.7.9 / Xcode 16.4 passed the ordinary gradient
+  and HDR cases, but still failed black. Evidence: [CI run](https://github.com/yakut-sekonts/Luma/actions/runs/39608476171)
+  and [its report](qualification/2026-10-21/model-numerics-ci-v1.json).
+- On macOS 27, an isolated 32→64 channel 2×2/stride-2 convolution reproduced the
+  boundary error (max 0.03495), independently of the rest of NAFNet. Adaptation
+  v2 uses four spatial slices and a 1×1 convolution with the same weights/bias.
+  Float64 algebraic, channel/phase-order and odd-size tests pass; the original
+  checkpoint layout is preserved. The normal-gradient error fell to 2.45e-6.
+- Uniform RGB tiles now pass through exactly. This prevents source-network
+  artifacts on zero-variation colors and has no darkness threshold. The tests
+  include almost-black noise and a single nonzero pixel so this guard cannot
+  hide the remaining nonuniform dark failures.
+- [v2 CPU](qualification/2026-10-21/model-numerics-v2-cpu.json): 9/11 cases pass;
+  dark noise and black with an impulse still fail. [v2 ALL](qualification/2026-10-21/model-numerics-v2-all.json):
+  10/11 pass; dark noise still fails. Max error limits remain 0.0005 / RMSE 0.00005.
+  ALL denotes the requested policy, not proof of GPU/ANE execution.
+- Selectively disabling convolution/arithmetic fusion did not pass the dark
+  impulse comparison. Those experimental converter changes are not retained.
+
+## LUMA-BUG-037 — Source Denoise invents bright structure on nonuniform dark input
+
+- Status: **open — reproduced; blocks photographic model acceptance**.
+- This occurs in the pinned source network before Core ML conversion. A linear
+  dark ramp plus noise, whose maximum is 0.00109, produces values up to 0.642.
+  A black tile with one 0.001 impulse produces values up to 1.0 and mean 0.0651.
+- Evidence: [source-output metrics](qualification/2026-10-21/source-dark-sanity-v2.json),
+  generated from the same deterministic inputs as the retained numerical checker.
+- The exact-uniform guard in v2 only protects tiles with no spatial variation.
+  It deliberately does not skip these nonuniform cases or redefine them as PASS.
+- The bundled denoiser remains unqualified. Resolve the source-model behavior
+  and verify photographic shadow/detail/noise quality before accepting numerical
+  agreement as evidence for release. Matching an incorrect source output is not
+  sufficient.

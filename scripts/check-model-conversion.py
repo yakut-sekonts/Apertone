@@ -1,7 +1,7 @@
-"""Compare compiled CPU predictions with the pinned adapted source networks.
+"""Compare compiled native predictions with the pinned adapted source networks.
 
 This synthetic numerical check does not qualify photographic quality, runtime
-tiling, GPU/ANE execution, fallback behavior or installer/update integration.
+tiling, device placement, fallback behavior or installer/update integration.
 Run with .tools/model-venv/bin/python after building the bundled models.
 """
 import argparse
@@ -31,6 +31,14 @@ def samples(size, role):
         extended[0, 0, :16, :] = -.25
         extended[0, 2, -16:, :] = 1.5
         yield "negative-hdr", extended
+        yield "uniform-near-black", np.full_like(gradient, .0001)
+        yield "uniform-gray", np.full_like(gradient, .18)
+        yield "uniform-color", np.broadcast_to(
+            np.array([.15, .4, .8], dtype=np.float32).reshape(1, 3, 1, 1), gradient.shape).copy()
+        yield "near-black-noise", np.clip(gradient * .001 + noise * .001, 0, 1)
+        impulse = np.zeros_like(gradient)
+        impulse[0, :, size // 2, size // 2] = .001
+        yield "black-with-impulse", impulse
     else:
         yield "white", np.ones_like(gradient)
 
@@ -40,6 +48,7 @@ def main():
     parser.add_argument("artifacts", type=Path)
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--cache", type=Path, default=ROOT / ".tools/model-sources")
+    parser.add_argument("--compute-units", choices=("cpu", "cpu-and-gpu", "all"), default="cpu")
     args = parser.parse_args()
     if args.report.exists():
         raise SystemExit("Report already exists; choose a fresh evidence path.")
@@ -52,10 +61,11 @@ def main():
     # Fixed absolute tolerances on normalized Float32 outputs. Never adjust
     # these automatically from observed results or silently use FP16 fallback.
     limits = {"max_absolute_error": .0005, "rmse": .00005}
-    report = {"schema": 1, "scope": "synthetic-adapted-source-vs-coreml-cpu",
+    units = {"cpu": "CPU_ONLY", "cpu-and-gpu": "CPU_AND_GPU", "all": "ALL"}[args.compute_units]
+    report = {"schema": 1, "scope": "synthetic-adapted-source-vs-coreml-native",
               "status": "RUNNING", "photographic_quality": "NOT_RUN",
               "python": platform.python_version(), "platform": platform.platform(),
-              "machine": platform.machine(), "compute_units": "CPU_ONLY",
+              "machine": platform.machine(), "compute_units": units,
               "manifest_sha256": digest(args.artifacts / "manifest.json"),
               "recipe_sha256": manifest["recipe_sha256"], "limits": limits, "cases": []}
     temporary = tempfile.TemporaryDirectory(prefix="luma-model-numerics-")
@@ -87,7 +97,7 @@ def main():
                 sample.tofile(work / "input.bin")
                 result = subprocess.run([str(bridge), str((args.artifacts / model["bundle"]).resolve()),
                     str(work / "input.bin"), str(work / "output.bin"), model["input"], model["output"],
-                    str(model["size"]), "3" if model["role"] == "denoise" else "1"],
+                    str(model["size"]), "3" if model["role"] == "denoise" else "1", args.compute_units],
                     capture_output=True, text=True, timeout=180)
                 if result.returncode:
                     raise RuntimeError(f"Native prediction exited {result.returncode}: {result.stderr}")
@@ -98,15 +108,19 @@ def main():
                 error = actual.astype(np.float64) - reference.astype(np.float64)
                 maximum, rmse = float(np.abs(error).max()), float(np.sqrt(np.mean(error * error)))
                 passthrough = True
+                uniform_passthrough = None
                 if model["role"] == "denoise":
                     outside = np.broadcast_to(((sample < 0) | (sample > 1)).any(axis=1, keepdims=True), sample.shape)
                     passthrough = bool(np.array_equal(actual[outside], sample[outside]))
+                    if np.array_equal(sample, np.broadcast_to(sample[:, :, :1, :1], sample.shape)):
+                        uniform_passthrough = bool(np.array_equal(actual, sample))
+                        passthrough = passthrough and uniform_passthrough
                 else:
                     passthrough = bool((actual >= 0).all() and (actual <= 1).all())
                 report["cases"].append({"model": model["id"], "sample": name,
                     "input_sha256": hashlib.sha256(sample.tobytes()).hexdigest(),
                     "output_shape": list(actual.shape), "max_absolute_error": maximum, "rmse": rmse,
-                    "domain_contract": passthrough,
+                    "domain_contract": passthrough, "uniform_input_passthrough": uniform_passthrough,
                     "status": "PASS" if maximum <= limits["max_absolute_error"]
                     and rmse <= limits["rmse"] and passthrough else "FAIL"})
             del network

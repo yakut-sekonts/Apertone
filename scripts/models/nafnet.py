@@ -3,7 +3,8 @@
 Copyright (c) 2022 megvii-model. MIT; see resources/models/licenses/NAFNet-LICENSE.txt.
 Source: NAFNet commit 2b4af71ebe098a92a75910c233a3965a3e93ede4.
 Luma modifications: fixed architecture/input size, ordinary tensor LayerNorm
-instead of custom autograd, no training/local-pooling code, linear RGB wrapper.
+instead of custom autograd, explicit downsampling, no training/local-pooling
+code, linear RGB wrapper.
 """
 import torch
 from torch import nn
@@ -26,6 +27,25 @@ class SimpleGate(nn.Module):
     def forward(self, image):
         left, right = image.chunk(2, dim=1)
         return left * right
+
+
+class Downsample2d(nn.Conv2d):
+    """Checkpoint-compatible 2x2/stride-2 convolution without that Core ML op.
+
+    The native Float32 CPU implementation on macOS 27 corrupts some border
+    samples for the direct operation. Gather the four spatial phases explicitly
+    and use a 1x1 convolution with the same coefficients and bias instead.
+    """
+    def __init__(self, channels, output_channels):
+        super().__init__(channels, output_channels, 2, stride=2)
+
+    def forward(self, image):
+        # Discard incomplete patches just as a valid stride-2 convolution does.
+        height, width = image.shape[-2] // 2 * 2, image.shape[-1] // 2 * 2
+        patches = torch.cat([image[:, :, y:height:2, x:width:2]
+                             for y in range(2) for x in range(2)], dim=1)
+        weight = self.weight.permute(0, 2, 3, 1).reshape(self.out_channels, -1, 1, 1)
+        return torch.nn.functional.conv2d(patches, weight, self.bias)
 
 
 class NAFBlock(nn.Module):
@@ -63,7 +83,7 @@ class NAFNet(nn.Module):
         self.decoders = nn.ModuleList()
         for count in (2, 2, 4, 8):
             self.encoders.append(nn.Sequential(*[NAFBlock(channels) for _ in range(count)]))
-            self.downs.append(nn.Conv2d(channels, channels * 2, 2, stride=2))
+            self.downs.append(Downsample2d(channels, channels * 2))
             channels *= 2
         self.middle_blks = nn.Sequential(*[NAFBlock(channels) for _ in range(12)])
         for count in (2, 2, 2, 2):
@@ -101,4 +121,9 @@ class LinearDenoise(nn.Module):
         # Preserve the whole RGB pixel if any channel is outside the trained
         # domain, including negative working-space samples and HDR highlights.
         in_domain = ((image >= 0) & (image <= 1)).all(dim=1, keepdim=True)
-        return torch.where(in_domain, decoded, image)
+        # A spatially uniform RGB tile contains no observed noise to remove.
+        # The SIDD network can invent bright structure on black/near-black
+        # constants. Preserve every uniform color exactly, without a brightness
+        # threshold or suppressing real variation in dark photographs.
+        uniform = (image == image[:, :, :1, :1]).all()
+        return torch.where(in_domain & ~uniform, decoded, image)

@@ -73,6 +73,22 @@ Formatting-only changes were separated in `e18a2d6`; functional fixes and eviden
 follow separately. The baseline above does not cover all new 0.6–0.9 workflows,
 the 23 legacy gaps, photographic AI quality, load/stress or signed distribution.
 
+### Denoise follow-up — 2026-10-21
+
+Adaptation v2 fixes the independently reproduced native downsampling error using
+checkpoint-equivalent spatial slices/1×1 convolution. It also preserves exactly
+uniform RGB tiles to prevent the source model from inventing structure on them.
+Five adaptation tests passed (algebra, channel/spatial order, uniform preservation,
+nonuniform processing and HDR/negative-pixel preservation); the four toolchain
+preflight tests and native-probe clang-tidy also passed.
+
+The expanded comparison remains **FAIL**: [CPU 9/11](qualification/2026-10-21/model-numerics-v2-cpu.json)
+and [ALL 10/11](qualification/2026-10-21/model-numerics-v2-all.json). Dark nonuniform
+inputs exceed unchanged limits. Source-only checks also reproduce bright
+artifacts on dark inputs, recorded separately as LUMA-BUG-037. LUMA-BUG-036 is
+not closed. No photographic, installation, update or whole-campaign gate is
+waived by the numerical improvement. Historical v1 reports remain unchanged.
+
 ## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and

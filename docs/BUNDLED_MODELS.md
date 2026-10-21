@@ -28,7 +28,10 @@ travel with the compiled artifacts.
 - NAFNet SIDD width32: MIT with retained BasicSR notices, 512×512 Float32 tensors
   and a 64-pixel halo. The sRGB-trained model is wrapped by linear↔sRGB conversion.
   Any RGB pixel outside [0,1] passes through unchanged; no RAW-trained quality
-  claim is made. Model ID is recorded with denoised DNG provenance.
+  claim is made. Adaptation v2 preserves spatially uniform RGB tiles exactly and
+  uses checkpoint-equivalent spatial slicing/1×1 convolution to avoid the
+  observed native stride-2 convolution error. Model ID is recorded with denoised
+  DNG provenance; original weights are unchanged.
 - U²-Net Sky: MIT, the author's ONNX model from the pinned attributed mirror,
   320×320 sRGB input with ImageNet normalization and the first prediction output.
   No per-image min/max stretching is applied to the probability map.
@@ -82,10 +85,18 @@ Run the numerical comparison with:
 ```
 
 This uses the adapted source networks and a standalone native Core ML CPU probe.
-It checks three deterministic inputs per model, finite Float32 tensor contracts,
-Sky output bounds and exact Denoise passthrough outside the trained range. It is
-an additional CI/release gate, not a photographic, GPU/ANE or tiling test. Native
+It checks eight Denoise inputs (including uniform colors, dark noise and an
+isolated impulse) and three Sky inputs, finite Float32 tensor contracts, Sky
+bounds, and exact Denoise passthrough for uniform tiles/out-of-range pixels.
+Use `--compute-units all` or `--compute-units cpu-and-gpu` to check another Core
+ML execution policy. The policy does not establish actual device placement.
+The latest local v2 result is 9/11 PASS on CPU and 10/11 with ALL; dark nonuniform
+inputs still fail. It is an additional CI/release gate, not photographic or tiling
+qualification. Native
 prediction failures and signals fail the report; reports are never overwritten.
+CI continues independent application checks after a failed comparison, then
+requires its successful outcome in a final mandatory step. The release workflow
+still stops immediately; neither path permits a failed model gate to pass.
 
 Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
 comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,

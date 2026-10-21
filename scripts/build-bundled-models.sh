@@ -10,4 +10,5 @@ if ! xcrun --find coremlcompiler >/dev/null 2>&1 || ! xcodebuild -version >/dev/
 fi
 python3.12 -m venv .tools/model-venv
 .tools/model-venv/bin/python -m pip install --disable-pip-version-check -r scripts/model-requirements.txt
+.tools/model-venv/bin/python tests/models/test_nafnet_conversion.py
 .tools/model-venv/bin/python scripts/convert-models.py --output "$output"

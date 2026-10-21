@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "bundle_version": 1,
+  "bundle_version": 2,
   "delivery": "bundled-offline",
   "models": [
     {
       "role": "denoise",
-      "id": "nafnet-sidd-width32-v1",
-      "display_name": "NAFNet SIDD · Luma 1",
+      "id": "nafnet-sidd-width32-v2",
+      "display_name": "NAFNet SIDD · Luma 2",
       "bundle": "LumaDenoise.mlmodelc",
       "input": "noisy",
       "output": "denoised",

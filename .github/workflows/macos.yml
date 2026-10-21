@@ -28,6 +28,10 @@ jobs:
       - name: Build pinned offline Denoise and Sky models
         run: bash scripts/build-bundled-models.sh build/models
       - name: Check native Core ML numerical agreement
+        id: model_numerics
+        # Keep independent application checks running; the final mandatory gate
+        # below still fails the job unless this step succeeds.
+        continue-on-error: true
         run: .tools/model-venv/bin/python scripts/check-model-conversion.py build/models --report build/model-numerics.json
       - name: Upload model conversion evidence
         if: always()
@@ -129,3 +133,8 @@ jobs:
         run: ./scripts/check-format.sh
       - name: clang-tidy
         run: ./scripts/check-tidy.sh build
+      - name: Require native Core ML numerical agreement
+        if: ${{ !cancelled() && steps.model_numerics.outcome != 'success' }}
+        run: |
+          echo '::error::Core ML numerical agreement did not pass; see model-numerics artifact.'
+          exit 1

@@ -24,6 +24,15 @@ native adapter uses reflected padding and a 64-pixel halo. RGB pixels with any
 input channel outside [0,1] pass through unchanged to preserve negative samples
 and HDR highlights; Amount blends the prediction with the original.
 
+Adaptation v2 expresses stride-2 downsampling as four spatial slices followed by
+a 1×1 convolution, preserving the checkpoint's coefficients and bias. This
+avoids incorrect boundary values observed in the native Core ML Float32 CPU
+2×2 convolution on macOS 27. Spatially uniform RGB tiles pass through exactly:
+they contain no observed variation to denoise, and the source SIDD network can
+invent bright structure on black or near-black constants. This guard has no
+brightness threshold; nonuniform dark tiles still use the model and require
+photographic qualification. The original source weight bytes are unchanged.
+
 The training domain is display-referred SIDD, not RAW sensor data. This is not a
 claim of camera-independent RAW denoise accuracy. Fine detail, color, highlights,
 tile boundaries and noise behavior require photographic qualification. No
