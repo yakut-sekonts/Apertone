@@ -68,6 +68,44 @@ SQLite connections still rely on SQLite concurrency and must not be treated as
 desktop-lock participants. Settings/presets remain shared by catalogs in the same
 directory, as in previous releases; separate project folders isolate them.
 
+### Startup recovery
+
+The startup window opens/migrates the selected catalog on a worker before the
+editor, import recovery or automatic backups start. Missing/locked/unreadable
+catalogs offer Open, Create or Restore backup into a new filename. The old
+catalog is never automatically deleted or replaced. Opening an existing catalog
+uses SQLite without CREATE, so a disappearing file is not silently recreated.
+The first default catalog can be initialized; a missing remembered/explicit
+catalog requires the user to choose another file or reconnect its volume.
+
+A per-catalog `.running.json` marker contains only schema, app version, process
+ID and UTC start time. It is removed after successful event-loop exit and worker
+destruction, while the desktop lock is still held. A retained marker triggers
+read-only SQLite integrity/foreign-key inspection before writable opening, then
+offers Recover previous session or Continue in Library without decoding the last
+photo. This is interrupted-session detection, not a crash dump or proof of a
+specific crash cause. Historical saved edits stay in SQLite; unsaved slider
+gestures are not invented or reconstructed. OS crash reports remain external.
+
+The last successfully opened catalog is remembered for ordinary app/update
+launches. Acceptance launches bypass the recovery window and do not change this
+preference or session markers. No acceptance launch has been executed here.
+
+### Diagnostics
+
+Settings → Diagnostics shows application/library versions, catalog schema,
+CPU/GPU, OS, physical memory, current resident memory and three bounded cache
+snapshots. Cache accounting measures retained entries, not total process memory;
+workers may retain evicted images. The Metal field describes the requested
+preview policy and device availability, not proof of a particular GPU dispatch.
+
+Export Diagnostic Report collects a fresh JSON snapshot locally, installing it
+under a new filename without replacing a file. It excludes photos, asset names,
+catalog/model paths, metadata, credentials, host names and hardware identifiers.
+The active catalog path appears only in the local Settings UI. No report is
+automatically sent or uploaded. Diagnostics are application features, not a
+substitute for the deferred functional/performance qualification.
+
 ## Missing files and external changes
 
 Loaded Library/filmstrip pages show Missing from worker-side filesystem checks.
@@ -91,6 +129,10 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
   namespaces, concurrency, permission/disk failures and pending-write recovery.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
+- Cover startup cancellation, missing volumes, multiple windows, stale markers,
+  newer/corrupt catalogs, skipped photo recovery, lock lifetime and clean exit.
+- Exercise Diagnostics snapshots/export, no-replace failures and privacy of the
+  actual JSON output; wire the Diagnostics dependency into isolated UI fixtures.
 - Cover moved roots, duplicates, disconnected volumes, checksums, selected-photo
   reopening and preservation of viewport/selection. LUMA-BUG-035 remains open.
 - Run 10k/100k/500k catalog and 8/16 GB resource tests only during final QA.

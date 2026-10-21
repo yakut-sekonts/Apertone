@@ -36,6 +36,8 @@ class SessionService {
                                                      CancellationToken stop = {}) const;
     void setCacheBudget(std::size_t bytes);
     void clearCache();
+    CacheStatistics previewCacheStatistics() const { return previews_->statistics(); }
+    CacheStatistics sourceCacheStatistics() const { return originals_->statistics(); }
 
   private:
     struct PreviewSource {

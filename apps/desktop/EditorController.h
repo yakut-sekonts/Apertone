@@ -16,6 +16,7 @@
 #include <QTimer>
 #include <QUrl>
 #include <QVariantMap>
+#include <array>
 
 class EditorController final : public QObject {
     Q_OBJECT
@@ -314,6 +315,10 @@ class EditorController final : public QObject {
     Q_INVOKABLE void endRetouch();
     Q_INVOKABLE void cancelRetouch();
     Q_INVOKABLE void clearPreviewCache();
+    std::array<luma::CacheStatistics, 3> cacheStatistics() const {
+        return {service_.previewCacheStatistics(), service_.sourceCacheStatistics(),
+                renderedCache_->statistics()};
+    }
     QString catalogPath() const;
     QString sourcePath() const;
     bool presetPreview() const {

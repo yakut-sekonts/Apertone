@@ -1,4 +1,6 @@
 #include "apps/desktop/BatchController.h"
+#include "apps/desktop/CatalogStartup.h"
+#include "apps/desktop/DiagnosticsController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryAcceptance.h"
@@ -8,11 +10,8 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
-#include "platform/macos/ApplicationAlert.h"
 #include <QCommandLineParser>
 #include <QFileInfo>
-#include <QDir>
-#include <QLockFile>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -20,6 +19,7 @@
 #include <QQuickStyle>
 #include <QStandardPaths>
 #include <QTimer>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 
@@ -86,29 +86,23 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-close-import"),
                       QStringLiteral("Integration test: close during import")});
     parser.process(app);
-    const auto catalog =
-        parser.isSet(QStringLiteral("catalog"))
-            ? parser.value(QStringLiteral("catalog"))
+    const auto options = parser.optionNames();
+    const bool unattended = std::any_of(options.begin(), options.end(), [](const QString &option) {
+        return option.startsWith(QStringLiteral("test-")) || option == QStringLiteral("smoke-test");
+    });
+    const auto remembered = unattended ? QString() : CatalogStartup::rememberedCatalog();
+    const bool explicitCatalog = parser.isSet(QStringLiteral("catalog"));
+    const auto initialCatalog = explicitCatalog ? parser.value(QStringLiteral("catalog"))
+        : (!remembered.isEmpty() ? remembered
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
-                  QStringLiteral("/catalog.sqlite");
-    const auto catalogFile = QFileInfo(catalog).absoluteFilePath();
-    if (!QDir().mkpath(QFileInfo(catalogFile).absolutePath())) {
-        luma::macos::showApplicationError("Luma", "Cannot create the catalog folder.");
-        return 1;
-    }
-    // One desktop owner per catalog. SQLite still coordinates its worker
-    // connections, while two app instances cannot race the recovery journal.
-    const auto canonicalCatalog = QFileInfo(catalogFile).exists()
-        ? QFileInfo(catalogFile).canonicalFilePath()
-        : QFileInfo(catalogFile).absoluteDir().canonicalPath() + "/" + QFileInfo(catalogFile).fileName();
-    QLockFile catalogLock(canonicalCatalog + QStringLiteral(".desktop.lock"));
-    catalogLock.setStaleLockTime(0);
-    if (!catalogLock.tryLock()) {
-        luma::macos::showApplicationError("Luma", "This catalog is already open in another Luma window, or its folder is not writable.");
-        return 1;
-    }
+                QStringLiteral("/catalog.sqlite"));
+    CatalogStartup startup;
+    if (!startup.prepare(initialCatalog, !explicitCatalog && remembered.isEmpty(), !unattended))
+        return unattended ? 1 : 0;
+    const auto catalog = startup.catalogPath();
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
+    DiagnosticsController diagnostics(std::filesystem::path(catalog.toStdString()), editor);
     PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),
                              editor);
     LibraryModel library(std::filesystem::path(catalog.toStdString()));
@@ -152,6 +146,7 @@ int main(int argc, char **argv) {
                             new ThumbnailProvider(std::filesystem::path(catalog.toStdString())));
     engine.addImageProvider(QStringLiteral("preview"), provider);
     engine.rootContext()->setContextProperty(QStringLiteral("editor"), &editor);
+    engine.rootContext()->setContextProperty(QStringLiteral("diagnostics"), &diagnostics);
     engine.rootContext()->setContextProperty(QStringLiteral("library"), &library);
     engine.rootContext()->setContextProperty(QStringLiteral("updates"), &updates);
     engine.rootContext()->setContextProperty(QStringLiteral("presets"), &presets);
@@ -705,8 +700,10 @@ int main(int argc, char **argv) {
         } else {
             editor.restore();
         }
-    } else {
+    } else if (startup.restorePhoto()) {
         editor.restore();
     }
-    return app.exec();
+    const int result = app.exec();
+    if (result == 0) startup.markCleanExit();
+    return result;
 }

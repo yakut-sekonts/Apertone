@@ -145,12 +145,13 @@ constexpr auto selectFields =
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
 } // namespace
 
-Catalog::Catalog(const std::filesystem::path &path) {
-    if (!path.parent_path().empty()) {
+Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
+    if (mode == CatalogOpenMode::createIfMissing && !path.parent_path().empty()) {
         std::filesystem::create_directories(path.parent_path());
     }
     if (sqlite3_open_v2(path.c_str(), &db_,
-                        SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_NOMUTEX,
+                        SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX |
+                            (mode == CatalogOpenMode::createIfMissing ? SQLITE_OPEN_CREATE : 0),
                         nullptr) != SQLITE_OK) {
         const std::string error =
             db_ ? sqlite3_errmsg(db_) : "Unable to allocate SQLite connection";

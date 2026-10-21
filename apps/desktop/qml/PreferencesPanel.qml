@@ -13,6 +13,7 @@ Dialog {
     height: Math.min(parent.height - 60, 650)
     standardButtons: Dialog.Close
     CatalogMaintenanceDialog { id: catalogMaintenance; parent: Overlay.overlay }
+    DiagnosticsDialog { id: diagnosticDialog; parent: Overlay.overlay }
     FileDialog {
         id: denoiseModelDialog
         title: qsTranslate("Luma", "Choose local denoise model")
@@ -49,6 +50,7 @@ Dialog {
         }
         Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
         Button { text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
+        Button { text: qsTranslate("Luma", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
         Label { text: qsTranslate("Luma", "Preview cache (MiB)"); Layout.fillWidth: true }
         SpinBox {
             objectName: "settings.previewCache"

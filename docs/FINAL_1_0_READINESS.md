@@ -33,6 +33,11 @@ Silicon resource tests and 10k/100k/500k catalog/load/stress cases. Record exact
 source/build identity, machine/OS, fixtures and per-case evidence. Fix failures
 and repeat the affected regression coverage before final acceptance.
 
+Startup recovery and local Diagnostics now have source implementations. Include
+missing/locked/corrupt catalogs, interrupted-session detection, worker shutdown,
+restore-without-replacement and diagnostic-report privacy in this campaign.
+OS crash-dump capture/rotation is not implemented by the session marker.
+
 ## Distribution
 
 The existing release workflows and Sparkle signing checks remain in place.

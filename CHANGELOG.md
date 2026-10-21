@@ -18,6 +18,10 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
   packet backups and metadata snapshots/policies in export.
 - Catalog backup scheduling/retention/restore, create/open catalog windows,
   missing-original relinking and bounded folder watching.
+- Startup catalog recovery, interrupted-session choice and remembered catalog;
+  no automatic replacement of missing or unreadable catalogs.
+- Local Diagnostics with system/cache information and a privacy-limited JSON
+  export that refuses to replace existing files.
 - SQLite pre-migration backups; catalog 11→16 migrations.
 - Source-only Developer ID/hardened-runtime/notarization packaging with isolated
   Actions setup and refusal of unsigned/non-notarized 1.x publication.

@@ -8,6 +8,9 @@
 #include <unordered_map>
 
 namespace luma {
+struct CacheStatistics {
+    std::size_t usedBytes = 0, budgetBytes = 0, entries = 0;
+};
 // The budget bounds cache-owned references. Active jobs may retain a value
 // after eviction; releasing their references remains the caller's responsibility.
 template <class Key, class Value> class ByteLruCache {
@@ -26,6 +29,11 @@ template <class Key, class Value> class ByteLruCache {
     std::uint64_t generation() const {
         std::lock_guard lock(mutex_);
         return generation_;
+    }
+
+    CacheStatistics statistics() const {
+        std::lock_guard lock(mutex_);
+        return {used_, budget_, entries_.size()};
     }
 
     void put(const Key &key, std::shared_ptr<const Value> value, std::size_t bytes,

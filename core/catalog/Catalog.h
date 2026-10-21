@@ -45,11 +45,13 @@ struct FileRecord {
     std::int64_t size = 0;
 };
 struct RelinkRecord { FileRecord source; std::filesystem::path destination; };
+enum class CatalogOpenMode { createIfMissing, existingOnly };
 
 /// Each instance owns a connection on the calling worker thread.
 class Catalog {
   public:
-    explicit Catalog(const std::filesystem::path &path);
+    explicit Catalog(const std::filesystem::path &path,
+                     CatalogOpenMode mode = CatalogOpenMode::createIfMissing);
     ~Catalog();
     Catalog(const Catalog &) = delete;
     Catalog &operator=(const Catalog &) = delete;
