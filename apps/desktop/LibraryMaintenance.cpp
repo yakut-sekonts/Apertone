@@ -13,14 +13,15 @@
 
 namespace {
 QVariantMap map(const luma::MetadataSnapshot &snapshot) {
-    QStringList keywords;
+    QStringList keywords, creators;
     for (const auto &word : snapshot.values.keywords) keywords.append(QString::fromStdString(word));
+    for (const auto &name : snapshot.values.creators) creators.append(QString::fromStdString(name));
     return {{"id", QString::fromStdString(snapshot.id)}, {"revision", QString::number(snapshot.revision)},
             {"path", QString::fromStdString(snapshot.path.string())},
             {"title", QString::fromStdString(snapshot.values.title)}, {"caption", QString::fromStdString(snapshot.values.caption)},
-            {"copyright", QString::fromStdString(snapshot.values.copyright)}, {"creator", QString::fromStdString(snapshot.values.creator)},
+            {"copyright", QString::fromStdString(snapshot.values.copyright)}, {"creators", creators},
             {"location", QString::fromStdString(snapshot.values.location)}, {"keywords", keywords},
-            {"rating", snapshot.values.rating}, {"label", QString::fromStdString(snapshot.values.label)},
+            {"rating", snapshot.values.rating}, {"flag", snapshot.values.flag}, {"label", QString::fromStdString(snapshot.values.label)},
             {"pendingXMP", snapshot.revision > snapshot.writtenRevision}, {"readError", QString::fromStdString(snapshot.readError)}};
 }
 QString preferences(const std::filesystem::path &catalog) {
@@ -150,9 +151,11 @@ void LibraryModel::saveDescriptiveMetadata(const QVariantMap &values) {
     metadata.title = values.value("title").toString().toStdString();
     metadata.caption = values.value("caption").toString().toStdString();
     metadata.copyright = values.value("copyright").toString().toStdString();
-    metadata.creator = values.value("creator").toString().toStdString();
+    for (const auto &name : values.value("creators").toStringList())
+        if (!name.isEmpty()) metadata.creators.push_back(name.toStdString());
     metadata.location = values.value("location").toString().toStdString();
     metadata.rating = values.value("rating").toInt(); metadata.label = values.value("label").toString().toStdString();
+    metadata.flag = values.value("flag").toInt();
     for (const auto &word : values.value("keywords").toStringList()) {
         const auto text = word.trimmed().toStdString();
         if (!text.empty() && std::find(metadata.keywords.begin(), metadata.keywords.end(), text) == metadata.keywords.end())

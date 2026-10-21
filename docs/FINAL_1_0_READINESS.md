@@ -5,7 +5,7 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
-## Source decisions still open
+## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and
   Sparkle archive. Pinned NAFNet SIDD and U²-Net Sky sources/licenses, conversion,
@@ -14,8 +14,11 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
 - Qualify the current bounded HDR/panorama algorithms. Further seam optimization,
   projection coverage or tiled processing depends on the photographic/resource
   evidence; do not advertise unimplemented 360° or generative panorama fill.
-- Decide the treatment of custom XMP labels, negative ratings and multiple
-  creators rather than silently discarding unsupported imported information.
+- XMP interoperability is implemented: ordered creators, exact custom label
+  text, standard-color mapping, Reject as Rating -1 and catalog-only Pick.
+  Fractional ratings are refused visibly, not rounded. Migration 17 and all
+  import/edit/sidecar/export paths require final qualification; see
+  [metadata semantics](PHASE9_DEVELOPMENT.md#metadata-and-xmp).
 
 ## Final campaign
 

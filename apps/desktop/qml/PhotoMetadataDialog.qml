@@ -17,10 +17,11 @@ Dialog {
         function onMetadataChanged() {
             const values = library.descriptiveMetadata
             titleField.text = values.title || ""; captionField.text = values.caption || ""
-            copyrightField.text = values.copyright || ""; creatorField.text = values.creator || ""
+            copyrightField.text = values.copyright || ""; creatorsField.text = (values.creators || []).join("\n")
             locationField.text = values.location || ""; keywordsField.text = (values.keywords || []).join("\n")
             ratingField.currentIndex = values.rating || 0
-            labelField.currentIndex = Math.max(0, ["", "red", "yellow", "green", "blue", "purple"].indexOf(values.label || ""))
+            flagField.currentIndex = (values.flag || 0) + 1
+            labelField.text = values.label || ""
         }
     }
     FileDialog { id: locateFile; title: qsTranslate("Luma", "Locate original"); onAccepted: library.locateOriginal(selectedFile) }
@@ -41,14 +42,14 @@ Dialog {
         ColumnLayout {
             width: parent.width; spacing: 8
             Label { text: library.descriptiveMetadata.path || ""; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            Label { text: library.descriptiveMetadata.readError || ""; textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", library.descriptiveMetadata.readError || ""); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Title") }
             TextField { id: titleField; enabled: dialog.ready; Layout.fillWidth: true; maximumLength: 1024; selectByMouse: true; Accessible.name: qsTranslate("Luma", "Title") }
             Label { text: qsTranslate("Luma", "Caption") }
             TextArea { id: captionField; enabled: dialog.ready; Layout.fillWidth: true; Layout.minimumHeight: 75; wrapMode: Text.Wrap; selectByMouse: true; Accessible.name: qsTranslate("Luma", "Caption") }
-            Label { text: qsTranslate("Luma", "Creator") }
-            TextField { id: creatorField; enabled: dialog.ready; Layout.fillWidth: true; maximumLength: 1024; selectByMouse: true; Accessible.name: qsTranslate("Luma", "Creator") }
+            Label { text: qsTranslate("Luma", "Creators · one per line") }
+            TextArea { id: creatorsField; enabled: dialog.ready; Layout.fillWidth: true; Layout.minimumHeight: 65; textFormat: TextEdit.PlainText; wrapMode: Text.Wrap; selectByMouse: true; Accessible.name: qsTranslate("Luma", "Creators · one per line") }
             Label { text: qsTranslate("Luma", "Copyright") }
             TextField { id: copyrightField; enabled: dialog.ready; Layout.fillWidth: true; maximumLength: 2048; selectByMouse: true; Accessible.name: qsTranslate("Luma", "Copyright") }
             Label { text: qsTranslate("Luma", "Location") }
@@ -58,13 +59,27 @@ Dialog {
             RowLayout {
                 Layout.fillWidth: true
                 ComboBox { id: ratingField; enabled: dialog.ready; model: ["0 ★", "1 ★", "2 ★", "3 ★", "4 ★", "5 ★"]; Accessible.name: qsTranslate("Luma", "Rating"); Layout.fillWidth: true }
-                ComboBox { id: labelField; enabled: dialog.ready; model: [qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; Accessible.name: qsTranslate("Luma", "Color label"); Layout.fillWidth: true }
+                ComboBox { id: flagField; enabled: dialog.ready; model: [qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged"), qsTranslate("Luma", "Pick")]; Accessible.name: qsTranslate("Luma", "Flag"); Layout.fillWidth: true }
             }
+            Label { text: qsTranslate("Luma", "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog."); Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Label { text: qsTranslate("Luma", "XMP label") }
+            RowLayout {
+                Layout.fillWidth: true
+                TextField { id: labelField; enabled: dialog.ready; Layout.fillWidth: true; maximumLength: 1024; selectByMouse: true; Accessible.name: qsTranslate("Luma", "XMP label") }
+                ComboBox {
+                    enabled: dialog.ready; Layout.preferredWidth: 160
+                    model: [qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]
+                    currentIndex: ["", "red", "yellow", "green", "blue", "purple"].indexOf(labelField.text.toLowerCase())
+                    onActivated: labelField.text = ["", "Red", "Yellow", "Green", "Blue", "Purple"][currentIndex]
+                    Accessible.name: qsTranslate("Luma", "Color label")
+                }
+            }
+            Label { text: qsTranslate("Luma", "Custom labels are preserved. Standard color names also color the photo card."); Layout.fillWidth: true; wrapMode: Text.Wrap }
             Button {
                 text: qsTranslate("Luma", "Save metadata to catalog"); enabled: dialog.ready; Layout.fillWidth: true
-                onClicked: library.saveDescriptiveMetadata({title: titleField.text, caption: captionField.text, creator: creatorField.text,
+                onClicked: library.saveDescriptiveMetadata({title: titleField.text, caption: captionField.text, creators: creatorsField.text.split("\n"),
                     copyright: copyrightField.text, location: locationField.text, keywords: keywordsField.text.split("\n"),
-                    rating: ratingField.currentIndex, label: ["", "red", "yellow", "green", "blue", "purple"][labelField.currentIndex]})
+                    rating: ratingField.currentIndex, flag: flagField.currentIndex - 1, label: labelField.text})
             }
             RowLayout {
                 Layout.fillWidth: true

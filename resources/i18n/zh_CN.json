@@ -603,6 +603,15 @@
     "Cannot save the diagnostic report. Choose a new writable filename.": "无法保存诊断报告。请选择新的可写文件名。",
     "Included models work offline. Photos stay on this Mac.": "内置模型可离线工作。照片保留在此 Mac 上。",
     "Included with Luma": "Luma 内置",
-    "Use bundled model": "使用内置模型"
+    "Use bundled model": "使用内置模型",
+    "Creators · one per line": "作者 · 每行一个",
+    "XMP label": "XMP 标签",
+    "Flag": "标记",
+    "Custom labels are preserved. Standard color names also color the photo card.": "自定义标签会被保留。标准颜色名称还会设置照片卡片的颜色。",
+    "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog.": "XMP 将拒绝标记存储为 -1，而非星级评分。精选标记保留在目录中。",
+    "At most 256 creators are supported per photo.": "每张照片最多支持 256 位作者。",
+    "Creator names must not be empty.": "作者姓名不能为空。",
+    "Invalid XMP rating.": "XMP 评分无效。",
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP 小数评分无法用图库中的整数星级表示。"
   }
 }

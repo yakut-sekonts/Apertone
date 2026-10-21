@@ -457,7 +457,7 @@ bool LibraryModel::refreshMetadata(const std::vector<std::string> &ids, int role
         !std::is_sorted(ids.begin(), ids.end()) ||
         (role != Rating && role != Flag && role != Label) ||
         (role == Rating && filter_.minimumRating > 0) || (role == Flag && filter_.flag != -2) ||
-        (role == Label && filter_.label.has_value()))
+        (role == Label && (filter_.label.has_value() || !filter_.search.empty())))
         return false;
     ++revision_;
     std::vector<int> pending;

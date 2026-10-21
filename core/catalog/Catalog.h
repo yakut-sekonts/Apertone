@@ -157,6 +157,7 @@ class Catalog {
     void migrateSemanticIndex();
     void migrateDerivedImages();
     void migrateMetadata();
+    void migrateMetadataInterop();
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);

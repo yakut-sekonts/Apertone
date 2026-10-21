@@ -13,7 +13,9 @@ constexpr auto where =
     " AND (?3='' OR a.filename LIKE ?3 ESCAPE '\\' OR a.original_path LIKE ?3 ESCAPE '\\'"
     " OR a.camera LIKE ?3 ESCAPE '\\' OR a.lens LIKE ?3 ESCAPE '\\'"
     " OR EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND k.keyword LIKE ?3 ESCAPE '\\')"
-    " OR EXISTS(SELECT 1 FROM asset_metadata m WHERE m.asset_id=a.id AND (m.title LIKE ?3 ESCAPE '\\' OR m.caption LIKE ?3 ESCAPE '\\')))"
+    " OR EXISTS(SELECT 1 FROM asset_creators c WHERE c.asset_id=a.id AND c.name LIKE ?3 ESCAPE '\\')"
+    " OR EXISTS(SELECT 1 FROM asset_metadata m WHERE m.asset_id=a.id AND (m.title LIKE ?3 ESCAPE '\\'"
+    " OR m.caption LIKE ?3 ESCAPE '\\' OR m.xmp_label LIKE ?3 ESCAPE '\\')))"
     " AND (?4='' OR EXISTS(SELECT 1 FROM collection_assets ca WHERE ca.asset_id=a.id AND "
     "ca.collection_id=?4))"
     " AND (?5=0 OR COALESCE(a.color_label,'')=?6)";

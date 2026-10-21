@@ -168,6 +168,8 @@ a claim of 360° stitching, optimized seams or generative fill. See
 Initial source workflows implemented, unbuilt and unqualified: descriptive
 metadata/XMP and export integration, backup scheduling/retention/restore,
 catalog create/open, Missing/Locate/Locate Folder and bounded folder watching.
+Metadata preserves ordered creators and custom labels, maps XMP -1 to Reject,
+and schedules sidecar updates after flag changes; catalog schema is now 17.
 Startup recovery handles unavailable catalogs and interrupted sessions; local
 Diagnostics exposes system/cache information and a report without photo data.
 Large catalogs, fault injection, UI/performance regression and all QA are

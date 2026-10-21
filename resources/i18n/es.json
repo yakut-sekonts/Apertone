@@ -603,6 +603,15 @@
     "Cannot save the diagnostic report. Choose a new writable filename.": "No se pudo guardar el informe de diagnóstico. Seleccione un nombre nuevo en una carpeta con permiso de escritura.",
     "Included models work offline. Photos stay on this Mac.": "Los modelos incluidos funcionan sin conexión. Las fotos permanecen en este Mac.",
     "Included with Luma": "Incluido en Luma",
-    "Use bundled model": "Usar modelo incluido"
+    "Use bundled model": "Usar modelo incluido",
+    "Creators · one per line": "Creadores · uno por línea",
+    "XMP label": "Etiqueta XMP",
+    "Flag": "Marca",
+    "Custom labels are preserved. Standard color names also color the photo card.": "Se conservan las etiquetas personalizadas. Los nombres de colores estándar también colorean la tarjeta de la foto.",
+    "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog.": "XMP guarda Rechazada como -1 en lugar de una valoración con estrellas. La marca Seleccionada permanece en el catálogo.",
+    "At most 256 creators are supported per photo.": "Se admiten como máximo 256 creadores por foto.",
+    "Creator names must not be empty.": "Los nombres de los creadores no pueden estar vacíos.",
+    "Invalid XMP rating.": "Valoración XMP no válida.",
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Las valoraciones XMP fraccionarias no se pueden representar con estrellas enteras en la biblioteca."
   }
 }

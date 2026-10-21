@@ -603,6 +603,15 @@
     "Cannot save the diagnostic report. Choose a new writable filename.": "Cannot save the diagnostic report. Choose a new writable filename.",
     "Included models work offline. Photos stay on this Mac.": "Included models work offline. Photos stay on this Mac.",
     "Included with Luma": "Included with Luma",
-    "Use bundled model": "Use bundled model"
+    "Use bundled model": "Use bundled model",
+    "Creators · one per line": "Creators · one per line",
+    "XMP label": "XMP label",
+    "Flag": "Flag",
+    "Custom labels are preserved. Standard color names also color the photo card.": "Custom labels are preserved. Standard color names also color the photo card.",
+    "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog.": "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog.",
+    "At most 256 creators are supported per photo.": "At most 256 creators are supported per photo.",
+    "Creator names must not be empty.": "Creator names must not be empty.",
+    "Invalid XMP rating.": "Invalid XMP rating.",
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "Fractional XMP ratings cannot be represented by whole-star Library ratings."
   }
 }

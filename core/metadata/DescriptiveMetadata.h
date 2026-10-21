@@ -6,10 +6,13 @@
 
 namespace luma {
 struct DescriptiveMetadata {
-    std::string title, caption, copyright, creator, location;
-    std::vector<std::string> keywords;
+    std::string title, caption, copyright, location;
+    std::vector<std::string> creators, keywords;
     int rating = 0;
-    std::string label;
+    int flag = 0; // Library Reject (-1), Unflagged (0), Pick (1).
+    std::string label; // Exact XMP text, not restricted to Library color tokens.
+    std::string colorLabel() const;
+    int xmpRating() const { return flag == -1 ? -1 : rating; }
     void validate() const;
     bool operator==(const DescriptiveMetadata &) const = default;
 };

@@ -603,6 +603,15 @@
     "Cannot save the diagnostic report. Choose a new writable filename.": "Չհաջողվեց պահպանել ախտորոշման զեկույցը։ Ընտրեք նոր ֆայլի անուն գրելի պանակում։",
     "Included models work offline. Photos stay on this Mac.": "Ներառված մոդելներն աշխատում են առանց ինտերնետի։ Լուսանկարները մնում են այս Mac-ում։",
     "Included with Luma": "Ներառված է Luma-ում",
-    "Use bundled model": "Օգտագործել ներառված մոդելը"
+    "Use bundled model": "Օգտագործել ներառված մոդելը",
+    "Creators · one per line": "Հեղինակներ · յուրաքանչյուրն առանձին տողում",
+    "XMP label": "XMP պիտակ",
+    "Flag": "Դրոշակ",
+    "Custom labels are preserved. Standard color names also color the photo card.": "Պահպանվում են նաև կամայական պիտակները։ Գույների ստանդարտ անվանումները նաև գունավորում են լուսանկարի քարտը։",
+    "XMP stores Reject as -1 instead of a star rating. Pick stays in the catalog.": "XMP-ում մերժման դրոշակը գրվում է որպես -1՝ աստղային գնահատականի փոխարեն։ Ընտրվածի դրոշակը մնում է կատալոգում։",
+    "At most 256 creators are supported per photo.": "Մեկ լուսանկարի համար աջակցվում է առավելագույնը 256 հեղինակ։",
+    "Creator names must not be empty.": "Հեղինակների անունները չպետք է դատարկ լինեն։",
+    "Invalid XMP rating.": "XMP գնահատականը սխալ է։",
+    "Fractional XMP ratings cannot be represented by whole-star Library ratings.": "XMP-ի կոտորակային գնահատականները հնարավոր չէ ներկայացնել գրադարանի ամբողջ աստղերով։"
   }
 }

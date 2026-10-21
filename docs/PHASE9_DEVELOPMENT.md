@@ -1,7 +1,7 @@
 # Phase 0.9 source development
 
 Status: **initial implementation, unbuilt and unqualified**. Catalog schema is
-16. Source versions are development markers, not published releases. Stable
+17. Source versions are development markers, not published releases. Stable
 remains 0.5.1; its catalog must be restored from a pre-upgrade snapshot to downgrade.
 
 ## Metadata and XMP
@@ -13,16 +13,16 @@ and the Metadata dialog displays it. Existing catalog records are not silently
 replaced on reopening a photo.
 
 Library → Photo actions → Photo metadata edits Title, Caption, Copyright,
-Creator, Location, Keywords, Rating and Label. Database revisions reject stale
+an ordered list of Creators, Location, Keywords, Rating, Flag and XMP Label. Database revisions reject stale
 saves. Keywords are ordered, unique, bounded and searchable; Title/Caption are
-also included in Library search. Unicode byte/control limits are enforced in
+also included in Library search, along with creator names and XMP label text. Unicode byte/control limits are enforced in
 the core. The first metadata draft of an old record reads the source, but changes
 to the catalog require Save or the explicitly confirmed Read original / XMP.
 
 Saved export snapshots include descriptive metadata and organization. All,
 Copyright only, Remove location and None policies filter the merged source and
 catalog metadata before serialization. A never-initialized record only overrides
-rating/label, retaining other embedded descriptive fields.
+rating/flag/label, retaining other embedded descriptive fields.
 
 RAW sidecars use `basename.xmp`; raster sidecars use `filename.ext.xmp` to avoid
 RAW/JPEG name collisions. Ambiguous RAW basenames or distinct .xmp/.XMP files
@@ -41,10 +41,28 @@ comparison and rename; the old packet is retained in the backup. This is not an
 interprocess transaction with third-party editors. Develop settings are not
 exported as Adobe Camera Raw adjustments.
 
-Current import limits: a single Creator, standard five-color labels and ratings
-0–5. Multiple creators, custom labels or other unsupported representations produce
-a visible warning rather than silently flattening data. These interoperability
-cases require a product decision/fixtures during final qualification.
+Migration 17 replaces the single Creator field with an ordered table, carrying
+the old nonempty value into position zero. Up to 256 creators of 1024 UTF-8 bytes
+each retain their order and repeated names. The editor uses one name per line;
+empty entries are omitted. `dc:creator` is written as `rdf:Seq`.
+
+XMP labels preserve their text/case separately from the Library's five color
+tokens. ASCII case-insensitive Red/Yellow/Green/Blue/Purple also color cards;
+other names remain searchable text without an assigned color. Choosing a color
+explicitly replaces the XMP label with its standard English name. No label clears
+custom text too, including when the card already has no assigned color. Changing
+rating/flag, or saving unrelated metadata, preserves the existing label text.
+
+XMP Rating -1 maps to Reject and zero stars on import; 0–5 map to whole-star
+ratings and Unflagged. Integral real spellings such as 3.0 are accepted.
+Reject writes -1 in sidecars/exports while its existing stars remain in the
+catalog. Pick is catalog-only; XMP Rating does not encode it. Fractional ratings
+are explicitly refused with a visible warning rather than rounded. Changes to
+Library flags now invalidate sidecar revisions, including older rejected assets
+during migration. External packet backups and revision guards remain in place.
+
+These interoperability decisions are implemented in source; external XMP round
+trips, migration, export privacy and the updated UI still require final qualification.
 
 ## Backup and recovery
 
@@ -124,9 +142,11 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
 
 ## Outstanding qualification and source decisions
 
-- Build every target and update fixtures for schema 16 and the Missing role.
+- Build every target and update fixtures for schema 17 and the Missing role.
 - Exercise multilingual/large metadata, external XMP round trips, unsupported
   namespaces, concurrency, permission/disk failures and pending-write recovery.
+  Include ordered/repeated creators, exact custom label text, explicit No label,
+  standard-color mapping, Reject/Unflag/Pick changes and stale revision refusal.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
 - Cover startup cancellation, missing volumes, multiple windows, stale markers,
@@ -144,3 +164,5 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
 
 Platform references: [ImageIO metadata](https://developer.apple.com/documentation/imageio/cgimagemetadata),
 [XMP string access](https://developer.apple.com/documentation/imageio/cgimagemetadatacopystringvaluewithpath(_:_:_:)).
+Interoperability definitions: [Adobe XMP Rating and Label](https://developer.adobe.com/xmp/docs/xmp-namespaces/xmp/),
+[Dublin Core creator sequence](https://developer.adobe.com/xmp/docs/xmp-namespaces/dc/).

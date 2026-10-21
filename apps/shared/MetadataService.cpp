@@ -89,11 +89,13 @@ MetadataSnapshot MetadataService::read(const std::string &id) const {
     // opening this panel alone does not change catalog metadata or a sidecar.
     if (!snapshot.initialized && std::filesystem::is_regular_file(snapshot.path)) {
         const auto rating = snapshot.values.rating;
+        const auto flag = snapshot.values.flag;
         const auto label = snapshot.values.label;
         try {
             const auto bytes = readBytes(sidecarPath(snapshot.path));
             snapshot.values = macos::readDescriptiveMetadata(snapshot.path, bytes);
-            snapshot.values.rating = rating; snapshot.values.label = label;
+            snapshot.values.rating = rating; snapshot.values.flag = flag; snapshot.values.label = label;
+            snapshot.readError.clear();
         } catch (const std::exception &error) { snapshot.readError = error.what(); }
     }
     return snapshot;
@@ -164,7 +166,7 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id, Cance
         // Rating/label can change before the Metadata panel has been used.
         // Preserve descriptive fields from the source rather than blanking them.
         values = macos::readDescriptiveMetadata(snapshot.path, bytes);
-        values.rating = snapshot.values.rating; values.label = snapshot.values.label;
+        values.rating = snapshot.values.rating; values.flag = snapshot.values.flag; values.label = snapshot.values.label;
     }
     const auto output = macos::writeDescriptiveXMP(values, bytes);
     // A previous file install can survive a crash before its DB commit. An

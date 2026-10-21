@@ -3,8 +3,7 @@
 #import <Foundation/Foundation.h>
 #include <ImageIO/ImageIO.h>
 #include <algorithm>
-#include <charconv>
-#include <cctype>
+#include <cmath>
 #include <sstream>
 #include <stdexcept>
 
@@ -33,7 +32,7 @@ bool exists(CGImageMetadataRef data, CFStringRef path) {
     CFHandle tag(CGImageMetadataCopyTagWithPath(data, nullptr, path));
     return static_cast<bool>(tag);
 }
-std::vector<std::string> array(CGImageMetadataRef data, CFStringRef path) {
+std::vector<std::string> array(CGImageMetadataRef data, CFStringRef path, bool unique = true) {
     CFHandle tag(CGImageMetadataCopyTagWithPath(data, nullptr, path));
     if (!tag) return {};
     CFHandle value(CGImageMetadataTagCopyValue(tag.get()));
@@ -46,7 +45,8 @@ std::vector<std::string> array(CGImageMetadataRef data, CFStringRef path) {
         const auto item = CFArrayGetValueAtIndex(list, i);
         if (CFGetTypeID(item) != CFStringGetTypeID()) throw std::runtime_error("XMP list must contain text.");
         auto text = string(static_cast<CFStringRef>(item));
-        if (!text.empty() && std::find(result.begin(), result.end(), text) == result.end()) result.push_back(std::move(text));
+        if (!text.empty() && (!unique || std::find(result.begin(), result.end(), text) == result.end()))
+            result.push_back(std::move(text));
     }
     return result;
 }
@@ -56,25 +56,22 @@ void overlay(CGImageMetadataRef data, DescriptiveMetadata &values) {
             std::pair{CFSTR("dc:title"), &values.title}, {CFSTR("dc:description"), &values.caption},
             {CFSTR("dc:rights"), &values.copyright}, {CFSTR("Iptc4xmpCore:Location"), &values.location}})
         if (exists(data, path)) *destination = scalar(data, path);
-    if (exists(data, CFSTR("dc:creator"))) {
-        const auto creators = array(data, CFSTR("dc:creator"));
-        if (creators.size() > 1)
-            throw std::runtime_error("Multiple XMP creators cannot be flattened into one Creator field.");
-        values.creator = creators.empty() ? "" : creators.front();
-    }
+    if (exists(data, CFSTR("dc:creator"))) values.creators = array(data, CFSTR("dc:creator"), false);
     if (exists(data, CFSTR("dc:subject"))) values.keywords = array(data, CFSTR("dc:subject"));
     if (exists(data, CFSTR("xmp:Rating"))) {
-        const auto text = scalar(data, CFSTR("xmp:Rating"));
-        const auto converted = std::from_chars(text.data(), text.data() + text.size(), values.rating);
-        if (converted.ec != std::errc{} || converted.ptr != text.data() + text.size())
+        std::istringstream number(scalar(data, CFSTR("xmp:Rating")));
+        number.imbue(std::locale::classic());
+        double rating = 0;
+        if (!(number >> rating) || !(number >> std::ws).eof() || !std::isfinite(rating) ||
+            rating < -1 || rating > 5)
             throw std::runtime_error("Invalid XMP rating.");
+        // Accept integral real spellings such as 3.0 without rounding fractions.
+        if (std::trunc(rating) != rating)
+            throw std::runtime_error("Fractional XMP ratings cannot be represented by whole-star Library ratings.");
+        values.flag = rating == -1 ? -1 : 0;
+        values.rating = rating == -1 ? 0 : static_cast<int>(rating);
     }
-    if (exists(data, CFSTR("xmp:Label"))) {
-        values.label = scalar(data, CFSTR("xmp:Label"));
-        std::transform(values.label.begin(), values.label.end(), values.label.begin(), [](unsigned char c) {
-            return static_cast<char>(std::tolower(c));
-        });
-    }
+    if (exists(data, CFSTR("xmp:Label"))) values.label = scalar(data, CFSTR("xmp:Label"));
 }
 std::string escaped(std::string_view value) {
     std::string out;
@@ -108,7 +105,7 @@ std::vector<std::uint8_t> writeDescriptiveXMP(const DescriptiveMetadata &values,
         xml.imbue(std::locale::classic());
         xml << "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
             "<rdf:Description rdf:about=\"\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:xmp=\"http://ns.adobe.com/xap/1.0/\" "
-            "xmlns:Iptc4xmpCore=\"http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/\" xmp:Rating=\"" << values.rating << "\" xmp:Label=\""
+            "xmlns:Iptc4xmpCore=\"http://iptc.org/std/Iptc4xmpCore/1.0/xmlns/\" xmp:Rating=\"" << values.xmpRating() << "\" xmp:Label=\""
             << escaped(values.label) << "\" Iptc4xmpCore:Location=\"" << escaped(values.location) << "\">";
         auto localized = [&](const char *name, const std::string &text) {
             xml << "<dc:" << name << "><rdf:Alt><rdf:li xml:lang=\"x-default\">" << escaped(text)
@@ -116,7 +113,7 @@ std::vector<std::uint8_t> writeDescriptiveXMP(const DescriptiveMetadata &values,
         };
         localized("title", values.title); localized("description", values.caption); localized("rights", values.copyright);
         xml << "<dc:creator><rdf:Seq>";
-        if (!values.creator.empty()) xml << "<rdf:li>" << escaped(values.creator) << "</rdf:li>";
+        for (const auto &creator : values.creators) xml << "<rdf:li>" << escaped(creator) << "</rdf:li>";
         xml << "</rdf:Seq></dc:creator><dc:subject><rdf:Bag>";
         for (const auto &keyword : values.keywords) xml << "<rdf:li>" << escaped(keyword) << "</rdf:li>";
         xml << "</rdf:Bag></dc:subject></rdf:Description></rdf:RDF></x:xmpmeta>";
@@ -162,7 +159,7 @@ CFHandle<CGMutableImageMetadataRef> applyMetadataOverlay(CGImageMetadataRef sour
             return CFHandle<CGMutableImageMetadataRef>(CGImageMetadataCreateMutableCopy(parsed.get()));
         }
         CFHandle result(source ? CGImageMetadataCreateMutableCopy(source) : CGImageMetadataCreateMutable());
-        NSString *rating = [NSString stringWithFormat:@"%d", overlay.values.rating];
+        NSString *rating = [NSString stringWithFormat:@"%d", overlay.values.xmpRating()];
         NSString *label = [NSString stringWithUTF8String:overlay.values.label.c_str()];
         if (!result || !CGImageMetadataRegisterNamespaceForPrefix(result.get(), kCGImageMetadataNamespaceXMPBasic, kCGImageMetadataPrefixXMPBasic, nullptr) ||
             !CGImageMetadataSetValueWithPath(result.get(), nullptr, CFSTR("xmp:Rating"), (__bridge CFStringRef)rating) ||

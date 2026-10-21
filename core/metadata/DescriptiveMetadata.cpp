@@ -1,5 +1,5 @@
 #include "core/metadata/DescriptiveMetadata.h"
-#include "core/library/LibraryTypes.h"
+#include <algorithm>
 #include <set>
 #include <stdexcept>
 
@@ -32,9 +32,15 @@ void text(const std::string &value, std::size_t limit, bool multiline = false) {
 }
 void DescriptiveMetadata::validate() const {
     text(title, 1024); text(caption, 16384, true); text(copyright, 2048);
-    text(creator, 1024); text(location, 2048);
+    text(location, 2048); text(label, 1024);
     if (rating < 0 || rating > 5) throw std::runtime_error("Rating must be 0–5.");
-    validateLabel(label);
+    if (flag < -1 || flag > 1) throw std::runtime_error("Flag must be Reject, Unflagged or Pick.");
+    if (creators.size() > 256) throw std::runtime_error("At most 256 creators are supported per photo.");
+    // dc:creator is an ordered sequence. Repeated names retain their positions.
+    for (const auto &creator : creators) {
+        text(creator, 1024);
+        if (creator.empty()) throw std::runtime_error("Creator names must not be empty.");
+    }
     if (keywords.size() > 256) throw std::runtime_error("At most 256 keywords are supported per photo.");
     std::set<std::string> unique;
     for (const auto &keyword : keywords) {
@@ -42,5 +48,14 @@ void DescriptiveMetadata::validate() const {
         if (keyword.find_first_not_of(' ') == std::string::npos || !unique.insert(keyword).second)
             throw std::runtime_error("Keywords must be nonempty and unique.");
     }
+}
+std::string DescriptiveMetadata::colorLabel() const {
+    auto token = label;
+    std::transform(token.begin(), token.end(), token.begin(), [](unsigned char value) {
+        return static_cast<char>(value >= 'A' && value <= 'Z' ? value + ('a' - 'A') : value);
+    });
+    if (token == "red" || token == "yellow" || token == "green" || token == "blue" || token == "purple")
+        return token;
+    return {};
 }
 }

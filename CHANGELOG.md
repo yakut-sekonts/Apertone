@@ -19,13 +19,17 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Durable generated-image registration and dead-owner recovery.
 - Descriptive metadata, keywords/search, revision-aware XMP sidecars, source
   packet backups and metadata snapshots/policies in export.
+- XMP interoperability: ordered creators, exact custom label text, Library color
+  mapping, Reject/-1 import/export and flag-aware pending writes. Metadata UI
+  edits these fields; creator/label text is searchable. Fractional ratings are
+  refused explicitly instead of rounded.
 - Catalog backup scheduling/retention/restore, create/open catalog windows,
   missing-original relinking and bounded folder watching.
 - Startup catalog recovery, interrupted-session choice and remembered catalog;
   no automatic replacement of missing or unreadable catalogs.
 - Local Diagnostics with system/cache information and a privacy-limited JSON
   export that refuses to replace existing files.
-- SQLite pre-migration backups; catalog 11→16 migrations.
+- SQLite pre-migration backups; catalog 11→17 migrations.
 - Source-only Developer ID/hardened-runtime/notarization packaging with isolated
   Actions setup and refusal of unsigned/non-notarized 1.x publication.
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
