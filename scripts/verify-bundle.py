@@ -8,6 +8,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from model_assets import digest, verify_artifacts
 
 root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(root / "tests/assets"))
@@ -21,6 +22,10 @@ with (app / "Contents/Info.plist").open("rb") as file:
 info = json.loads((app / "Contents/Resources/BUILD_INFO.json").read_text())
 assert info["version"] == version
 assert info["source_commit"] == subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+models = app / "Contents/Resources/Models"
+model_manifest = verify_artifacts(models)
+assert info["bundled_models"] == model_manifest["models"]
+assert info["models_manifest_sha256"] == digest(models / "manifest.json")
 assert sdk.is_dir() and not hidden.exists()
 env = os.environ.copy()
 for name in ("QT_QPA_PLATFORM", "QT_QUICK_BACKEND", "QT_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH"):

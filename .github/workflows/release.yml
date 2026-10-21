@@ -68,6 +68,8 @@ jobs:
           fi
       - name: Install fixed toolchain and Qt
         run: ./scripts/bootstrap.sh
+      - name: Build pinned offline Denoise and Sky models
+        run: bash scripts/build-bundled-models.sh build/models
       - name: Configure
         run: |
           .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"

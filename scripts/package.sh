@@ -19,6 +19,8 @@ if [[ -d "$output/Luma.app" ]]; then
     mv "$output/Luma.app" "$output/Luma.previous.$(date +%s).app"
 fi
 ditto "$build_directory/Luma.app" "$output/Luma.app"
+.tools/venv/bin/python scripts/install-bundled-models.py \
+    "${LUMA_BUNDLED_MODELS_DIR:-$build_directory/models}" "$output/Luma.app"
 mkdir -p "$output/Luma.app/Contents/Frameworks"
 cp "$build_directory/libluma_raw.dylib" "$output/Luma.app/Contents/Frameworks/"
 # Exclude Qt's optional PostgreSQL/ODBC drivers and their external dependencies.
@@ -73,15 +75,18 @@ for path in re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset", comm
         subprocess.run(["install_name_tool", "-delete_rpath", path, executable], check=True)
 PYTHON
 .tools/venv/bin/python - "$output/Luma.app" <<'PYTHON'
-import json, os, plistlib, subprocess, sys
+import hashlib, json, os, plistlib, subprocess, sys
 from pathlib import Path
 app = Path(sys.argv[1])
 with (app / "Contents/Info.plist").open("rb") as file:
     version = plistlib.load(file)["CFBundleShortVersionString"]
 commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
 signed = bool(os.environ.get("LUMA_SIGNING_IDENTITY"))
+models_manifest = (app / "Contents/Resources/Models/manifest.json").read_bytes()
 info = {"version": version, "source_commit": commit, "platform": "macOS 14+", "architecture": "arm64",
         "signing": "developer-id" if signed else "ad-hoc",
+        "bundled_models": json.loads(models_manifest)["models"],
+        "models_manifest_sha256": hashlib.sha256(models_manifest).hexdigest(),
         "dependencies": {"Qt": "6.10.3", "LibRaw": "0.21.5", "SQLite": "3.50.4", "LittleCMS": "2.17", "Sparkle": "2.10.0", "LensfunDatabase": "0.3.4"}}
 if signed:
     info["notarization_policy"] = "required; acceptance recorded in release BUILD_INFO.json"

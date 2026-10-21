@@ -146,9 +146,12 @@ bitmap selections, persisted Clone/Heal/Remove strokes, local Core ML denoise
 integration with new Float32 DNG output, and opt-in local English semantic search
 over recognized image categories are implemented in source. Catalog 11→14 adds
 bitmap storage, retouch and embeddings; a pre-migration SQLite backup is required.
-An optional Core ML Sky adapter is also present. Redistributable qualified
-denoise/Sky models and their delivery policy remain open.
-No model is silently downloaded and no photo is sent to a cloud service.
+A Core ML Sky adapter is also present. The user selected installer-bundled models:
+NAFNet SIDD denoise and U²-Net Sky have pinned weight sources/licenses, a build
+recipe and automatic lookup in the app. Both models travel with Sparkle updates;
+conversion, photographic quality and performance remain unqualified. See
+[model delivery](docs/BUNDLED_MODELS.md). No model is downloaded at runtime and
+no photo is sent to a cloud service.
 See [implementation and remaining scope](docs/PHASE7_DEVELOPMENT.md).
 
 ## 0.8 — Merge

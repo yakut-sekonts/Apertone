@@ -600,6 +600,9 @@
     "Cannot read catalog diagnostics.": "无法读取目录诊断信息。",
     "Choose a new JSON filename for the diagnostic report.": "请为诊断报告选择新的 JSON 文件名。",
     "Cannot save the diagnostic report.": "无法保存诊断报告。",
-    "Cannot save the diagnostic report. Choose a new writable filename.": "无法保存诊断报告。请选择新的可写文件名。"
+    "Cannot save the diagnostic report. Choose a new writable filename.": "无法保存诊断报告。请选择新的可写文件名。",
+    "Included models work offline. Photos stay on this Mac.": "内置模型可离线工作。照片保留在此 Mac 上。",
+    "Included with Luma": "Luma 内置",
+    "Use bundled model": "使用内置模型"
   }
 }

@@ -54,19 +54,31 @@ class CoreMLDenoise final : public ai::IDenoiseProvider {
             NSDictionary *metadata = model_.modelDescription.metadata[MLModelCreatorDefinedKey];
             if (![metadata[@"luma.denoise.schema"] isEqual:@"1"] ||
                 ![metadata[@"luma.denoise.color"] isEqual:@"linear-srgb"] ||
-                ![metadata[@"luma.denoise.halo"] isEqual:@"16"])
+                (![metadata[@"luma.denoise.halo"] isEqual:@"16"] &&
+                 ![metadata[@"luma.denoise.halo"] isEqual:@"64"]))
                 throw std::runtime_error("Model is missing the Luma linear RGB denoise contract.");
+            halo_ = [metadata[@"luma.denoise.halo"] isEqual:@"64"] ? 64 : 16;
+            NSString *modelID = metadata[@"luma.model.id"];
+            if ([modelID isKindOfClass:NSString.class] && modelID.length > 0 && modelID.length <= 96) {
+                const std::string value = modelID.UTF8String ?: "";
+                if (std::all_of(value.begin(), value.end(), [](unsigned char c) {
+                    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                           (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.';
+                })) identifier_ += ":" + value;
+            }
             const auto inputs = model_.modelDescription.inputDescriptionsByName;
             const auto outputs = model_.modelDescription.outputDescriptionsByName;
             if (inputs.count != 1 || outputs.count != 1 ||
                 !inputs[@"noisy"] || !outputs[@"denoised"])
                 throw std::runtime_error("Denoise model must expose noisy → denoised tensors.");
             size_ = dimensions(inputs[@"noisy"]);
+            if (size_[0] <= 2 * halo_ || size_[1] <= 2 * halo_)
+                throw std::runtime_error("Denoise model halo leaves no usable tile pixels.");
             if (dimensions(outputs[@"denoised"]) != size_)
                 throw std::runtime_error("Denoise model input and output dimensions must match.");
         }
     }
-    std::string identifier() const override { return "coreml.linear-denoise.v1"; }
+    std::string identifier() const override { return identifier_; }
     ai::ExecutionLocation location() const override { return ai::ExecutionLocation::local; }
     FloatImage denoise(const FloatImage &linear, double amount, CancellationToken stop,
                         const ai::Progress &progress) override {
@@ -77,7 +89,7 @@ class CoreMLDenoise final : public ai::IDenoiseProvider {
         checkCancellation(stop);
         FloatImage result = linear;
         if (amount == 0) return result;
-        const int width = size_[0], height = size_[1], halo = 16,
+        const int width = size_[0], height = size_[1], halo = halo_,
                   stepX = width - 2 * halo, stepY = height - 2 * halo;
         const int columns = (linear.width + stepX - 1) / stepX,
                   rows = (linear.height + stepY - 1) / stepY;
@@ -169,6 +181,8 @@ class CoreMLDenoise final : public ai::IDenoiseProvider {
     NSURL *__strong url_;
     MLModel *__strong model_;
     std::array<int, 2> size_{};
+    int halo_ = 16;
+    std::string identifier_ = "coreml.linear-denoise.v1";
     bool cpuOnly_ = false;
     std::mutex mutex_;
 };

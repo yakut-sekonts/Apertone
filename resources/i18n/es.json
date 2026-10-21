@@ -600,6 +600,9 @@
     "Cannot read catalog diagnostics.": "No se pudo leer el diagnóstico del catálogo.",
     "Choose a new JSON filename for the diagnostic report.": "Seleccione un nombre de archivo JSON nuevo para el informe de diagnóstico.",
     "Cannot save the diagnostic report.": "No se pudo guardar el informe de diagnóstico.",
-    "Cannot save the diagnostic report. Choose a new writable filename.": "No se pudo guardar el informe de diagnóstico. Seleccione un nombre nuevo en una carpeta con permiso de escritura."
+    "Cannot save the diagnostic report. Choose a new writable filename.": "No se pudo guardar el informe de diagnóstico. Seleccione un nombre nuevo en una carpeta con permiso de escritura.",
+    "Included models work offline. Photos stay on this Mac.": "Los modelos incluidos funcionan sin conexión. Las fotos permanecen en este Mac.",
+    "Included with Luma": "Incluido en Luma",
+    "Use bundled model": "Usar modelo incluido"
   }
 }

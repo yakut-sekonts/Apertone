@@ -136,7 +136,9 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
 - Cover moved roots, duplicates, disconnected volumes, checksums, selected-photo
   reopening and preservation of viewport/selection. LUMA-BUG-035 remains open.
 - Run 10k/100k/500k catalog and 8/16 GB resource tests only during final QA.
-- Select/qualify distributable denoise and Sky models and their delivery policy.
+- Convert and qualify the pinned denoise/Sky models. The user selected installer
+  delivery; source integration now bundles both offline models. See
+  [model delivery](BUNDLED_MODELS.md); conversion and model QA remain unexecuted.
 - Full final functional, image-quality, native UX, recovery, load and stress
   qualification is pending. None of these checks is marked PASS.
 

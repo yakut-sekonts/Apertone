@@ -54,6 +54,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
     Q_PROPERTY(QString skyModelName READ skyModelName NOTIFY stateChanged)
     Q_PROPERTY(bool skyModelConfigured READ skyModelConfigured NOTIFY stateChanged)
+    Q_PROPERTY(bool skyModelBundled READ skyModelBundled NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
     Q_PROPERTY(QString targetedTool READ targetedTool WRITE setTargetedTool NOTIFY stateChanged)
@@ -97,6 +98,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool retouchBusy READ retouchBusy NOTIFY stateChanged)
     Q_PROPERTY(QString denoiseModelName READ denoiseModelName NOTIFY stateChanged)
     Q_PROPERTY(bool denoiseModelConfigured READ denoiseModelConfigured NOTIFY stateChanged)
+    Q_PROPERTY(bool denoiseModelBundled READ denoiseModelBundled NOTIFY stateChanged)
     Q_PROPERTY(QString catalogPath READ catalogPath CONSTANT)
 
   public:
@@ -294,9 +296,11 @@ class EditorController final : public QObject {
     Q_INVOKABLE void cancelAI();
     QString denoiseModelName() const;
     bool denoiseModelConfigured() const { return !denoiseModelPath_.isEmpty(); }
+    bool denoiseModelBundled() const;
     Q_INVOKABLE void setDenoiseModel(const QUrl &url);
     QString skyModelName() const;
     bool skyModelConfigured() const { return !skyModelPath_.isEmpty(); }
+    bool skyModelBundled() const;
     Q_INVOKABLE void setSkyModel(const QUrl &url);
     Q_INVOKABLE void denoisePhoto(double amount = 100);
     QString retouchMode() const { return retouchMode_; }

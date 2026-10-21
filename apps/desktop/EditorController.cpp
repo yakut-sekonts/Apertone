@@ -1,4 +1,5 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/desktop/BundledModels.h"
 #include "apps/shared/PresetStore.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
@@ -61,6 +62,10 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
     denoiseModelPath_ = settings.value(QStringLiteral("denoiseModel")).toString();
     skyModelPath_ = settings.value(QStringLiteral("skyModel")).toString();
+    if (denoiseModelPath_.isEmpty())
+        denoiseModelPath_ = luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise);
+    if (skyModelPath_.isEmpty())
+        skyModelPath_ = luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky);
     accelerator_ = luma::macos::makeMetalDevelopAccelerator();
     segmentation_ = luma::macos::makeVisionSegmentation();
     applyCacheBudget();

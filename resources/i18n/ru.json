@@ -600,6 +600,9 @@
     "Cannot read catalog diagnostics.": "Не удалось прочитать диагностические сведения каталога.",
     "Choose a new JSON filename for the diagnostic report.": "Выберите новое имя JSON-файла для диагностического отчёта.",
     "Cannot save the diagnostic report.": "Не удалось сохранить диагностический отчёт.",
-    "Cannot save the diagnostic report. Choose a new writable filename.": "Не удалось сохранить диагностический отчёт. Выберите новое имя файла в доступной для записи папке."
+    "Cannot save the diagnostic report. Choose a new writable filename.": "Не удалось сохранить диагностический отчёт. Выберите новое имя файла в доступной для записи папке.",
+    "Included models work offline. Photos stay on this Mac.": "Встроенные модели работают без интернета. Фотографии остаются на этом Mac.",
+    "Included with Luma": "Включена в Luma",
+    "Use bundled model": "Использовать встроенную модель"
   }
 }

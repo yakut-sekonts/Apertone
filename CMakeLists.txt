@@ -108,6 +108,22 @@ set_target_properties(Luma PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/platform/macos/Info.plist.in")
 
+set(LUMA_BUNDLED_MODELS_DIR "${CMAKE_BINARY_DIR}/models" CACHE PATH "Compiled offline model artifacts")
+if(EXISTS "${LUMA_BUNDLED_MODELS_DIR}/manifest.json")
+    if(Python3_VERSION VERSION_LESS "3.11")
+        message(FATAL_ERROR "Bundled model manifests require Python 3.11 or later; use the Python 3.12 build environment.")
+    endif()
+    # Run even when Luma itself did not relink, so a changed model recipe cannot
+    # leave stale resources in a previously generated app bundle.
+    add_custom_target(luma_bundled_models ALL
+        COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/install-bundled-models.py"
+            "${LUMA_BUNDLED_MODELS_DIR}" "$<TARGET_BUNDLE_DIR:Luma>"
+        DEPENDS Luma
+        VERBATIM)
+elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
+    message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Luma 1.0.")
+endif()
+
 add_executable(luma_cli apps/cli/main.cpp apps/cli/LibraryCommands.cpp)
 set_target_properties(luma_cli PROPERTIES OUTPUT_NAME luma
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
@@ -162,6 +178,13 @@ if(BUILD_TESTING)
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/tests/ux/Info.plist.in")
+    if(TARGET luma_bundled_models)
+        add_custom_target(luma_ux_bundled_models ALL
+            COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/install-bundled-models.py"
+                "${LUMA_BUNDLED_MODELS_DIR}" "$<TARGET_BUNDLE_DIR:luma_ux_tests>"
+            DEPENDS luma_ux_tests
+            VERBATIM)
+    endif()
     # Keep the established runner path; the runner launches its canonical bundle target.
     # Configure also repairs a deleted launcher when the executable needs no relink.
     set(UX_BUILD_ROOT "${CMAKE_BINARY_DIR}")

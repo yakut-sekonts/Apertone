@@ -600,6 +600,9 @@
     "Cannot read catalog diagnostics.": "Չհաջողվեց կարդալ կատալոգի ախտորոշման տվյալները։",
     "Choose a new JSON filename for the diagnostic report.": "Ընտրեք նոր JSON ֆայլի անուն ախտորոշման զեկույցի համար։",
     "Cannot save the diagnostic report.": "Չհաջողվեց պահպանել ախտորոշման զեկույցը։",
-    "Cannot save the diagnostic report. Choose a new writable filename.": "Չհաջողվեց պահպանել ախտորոշման զեկույցը։ Ընտրեք նոր ֆայլի անուն գրելի պանակում։"
+    "Cannot save the diagnostic report. Choose a new writable filename.": "Չհաջողվեց պահպանել ախտորոշման զեկույցը։ Ընտրեք նոր ֆայլի անուն գրելի պանակում։",
+    "Included models work offline. Photos stay on this Mac.": "Ներառված մոդելներն աշխատում են առանց ինտերնետի։ Լուսանկարները մնում են այս Mac-ում։",
+    "Included with Luma": "Ներառված է Luma-ում",
+    "Use bundled model": "Օգտագործել ներառված մոդելը"
   }
 }

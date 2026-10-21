@@ -1,0 +1,81 @@
+# Bundled offline model delivery
+
+Decision: the user requested installer-bundled models on 2026-10-21. This is a
+source implementation, **not built or qualified**. No intermediate installer or
+model conversion is run during development. Stable remains 0.5.1.
+
+## Runtime
+
+The app resolves `Contents/Resources/Models/LumaDenoise.mlmodelc` and
+`LumaSky.mlmodelc` relative to its own executable. The first launch needs neither
+a download nor manual model configuration. Models and photographs stay local.
+Settings exposes a custom compiled model override and a return to the included
+model, translated into all eight languages. Only custom paths are persisted;
+moving the app or installing a Sparkle update resolves bundled paths again.
+
+Missing resources disable the corresponding feature. Present but invalid models
+fail explicitly on the worker; no fallback download or fabricated result is used.
+Prediction falls back from available compute units to CPU on supported failures.
+
+## Sources and adaptation
+
+`resources/models/sources.json` pins both upstream revisions, source bytes,
+license hashes and model contracts. `resources/models/NOTICE.md` documents
+upstream attribution and Luma's changes. Both notices and full upstream licenses
+travel with the compiled artifacts.
+
+- NAFNet SIDD width32: MIT with retained BasicSR notices, 512×512 Float32 tensors
+  and a 64-pixel halo. The sRGB-trained model is wrapped by linear↔sRGB conversion.
+  Any RGB pixel outside [0,1] passes through unchanged; no RAW-trained quality
+  claim is made. Model ID is recorded with denoised DNG provenance.
+- U²-Net Sky: MIT, the author's ONNX model from the pinned attributed mirror,
+  320×320 sRGB input with ImageNet normalization and the first prediction output.
+  No per-image min/max stretching is applied to the probability map.
+
+## Final build preparation only
+
+On Apple Silicon with Xcode and Python 3.12, run:
+
+```sh
+bash scripts/build-bundled-models.sh build/models
+```
+
+The recipe uses pinned direct conversion dependencies in a separate build-only
+virtual environment. All resolved package versions, Python and Xcode versions
+are recorded in the generated manifest. Python packages do not ship in the app.
+PyTorch 2.10 uses `weights_only=True` for the hash-pinned checkpoint; arbitrary
+checkpoint objects and upstream training code are not loaded. The ONNX adapter
+refuses external initializer files and nonstandard operator domains.
+
+The recipe downloads exact-sized, SHA-256-pinned source weights into ignored
+`.tools/model-sources`, converts Float32 ML Programs for macOS 14+, invokes the
+Core ML compiler and atomically installs a complete artifact directory. Changed
+weights/recipe/license files require rebuilding models. Existing outputs are
+never silently overwritten; use a fresh output directory for a new recipe.
+
+CMake's default build installs the verified artifact directory into `Luma.app`.
+Configuring version 1.0 or later without model artifacts fails. `package.sh`
+requires both models and copies them before signing; `BUILD_INFO.json` records
+their identities and manifest hash. A custom artifact root can be selected with
+the CMake cache setting and packaging environment variable
+`LUMA_BUNDLED_MODELS_DIR`; both must point to the same recipe's output.
+
+The release workflow builds models before configuring the app. ZIP publication
+checks the pinned recipe, complete file inventory and hashes without extraction.
+Models are signed as application resources and included in both the DMG's app
+and Sparkle ZIP; there is no independently downloaded model/update channel.
+
+## Deferred qualification
+
+The conversion recipe, Core ML compiler compatibility, tensor contracts and
+numerical equivalence have not run. In particular, coremltools 9.0 documents
+testing with an earlier PyTorch version than this recipe's patched 2.10 loader;
+conversion compatibility must be established during final preparation.
+
+Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
+comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,
+orientation/crop alignment, CPU fallback, cancellation and 8/16 GB resource tests.
+Verify first offline launch, app moves, custom override/reset, signed Applications
+installation and Sparkle upgrade with both models. A generated model manifest
+records `qualification: NOT_RUN`; model quality is established by separate final
+release evidence, not conversion success. See [final readiness](FINAL_1_0_READINESS.md).

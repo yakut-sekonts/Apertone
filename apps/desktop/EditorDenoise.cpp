@@ -1,4 +1,5 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/desktop/BundledModels.h"
 #include "apps/shared/DerivedImage.h"
 #include "core/raw/RawDecoder.h"
 #include "core/image/Bayer.h"
@@ -12,13 +13,21 @@
 QString EditorController::denoiseModelName() const {
     return QFileInfo(denoiseModelPath_).fileName();
 }
+bool EditorController::denoiseModelBundled() const {
+    return !denoiseModelPath_.isEmpty() && denoiseModelPath_ ==
+        luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise);
+}
 void EditorController::setDenoiseModel(const QUrl &url) {
     if (!url.isEmpty() && !url.isLocalFile()) return;
     cancelAI();
-    denoiseModelPath_ = url.isEmpty() ? QString() : url.toLocalFile();
+    const auto overridePath = url.isEmpty() ? QString() : url.toLocalFile();
+    denoiseModelPath_ = overridePath.isEmpty()
+        ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise) : overridePath;
     QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
                        QSettings::IniFormat);
-    settings.setValue("denoiseModel", denoiseModelPath_);
+    // Persist only the user's override. Bundled paths are resolved again after
+    // updates or moving the application to a different directory.
+    settings.setValue("denoiseModel", overridePath);
     emit stateChanged();
 }
 void EditorController::denoisePhoto(double amount) {

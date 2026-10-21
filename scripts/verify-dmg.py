@@ -8,6 +8,7 @@ import time
 import subprocess
 import sys
 import tempfile
+from model_assets import digest, verify_artifacts
 
 root = Path(__file__).resolve().parents[1]
 image = Path(sys.argv[1]).resolve()
@@ -42,6 +43,10 @@ try:
     provenance = json.loads((app / "Contents/Resources/BUILD_INFO.json").read_text())
     assert provenance["version"] == version
     assert provenance["source_commit"] == run("git", "rev-parse", "HEAD", cwd=root).stdout.strip()
+    models = app / "Contents/Resources/Models"
+    model_manifest = verify_artifacts(models)
+    assert provenance["bundled_models"] == model_manifest["models"]
+    assert provenance["models_manifest_sha256"] == digest(models / "manifest.json")
     run("codesign", "--verify", "--deep", "--strict", app)
     executable = app / "Contents/MacOS/Luma"
     env = os.environ.copy()

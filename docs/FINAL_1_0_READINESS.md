@@ -7,9 +7,10 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
 
 ## Source decisions still open
 
-- Select legally distributable, compatible denoise/Sky weights and the delivery
-  policy. No model is bundled or downloaded at this checkpoint. Adapter code
-  and a filename in Settings are not evidence of usable model quality.
+- Denoise/Sky delivery is resolved: include both models in the installer and
+  Sparkle archive. Pinned NAFNet SIDD and U²-Net Sky sources/licenses, conversion,
+  default model lookup and packaging guards are implemented in source. The
+  compiled models and installer have not been built. See [model delivery](BUNDLED_MODELS.md).
 - Qualify the current bounded HDR/panorama algorithms. Further seam optimization,
   projection coverage or tiled processing depends on the photographic/resource
   evidence; do not advertise unimplemented 360° or generative panorama fill.
@@ -24,6 +25,15 @@ issues. Run formatting/static analysis then the existing tests and extended
 coverage for every new workflow in phases 0.6–0.9. Preserve historical failure
 evidence, update obsolete fixture assumptions explicitly and never reinterpret
 SKIP/NOT_RUN/blocked cases as passing.
+
+Build the offline models before configuring the final app. Qualify the pinned
+Python/PyTorch/ONNX/Core ML conversion path, source-to-Core-ML numerical agreement,
+model tensor contracts and toolchain compatibility; no conversion has run yet.
+Use representative photographs to assess denoise texture/color/highlights/tiles
+and Sky boundaries/no-sky errors, then CPU fallback, cancellation and 8/16 GB
+resource use. Exercise first launch without network, installation in Applications,
+app moves, custom override/reset, upgrade/relaunch and both models in the final
+signed ZIP/DMG. Do not treat checksum/provenance checks as model-quality evidence.
 
 The complete campaign must include requirements §100, all 23 open 0.5.1
 qualification gaps, LUMA-BUG-035, image/CPU–Metal comparisons, trained-model

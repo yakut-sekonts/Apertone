@@ -12,6 +12,8 @@ import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+import zipfile
+from model_assets import describe_models, verify_zip
 
 repository = os.environ.get("GITHUB_REPOSITORY")
 if repository != "yakut-sekonts/Luma":
@@ -61,6 +63,12 @@ for path in paths:
         checksums[path.name] = hashlib.file_digest(file, "sha256").hexdigest()
 if set(manifest) != {path.name for path in paths[:-1]} or any(checksums[name] != digest for name, digest in manifest.items()):
     raise SystemExit("Release checksum manifest is invalid.")
+if int(version.split(".")[0]) >= 1 or "bundled_models" in info:
+    model_digest = info.get("models_manifest_sha256", "")
+    if info.get("bundled_models") != describe_models() or not re.fullmatch(r"[0-9a-f]{64}", model_digest):
+        raise SystemExit("Release requires both pinned offline models and their manifest checksum.")
+    with zipfile.ZipFile(paths[0]) as archive:
+        verify_zip(archive, model_digest)
 
 def gh(*args, check=True):
     result = subprocess.run(["gh", *args, "--repo", repository], capture_output=True, text=True)

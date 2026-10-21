@@ -33,11 +33,24 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   UniformTypeIdentifiers from the system SDK. Used for hashing, color, image
   decoding/encoding, text and native format identification; no Apple SDK or framework
   binary is redistributed.
+- **NAFNet SIDD width32** — https://github.com/megvii-research/NAFNet
+  Copyright (c) 2022 megvii-model, MIT, with inherited BasicSR Apache-2.0 notices.
+  Converted denoise model and adapted inference architecture. Full notices,
+  upstream revision, exact checkpoint hash and Luma changes are recorded in
+  `resources/models/`; the compiled bundle includes those notices in `Models/`.
+- **U²-Net Sky** — https://github.com/xiongzhu666/Sky-Segmentation-and-Post-processing
+  Copyright (c) 2021 xiongzhu666, MIT. Pinned attributed weights mirror:
+  https://huggingface.co/JianyuanWang/skyseg . Converted Sky segmentation model;
+  full license, model provenance and adaptation notice accompany `Models/`.
 
 Build tools are not part of the app runtime. The locked toolchain includes
 aqtinstall (MIT), CMake (BSD-3-Clause), Ninja (Apache-2.0), clang-format/clang-tidy
 (Apache-2.0 with LLVM exception) and their Python dependencies. See the lock file
 for exact versions and each upstream distribution for its license notices.
+Offline model conversion additionally uses coremltools (BSD-3-Clause), PyTorch
+and torchvision (BSD-3-Clause), ONNX (Apache-2.0), onnx2torch (Apache-2.0), NumPy
+(BSD-3-Clause), protobuf (BSD-3-Clause) and certifi (MPL-2.0). These Python
+packages are build-only; their binaries are not part of the application.
 
 Redistribution must preserve notices, provide the corresponding LGPL sources
 and permit replacement/relinking of LGPL libraries. A local debug build does not

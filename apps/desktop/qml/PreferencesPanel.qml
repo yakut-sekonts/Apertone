@@ -72,24 +72,27 @@ Dialog {
         }
         Label {
             text: qsTranslate("Luma", "Local AI Denoise model") + ": " +
-                  (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Luma", "Not configured"))
+                  (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Luma", "Not configured")) +
+                  (editor.denoiseModelBundled ? " · " + qsTranslate("Luma", "Included with Luma") : "")
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
             Button { text: qsTranslate("Luma", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Clear"); enabled: editor.denoiseModelConfigured; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
+            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
         }
         Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label {
-            text: qsTranslate("Luma", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Luma", "Not configured"))
+            text: qsTranslate("Luma", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Luma", "Not configured")) +
+                  (editor.skyModelBundled ? " · " + qsTranslate("Luma", "Included with Luma") : "")
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
             Button { text: qsTranslate("Luma", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Clear"); enabled: editor.skyModelConfigured; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
+            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
         }
+        Label { text: qsTranslate("Luma", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }
     }
 }

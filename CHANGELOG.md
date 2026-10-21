@@ -7,9 +7,12 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Bounded preview/source caches, progressive resolution, full-resolution view,
   memory-pressure handling and Metal Light/Color/Curves/HSL.
 - Native local AI Subject/Background/Object selections stored as editable masks.
-- Optional local Core ML Sky mask adapter, sharing bitmap persistence and Undo.
+- Local Core ML Sky mask adapter, sharing bitmap persistence and Undo.
 - Parametric Clone/Heal/Remove, source repositioning, persistence and Undo.
-- Optional local Core ML denoise adapter and managed Float32 Linear DNG derivatives.
+- Local Core ML denoise adapter and managed Float32 Linear DNG derivatives.
+- Offline model delivery source integration: pinned NAFNet SIDD and U²-Net Sky
+  weights/licenses, Core ML conversion recipe, automatic bundled defaults with
+  custom override/reset and model manifests checked before release publication.
 - Opt-in English semantic search based on local image classification and embeddings.
 - HDR exposure merge/deghosting and panorama registration, three projections,
   feather blending, auto crop/boundary warp and managed Float32 DNG outputs.
@@ -28,7 +31,7 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
   opening and bind card focus to the clicked item before activating the view.
 
-Model delivery/qualification and final acceptance remain open. Source version
+Model conversion/qualification and final acceptance remain open. Source version
 0.9.0 is not a released or tested application. See docs/FINAL_1_0_READINESS.md.
 
 ## 0.5.1 / Complete local masks and UX fixes

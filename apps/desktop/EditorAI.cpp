@@ -1,4 +1,5 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/desktop/BundledModels.h"
 #include "core/catalog/Identity.h"
 #include "core/render/CpuRenderer.h"
 #include "core/image/Bayer.h"
@@ -10,12 +11,18 @@
 #include <cmath>
 
 QString EditorController::skyModelName() const { return QFileInfo(skyModelPath_).fileName(); }
+bool EditorController::skyModelBundled() const {
+    return !skyModelPath_.isEmpty() && skyModelPath_ ==
+        luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky);
+}
 void EditorController::setSkyModel(const QUrl &url) {
     if (!url.isEmpty() && !url.isLocalFile()) return;
     cancelAI();
-    skyModelPath_ = url.isEmpty() ? QString() : url.toLocalFile();
+    const auto overridePath = url.isEmpty() ? QString() : url.toLocalFile();
+    skyModelPath_ = overridePath.isEmpty()
+        ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky) : overridePath;
     QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini", QSettings::IniFormat);
-    settings.setValue("skyModel", skyModelPath_);
+    settings.setValue("skyModel", overridePath);
     emit stateChanged();
 }
 void EditorController::cancelAI() {

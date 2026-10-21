@@ -17,16 +17,19 @@ The bitmap budget is 4 Mi pixels per complete document, shared across immutable
 history snapshots; serialization is strict canonical hex in mask document v3.
 Catalog migration 12 raises the stored document budget to 16 MiB and accepts
 legacy v1/v2 documents. Vision does not provide Sky in this implementation.
-The separate optional Core ML Sky adapter accepts a local compiled model and
-returns probability coverage through the same mask/Undo path. Sky stays disabled
-until a model path is configured; actual model validation occurs on the worker.
+The separate Core ML Sky adapter returns probability coverage through the same
+mask/Undo path. It resolves the bundled model automatically; Settings may supply
+a custom local model or return to the included one. Actual model validation
+occurs on the worker. A development bundle without model resources disables Sky.
 
 Sky contract: Float32 `image` `[1,3,H,W]` to `sky` `[1,1,H,W]`, matching static
 64–1024 dimensions, top-left sRGB RGB input in [0,1], bilinear stretch resizing,
 and finite sky probabilities in [0,1]. Creator metadata must declare
 `luma.sky.schema=1`, `luma.sky.color=srgb`, `luma.sky.resize=stretch`.
 Compute-unit failure retries CPU. Prediction is synchronous and cancellation
-is checked before/after it. No Sky weights are bundled or downloaded.
+is checked before/after it. The pinned U²-Net Sky conversion uses 320×320 inputs,
+ImageNet normalization and the first prediction output without per-image min/max
+stretching. Installer integration is implemented in source, not yet built.
 
 ## Retouch
 
@@ -45,11 +48,12 @@ with usable surrounding texture. This is patch-based removal, not generative
 fill, Poisson blending or a neural inpainting model. The editor reports failure
 when no disjoint donor exists; a source can be chosen manually.
 
-## Optional AI Denoise
+## AI Denoise
 
-The Core ML adapter accepts a user-selected local `.mlmodelc`. It runs on
+The Core ML adapter resolves the included `.mlmodelc` by default and also accepts
+a user-selected local override. It runs on
 available compute units with CPU fallback, Float32 linear RGB tensors, reflected
-tile borders and a 16-pixel halo. Amount blends source and prediction. Alpha,
+tile borders and the model's declared halo. Amount blends source and prediction. Alpha,
 finite samples and tensor shape/stride bounds are handled explicitly. Cancellation
 is checked between predictions; a single prediction is synchronous.
 
@@ -58,12 +62,15 @@ Model contract: one Float32 input `noisy` and output `denoised`, both static
 
 - `luma.denoise.schema = 1`
 - `luma.denoise.color = linear-srgb`
-- `luma.denoise.halo = 16`
+- `luma.denoise.halo = 16` (legacy/custom) or `64` (bundled NAFNet)
 
-No trained weights are bundled or downloaded. Choosing a model in Settings
-records a local path; loading/contract validation occurs on the worker when
-Denoise runs. **Selection, licensing, packaging and qualification of a default
-model remain open.** An adapter alone is not a qualified denoise product.
+The user chose installer-bundled models on 2026-10-21. NAFNet SIDD width32 and
+U²-Net Sky weights, revisions and licenses are pinned in
+`resources/models/sources.json`; the build recipe compiles them into the app.
+Luma downloads no weights at runtime. Only custom overrides persist absolute
+paths, so app moves and Sparkle upgrades resolve the included resources anew.
+See [model delivery](BUNDLED_MODELS.md) for provenance, conversion and limits.
+**Conversion, compilation, photographic quality and performance are unqualified.**
 
 Denoise takes a neutral upright RAW/Linear DNG and creates a separate unedited
 Float32 Linear DNG in the catalog's `.luma-derived` directory. Current Develop
@@ -96,8 +103,9 @@ Opening an older catalog first creates a SQLite online-backup snapshot in its
 The upgraded catalog cannot be opened by 0.5.1. Restore the pre-upgrade backup
 for downgrade; do not overwrite it with a new-schema catalog.
 
-Remaining source decisions: denoise/Sky weights and delivery strategy, and stronger
-semantic image/text encoding if category search is insufficient. Derivative
+The model delivery decision is resolved; remaining model work is conversion and
+qualification, plus stronger semantic image/text encoding if category search is
+insufficient. Derivative
 recovery/registration is now journaled in phase 0.8; HDR/panorama, metadata/XMP,
 relink and recovery UI have initial source implementations in phases 0.8–0.9.
 Full model/image quality, orientation,

@@ -600,6 +600,9 @@
     "Cannot read catalog diagnostics.": "Cannot read catalog diagnostics.",
     "Choose a new JSON filename for the diagnostic report.": "Choose a new JSON filename for the diagnostic report.",
     "Cannot save the diagnostic report.": "Cannot save the diagnostic report.",
-    "Cannot save the diagnostic report. Choose a new writable filename.": "Cannot save the diagnostic report. Choose a new writable filename."
+    "Cannot save the diagnostic report. Choose a new writable filename.": "Cannot save the diagnostic report. Choose a new writable filename.",
+    "Included models work offline. Photos stay on this Mac.": "Included models work offline. Photos stay on this Mac.",
+    "Included with Luma": "Included with Luma",
+    "Use bundled model": "Use bundled model"
   }
 }
