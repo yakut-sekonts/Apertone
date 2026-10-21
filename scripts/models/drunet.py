@@ -4,8 +4,6 @@ Copyright (c) 2020 Kai Zhang. MIT; see resources/models/licenses/DRUNet-LICENSE.
 Source: DPIR commit 15bca3fcc1f3cc51a1f99ccf027691e278c19354.
 Luma: fixed architecture, equivalent resampling, estimated noise, linear RGB.
 """
-import math
-
 import torch
 from torch import nn
 
@@ -75,15 +73,20 @@ class DRUNet(nn.Module):
 
 
 def estimate_noise(image):
-    """Estimate sRGB AWGN sigma from the mean absolute orthonormal Haar HH band.
+    """Robust sRGB AWGN sigma from absolute orthonormal Haar HH coefficients.
 
-    Constants and planar ramps cancel. For Gaussian noise E|HH| = sigma*sqrt(2/pi).
-    No brightness threshold or fixed minimum noise is introduced. Texture can
-    raise this estimate; photographic/detail and tile consistency need QA.
+    Constants and planar ramps cancel. The standard normal absolute median is
+    Phi^-1(3/4). Use the lower median, matching torch.median for even counts;
+    topk + amax exports to Core ML without an unsupported median operator.
+    Sparse texture/edge outliers cannot dominate the estimate as with a mean.
+    Dense texture and non-Gaussian sensor noise still need qualification.
     """
     diagonal = (image[:, :, 0::2, 0::2] - image[:, :, 0::2, 1::2]
                 - image[:, :, 1::2, 0::2] + image[:, :, 1::2, 1::2]) / 2
-    return diagonal.abs().mean() * math.sqrt(math.pi / 2)
+    deviations = diagonal.abs().reshape(-1)
+    lower = torch.topk(deviations, (deviations.numel() + 1) // 2,
+                       largest=False, sorted=False).values
+    return lower.amax() / 0.6744897501960817
 
 
 class NoiseConditioned(nn.Module):

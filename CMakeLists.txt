@@ -144,6 +144,11 @@ target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 include(CTest)
 option(LUMA_ENABLE_SCALE_CONTRACT_TESTS "Enable deferred application scale contracts for pre-1.0 qualification" OFF)
 if(BUILD_TESTING)
+    # Explicit model qualification uses this bridge; ordinary CTest does not
+    # require a downloaded model or silently claim its quality has been tested.
+    add_executable(luma_denoise_runtime_probe tests/models/DenoiseRuntime.cpp)
+    target_link_libraries(luma_denoise_runtime_probe PRIVATE luma_macos Qt6::Core)
+    target_compile_options(luma_denoise_runtime_probe PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_executable(luma_diagnostic_session_tests tests/unit/DiagnosticSessionTests.cpp
         apps/desktop/DiagnosticSession.cpp)
     target_include_directories(luma_diagnostic_session_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

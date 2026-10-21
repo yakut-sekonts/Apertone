@@ -110,6 +110,20 @@ class NoiseEstimateTests(unittest.TestCase):
             torch.testing.assert_close(estimate_noise(image * scale), estimate_noise(image) * scale,
                                        rtol=1e-12, atol=0)
 
+    def test_known_haar_coefficients_use_lower_absolute_median(self):
+        for coefficients in ((-7,), (-3, 1), (-8, -3, -1, 0, 2), (-8, -3, -1, 0, 2, 5)):
+            with self.subTest(coefficients=coefficients):
+                image = torch.zeros(1, 1, 2, len(coefficients) * 2, dtype=torch.float64)
+                image[0, 0, 0, ::2] = torch.tensor(coefficients, dtype=torch.float64) * 2
+                expected = sorted(abs(value) for value in coefficients)[(len(coefficients) - 1) // 2]
+                self.assertAlmostEqual(estimate_noise(image).item(), expected / .6744897501960817)
+
+    def test_sparse_high_frequency_outliers_do_not_dominate(self):
+        image = torch.zeros(1, 3, 32, 32, dtype=torch.float64)
+        # Less than half of the independent HH coefficients contain texture.
+        image[:, :, :8:2, ::2] = 1e8
+        self.assertEqual(estimate_noise(image).item(), 0)
+
     def test_conditions_the_network_with_the_estimated_noise_map(self):
         class Echo(torch.nn.Module):
             def forward(self, image):
@@ -122,7 +136,7 @@ class NoiseEstimateTests(unittest.TestCase):
         self.assertTrue(torch.equal(actual[:, :3], original))
         self.assertTrue(torch.equal(image, original))
         # Each HH coefficient is exactly 1/2 for this known 2x2 pattern.
-        expected_sigma = .5 * (torch.pi / 2) ** .5
+        expected_sigma = .5 / .6744897501960817
         torch.testing.assert_close(actual[:, 3], torch.full_like(image[:, 0], expected_sigma),
                                    rtol=1e-12, atol=0)
 

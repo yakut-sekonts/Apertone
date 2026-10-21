@@ -31,11 +31,16 @@ expressed as a 1×1 convolution and PixelShuffle. Both preserve checkpoint
 coefficients exactly; no training is performed.
 
 DRUNet's fourth input channel is a noise-level map. Luma estimates a single sRGB
-sigma per tile from the mean absolute orthonormal Haar HH coefficients, scaled
-by sqrt(pi/2). Constants and planar ramps cancel; there is no brightness cutoff
-or minimum sigma. Exactly uniform RGB tiles pass through unchanged. Fine texture
-can increase the estimate, and neighboring tiles can yield different estimates;
-these cases require photographic qualification.
+sigma per tile from the lower median of absolute orthonormal Haar HH coefficients,
+divided by the standard normal absolute median, 0.6744897501960817. The lower
+median is implemented with topk and amax for Core ML export. Sparse texture and
+edge outliers cannot dominate it as with the previous mean-based estimator.
+Constants and planar ramps cancel; there is no brightness cutoff or minimum
+sigma. Exactly uniform RGB tiles pass through unchanged. Dense texture can still
+increase the estimate, and neighboring tiles can yield different estimates;
+these cases require photographic qualification. The wavelet MAD principle is
+described at https://scikit-image.org/docs/stable/api/skimage.restoration.html#skimage.restoration.estimate_sigma
+(Donoho and Johnstone, 1994). No scikit-image code is included.
 
 The pretrained model targets Gaussian noise in display-referred images, not RAW
 sensor data or a calibrated camera noise distribution. This is not a claim of

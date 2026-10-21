@@ -1,12 +1,12 @@
 {
   "schema": 1,
-  "bundle_version": 3,
+  "bundle_version": 4,
   "delivery": "bundled-offline",
   "models": [
     {
       "role": "denoise",
-      "id": "drunet-color-haar-v1",
-      "display_name": "DRUNet Color · Luma 1",
+      "id": "drunet-color-haar-mad-v1",
+      "display_name": "DRUNet Color · Luma 2",
       "bundle": "LumaDenoise.mlmodelc",
       "input": "noisy",
       "output": "denoised",

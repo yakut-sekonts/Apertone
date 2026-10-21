@@ -93,6 +93,18 @@ jobs:
         run: .tools/venv/bin/python scripts/create-appcast.py --check-key --signer build/_deps/sparkle-src/bin/sign_update
       - name: Build
         run: .tools/venv/bin/cmake --build build --parallel 3
+      - name: Check photographic Denoise and actual runtime tiling
+        run: .tools/model-venv/bin/python scripts/check-denoise-photographs.py build/models --probe build/luma_denoise_runtime_probe --output build/denoise-photographs
+      - name: Upload photographic model evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-denoise-photographs
+          path: |
+            build/denoise-photographs/report.json
+            build/denoise-photographs/*/comparison.png
+            build/denoise-photographs/*/native.log
+          if-no-files-found: warn
       - name: Tests and static analysis
         run: |
           .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load

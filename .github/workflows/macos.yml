@@ -50,6 +50,20 @@ jobs:
         run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
       - name: Build
         run: .tools/venv/bin/cmake --build build --parallel 3
+      - name: Check photographic Denoise and actual runtime tiling
+        id: model_photographs
+        continue-on-error: true
+        run: .tools/model-venv/bin/python scripts/check-denoise-photographs.py build/models --probe build/luma_denoise_runtime_probe --output build/denoise-photographs
+      - name: Upload photographic model evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: denoise-photographs
+          path: |
+            build/denoise-photographs/report.json
+            build/denoise-photographs/*/comparison.png
+            build/denoise-photographs/*/native.log
+          if-no-files-found: warn
       - name: Unit and integration tests
         run: .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
       - name: Build and attest UX executable
@@ -139,8 +153,8 @@ jobs:
         run: ./scripts/check-format.sh
       - name: clang-tidy
         run: ./scripts/check-tidy.sh build
-      - name: Require model numerical agreement and source quality
-        if: ${{ !cancelled() && (steps.model_numerics.outcome != 'success' || steps.model_quality.outcome != 'success') }}
+      - name: Require model numerical agreement and source and photographic quality
+        if: ${{ !cancelled() && (steps.model_numerics.outcome != 'success' || steps.model_quality.outcome != 'success' || steps.model_photographs.outcome != 'success') }}
         run: |
-          echo '::error::Model numerical agreement or source quality did not pass; see model-numerics artifact.'
+          echo '::error::Model numerical agreement, source quality or photographic runtime quality did not pass; see model evidence artifacts.'
           exit 1

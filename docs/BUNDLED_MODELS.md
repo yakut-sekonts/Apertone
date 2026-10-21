@@ -1,9 +1,9 @@
 # Bundled offline model delivery
 
 Decision: the user requested installer-bundled models on 2026-10-21. This is a
-source implementation under final qualification. Bundle v3 compiled on
+source implementation under final qualification. Bundle v4 compiled on
 2026-10-21 with Xcode 27.1 and passed synthetic source-quality and native CPU/ALL
-comparisons. Photographic, runtime and distribution qualification remain open.
+comparisons. Complete photographic, runtime and distribution qualification remain open.
 No installer was published. Stable remains 0.5.1.
 
 ## Runtime
@@ -29,14 +29,17 @@ travel with the compiled artifacts.
 - DRUNet color: MIT, 512×512 Float32 tensors
   and a 64-pixel halo. The sRGB-trained model is wrapped by linear↔sRGB conversion.
   Any RGB pixel outside [0,1] passes through unchanged; no RAW-trained quality
-  claim is made. Adaptation v3 preserves spatially uniform RGB tiles exactly and
+  claim is made. The adaptation preserves spatially uniform RGB tiles exactly and
   uses checkpoint-equivalent spatial slicing/1×1 convolution to avoid the
   observed native stride-2 convolution error. Non-overlapping upsampling is
   expressed as 1×1 convolution/PixelShuffle with the original coefficients.
   The fourth input channel carries a per-tile sRGB Gaussian-noise estimate from
-  mean absolute orthonormal Haar HH coefficients times sqrt(pi/2). Texture can
-  raise this estimate; photographic detail and tile consistency need QA.
-  Model ID `drunet-color-haar-v1` is recorded with denoised DNG provenance;
+  the lower median of absolute orthonormal Haar HH coefficients divided by
+  0.6744897501960817. Bundle v4 replaces v3's mean-based estimate: sparse
+  high-frequency texture/edge outliers no longer dominate the noise level.
+  The lower median uses topk/amax for Core ML export. Dense texture and actual
+  sensor noise still require qualification; no brightness/noise floor is added.
+  Model ID `drunet-color-haar-mad-v1` is recorded with denoised DNG provenance;
   original weights are unchanged. The prior NAFNet candidate was retired after
   it failed the fixed dark-input quality and numerical gates.
 - U²-Net Sky: MIT, the author's ONNX model from the pinned attributed mirror,
@@ -78,7 +81,7 @@ and Sparkle ZIP; there is no independently downloaded model/update channel.
 
 ## Qualification
 
-The conversion recipe and Core ML compilation have run. The v3 synthetic
+The conversion recipe and Core ML compilation have run. The v4 synthetic
 CPU and ALL comparisons pass for both models; see
 [the qualification record](FINAL_1_0_READINESS.md#completed-baseline-and-current-blockers).
 In particular, coremltools 9.0 documents
@@ -97,7 +100,7 @@ isolated impulse) and three Sky inputs, finite Float32 tensor contracts, Sky
 bounds, and exact Denoise passthrough for uniform tiles/out-of-range pixels.
 Use `--compute-units all` or `--compute-units cpu-and-gpu` to check another Core
 ML execution policy. The policy does not establish actual device placement.
-The local v3 result is 11/11 PASS on CPU and 11/11 with ALL at unchanged limits.
+The local v4 result is 11/11 PASS on CPU and 11/11 with ALL at unchanged limits.
 Where analytical clean inputs exist, the native output must also pass the same
 quality oracle as the source prediction. This prevents small numerical errors
 from concealing relative quality regressions on dark inputs.
@@ -119,11 +122,31 @@ decrease and peak error must not exceed the input's peak error; noiseless unifor
 colors must remain exact. Both the full tensor and the runtime's 64-pixel crop
 must pass. These are fixed criteria, not limits fitted to the current model.
 Identity, bright-output and detail-destroying predictors are explicitly rejected
-by oracle tests. The v3 source result is **7/7 PASS**, including both previously
+by oracle tests. The v4 source result is **7/7 PASS**, including both previously
 failing nonuniform dark cases and their interior crop. Historical v1/v2 failures
 remain in the qualification record; they are not reclassified as passing.
 CI preserves both reports and requires both outcomes; release packaging stops
-on either failure. Photographic and runtime quality still need separate evidence.
+on either failure.
+
+The bounded photographic/runtime gate runs after building the native probe:
+
+```sh
+.tools/model-venv/bin/python scripts/check-denoise-photographs.py build/models --probe build/luma_denoise_runtime_probe --output build/denoise-photographs
+```
+
+It uses the three licensed portrait/landscape/night PNG fixtures with seeded
+sRGB Gaussian noise at sigma 0.01 and 0.05. Each RGB channel must improve in
+linear and sRGB squared error; gradient error must improve along both axes,
+including actual tile seams. The production provider's reflected tiling is
+compared with an independent NumPy/PyTorch assembly at the unchanged numerical
+limits. Native contracts cover Amount 0/0.5/1, unchanged input/alpha, progress,
+pre-cancel, mid-tile-loop cancellation and rejected invalid amounts. Six oracle
+tests reject identity, bad color channels, hidden seams and destroyed detail.
+Three unmodified photographs are observational controls, not noiseless sensor
+ground truth or three extra quality passes. CI uploads reports/contact sheets
+and requires this gate; release packaging stops on failure. A fresh output
+directory is required to preserve prior evidence. This remains bounded evidence,
+not acceptance of all camera noise, visual detail or full-resolution resource use.
 
 Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
 comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,
