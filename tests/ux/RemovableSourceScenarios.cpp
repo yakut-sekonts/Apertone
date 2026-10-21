@@ -312,7 +312,7 @@ bool removableSourceScenario(Context &c, const QString &id) {
         require(!volumeID.isEmpty(), "Own mounted filesystem has no accepted VolumeUUID");
 
         phase = "actual_add_import";
-        require(d.object("library.pane")
+        require(d.object("library.importDialog")
                     ->setProperty("sources",
                                   QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(local),
                                                                   QUrl::fromLocalFile(external)})),

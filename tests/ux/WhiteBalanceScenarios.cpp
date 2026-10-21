@@ -135,7 +135,7 @@ PublicPair importPublicPair(Context &c) {
             "WB scenarios require only the runner-generated public DNG/PNG pair");
     // Selection boundary only. Native chooser/HID selection is not claimed.
     const QList<QUrl> sources{QUrl::fromLocalFile(pair.aPath), QUrl::fromLocalFile(pair.bPath)};
-    require(d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources)),
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources)),
             "Cannot prepare the public WB import source selection");
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

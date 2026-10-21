@@ -77,10 +77,12 @@ bool updaterScenario(Context &c, const QString &id, const QString &variant) {
         for (int i = 0; i < 1000; ++i)
             sources.append(QUrl::fromLocalFile(c.fixture +
                                                QString("/Photo-%1.png").arg(i, 4, 10, QChar('0'))));
-        auto *pane = d.object("library.pane");
-        pane->setProperty("sources", QVariant::fromValue(sources));
+        auto *importDialog = d.object("library.importDialog");
+        require(importDialog->setProperty("sources", QVariant::fromValue(sources)),
+                "Import dialog rejected fixture selection");
         require(QDir().mkpath(c.root + "/copies"), "Cannot create Copy destination");
-        pane->setProperty("destination", QUrl::fromLocalFile(c.root + "/copies"));
+        require(importDialog->setProperty("destination", QUrl::fromLocalFile(c.root + "/copies")),
+                "Import dialog rejected fixture selection");
         d.click("library.importButton");
         d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
                "Copy dialog opened");

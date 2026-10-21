@@ -609,13 +609,7 @@ void heldLibrary(Context &c) {
     durable(c, photo, fresh);
 }
 void selectGroups(Context &c, std::uint32_t groups) {
-    for (int i = 0; i < 8; ++i) {
-        const auto name = "presetGroup" + QString::number(i);
-        if (c.driver->object(name)->property("checked").toBool() != bool(groups & (1u << i)))
-            c.driver->click(name);
-    }
-    require(c.driver->object("presetEditor")->property("groups").toUInt() == groups,
-            "Preset group dialog did not acknowledge optics-only selection");
+    c.selectPresetGroups(groups);
 }
 void presetOpened(Context &c) {
     c.driver->wait([&] { return c.driver->object("presetEditor")->property("opened").toBool(); },

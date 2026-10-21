@@ -80,13 +80,13 @@ void start(Context &c, const QList<QUrl> &input, const QString &destination = {}
            {"source_count", input.size()},
            {"destination", destination},
            {"native_selection_exercised", false}});
-    require(d.object("library.pane")->setProperty("sources", QVariant::fromValue(input)),
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(input)),
             "Import pane refused its public fixture selection");
     if (!destination.isEmpty()) {
         require(QDir().mkpath(destination), "Cannot prepare isolated Copy destination");
-        require(
-            d.object("library.pane")->setProperty("destination", QUrl::fromLocalFile(destination)),
-            "Import pane refused its known destination");
+        require(d.object("library.importDialog")
+                    ->setProperty("destination", QUrl::fromLocalFile(destination)),
+                "Import pane refused its known destination");
     }
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

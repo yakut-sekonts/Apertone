@@ -349,7 +349,7 @@ Rows importHidden(Context &c, int count) {
                 "Cannot copy private thumbnail original");
         sources.push_back(QUrl::fromLocalFile(destination));
     }
-    require(d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources)),
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources)),
             "Cannot supply the file-selection result to the actual Import dialog");
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

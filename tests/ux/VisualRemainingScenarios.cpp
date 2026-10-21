@@ -67,7 +67,7 @@ void importStart(Context &c, const QList<QUrl> &sources) {
     auto &d = *c.driver;
     // Explicit native file-chooser RESULT fixture boundary, exactly as Context::import.
     // The import acceptance action is the actual production Import button.
-    d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources));
+    d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources));
     d.log({{"action", "fixture_file_chooser_result"},
            {"source_count", static_cast<qint64>(sources.size())}});
     d.click("library.importButton");

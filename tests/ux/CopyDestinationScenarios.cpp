@@ -307,11 +307,12 @@ void start(Context &c, const QList<QUrl> &sources, const QString &destination, b
     auto &d = *c.driver;
     if (!c.window->property("libraryMode").toBool())
         d.click("main.libraryButton");
-    require(
-        QFileInfo(destination).canonicalFilePath() == destination &&
-            d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources)) &&
-            d.object("library.pane")->setProperty("destination", QUrl::fromLocalFile(destination)),
-        "Actual Copy pane rejected known existing file/folder-panel results");
+    require(QFileInfo(destination).canonicalFilePath() == destination &&
+                d.object("library.importDialog")
+                    ->setProperty("sources", QVariant::fromValue(sources)) &&
+                d.object("library.importDialog")
+                    ->setProperty("destination", QUrl::fromLocalFile(destination)),
+            "Actual Copy pane rejected known existing file/folder-panel results");
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
            "actual two-source Copy dialog opened");

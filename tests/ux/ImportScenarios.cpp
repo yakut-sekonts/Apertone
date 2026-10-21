@@ -22,10 +22,13 @@ void start(Context &c, const QList<QUrl> &sources, const QString &destination = 
     if (!c.window->property("libraryMode").toBool())
         d.click("main.libraryButton");
     // Native file-panel selection is a fixture boundary; all subsequent UI is real.
-    d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources));
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources)),
+            "Import dialog rejected fixture selection");
     if (!destination.isEmpty()) {
         require(QDir().mkpath(destination), "Cannot create import destination fixture");
-        d.object("library.pane")->setProperty("destination", QUrl::fromLocalFile(destination));
+        require(d.object("library.importDialog")
+                    ->setProperty("destination", QUrl::fromLocalFile(destination)),
+                "Import dialog rejected fixture selection");
     }
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

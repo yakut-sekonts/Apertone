@@ -161,7 +161,7 @@ Fixture fixture(Context &c) {
     d.log({{"action", "declared_keyboard_activation_import_fixture_begin"},
            {"pointer_setup_inputs", true},
            {"native_chooser_exercised", false}});
-    require(d.object("library.pane")
+    require(d.object("library.importDialog")
                 ->setProperty("sources",
                               QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(value.source)})),
             "Declared file-chooser result fixture rejected its single owned source");
@@ -497,7 +497,7 @@ void keyboardWorkflow(Context &c) {
     // The only input seam: the native file chooser's selected URL. Import itself,
     // selection, opening Develop, edits and export are all real keyboard UI input.
     require(
-        d.object("library.pane")
+        d.object("library.importDialog")
             ->setProperty("sources", QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(source)})),
         "Keyboard workflow chooser-result fixture rejected");
     PointerAudit audit(c.window);

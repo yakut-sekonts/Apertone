@@ -429,7 +429,7 @@ Pins importHidden(Context &c, int count) {
         require(QFile::copy(c.fixture + '/' + name, destination), "Cannot copy private original");
         sources.push_back(QUrl::fromLocalFile(destination));
     }
-    require(d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources)),
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources)),
             "Cannot supply declared file-chooser fixture result");
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

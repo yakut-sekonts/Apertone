@@ -541,7 +541,7 @@ Pins importHidden(Context &c) {
                 "Cannot copy identical private LIB005 source");
         sources.append(QUrl::fromLocalFile(target));
     }
-    require(d.object("library.pane")->setProperty("sources", QVariant::fromValue(sources)),
+    require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(sources)),
             "Cannot provide declared Import file-chooser-result boundary");
     d.click("library.importButton");
     d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },

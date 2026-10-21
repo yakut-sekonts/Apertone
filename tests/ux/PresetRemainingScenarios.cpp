@@ -46,14 +46,7 @@ QSet<QString> identities(const QVariantList &items) {
     return result;
 }
 void groups(Context &c, std::uint32_t selected) {
-    for (int group = 0; group < 8; ++group) {
-        const auto selector = "presetGroup" + QString::number(group);
-        const bool expected = selected & (std::uint32_t{1} << group);
-        if (c.driver->object(selector)->property("checked").toBool() != expected)
-            c.driver->click(selector);
-    }
-    require(c.driver->object("presetEditor")->property("groups").toUInt() == selected,
-            "Preset dialog did not acknowledge its selected groups");
+    c.selectPresetGroups(selected);
 }
 void userTab(Context &c) {
     c.driver->click("preset.tabs.presets");
@@ -92,6 +85,26 @@ void editorClosed(Context &c) {
     c.driver->wait([&] { return !c.driver->object("presetEditor")->property("visible").toBool(); },
                    "preset metadata dialog closed");
     require(c.presets.error().isEmpty(), c.presets.error());
+}
+void enableRecapture(Context &c) {
+    auto &d = *c.driver;
+    auto *view = qobject_cast<QQuickItem *>(
+        qvariant_cast<QObject *>(d.object("preset.editorScroll")->property("contentItem")));
+    auto *capture = d.item("preset.capture");
+    require(view && !capture->property("checked").toBool(),
+            "Recapture requires an initially unchecked control in the real scroll view");
+    for (int step = 0; step < 24; ++step) {
+        d.wait([&] { return !view->property("moving").toBool(); }, "Recapture scroll settled");
+        d.frame();
+        const auto rect = capture->mapRectToItem(view, QRectF(QPointF{}, capture->size()));
+        if (rect.top() >= 0 && rect.bottom() <= view->height()) {
+            d.click("preset.capture");
+            require(capture->property("checked").toBool(), "Recapture click was not acknowledged");
+            return;
+        }
+        d.wheel("preset.editorScroll", rect.top() < 0 ? 120 : -120);
+    }
+    require(false, "Recapture control cannot be reached by actual scrolling");
 }
 QString create(Context &c, const QString &name, std::uint32_t selected = 3,
                const QString &folder = "UX presets") {
@@ -319,7 +332,7 @@ bool presetRemainingScenario(Context &c, const QString &id) {
                     d.item("preset.editorError")->isVisible() &&
                     bytes(storePath(c)) == beforeRefusedSave,
                 "Adding a group without explicit recapture did not fail safely");
-        d.click("preset.capture");
+        enableRecapture(c);
         d.click("presetSave");
         editorClosed(c);
         const auto recaptured = c.presets.snapshot(presetID);

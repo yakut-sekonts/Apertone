@@ -209,6 +209,10 @@ if(BUILD_TESTING)
         apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
+    target_sources(luma_ux_tests PRIVATE apps/desktop/DiagnosticsController.cpp
+        apps/desktop/DiagnosticSession.cpp platform/macos/CrashCapture.mm)
+    target_link_libraries(luma_ux_tests PRIVATE luma_crashreporter "-framework CoreServices")
+    target_link_options(luma_ux_tests PRIVATE -ObjC)
     set_target_properties(luma_ux_tests PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.ux-tests"
         MACOSX_BUNDLE_BUNDLE_NAME "LumaUXTests"

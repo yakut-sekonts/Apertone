@@ -1,4 +1,6 @@
 #include "tests/ux/UxContext.h"
+#include "apps/desktop/DiagnosticSession.h"
+#include "apps/desktop/DiagnosticsController.h"
 #include "tests/ux/UpdaterProbe.h"
 #include <QDir>
 #include <QFileInfo>
@@ -10,6 +12,7 @@
 #include <QSGRendererInterface>
 #include <QScreen>
 #include <algorithm>
+#include <bit>
 #include <sqlite3.h>
 std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks callbacks) {
     return std::make_unique<ux::NativeUpdaterProbe>(std::move(callbacks));
@@ -33,6 +36,12 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
           updaterProbe),
       metrics(root + "/heartbeat.json") {
     localization = std::make_unique<LocalizationController>(stateRoot + "/language.json", engine);
+    // Match unattended production startup: the real controller is present,
+    // while persistent diagnostics/crash capture stay disabled for UX fixtures.
+    diagnosticSession = std::make_unique<luma::desktop::DiagnosticSession>(false);
+    diagnostics = std::make_unique<DiagnosticsController>(catalogFile.toStdString(), editor,
+                                                          *diagnosticSession);
+    engine.rootContext()->setContextProperty("diagnostics", diagnostics.get());
     engine.rootContext()->setContextProperty("editor", &editor);
     engine.rootContext()->setContextProperty("library", &library);
     engine.rootContext()->setContextProperty("presets", &presets);
@@ -74,6 +83,37 @@ Context::~Context() {
     if (window)
         window->hide();
 }
+void Context::selectPresetGroups(std::uint32_t groups) {
+    luma::validateSettingsGroups(groups);
+    auto *view = qobject_cast<QQuickItem *>(
+        qvariant_cast<QObject *>(driver->object("preset.editorScroll")->property("contentItem")));
+    require(view, "Preset editor has no scroll viewport");
+    for (int group = 0; group < std::bit_width(luma::allSettingsGroups); ++group) {
+        const auto id = "presetGroup" + QString::number(group);
+        auto *control = driver->item(id);
+        const bool selected = (groups & (std::uint32_t{1} << group)) != 0;
+        if (control->property("checked").toBool() == selected)
+            continue;
+        bool reached = false;
+        for (int step = 0; step < 24; ++step) {
+            driver->wait([&] { return !view->property("moving").toBool(); },
+                         "Preset group scroll settled");
+            driver->frame();
+            const auto rect = control->mapRectToItem(view, QRectF(QPointF{}, control->size()));
+            if (rect.top() >= 0 && rect.bottom() <= view->height()) {
+                reached = true;
+                break;
+            }
+            driver->wheel("preset.editorScroll", rect.top() < 0 ? 120 : -120);
+        }
+        require(reached, "Preset group cannot be reached by scrolling: " + id);
+        driver->click(id);
+        require(control->property("checked").toBool() == selected,
+                "Preset group did not respond to its actual click: " + id);
+    }
+    require(driver->object("presetEditor")->property("groups").toUInt() == groups,
+            "Preset editor did not retain the exact selected groups");
+}
 void Context::loaded() {
     driver->wait(
         [&] { return editor.hasPhoto() && !editor.busy() && !editor.previewUrl().isEmpty(); },
@@ -94,11 +134,13 @@ void Context::import(int count, bool copy) {
     require(names.size() >= count, "Insufficient public UX fixtures");
     for (int i = 0; i < count; ++i)
         sources.append(QUrl::fromLocalFile(fixture + '/' + names[i]));
-    auto *pane = driver->object("library.pane");
-    pane->setProperty("sources", QVariant::fromValue(sources));
+    auto *importDialog = driver->object("library.importDialog");
+    require(importDialog->setProperty("sources", QVariant::fromValue(sources)),
+            "Import dialog rejected fixture selection");
     if (copy) {
         QDir().mkpath(root + "/copies");
-        pane->setProperty("destination", QUrl::fromLocalFile(root + "/copies"));
+        require(importDialog->setProperty("destination", QUrl::fromLocalFile(root + "/copies")),
+                "Import dialog rejected fixture selection");
     }
     driver->click("library.importButton");
     driver->wait(
