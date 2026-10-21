@@ -21,6 +21,7 @@ struct LibraryItem {
     std::string checksum;
     int width = 0, height = 0, orientation = 0, rating = 0, flag = 0;
     std::string label, camera;
+    bool missing = false;
 };
 struct CollectionRecord {
     std::string id, name;

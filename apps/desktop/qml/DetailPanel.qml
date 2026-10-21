@@ -51,6 +51,6 @@ ColumnLayout {
         Layout.fillWidth: true
         onClicked: editor.denoisePhoto(denoiseAmount.value)
     }
-    ProgressBar { visible: editor.aiBusy; value: editor.aiProgress; Layout.fillWidth: true }
-    Button { visible: editor.aiBusy; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
+    ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; value: editor.aiProgress; Layout.fillWidth: true }
+    Button { visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
 }

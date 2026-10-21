@@ -3,6 +3,7 @@
 #include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
 #include "core/metadata/PhotoMetadata.h"
+#include "core/metadata/DescriptiveMetadata.h"
 #include "core/ai/Embedding.h"
 #include <filesystem>
 #include <functional>
@@ -19,6 +20,7 @@ struct AssetRecord {
     std::string checksum;
     PhotoMetadata metadata;
     EditDocument edits;
+    std::optional<MetadataOverlay> descriptive = std::nullopt;
 };
 
 struct AssetSnapshot {
@@ -30,6 +32,19 @@ struct BatchEditResult {
     std::size_t changed = 0;
     std::optional<EditDocument> active;
 };
+struct DerivedImageRecord {
+    std::filesystem::path path;
+    std::string checksum;
+    int width = 0, height = 0;
+    std::int64_t ownerPID = 0;
+};
+struct FileRecord {
+    std::string id;
+    std::filesystem::path path;
+    std::string checksum;
+    std::int64_t size = 0;
+};
+struct RelinkRecord { FileRecord source; std::filesystem::path destination; };
 
 /// Each instance owns a connection on the calling worker thread.
 class Catalog {
@@ -97,6 +112,9 @@ class Catalog {
     void verify() const;
     void backupTo(const std::filesystem::path &destination, CancellationToken stop = {},
                    const std::function<void(double)> &progress = {}) const;
+    static void verifyBackup(const std::filesystem::path &source, CancellationToken stop = {});
+    static void restoreBackupTo(const std::filesystem::path &source,
+                                const std::filesystem::path &destination, CancellationToken stop = {});
     std::vector<std::string> pendingSemanticImages(const std::string &provider,
                                                   const std::string &after, int limit = 64) const;
     void saveSemanticEmbedding(const std::string &id, const std::string &checksum,
@@ -105,6 +123,19 @@ class Catalog {
                                                 std::span<const float> embedding, int limit = 100,
                                                 CancellationToken stop = {}) const;
     void clearSemanticIndex();
+    void stageDerived(const DerivedImageRecord &record);
+    void finishDerived(const DerivedImageRecord &record);
+    void discardDerived(const std::filesystem::path &path);
+    std::vector<DerivedImageRecord> pendingDerived() const;
+    MetadataSnapshot metadataSnapshot(const std::string &id) const;
+    void saveMetadata(const std::string &id, std::int64_t revision, const DescriptiveMetadata &values,
+                      const std::optional<std::string> &adoptSidecarHash = {});
+    void installSidecar(const MetadataSnapshot &snapshot, const std::string &hash,
+                        const std::function<void()> &install);
+    std::vector<std::string> pendingSidecars(const std::string &after = {}, int limit = 64) const;
+    std::vector<FileRecord> fileRecords(const std::string &after = {}, int limit = 128) const;
+    std::optional<FileRecord> fileRecord(const std::string &id) const;
+    void relink(const std::vector<RelinkRecord> &records);
 
   private:
     enum class BatchState { none, applied, undone };
@@ -122,6 +153,8 @@ class Catalog {
     void migrateBitmapMasks();
     void migrateRetouch();
     void migrateSemanticIndex();
+    void migrateDerivedImages();
+    void migrateMetadata();
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);

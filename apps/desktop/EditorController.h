@@ -51,6 +51,8 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool cropMode READ cropMode WRITE setCropMode NOTIFY stateChanged)
     Q_PROPERTY(QString cropOverlay READ cropOverlay WRITE setCropOverlay NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
+    Q_PROPERTY(QString skyModelName READ skyModelName NOTIFY stateChanged)
+    Q_PROPERTY(bool skyModelConfigured READ skyModelConfigured NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
     Q_PROPERTY(QString targetedTool READ targetedTool WRITE setTargetedTool NOTIFY stateChanged)
@@ -86,6 +88,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool aiBusy READ aiBusy NOTIFY stateChanged)
     Q_PROPERTY(bool aiObjectPicking READ aiObjectPicking NOTIFY stateChanged)
     Q_PROPERTY(double aiProgress READ aiProgress NOTIFY stateChanged)
+    Q_PROPERTY(QString aiOperation READ aiOperation NOTIFY stateChanged)
     Q_PROPERTY(QString retouchMode READ retouchMode WRITE setRetouchMode NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap retouchState READ retouchState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList retouchItems READ retouchItems NOTIFY stateChanged)
@@ -282,12 +285,18 @@ class EditorController final : public QObject {
     bool aiBusy() const { return aiBusy_; }
     bool aiObjectPicking() const { return aiObjectPicking_; }
     double aiProgress() const { return aiProgress_; }
+    QString aiOperation() const { return aiOperation_; }
+    Q_INVOKABLE void mergeHDRPhotos(const QStringList &ids, double deghost = 50);
+    Q_INVOKABLE void mergePanoramaPhotos(const QStringList &ids, int projection, double fieldOfView, bool boundaryWarp = false);
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
     Q_INVOKABLE void beginAIObjectSelection();
     Q_INVOKABLE void cancelAI();
     QString denoiseModelName() const;
     bool denoiseModelConfigured() const { return !denoiseModelPath_.isEmpty(); }
     Q_INVOKABLE void setDenoiseModel(const QUrl &url);
+    QString skyModelName() const;
+    bool skyModelConfigured() const { return !skyModelPath_.isEmpty(); }
+    Q_INVOKABLE void setSkyModel(const QUrl &url);
     Q_INVOKABLE void denoisePhoto(double amount = 100);
     QString retouchMode() const { return retouchMode_; }
     void setRetouchMode(const QString &mode);
@@ -353,6 +362,9 @@ class EditorController final : public QObject {
     void closeReady();
 
   private:
+    void runMerge(const QString &operation,
+                  std::function<std::filesystem::path(luma::CancellationToken,
+                      const std::function<void(double)> &)> work);
     bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
     QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
     double localOverlayOpacity_ = 0.45;
@@ -397,6 +409,8 @@ class EditorController final : public QObject {
     double aiProgress_ = 0;
     std::uint64_t aiRevision_ = 0;
     QString denoiseModelPath_;
+    QString skyModelPath_;
+    QString aiOperation_;
     luma::JobManager retouchJobs_;
     luma::JobHandle retouchJob_;
     std::uint64_t retouchRevision_ = 0;

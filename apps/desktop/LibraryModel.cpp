@@ -1,4 +1,6 @@
 #include "apps/desktop/LibraryModel.h"
+#include "apps/shared/BackupService.h"
+#include "apps/shared/MetadataService.h"
 #include <QPointer>
 #include <QSettings>
 #include <algorithm>
@@ -28,6 +30,7 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     : QAbstractListModel(parent), catalog_(std::move(catalog)) {
     QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini", QSettings::IniFormat);
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
+    initializeMaintenance();
     filterTimer_.setSingleShot(true);
     filterTimer_.setInterval(160);
     connect(&filterTimer_, &QTimer::timeout, this, [this] { reload(true); });
@@ -35,13 +38,18 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     const auto path = catalog_;
     const auto recoveryStop = importCancellation_.token();
     const bool clearSemantic = !semanticEnabled_;
-    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop, clearSemantic](const auto &) {
+    const auto backupPolicy = static_cast<luma::BackupSchedule>(backupSchedule_);
+    const int backupKeep = backupKeep_;
+    const bool writeXMP = autoWriteXMP_;
+    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop, clearSemantic, backupPolicy, backupKeep, writeXMP](const auto &) {
         QString error, report;
         std::vector<luma::ImportSummary> recovered;
         try {
             if (clearSemantic)
                 luma::Catalog(path).clearSemanticIndex();
             recovered = luma::LibraryService(path).recover(recoveryStop);
+            luma::BackupService(path).run(backupPolicy, backupKeep, false, recoveryStop);
+            if (writeXMP) luma::MetadataService(path).writePendingSidecars(recoveryStop);
             if (!recovered.empty())
                 report = ::importReport(path, recovered.back());
         } catch (const std::exception &e) {
@@ -88,7 +96,7 @@ QHash<int, QByteArray> LibraryModel::roleNames() const {
     return {{AssetID, "assetID"},        {Filename, "filename"}, {Path, "pathURL"},
             {Thumbnail, "thumbnailURL"}, {Rating, "rating"},     {Flag, "flagValue"},
             {Label, "colorLabel"},       {Camera, "cameraName"}, {Selected, "selected"},
-            {Active, "activePhoto"}};
+            {Active, "activePhoto"}, {Missing, "sourceMissing"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -100,7 +108,7 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         self->page(number);
         if (role == Rating || role == Flag)
             return 0;
-        if (role == Selected || role == Active)
+        if (role == Selected || role == Active || role == Missing)
             return false;
         if (role == Path)
             return QUrl{};
@@ -135,6 +143,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         return selected_.contains(id);
     case Active:
         return activeID_ == id;
+    case Missing:
+        return item.missing;
     default:
         return {};
     }
@@ -163,6 +173,11 @@ void LibraryModel::page(int number) {
                 if (context.stopToken().isCancelled())
                     return;
                 rows = luma::Catalog(path).libraryPage(filter, number * pageSize, pageSize);
+                for (auto &item : rows) {
+                    if (context.stopToken().isCancelled()) return;
+                    std::error_code error;
+                    item.missing = !std::filesystem::exists(item.path, error) && !error;
+                }
             } catch (const std::exception &e) {
                 error = QString::fromUtf8(e.what());
             }
@@ -179,6 +194,7 @@ void LibraryModel::page(int number) {
                         }
                         self->pages_[number] = std::move(rows);
                         self->lru_.push_back(number);
+                        self->watchVisibleFolders();
                         if (!error.isEmpty()) {
                             self->error_ = error;
                             emit self->stateChanged();
@@ -396,7 +412,7 @@ void LibraryModel::setExternalBusy(bool busy) {
     emit stateChanged();
 }
 void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
-                          std::function<bool()> updateView) {
+                           std::function<bool()> updateView, bool syncXMP) {
     if (working())
         return;
     writing_ = true;
@@ -406,11 +422,14 @@ void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
     const QPointer<LibraryModel> self(this);
     const auto operation = std::make_shared<std::function<void(luma::Catalog &)>>(std::move(work));
     const auto refresh = std::make_shared<std::function<bool()>>(std::move(updateView));
-    writes_.submit(luma::JobPriority::background, [self, path, operation, refresh](const auto &) {
+    const bool writeXMP = autoWriteXMP_ && syncXMP;
+    const auto stop = importCancellation_.token();
+    writes_.submit(luma::JobPriority::background, [self, path, operation, refresh, writeXMP, stop](const auto &) {
         QString error;
         try {
             luma::Catalog db(path);
             (*operation)(db);
+            if (writeXMP) luma::MetadataService(path).writePendingSidecars(stop);
         } catch (const std::exception &e) {
             error = QString::fromUtf8(e.what());
         }
@@ -479,7 +498,7 @@ void LibraryModel::rate(int value) {
     const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs());
     if (!ids->empty())
         mutate([ids, value](auto &db) { db.setRating(*ids, value); },
-               [this, ids, value] { return refreshMetadata(*ids, Rating, value); });
+               [this, ids, value] { return refreshMetadata(*ids, Rating, value); }, true);
 }
 void LibraryModel::flag(int value) {
     const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs());
@@ -491,7 +510,7 @@ void LibraryModel::label(const QString &value) {
     const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs());
     if (!ids->empty())
         mutate([ids, value](auto &db) { db.setLabel(*ids, value.toStdString()); },
-               [this, ids, value] { return refreshMetadata(*ids, Label, value); });
+               [this, ids, value] { return refreshMetadata(*ids, Label, value); }, true);
 }
 void LibraryModel::createCollection(const QString &name) {
     mutate([name](auto &db) { db.createCollection(name.toStdString()); });
@@ -593,6 +612,7 @@ void LibraryModel::cancelImport() {
 bool LibraryModel::requestClose() {
     closing_ = true;
     filterTimer_.stop();
+    sourceWatchTimer_.stop();
     cancelImport();
     cancelSemantic();
     return !importing_ && !writing_ && !semanticBusy_;

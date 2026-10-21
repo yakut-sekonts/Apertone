@@ -13,6 +13,7 @@ Rectangle {
     required property string colorLabel
     required property bool selected
     required property bool activePhoto
+    required property bool sourceMissing
     property bool compact: false
     property int retryCount: 0
     readonly property var keyboardView: compact ? card.ListView.view : card.GridView.view
@@ -62,7 +63,7 @@ Rectangle {
         interval: 1500; running: thumbnail.status === Image.Error && card.retryCount < 2; repeat: false
         onTriggered: card.retryCount++
     }
-    Label { anchors.centerIn: thumbnail; visible: thumbnail.status !== Image.Ready; text: thumbnail.status === Image.Error ? qsTranslate("Luma", "No preview") : "…"; color: "#68717f"; font.pixelSize: 11 }
+    Label { anchors.centerIn: thumbnail; visible: card.sourceMissing || thumbnail.status !== Image.Ready; text: card.sourceMissing ? qsTranslate("Luma", "Missing") : thumbnail.status === Image.Error ? qsTranslate("Luma", "No preview") : "…"; color: "#68717f"; font.pixelSize: 11 }
     Column {
         id: caption
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10 }

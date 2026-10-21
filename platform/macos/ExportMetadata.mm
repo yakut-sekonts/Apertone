@@ -1,4 +1,5 @@
 #include "platform/macos/ExportMetadata.h"
+#include "platform/macos/PhotoMetadataIO.h"
 #import <Foundation/Foundation.h>
 #include <set>
 #include <stdexcept>
@@ -61,7 +62,7 @@ void set(CGMutableImageMetadataRef metadata, CFStringRef dictionary, CFStringRef
 } // namespace
 CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &source,
                                                    const ExportOptions &options, int width,
-                                                   int height) {
+                                                   int height, const std::optional<MetadataOverlay> &overlay) {
     CFHandle<CGMutableImageMetadataRef> result(CGImageMetadataCreateMutable());
     if (!result)
         throw std::runtime_error("Cannot allocate export metadata.");
@@ -77,6 +78,10 @@ CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &
         throw std::runtime_error("ImageIO cannot read source metadata.");
     CFHandle metadata(CGImageSourceCopyMetadataAtIndex(
         input.get(), CGImageSourceGetPrimaryImageIndex(input.get()), nullptr));
+    if (overlay) {
+        auto overridden = applyMetadataOverlay(metadata.get(), *overlay);
+        metadata = CFHandle<CGImageMetadataRef>(overridden ? static_cast<CGImageMetadataRef>(CFRetain(overridden.get())) : nullptr);
+    }
     if (metadata) {
         result =
             CFHandle<CGMutableImageMetadataRef>(CGImageMetadataCreateMutableCopy(metadata.get()));

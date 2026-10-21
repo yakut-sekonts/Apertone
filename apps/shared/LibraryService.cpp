@@ -274,6 +274,22 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
 }
 std::vector<ImportSummary> LibraryService::recover(CancellationToken stop) const {
     Catalog catalog(catalog_);
+    const auto derivedFolder = std::filesystem::weakly_canonical(
+        std::filesystem::absolute(catalog_).parent_path() / (catalog_.filename().string() + ".luma-derived"));
+    for (const auto &record : catalog.pendingDerived()) {
+        checkCancellation(stop);
+        if (!deadOwner(record.ownerPID)) continue;
+        if (std::filesystem::weakly_canonical(record.path).parent_path() != derivedFolder ||
+            record.path.extension() != ".dng")
+            throw std::runtime_error("Derived image journal path is outside the managed folder; files preserved.");
+        if (!std::filesystem::exists(record.path)) {
+            catalog.discardDerived(record.path);
+            continue;
+        }
+        if (!std::filesystem::is_regular_file(record.path) || macos::sha256File(record.path, stop) != record.checksum)
+            throw std::runtime_error("Interrupted derived image changed; file and journal preserved.");
+        catalog.finishDerived(record);
+    }
     std::vector<ImportSummary> summaries;
     for (const auto &journal : catalog.unfinishedImports()) {
         checkCancellation(stop);

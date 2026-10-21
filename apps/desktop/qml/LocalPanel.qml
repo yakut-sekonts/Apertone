@@ -69,15 +69,23 @@ ColumnLayout {
             Layout.fillWidth: true
             onClicked: editor.beginAIObjectSelection()
         }
+        Button {
+            text: qsTranslate("Luma", "Sky")
+            enabled: !editor.aiBusy && editor.skyModelConfigured
+            Layout.fillWidth: true
+            onClicked: editor.generateAIMask("sky")
+            ToolTip.visible: hovered && !editor.skyModelConfigured
+            ToolTip.text: qsTranslate("Luma", "Choose a compatible local Sky model in Settings.")
+        }
         Label {
             visible: editor.aiObjectPicking
             text: qsTranslate("Luma", "Click the object in the photo.")
             wrapMode: Text.Wrap; Layout.fillWidth: true; color: "#dfae77"
         }
-        ProgressBar { visible: editor.aiBusy; value: editor.aiProgress; Layout.fillWidth: true }
+        ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI selection"; value: editor.aiProgress; Layout.fillWidth: true }
         Button {
             text: qsTranslate("Luma", "Cancel")
-            visible: editor.aiBusy || editor.aiObjectPicking
+            visible: (editor.aiBusy && editor.aiOperation === "AI selection") || editor.aiObjectPicking
             onClicked: editor.cancelAI()
             Layout.fillWidth: true
         }

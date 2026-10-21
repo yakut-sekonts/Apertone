@@ -8,8 +8,11 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
+#include "platform/macos/ApplicationAlert.h"
 #include <QCommandLineParser>
 #include <QFileInfo>
+#include <QDir>
+#include <QLockFile>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -88,6 +91,22 @@ int main(int argc, char **argv) {
             ? parser.value(QStringLiteral("catalog"))
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) +
                   QStringLiteral("/catalog.sqlite");
+    const auto catalogFile = QFileInfo(catalog).absoluteFilePath();
+    if (!QDir().mkpath(QFileInfo(catalogFile).absolutePath())) {
+        luma::macos::showApplicationError("Luma", "Cannot create the catalog folder.");
+        return 1;
+    }
+    // One desktop owner per catalog. SQLite still coordinates its worker
+    // connections, while two app instances cannot race the recovery journal.
+    const auto canonicalCatalog = QFileInfo(catalogFile).exists()
+        ? QFileInfo(catalogFile).canonicalFilePath()
+        : QFileInfo(catalogFile).absoluteDir().canonicalPath() + "/" + QFileInfo(catalogFile).fileName();
+    QLockFile catalogLock(canonicalCatalog + QStringLiteral(".desktop.lock"));
+    catalogLock.setStaleLockTime(0);
+    if (!catalogLock.tryLock()) {
+        luma::macos::showApplicationError("Luma", "This catalog is already open in another Luma window, or its folder is not writable.");
+        return 1;
+    }
     auto *provider = new PreviewProvider;
     EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
     PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),

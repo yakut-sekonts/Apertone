@@ -1,4 +1,5 @@
 #include "core/catalog/Catalog.h"
+#include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
 #include <sqlite3.h>
 #include <chrono>
@@ -7,8 +8,35 @@
 #include <unistd.h>
 
 namespace luma {
-void Catalog::backupTo(const std::filesystem::path &destination, CancellationToken stop,
-                        const std::function<void(double)> &progress) const {
+namespace {
+struct ReadConnection {
+    sqlite3 *db = nullptr;
+    explicit ReadConnection(const std::filesystem::path &path) {
+        if (sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr) != SQLITE_OK) {
+            if (db) sqlite3_close(db);
+            db = nullptr;
+            throw std::runtime_error("Cannot open catalog backup read-only.");
+        }
+        sqlite3_busy_timeout(db, 3000);
+    }
+    ~ReadConnection() { if (db) sqlite3_close(db); }
+};
+void verify(sqlite3 *db, CancellationToken stop) {
+    checkCancellation(stop);
+    sqlite3_progress_handler(db, 1000, [](void *context) {
+        return static_cast<CancellationToken *>(context)->isCancelled() ? 1 : 0;
+    }, &stop);
+    struct Reset { sqlite3 *db; ~Reset() { sqlite3_progress_handler(db, 0, nullptr, nullptr); } } reset{db};
+    detail::Statement integrity(db, "PRAGMA integrity_check");
+    if (!integrity.row() || integrity.string(0) != "ok" || integrity.row())
+        throw std::runtime_error("Catalog backup failed its integrity check.");
+    detail::Statement foreignKeys(db, "PRAGMA foreign_key_check");
+    if (foreignKeys.row()) throw std::runtime_error("Catalog backup has broken references.");
+    detail::Statement schema(db, "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assets'");
+    if (!schema.row()) throw std::runtime_error("The file is not a Luma catalog.");
+}
+void snapshot(sqlite3 *source, const std::filesystem::path &destination, CancellationToken stop,
+               const std::function<void(double)> &progress) {
     checkCancellation(stop);
     const auto target = std::filesystem::absolute(destination);
     if (std::filesystem::exists(target))
@@ -38,7 +66,7 @@ void Catalog::backupTo(const std::filesystem::path &destination, CancellationTok
         sqlite3 *db;
         ~Connection() { if (db) sqlite3_close(db); }
     } connection{output};
-    sqlite3_backup *copy = sqlite3_backup_init(output, "main", db_, "main");
+    sqlite3_backup *copy = sqlite3_backup_init(output, "main", source, "main");
     if (!copy) throw std::runtime_error("Cannot start catalog snapshot.");
     struct Copy {
         sqlite3_backup *value;
@@ -78,5 +106,20 @@ void Catalog::backupTo(const std::filesystem::path &destination, CancellationTok
     const int folder = ::open(target.parent_path().c_str(), O_RDONLY);
     if (folder >= 0) { (void)fsync(folder); close(folder); }
     if (progress) progress(1);
+}
+} // namespace
+void Catalog::backupTo(const std::filesystem::path &destination, CancellationToken stop,
+                        const std::function<void(double)> &progress) const {
+    snapshot(db_, destination, stop, progress);
+}
+void Catalog::verifyBackup(const std::filesystem::path &source, CancellationToken stop) {
+    ReadConnection input(source);
+    verify(input.db, stop);
+}
+void Catalog::restoreBackupTo(const std::filesystem::path &source,
+                               const std::filesystem::path &destination, CancellationToken stop) {
+    ReadConnection input(source);
+    verify(input.db, stop);
+    snapshot(input.db, destination, stop, {});
 }
 } // namespace luma

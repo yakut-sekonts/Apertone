@@ -11,6 +11,62 @@ Rectangle {
     property string currentCollection: ""
     property string editCollectionID: ""
     SemanticSearchDialog { id: semanticSearch }
+    PhotoMetadataDialog { id: photoMetadata }
+    Dialog {
+        id: panoramaDialog
+        title: qsTranslate("Luma", "Panorama merge")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(pane.width - 40, 460)
+        standardButtons: Dialog.Cancel
+        ColumnLayout {
+            width: parent.width
+            Label {
+                text: qsTranslate("Luma", "Merge 2–24 overlapping originals in capture order. Creates an auto-cropped Float DNG without current Develop edits.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            ComboBox {
+                id: panoramaProjection
+                model: [qsTranslate("Luma", "Perspective"), qsTranslate("Luma", "Cylindrical"), qsTranslate("Luma", "Spherical")]
+                currentIndex: 1; Layout.fillWidth: true
+                Accessible.name: qsTranslate("Luma", "Projection")
+            }
+            Label { text: qsTranslate("Luma", "Frame field of view") + " · " + Math.round(panoramaFOV.value) + "°" }
+            Slider {
+                id: panoramaFOV; from: 10; to: 140; value: 60; stepSize: 1
+                enabled: panoramaProjection.currentIndex !== 0
+                Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Frame field of view")
+            }
+            CheckBox { id: panoramaWarp; text: qsTranslate("Luma", "Boundary warp · stretch edges to reduce cropping"); Layout.fillWidth: true }
+            Button {
+                text: qsTranslate("Luma", "Create panorama")
+                enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy
+                Layout.fillWidth: true
+                onClicked: { editor.mergePanoramaPhotos(library.selectedAssetIDs(), panoramaProjection.currentIndex, panoramaFOV.value, panoramaWarp.checked); panoramaDialog.close() }
+            }
+        }
+    }
+    Dialog {
+        id: hdrDialog
+        title: qsTranslate("Luma", "HDR merge")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(pane.width - 40, 440)
+        standardButtons: Dialog.Cancel
+        ColumnLayout {
+            width: parent.width
+            Label {
+                text: qsTranslate("Luma", "Merge 2–9 bracketed originals into a new editable Float DNG. Current Develop edits are not applied.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Label { text: qsTranslate("Luma", "Deghosting") + " · " + Math.round(hdrDeghost.value) + "%" }
+            Slider { id: hdrDeghost; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Deghosting") }
+            Button {
+                text: qsTranslate("Luma", "Create HDR")
+                enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy
+                Layout.fillWidth: true
+                onClicked: { editor.mergeHDRPhotos(library.selectedAssetIDs(), hdrDeghost.value); hdrDialog.close() }
+            }
+        }
+    }
     Connections {
         target: library
         function onReloadStarted(preserveViewport) { grid.captureViewport(preserveViewport) }
@@ -75,6 +131,17 @@ Rectangle {
                 Button { objectName: "library.importButton"; text: qsTranslate("Luma", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 Button { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
                 Button { text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
+                Button {
+                    text: qsTranslate("Luma", "Photo actions")
+                    Layout.fillWidth: true
+                    onClicked: photoActions.open()
+                    Menu {
+                        id: photoActions
+                        MenuItem { text: qsTranslate("Luma", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
+                        MenuItem { text: qsTranslate("Luma", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
+                        MenuItem { text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
+                    }
+                }
                 Label { text: qsTranslate("Luma", "COLLECTIONS"); font.pixelSize: 10; color: "#8290a1"; Layout.topMargin: 16 }
                 ScrollView {
                     objectName: "library.collectionsScroll"
@@ -116,6 +183,13 @@ Rectangle {
                 Button { objectName: "library.clearSelection"; text: qsTranslate("Luma", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }
             }
             BatchSettings {}
+            RowLayout {
+                visible: editor.aiBusy && (editor.aiOperation === "HDR merge" || editor.aiOperation === "Panorama merge")
+                Layout.fillWidth: true
+                Label { text: qsTranslate("Luma", editor.aiOperation) }
+                ProgressBar { value: editor.aiProgress; Layout.fillWidth: true }
+                Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI() }
+            }
             Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; visible: text.length > 0; color: "#98a3b3"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
             Label { text: qsTranslate("Luma", batch.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Item {

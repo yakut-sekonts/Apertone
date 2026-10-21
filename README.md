@@ -24,6 +24,12 @@ this is not a full UX qualification.
 
 ## Included in source: phases 0.4–0.5
 
+The `codex/1.0-development` branch additionally contains **unbuilt, unqualified
+0.6–0.9 development**: Metal/caches, local AI/retouch/search, HDR/panorama,
+metadata/XMP, backups and relinking. These features are not in the published
+0.5.1 installer. See [final readiness](docs/FINAL_1_0_READINESS.md) before using
+or distributing a new build. All testing is deferred to final qualification.
+
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
 - ✅ As Shot white balance, bilinear demosaic and camera-to-linear-sRGB transform.

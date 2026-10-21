@@ -146,24 +146,35 @@ bitmap selections, persisted Clone/Heal/Remove strokes, local Core ML denoise
 integration with new Float32 DNG output, and opt-in local English semantic search
 over recognized image categories are implemented in source. Catalog 11→14 adds
 bitmap storage, retouch and embeddings; a pre-migration SQLite backup is required.
-Sky selection and a redistributable qualified denoise model remain open.
+An optional Core ML Sky adapter is also present. Redistributable qualified
+denoise/Sky models and their delivery policy remain open.
 No model is silently downloaded and no photo is sent to a cloud service.
 See [implementation and remaining scope](docs/PHASE7_DEVELOPMENT.md).
 
 ## 0.8 — Merge
 
-🗓 Planned. HDR, panorama, alignment, deghosting and editable float outputs.
+Initial source workflows implemented, unbuilt and unqualified: HDR with native
+alignment, exposure normalization and deghosting; panorama with three projections,
+overlap exposure matching, feathered seams, auto crop and bounded boundary warp.
+Both create editable Float DNGs with durable catalog registration. This is not
+a claim of 360° stitching, optimized seams or generative fill. See
+[implementation and limits](docs/PHASE8_DEVELOPMENT.md).
 
 ## 0.9 — Stabilization
 
-🗓 Planned. 10k/100k/500k catalogs, complete metadata/XMP workflow, backups,
-missing-file relinking, recovery, fault injection, UI/performance regression tests.
+Initial source workflows implemented, unbuilt and unqualified: descriptive
+metadata/XMP and export integration, backup scheduling/retention/restore,
+catalog create/open, Missing/Locate/Locate Folder and bounded folder watching.
+Large catalogs, fault injection, UI/performance regression and all QA are
+deferred to final preparation. See [implementation and limits](docs/PHASE9_DEVELOPMENT.md).
 
 ## 1.0 — Stable daily-use release
 
-🗓 Planned. All workflows in requirement §100 pass on supported hardware,
+Not qualified. All workflows in requirement §100 must pass on supported hardware,
 including local masks, presets, batch sync, export and restart. Signing,
 notarization, release checksums and known issues accompany the release.
+[Final readiness](docs/FINAL_1_0_READINESS.md) records remaining decisions and
+qualification. There is no 1.0 completion or publication claim.
 
 
 ## After 1.0 — Frontend redesign

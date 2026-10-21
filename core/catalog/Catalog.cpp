@@ -2,6 +2,7 @@
 #include "core/catalog/RetouchStorage.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/LocalMaskStorage.h"
+#include "core/catalog/MetadataStorage.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
 #include "core/render/TransformMapping.h"
@@ -123,7 +124,8 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
                                edits.transform, true);
-    return {query.string(0), query.string(1), query.string(2), metadata, edits};
+    return {query.string(0), query.string(1), query.string(2), metadata, edits,
+            detail::readMetadataOverlay(db, query.string(0))};
 }
 constexpr auto selectFields =
     "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
@@ -187,9 +189,9 @@ Catalog::Catalog(const std::filesystem::path &path) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 14)
+        if (current == 16)
             return;
-        if (current > 14)
+        if (current > 16)
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
@@ -200,7 +202,7 @@ Catalog::Catalog(const std::filesystem::path &path) {
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 14) {
+        if (current > 16) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -365,6 +367,14 @@ Catalog::Catalog(const std::filesystem::path &path) {
         }
         if (current == 13) {
             migrateSemanticIndex();
+            current = 14;
+        }
+        if (current == 14) {
+            migrateDerivedImages();
+            current = 15;
+        }
+        if (current == 15) {
+            migrateMetadata();
         }
         execute("COMMIT;");
     } catch (...) {
@@ -439,6 +449,7 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
         Statement edit(db_, "INSERT INTO edit_documents(asset_id) VALUES(?1)");
         edit.text(1, result.id);
         edit.row();
+        detail::initializeMetadata(db_, result.id, path, metadata);
     }
     if (selectActive) {
         Statement select(db_, "INSERT INTO session(slot,asset_id) VALUES(1,?1) ON CONFLICT(slot) "
@@ -446,6 +457,7 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
         select.text(1, result.id);
         select.row();
     }
+    result.descriptive = detail::readMetadataOverlay(db_, result.id);
     return result;
 }
 

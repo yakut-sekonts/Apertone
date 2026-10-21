@@ -1,4 +1,5 @@
 #include "apps/shared/SessionService.h"
+#include "apps/shared/MetadataService.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
@@ -13,8 +14,8 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     const auto path = std::filesystem::canonical(source);
     const auto originalSize = std::filesystem::file_size(path);
     const auto originalTime = std::filesystem::last_write_time(path);
-    if (originalSize > 512'000'000) {
-        throw std::runtime_error("Image exceeds the 512 MB input budget.");
+    if (originalSize > 1'300'000'000) {
+        throw std::runtime_error("Image exceeds the input budget.");
     }
     const auto checksum = macos::sha256File(path, stop);
     // Only decoded pixels are cached. Selection and saved edits always come
@@ -42,7 +43,9 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
             "Original changed while it was being decoded. Import was not committed.");
     }
     Catalog catalog(catalogPath_);
-    auto asset = catalog.addAndSelect(path, checksum, cached->metadata);
+    auto metadata = cached->metadata;
+    MetadataService::readSourceMetadata(path, metadata, stop);
+    auto asset = catalog.addAndSelect(path, checksum, metadata);
     const auto bytes = (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
                         cached->interactive->rgb.capacity() +
                         cached->interactive->alpha.capacity()) * sizeof(float);
@@ -57,8 +60,8 @@ SessionService::fullResolution(const AssetRecord &asset, CancellationToken stop)
     const auto path = std::filesystem::canonical(asset.path);
     const auto size = std::filesystem::file_size(path);
     const auto time = std::filesystem::last_write_time(path);
-    if (size > 512'000'000)
-        throw std::runtime_error("Image exceeds the 512 MB input budget.");
+    if (size > 1'300'000'000)
+        throw std::runtime_error("Image exceeds the input budget.");
     if (macos::sha256File(path, stop) != asset.checksum)
         throw std::runtime_error("Original changed; full-resolution preview refused.");
     const auto key = asset.checksum + "|decode-v1|full";
@@ -152,7 +155,7 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     const auto guard = [&](const std::function<void()> &install) {
         Catalog(catalogPath_).installExport(target, stop, install);
     };
-    macos::writeImage(decoded, edits, destination, options, stop, progress, source, guard);
+    macos::writeImage(decoded, edits, destination, options, stop, progress, source, guard, asset.descriptive);
 }
 void SessionService::verify() const {
     Catalog(catalogPath_).verify();

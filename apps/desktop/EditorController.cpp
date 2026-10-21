@@ -60,6 +60,7 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
         std::clamp(settings.value(QStringLiteral("cacheMiB"), 256).toInt(), 64, 2048);
     metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
     denoiseModelPath_ = settings.value(QStringLiteral("denoiseModel")).toString();
+    skyModelPath_ = settings.value(QStringLiteral("skyModel")).toString();
     accelerator_ = luma::macos::makeMetalDevelopAccelerator();
     segmentation_ = luma::macos::makeVisionSegmentation();
     applyCacheBudget();

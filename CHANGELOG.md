@@ -1,20 +1,29 @@
 # Changelog
 
-## Unreleased / 0.6–0.7 source development
+## Unreleased / 0.6–0.9 source development
 
 No builds, tests or QA have been run for this implementation. Stable remains 0.5.1.
 
 - Bounded preview/source caches, progressive resolution, full-resolution view,
   memory-pressure handling and Metal Light/Color/Curves/HSL.
 - Native local AI Subject/Background/Object selections stored as editable masks.
+- Optional local Core ML Sky mask adapter, sharing bitmap persistence and Undo.
 - Parametric Clone/Heal/Remove, source repositioning, persistence and Undo.
 - Optional local Core ML denoise adapter and managed Float32 Linear DNG derivatives.
 - Opt-in English semantic search based on local image classification and embeddings.
-- SQLite pre-migration backups; catalog 11→14 migrations.
+- HDR exposure merge/deghosting and panorama registration, three projections,
+  feather blending, auto crop/boundary warp and managed Float32 DNG outputs.
+- Durable generated-image registration and dead-owner recovery.
+- Descriptive metadata, keywords/search, revision-aware XMP sidecars, source
+  packet backups and metadata snapshots/policies in export.
+- Catalog backup scheduling/retention/restore, create/open catalog windows,
+  missing-original relinking and bounded folder watching.
+- SQLite pre-migration backups; catalog 11→16 migrations.
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
   opening and bind card focus to the clicked item before activating the view.
 
-Model packaging, Sky selection and all acceptance/qualification remain open.
+Model delivery/qualification and final acceptance remain open. Source version
+0.9.0 is not a released or tested application. See docs/FINAL_1_0_READINESS.md.
 
 ## 0.5.1 / Complete local masks and UX fixes
 

@@ -4,6 +4,7 @@
 #include "core/jobs/JobManager.h"
 #include <QAbstractListModel>
 #include <QSet>
+#include <QFileSystemWatcher>
 #include <QTimer>
 #include <QUrl>
 #include <QVariantList>
@@ -29,6 +30,11 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString semanticStatus READ semanticStatus NOTIFY stateChanged)
     Q_PROPERTY(QString semanticError READ semanticError NOTIFY stateChanged)
     Q_PROPERTY(QVariantList semanticResults READ semanticResults NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap descriptiveMetadata READ descriptiveMetadata NOTIFY metadataChanged)
+    Q_PROPERTY(int backupSchedule READ backupSchedule WRITE setBackupSchedule NOTIFY stateChanged)
+    Q_PROPERTY(int backupKeep READ backupKeep WRITE setBackupKeep NOTIFY stateChanged)
+    Q_PROPERTY(bool autoWriteXMP READ autoWriteXMP WRITE setAutoWriteXMP NOTIFY stateChanged)
+    Q_PROPERTY(QUrl backupFolder READ backupFolder CONSTANT)
   public:
     enum Role {
         AssetID = Qt::UserRole + 1,
@@ -40,7 +46,8 @@ class LibraryModel final : public QAbstractListModel {
         Label,
         Camera,
         Selected,
-        Active
+        Active,
+        Missing
     };
     static constexpr int pageSize = 128, maximumPages = 16;
     explicit LibraryModel(std::filesystem::path catalog, QObject *parent = nullptr);
@@ -61,7 +68,30 @@ class LibraryModel final : public QAbstractListModel {
         return selecting_;
     }
     void setExternalBusy(bool busy);
+    QVariantMap descriptiveMetadata() const { return descriptiveMetadata_; }
+    int backupSchedule() const { return backupSchedule_; }
+    int backupKeep() const { return backupKeep_; }
+    bool autoWriteXMP() const { return autoWriteXMP_; }
+    void setBackupSchedule(int value);
+    void setBackupKeep(int value);
+    void setAutoWriteXMP(bool value);
+    QUrl backupFolder() const;
+    Q_INVOKABLE void loadMetadata(const QString &id);
+    Q_INVOKABLE void saveDescriptiveMetadata(const QVariantMap &values);
+    Q_INVOKABLE void importDescriptiveMetadata();
+    Q_INVOKABLE void writeMetadataSidecar();
+    Q_INVOKABLE void syncSidecars();
+    Q_INVOKABLE void backupNow();
+    Q_INVOKABLE void restoreCatalog(const QUrl &backup, const QUrl &destination);
+    Q_INVOKABLE void openCatalog(const QUrl &file, bool create = false);
+    Q_INVOKABLE void locateOriginal(const QUrl &file);
+    Q_INVOKABLE void locateFolder(const QUrl &folder, bool nearby);
     std::vector<std::string> selectionIDs() const;
+    Q_INVOKABLE QStringList selectedAssetIDs() const {
+        QStringList result;
+        for (const auto &id : selectionIDs()) result.append(QString::fromStdString(id));
+        return result;
+    }
     bool importing() const {
         return importing_;
     }
@@ -125,6 +155,7 @@ class LibraryModel final : public QAbstractListModel {
     void viewportRestored(int row);
     void openRequested(const QUrl &url);
     void closeReady();
+    void metadataChanged();
 
   private:
     std::filesystem::path catalog_;
@@ -155,11 +186,19 @@ class LibraryModel final : public QAbstractListModel {
     double progress_ = 0;
     LocalizedText status_ = QStringLiteral("Opening catalog…");
     QString error_, importReport_;
+    QVariantMap descriptiveMetadata_;
+    std::uint64_t metadataRevision_ = 0;
+    int backupSchedule_ = 2, backupKeep_ = 10;
+    bool autoWriteXMP_ = false;
+    QFileSystemWatcher sourceWatcher_;
+    QTimer sourceWatchTimer_;
+    void initializeMaintenance();
+    void watchVisibleFolders();
     void page(int number);
     void reload(bool clear);
     void selectionChanged();
     void selectRange(int offset, int length, bool toggle);
-    void mutate(std::function<void(luma::Catalog &)> work, std::function<bool()> updateView = {});
+    void mutate(std::function<void(luma::Catalog &)> work, std::function<bool()> updateView = {}, bool syncXMP = false);
     bool refreshMetadata(const std::vector<std::string> &ids, int role, const QVariant &value);
     void checkClose();
 };

@@ -35,6 +35,7 @@ void EditorController::denoisePhoto(double amount) {
     const auto path = std::filesystem::path(denoiseModelPath_.toStdString());
     const QPointer<EditorController> self(this);
     aiBusy_ = true;
+    aiOperation_ = QStringLiteral("AI Denoise");
     aiProgress_ = 0;
     error_.clear();
     emit stateChanged();

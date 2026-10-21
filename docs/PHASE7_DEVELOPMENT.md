@@ -1,6 +1,6 @@
 # Phase 0.7 source development
 
-Status: **in progress, unbuilt and unqualified**. Source version 0.7.0 is on
+Status: **in progress, unbuilt and unqualified**. Source development is on
 `codex/1.0-development`; stable remains 0.5.1. No installer, tag or release is
 produced. All execution and QA wait for final pre-1.0 qualification.
 
@@ -16,8 +16,17 @@ requests. Cancel, Escape, close and memory pressure cancel pending AI work.
 The bitmap budget is 4 Mi pixels per complete document, shared across immutable
 history snapshots; serialization is strict canonical hex in mask document v3.
 Catalog migration 12 raises the stored document budget to 16 MiB and accepts
-legacy v1/v2 documents. Sky is **not implemented** by this provider and is not
-exposed as a misleading fallback.
+legacy v1/v2 documents. Vision does not provide Sky in this implementation.
+The separate optional Core ML Sky adapter accepts a local compiled model and
+returns probability coverage through the same mask/Undo path. Sky stays disabled
+until a model path is configured; actual model validation occurs on the worker.
+
+Sky contract: Float32 `image` `[1,3,H,W]` to `sky` `[1,1,H,W]`, matching static
+64–1024 dimensions, top-left sRGB RGB input in [0,1], bilinear stretch resizing,
+and finite sky probabilities in [0,1]. Creator metadata must declare
+`luma.sky.schema=1`, `luma.sky.color=srgb`, `luma.sky.resize=stretch`.
+Compute-unit failure retries CPU. Prediction is synchronous and cancellation
+is checked before/after it. No Sky weights are bundled or downloaded.
 
 ## Retouch
 
@@ -87,10 +96,11 @@ Opening an older catalog first creates a SQLite online-backup snapshot in its
 The upgraded catalog cannot be opened by 0.5.1. Restore the pre-upgrade backup
 for downgrade; do not overwrite it with a new-schema catalog.
 
-Remaining source scope: Sky model/provider, bundled model strategy, stronger
-semantic image/text encoding if category search is insufficient, and derivative
-recovery/registration across close/crash. HDR/panorama, metadata/XMP, relink and
-recovery UI remain subsequent roadmap work. Full model/image quality, orientation,
+Remaining source decisions: denoise/Sky weights and delivery strategy, and stronger
+semantic image/text encoding if category search is insufficient. Derivative
+recovery/registration is now journaled in phase 0.8; HDR/panorama, metadata/XMP,
+relink and recovery UI have initial source implementations in phases 0.8–0.9.
+Full model/image quality, orientation,
 crop/lens alignment, migration, cancel/race, memory, native UX and load checks
 are all deferred; none is marked PASS.
 

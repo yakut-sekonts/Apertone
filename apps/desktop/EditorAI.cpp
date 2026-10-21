@@ -2,10 +2,22 @@
 #include "core/catalog/Identity.h"
 #include "core/render/CpuRenderer.h"
 #include "core/image/Bayer.h"
+#include "platform/macos/CoreMLSky.h"
+#include <QFileInfo>
+#include <QSettings>
 #include <QPointer>
 #include <algorithm>
 #include <cmath>
 
+QString EditorController::skyModelName() const { return QFileInfo(skyModelPath_).fileName(); }
+void EditorController::setSkyModel(const QUrl &url) {
+    if (!url.isEmpty() && !url.isLocalFile()) return;
+    cancelAI();
+    skyModelPath_ = url.isEmpty() ? QString() : url.toLocalFile();
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini", QSettings::IniFormat);
+    settings.setValue("skyModel", skyModelPath_);
+    emit stateChanged();
+}
 void EditorController::cancelAI() {
     aiJob_.cancel();
     ++aiRevision_;
@@ -34,11 +46,14 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
     if (!editable() || original_ || aiBusy_)
         return;
     try {
+        if (kind != "subject" && kind != "background" && kind != "object" && kind != "sky")
+            throw std::runtime_error("Unknown AI selection category.");
         const auto selection = kind == QStringLiteral("subject") ? luma::ai::Selection::subject
                                : kind == QStringLiteral("background") ? luma::ai::Selection::background
                                : kind == QStringLiteral("object") ? luma::ai::Selection::object
                                                                   : luma::ai::Selection::sky;
-        if (!segmentation_->supports(selection))
+        if ((selection == luma::ai::Selection::sky && !skyModelConfigured()) ||
+            (selection != luma::ai::Selection::sky && !segmentation_->supports(selection)))
             throw std::runtime_error("The requested AI selection is not available locally.");
         if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x > 1 || y > 1)
             return;
@@ -60,10 +75,12 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         endEdit();
         aiObjectPicking_ = false;
         aiBusy_ = true;
+        aiOperation_ = QStringLiteral("AI selection");
         aiProgress_ = 0;
         error_.clear();
         const auto revision = ++aiRevision_;
         const auto provider = segmentation_;
+        const auto skyModel = std::filesystem::path(skyModelPath_.toStdString());
         auto referenceEdits = history_.current();
         referenceEdits.localMasks.clear();
         referenceEdits.setEnabled(luma::Correction::crop, false);
@@ -73,7 +90,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         emit stateChanged();
         aiJob_ = aiJobs_.submit(luma::JobPriority::background,
             [self, source, metadata, calibration, revision, provider, referenceEdits,
-             selection, sourcePoint, previewScale](const luma::JobContext &context) {
+             selection, sourcePoint, previewScale, skyModel](const luma::JobContext &context) {
                 try {
                     const auto stop = context.stopToken();
                     const auto input = luma::standardPreview(*source, 1024, stop);
@@ -90,7 +107,9 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                     const std::array<double, 2> uprightPoint{
                         std::clamp((picked[0] + .5) / geometry.width(), 0.0, 1.0),
                         std::clamp((picked[1] + .5) / geometry.height(), 0.0, 1.0)};
-                    const auto bitmap = provider->segment(
+                    const auto activeProvider = selection == luma::ai::Selection::sky ? luma::macos::makeCoreMLSky(skyModel) : provider;
+                    luma::checkCancellation(stop);
+                    const auto bitmap = activeProvider->segment(
                         {pixels.width, pixels.height, pixels.rgba}, selection, uprightPoint, stop,
                         [self, revision](double value) {
                             if (self)
@@ -127,7 +146,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                 luma::LocalMask mask;
                                 mask.id = luma::newID();
                                 const char *name = selection == luma::ai::Selection::background ? "Background"
-                                                   : selection == luma::ai::Selection::object ? "Object" : "Subject";
+                                                   : selection == luma::ai::Selection::object ? "Object"
+                                                   : selection == luma::ai::Selection::sky ? "Sky" : "Subject";
                                 mask.name = QCoreApplication::translate("Luma", name).toStdString();
                                 mask.shape = luma::MaskShape::bitmap;
                                 mask.bitmap = anchored;
