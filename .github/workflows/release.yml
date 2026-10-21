@@ -70,6 +70,8 @@ jobs:
         run: ./scripts/bootstrap.sh
       - name: Build pinned offline Denoise and Sky models
         run: bash scripts/build-bundled-models.sh build/models
+      - name: Check source Denoise against analytical clean images
+        run: .tools/model-venv/bin/python scripts/check-denoise-quality.py build/models --report build/denoise-quality.json
       - name: Check native Core ML numerical agreement
         run: .tools/model-venv/bin/python scripts/check-model-conversion.py build/models --report build/model-numerics.json
       - name: Upload model conversion evidence
@@ -77,7 +79,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-model-numerics
-          path: build/model-numerics.json
+          path: |
+            build/model-numerics.json
+            build/denoise-quality.json
           if-no-files-found: warn
       - name: Configure
         run: |

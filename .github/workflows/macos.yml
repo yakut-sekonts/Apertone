@@ -33,12 +33,18 @@ jobs:
         # below still fails the job unless this step succeeds.
         continue-on-error: true
         run: .tools/model-venv/bin/python scripts/check-model-conversion.py build/models --report build/model-numerics.json
+      - name: Check source Denoise against analytical clean images
+        id: model_quality
+        continue-on-error: true
+        run: .tools/model-venv/bin/python scripts/check-denoise-quality.py build/models --report build/denoise-quality.json
       - name: Upload model conversion evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: model-numerics
-          path: build/model-numerics.json
+          path: |
+            build/model-numerics.json
+            build/denoise-quality.json
           if-no-files-found: warn
       - name: Configure
         run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
@@ -133,8 +139,8 @@ jobs:
         run: ./scripts/check-format.sh
       - name: clang-tidy
         run: ./scripts/check-tidy.sh build
-      - name: Require native Core ML numerical agreement
-        if: ${{ !cancelled() && steps.model_numerics.outcome != 'success' }}
+      - name: Require model numerical agreement and source quality
+        if: ${{ !cancelled() && (steps.model_numerics.outcome != 'success' || steps.model_quality.outcome != 'success') }}
         run: |
-          echo '::error::Core ML numerical agreement did not pass; see model-numerics artifact.'
+          echo '::error::Model numerical agreement or source quality did not pass; see model-numerics artifact.'
           exit 1
