@@ -49,6 +49,29 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   languages. The result is Custom WB, not a live Auto mode. See
   [WB behavior and limits](PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
 
+## Eight functional source blocks completed
+
+Presence, Point Color, Color Grading, Post Crop Vignette/Grain, Smart Collections,
+Compare, Auto Adjust and advanced import now have source implementations. See
+[the ledger](FUNCTIONAL_COMPLETION.md) and [ADR 0030](adr/0030-functional-completion.md).
+Their completion does not close any qualification gate. In the final campaign:
+
+- Build all targets and reconcile fixtures with catalog 21, preset codecs 8/9,
+  snapshot codec 2, the expanded import dialog and new Library/QML dependencies.
+- Qualify zero-setting equivalence, texture/detail halos, haze/color shifts,
+  grayscale/transparent/HDR inputs, grading overlap, output-space vignette/grain,
+  preview/full-resolution/export agreement and deterministic rendering.
+- Cover old/new catalog/preset/snapshot round trips, migration backup/restore,
+  creative batch conflicts/Undo, history, cancellation and stale picker/Auto results.
+- Cover nested rule semantics, keyword inequality, escaped searches, empty results,
+  metadata refresh, rename races, limits, all eight languages and accessibility.
+- Cover Compare Fit/100%, different aspect ratios, linked center/zoom, swap,
+  unsaved edits, missing/changed sources, close/reopen and memory-pressure behavior.
+- Fault-inject advanced import at every journal/copy/backup/commit/Move boundary;
+  cover date fallbacks, filename collisions, symlinks, changed sources, full disks,
+  metadata/develop snapshots, duplicates, cancellation, retained originals and
+  recovery after rename/unlink. Verify both image backups and catalog invariants.
+
 ## Final campaign
 
 Use a new candidate branch; the implementation branch intentionally skips CI.

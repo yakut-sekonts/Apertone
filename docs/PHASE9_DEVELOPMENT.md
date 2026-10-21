@@ -370,7 +370,7 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
 
 ## Outstanding qualification and source decisions
 
-- Build every target and update fixtures for schema 18 and the Missing role.
+- Build every target and update fixtures for schema 21 and the Missing role.
 - Exercise multilingual/large metadata, external XMP round trips, unsupported
   namespaces, concurrency, permission/disk failures and pending-write recovery.
   Include ordered/repeated creators, exact custom label text, explicit No label,
@@ -435,3 +435,19 @@ Platform references: [ImageIO metadata](https://developer.apple.com/documentatio
 Interoperability definitions: [Adobe XMP Rating and Label](https://developer.adobe.com/xmp/docs/xmp-namespaces/xmp/),
 [Dublin Core creator sequence](https://developer.adobe.com/xmp/docs/xmp-namespaces/dc/).
 Crash capture: [PLCrashReporter source and integration](https://github.com/microsoft/plcrashreporter/tree/1.12.2).
+
+## Remaining functional source blocks
+
+The eight-block implementation request is complete in source. The detailed
+[completion ledger](FUNCTIONAL_COMPLETION.md) lists Presence, Point Color,
+Color Grading, Effects, Smart Collections, Compare, Auto Adjust and advanced import.
+[ADR 0030](adr/0030-functional-completion.md) records the CPU algorithms, schema
+19–21 extensions, compatibility, linked comparison and durable import ordering.
+
+All UI labels were added to the eight language packs. Runtime error details retain
+the existing source-text fallback when a translation is unavailable. The current
+XMP preset importer retains its explicit supported-field mapping; adding a new
+native Develop control does not imply Adobe algorithm or XMP field equivalence.
+There were no builds, QA/static-analysis/formatting checks or releases for this
+work. Final source integration, image-quality, UX, load/recovery and regression
+qualification remain mandatory before publication.

@@ -40,6 +40,9 @@ std::vector<EditHistoryChange> describeEditChange(const EditDocument &before, co
         before.curveHighlights != after.curveHighlights, "Tone curves");
     group(before.hsl != after.hsl, "HSL / COLOR MIXER");
     group(before.retouch != after.retouch, "Retouch");
+    group(before.creative.enabled != after.creative.enabled, "Correction switches");
+    for (std::size_t i=0;i<creativeParameters.size();++i)
+        number(before.creative.values[i], after.creative.values[i], creativeParameters[i].label.data());
     for (const auto &mask : after.localMasks) {
         const auto previous = std::find_if(before.localMasks.begin(), before.localMasks.end(),
             [&](const auto &item) { return item.id == mask.id; });

@@ -253,7 +253,7 @@ void LibraryModel::reload(bool clear) {
                 anchorRow = static_cast<int>(*index);
             for (const auto &c : db.collections())
                 collections.push_back(QVariantMap{{"id", QString::fromStdString(c.id)},
-                                                  {"name", QString::fromStdString(c.name)},
+                                                  {"name", QString::fromStdString(c.name)}, {"smart",c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
         } catch (const std::exception &e) {
             count = 0;
@@ -453,7 +453,8 @@ bool LibraryModel::refreshMetadata(const std::vector<std::string> &ids, int role
                                    const QVariant &value) {
     // Membership/order must remain stable. A pending filter/selection needs its
     // normal reload, and a matching metadata filter may remove changed assets.
-    if (loading_ || selecting_ || filterTimer_.isActive() ||
+    if (std::any_of(collections_.begin(),collections_.end(),[](const QVariant &v){return v.toMap().value("smart").toBool();}) ||
+        loading_ || selecting_ || filterTimer_.isActive() ||
         !std::is_sorted(ids.begin(), ids.end()) ||
         (role != Rating && role != Flag && role != Label) ||
         (role == Rating && filter_.minimumRating > 0) || (role == Flag && filter_.flag != -2) ||
@@ -546,6 +547,10 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     options.destination = destination.toLocalFile().toStdString();
     options.recursive = recursive;
     options.skipDuplicates = skipDuplicates;
+    startImport(std::move(sources),std::move(options));
+}
+bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,luma::ImportOptions options) {
+    if(working())return false;
     importReport_.clear();
     importing_ = true;
     progress_ = 0;
@@ -556,6 +561,7 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     const auto path = catalog_;
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
+    try {
     imports_.submit(luma::JobPriority::background, [self, path, sources, options,
                                                     stop](const auto &) {
         QString error, report;
@@ -605,6 +611,10 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
                 },
                 Qt::QueuedConnection);
     });
+    return true;
+    } catch(const std::exception &failure) {
+        importing_=false;error_=QString::fromUtf8(failure.what());emit stateChanged();return false;
+    }
 }
 void LibraryModel::cancelImport() {
     importCancellation_.cancel();

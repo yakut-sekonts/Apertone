@@ -27,7 +27,12 @@ this is not a full UX qualification.
 The `codex/1.0-development` branch additionally contains **unbuilt, unqualified
 0.6–0.9 development**: Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
-RGB/luminance Histogram with clipping overlays, Auto WB and a neutral eyedropper. These features are not in the published
+RGB/luminance Histogram with clipping overlays, Auto WB and a neutral eyedropper.
+The eight remaining functional source blocks now include Presence, Point Color,
+Color Grading, Vignette/Grain, Smart Collections, linked Compare, Auto Adjust and
+advanced import with Move, naming, presets and a second backup. See the
+[completion ledger](docs/FUNCTIONAL_COMPLETION.md) and [behavior/limits](docs/adr/0030-functional-completion.md).
+These features are not in the published
 0.5.1 installer. See [final readiness](docs/FINAL_1_0_READINESS.md) before using
 or distributing a new build. All testing is deferred to final qualification.
 

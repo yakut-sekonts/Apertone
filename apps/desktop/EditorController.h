@@ -20,6 +20,7 @@
 
 class EditorController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QVariantMap comparison READ comparison NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)
     Q_PROPERTY(bool localSampling READ localSampling NOTIFY stateChanged)
     Q_PROPERTY(bool localGestureActive READ localGestureActive NOTIFY stateChanged)
@@ -62,6 +63,11 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool presetPreview READ presetPreview NOTIFY stateChanged)
     Q_PROPERTY(QString detailDiagnostic READ detailDiagnostic NOTIFY stateChanged)
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList creativeParameters READ creativeParameters CONSTANT)
+    Q_PROPERTY(bool creativeBusy READ creativeBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool pointColorPicking READ pointColorPicking WRITE setPointColorPicking NOTIFY stateChanged)
+    Q_PROPERTY(bool pointColorRange READ pointColorRange WRITE setPointColorRange NOTIFY stateChanged)
+    Q_PROPERTY(bool pointColorCanvasReady READ pointColorCanvasReady NOTIFY stateChanged)
     Q_PROPERTY(bool whiteBalanceBusy READ whiteBalanceBusy NOTIFY stateChanged)
     Q_PROPERTY(bool whiteBalancePicking READ whiteBalancePicking WRITE setWhiteBalancePicking NOTIFY stateChanged)
     Q_PROPERTY(bool whiteBalanceCanvasReady READ whiteBalanceCanvasReady NOTIFY stateChanged)
@@ -404,6 +410,19 @@ class EditorController final : public QObject {
     }
     QString whiteBalanceMessage() const { return whiteBalanceMessage_.text(); }
     void setWhiteBalancePicking(bool enabled);
+    QVariantList creativeParameters() const;
+    bool creativeBusy() const { return creativeBusy_; }
+    bool pointColorPicking() const { return pointColorPicking_; }
+    bool pointColorRange() const { return pointColorRange_; }
+    bool pointColorCanvasReady() const { return pointColorPicking_ && pointColorCanvasReady_ && !creativeBusy_ && !busy(); }
+    void setPointColorPicking(bool value);
+    void setPointColorRange(bool value);
+    QVariantMap comparison() const;
+    Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
+    Q_INVOKABLE void closeCompare();
+    Q_INVOKABLE void autoAdjust();
+    Q_INVOKABLE void samplePointColor(double x,double y);
+    Q_INVOKABLE void cancelCreative();
     Q_INVOKABLE void autoWhiteBalance();
     Q_INVOKABLE void sampleWhiteBalance(double x, double y);
     Q_INVOKABLE void cancelWhiteBalance();
@@ -506,6 +525,17 @@ class EditorController final : public QObject {
     PreviewProvider *provider_;
     luma::JobManager ioJobs_;
     luma::JobManager renderJobs_;
+    luma::JobManager compareJobs_;
+    luma::JobHandle compareJob_;
+    std::uint64_t compareRevision_ = 0, compareImageRevision_ = 0;
+    bool compareBusy_ = false, compareReady_ = false, compareFull_ = false;
+    QString compareError_;
+    QStringList compareIDs_, compareNames_;
+    luma::JobManager creativeJobs_;
+    luma::JobHandle creativeJob_;
+    std::uint64_t creativeRevision_ = 0;
+    bool creativeBusy_ = false, pointColorPicking_ = false, pointColorCanvasReady_ = false, pointColorRange_ = false;
+    void runCreative(std::optional<std::array<double,2>> point);
     luma::JobManager whiteBalanceJobs_;
     luma::JobHandle whiteBalanceJob_;
     std::uint64_t whiteBalanceRevision_ = 0;

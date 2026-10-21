@@ -7,8 +7,8 @@
 
 namespace luma {
 namespace {
-// Version 1 has a fixed field order. Changing this layout requires a new codec
-// version and an explicit reader for old snapshots; never silently add fields.
+// Version 1 retains its fixed field order; version 2 appends the creative codec.
+// Old snapshots decode with neutral creative values and re-encode as version 1.
 template <typename Document> auto fields(Document &d) {
     return std::tie(d.exposure, d.temperature, d.tint, d.customWhiteBalance,
         d.contrast, d.highlights, d.shadows, d.whites, d.blacks, d.vibrance, d.saturation,
@@ -27,7 +27,7 @@ void require(bool condition) {
     if (!condition) throw std::runtime_error("Invalid processing version document.");
 }
 }
-std::string encodeEditSnapshot(const EditDocument &edits) {
+static std::string encodeSnapshot(const EditDocument &edits, int version) {
     static_assert(EditDocument::schemaVersion == 8, "Update the full-document snapshot codec.");
     edits.validate();
     const auto masks = encodeLocalMasks(edits.localMasks);
@@ -37,7 +37,7 @@ std::string encodeEditSnapshot(const EditDocument &edits) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
     out << std::setprecision(std::numeric_limits<double>::max_digits10);
-    out << "LUMA_EDIT_SNAPSHOT 1 8\n";
+    out << "LUMA_EDIT_SNAPSHOT " << version << " 8\n";
     std::apply([&](const auto &...value) { ((out << value << ' '), ...); }, fields(edits));
     out << '\n' << std::quoted(edits.lens.profile) << '\n';
     for (const auto value : edits.transform.guide) out << value << ' ';
@@ -49,11 +49,13 @@ std::string encodeEditSnapshot(const EditDocument &edits) {
     }
     for (const auto &band : edits.hsl) out << band.hue << ' ' << band.saturation << ' ' << band.luminance << '\n';
     out << std::quoted(masks) << '\n' << std::quoted(retouch) << '\n';
+    if (version >= 2) out << std::quoted(encodeCreative(edits.creative)) << '\n';
     auto result = out.str();
     if (result.size() > maximumEditSnapshotBytes)
         throw std::runtime_error("Processing version exceeds its storage limit.");
     return result;
 }
+std::string encodeEditSnapshot(const EditDocument &edits) { return encodeSnapshot(edits, 2); }
 EditDocument decodeEditSnapshot(std::string_view document) {
     require(!document.empty() && document.size() <= maximumEditSnapshotBytes);
     std::istringstream in{std::string(document)};
@@ -61,7 +63,7 @@ EditDocument decodeEditSnapshot(std::string_view document) {
     std::string magic;
     int version = 0, schema = 0;
     require(static_cast<bool>(in >> magic >> version >> schema));
-    if (magic != "LUMA_EDIT_SNAPSHOT" || version != 1 || schema != 8)
+    if (magic != "LUMA_EDIT_SNAPSHOT" || (version != 1 && version != 2) || schema != 8)
         throw std::runtime_error("Unsupported processing version document.");
     EditDocument result;
     std::apply([&](auto &...value) { ((in >> value), ...); }, fields(result));
@@ -80,9 +82,14 @@ EditDocument decodeEditSnapshot(std::string_view document) {
     require(static_cast<bool>(in >> std::quoted(masks) >> std::quoted(retouch)));
     result.localMasks = decodeLocalMasks(masks);
     result.retouch = decodeRetouch(retouch);
+    if (version >= 2) {
+        std::string creative;
+        require(static_cast<bool>(in >> std::quoted(creative)));
+        result.creative = decodeCreative(creative);
+    }
     result.validate();
     // Also rejects trailing data, invalid integer spellings and alternate field layouts.
-    require(encodeEditSnapshot(result) == document);
+    require(encodeSnapshot(result, version) == document);
     return result;
 }
 }

@@ -4,6 +4,14 @@
 
 No builds, tests or QA have been run for this implementation. Stable remains 0.5.1.
 
+- Completed eight additional source workflows: Presence (Texture/Clarity/Dehaze),
+  sampled Point Color with range preview, four-way Color Grading, Post Crop
+  Vignette/Grain, nested Smart Collections, Select/Candidate Compare with linked
+  zoom/pan, local Auto Adjust, and advanced Add/Copy/Move import with date folders,
+  naming, metadata/develop presets, keywords and second backup.
+  Creative edits join presets/batch/history/versions/export; catalog schema 21,
+  preset codecs 8/9 and snapshot codec 2. New controls have eight-language labels.
+  [Source completion and pending qualification](docs/FUNCTIONAL_COMPLETION.md).
 - Bounded preview/source caches, progressive resolution, full-resolution view,
   memory-pressure handling and Metal Light/Color/Curves/HSL.
 - RGB/luminance Histogram with bounded, alpha-weighted preview sampling before

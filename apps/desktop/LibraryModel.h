@@ -13,6 +13,7 @@
 
 class LibraryModel final : public QAbstractListModel {
     Q_OBJECT
+    Q_PROPERTY(QVariantList importMetadataPresets READ importMetadataPresets NOTIFY stateChanged)
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
     Q_PROPERTY(bool selecting READ selecting NOTIFY stateChanged)
@@ -141,10 +142,16 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void rate(int value);
     Q_INVOKABLE void flag(int value);
     Q_INVOKABLE void label(const QString &value);
+    Q_INVOKABLE void editSmartCollection(const QString &id,const QString &name);
+    Q_INVOKABLE void saveSmartCollection(const QString &id,const QString &name,const QString &revision,const QVariantMap &rule);
     Q_INVOKABLE void createCollection(const QString &name);
     Q_INVOKABLE void renameCollection(const QString &id, const QString &name);
     Q_INVOKABLE void deleteCollection(const QString &id);
     Q_INVOKABLE void collectionMembership(const QString &id, bool add);
+    QVariantList importMetadataPresets() const;
+    Q_INVOKABLE bool saveImportMetadataPreset(const QString &name,const QVariantMap &values);
+    Q_INVOKABLE bool removeImportMetadataPreset(const QString &name);
+    Q_INVOKABLE bool importAdvanced(const QList<QUrl> &sources,const QVariantMap &settings,const QString &developPreset);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE void cancelImport();
@@ -156,8 +163,10 @@ class LibraryModel final : public QAbstractListModel {
     void openRequested(const QUrl &url);
     void closeReady();
     void metadataChanged();
+    void smartCollectionReady(const QString &id,const QString &name,const QString &revision,const QVariantMap &rule);
 
   private:
+    bool startImport(std::vector<std::filesystem::path> sources,luma::ImportOptions options);
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
     luma::JobManager semanticJobs_;

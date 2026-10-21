@@ -6,10 +6,10 @@ import QtQuick.Layouts
 Rectangle {
     id: pane
     color: "#111318"
-    property var sources: []
-    property url destination: ""
     property string currentCollection: ""
     property string editCollectionID: ""
+    CompareDialog { id:compareDialog }
+    SmartCollectionDialog { id: smartCollection }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
     Dialog {
@@ -82,26 +82,7 @@ Rectangle {
         Item { required property int index; Shortcut { sequence: index.toString(); enabled: pane.visible && pane.allowShortcut(); onActivated: library.rate(index) } }
     }
     Shortcut { sequences: [StandardKey.SelectAll]; enabled: pane.visible && !(search.activeFocus); onActivated: library.selectAll() }
-    FileDialog { id: files; title: qsTranslate("Luma", "Import photos"); fileMode: FileDialog.OpenFiles; nameFilters: [qsTranslate("Luma", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Luma", "All files (*)")]; onAccepted: pane.sources = selectedFiles }
-    FolderDialog { id: folder; title: qsTranslate("Luma", "Photo folder"); onAccepted: pane.sources = [selectedFolder] }
-    FolderDialog { id: copyFolder; title: qsTranslate("Luma", "Where to copy originals"); onAccepted: pane.destination = selectedFolder }
-    Dialog {
-        id: importDialog; objectName: "library.importDialog"; title: qsTranslate("Luma", "Import photos"); modal: true; anchors.centerIn: parent; width: 550
-        standardButtons: Dialog.Cancel
-        onOpened: standardButton(Dialog.Cancel).objectName = "library.importCancel"
-        ColumnLayout {
-            width: parent.width; spacing: 12
-            RowLayout { Button { text: qsTranslate("Luma", "Choose files"); onClicked: files.open() } Button { text: qsTranslate("Luma", "Choose folder"); onClicked: folder.open() } }
-            Label { objectName: "library.importSources"; text: pane.sources.length ? qsTranslate("Luma", "Sources: ") + pane.sources.length + " · " + pane.sources[0] : qsTranslate("Luma", "No files or folder selected"); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true; font.pixelSize: 11 }
-            ComboBox { id: importMode; objectName: "library.importMode"; model: [qsTranslate("Luma", "Add · keep originals in place"), qsTranslate("Luma", "Copy · copy into the selected folder")]; Layout.fillWidth: true }
-            Button { visible: importMode.currentIndex === 1; text: qsTranslate("Luma", "Choose destination folder"); onClicked: copyFolder.open() }
-            Label { visible: importMode.currentIndex === 1; text: pane.destination.toString() || qsTranslate("Luma", "No folder selected"); wrapMode: Text.WrapAnywhere; Layout.fillWidth: true; font.pixelSize: 11 }
-            CheckBox { id: recursive; objectName: "library.importRecursive"; text: qsTranslate("Luma", "Include subfolders"); checked: true }
-            CheckBox { id: duplicates; objectName: "library.importDuplicates"; text: qsTranslate("Luma", "Skip duplicates by SHA-256 and size"); checked: true }
-            Label { text: qsTranslate("Luma", "Copy creates a Luma folder with a separate directory per file. Cancelling preserves imported photos."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11; color: "#8893a3" }
-            Button { objectName: "library.importStart"; text: qsTranslate("Luma", "Import photos"); enabled: pane.sources.length > 0 && (importMode.currentIndex === 0 || pane.destination.toString().length > 0) && !library.working; onClicked: { library.importFiles(pane.sources, importMode.currentIndex === 1, pane.destination, recursive.checked, duplicates.checked); importDialog.close() } }
-        }
-    }
+    ImportDialog { id: importDialog }
     Dialog {
         id: collectionDialog; objectName: "library.collectionDialog"; width: 360; implicitWidth: 360; title: pane.editCollectionID ? qsTranslate("Luma", "Rename collection") : qsTranslate("Luma", "New collection"); modal: true; anchors.centerIn: parent
         standardButtons: Dialog.Ok | Dialog.Cancel
@@ -138,6 +119,7 @@ Rectangle {
                     Menu {
                         id: photoActions
                         MenuItem { text: qsTranslate("Luma", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
+                        MenuItem { text: qsTranslate("Luma", "Compare Select / Candidate"); enabled: library.selectedCount === 2 && !library.working && !editor.busy; onTriggered: {editor.prepareCompare(library.selectedAssetIDs());compareDialog.open()} }
                         MenuItem { text: qsTranslate("Luma", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
                         MenuItem { text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
                     }
@@ -153,6 +135,12 @@ Rectangle {
                             Button { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
                         }
                     }
+                }
+                Button {text:qsTranslate("Luma","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create()}
+                Button {
+                    text:qsTranslate("Luma","Edit rules");Layout.fillWidth:true;enabled:!library.working
+                    visible:!!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&c.smart)
+                    onClicked:{const c=library.collections.find(c=>c.id===pane.currentCollection);if(c)library.editSmartCollection(c.id,c.name)}
                 }
                 Button { objectName: "library.newCollection"; text: qsTranslate("Luma", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
                 Button { objectName: "library.renameCollection"; text: qsTranslate("Luma", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
@@ -270,9 +258,9 @@ Rectangle {
                 }
                 RowLayout {
                     Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
-                    ComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections; textRole: "name"; Layout.maximumWidth: 145 }
-                    Button { objectName: "libraryAddToCollection"; implicitWidth: 36; text: "+"; enabled: library.collections.length > 0; onClicked: library.collectionMembership(library.collections[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
-                    Button { objectName: "libraryRemoveFromCollection"; implicitWidth: 36; text: "−"; enabled: !!pane.currentCollection; onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
+                    ComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections.filter(c=>!c.smart); textRole: "name"; Layout.maximumWidth: 145 }
+                    Button { objectName: "libraryAddToCollection"; implicitWidth: 36; text: "+"; enabled: targetCollection.currentIndex >= 0 && targetCollection.count > 0; onClicked: library.collectionMembership(targetCollection.model[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
+                    Button { objectName: "libraryRemoveFromCollection"; implicitWidth: 36; text: "−"; enabled: !!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&!c.smart); onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
                 }
             }
             Label { text: qsTranslate("Luma", library.status); font.pixelSize: 10; color: "#8290a1"; elide: Text.ElideRight; Layout.fillWidth: true }

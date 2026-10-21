@@ -2,6 +2,7 @@
 #include "core/edits/EditDocument.h"
 #include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
+#include "core/library/SmartCollection.h"
 #include "core/metadata/PhotoMetadata.h"
 #include "core/metadata/DescriptiveMetadata.h"
 #include "core/ai/Embedding.h"
@@ -49,6 +50,7 @@ struct EditVersionInfo {
     std::string id, name, createdAt;
     std::int64_t revision = 0;
 };
+struct SmartCollectionRecord { SmartRule rule; std::int64_t revision=0; };
 enum class CatalogOpenMode { createIfMissing, existingOnly };
 
 /// Each instance owns a connection on the calling worker thread.
@@ -95,6 +97,8 @@ class Catalog {
     void setRating(const std::vector<std::string> &ids, int rating);
     void setFlag(const std::vector<std::string> &ids, int flag);
     void setLabel(const std::vector<std::string> &ids, const std::string &label);
+    std::optional<SmartCollectionRecord> smartCollection(const std::string &id) const;
+    std::string saveSmartCollection(const std::string &id,const std::string &name,std::int64_t revision,const SmartRule &rule);
     std::vector<CollectionRecord> collections() const;
     std::string createCollection(const std::string &name);
     void renameCollection(const std::string &id, const std::string &name);
@@ -104,11 +108,15 @@ class Catalog {
     std::string beginImport(ImportMode mode, const std::filesystem::path &destination,
                             const std::vector<std::filesystem::path> &sources,
                             std::int64_t ownerPID, bool skipDuplicates = true,
-                            const std::map<std::filesystem::path, std::string> &sourceErrors = {});
+                            const std::map<std::filesystem::path, std::string> &sourceErrors = {},
+                            const std::optional<ImportOptions> &options = std::nullopt);
     bool claimImport(const std::string &id, std::int64_t previousPID, std::int64_t newPID);
     void stageImport(const ImportJournalItem &item);
+    void stageImportPlan(const ImportJournalItem &item);
+    void finishImportMove(const ImportJournalItem &item, const std::string &state, const std::string &error = {});
+    bool referencesSource(const std::filesystem::path &path) const;
     bool commitImport(const ImportJournalItem &item, const PhotoMetadata &metadata,
-                      bool skipDuplicates);
+                      bool skipDuplicates, const std::optional<EditDocument> &develop = std::nullopt);
     void finishImportItem(const std::string &sessionID, int index, const std::string &state,
                           const std::string &error = "", const std::string &assetID = "");
     void finishImport(const std::string &sessionID, const std::string &state);
@@ -168,6 +176,10 @@ class Catalog {
     void migrateMetadata();
     void migrateMetadataInterop();
     void migrateEditVersions();
+    void migrateCreative();
+    void migrateSmartCollections();
+    void migrateImportPlans();
+    void writeCreative(const std::string &assetID, const CreativeSettings &settings);
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);

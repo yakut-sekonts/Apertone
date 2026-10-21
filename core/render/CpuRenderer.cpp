@@ -7,6 +7,8 @@
 #include "core/lens/LensCorrection.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
+#include "core/render/Presence.h"
+#include "core/render/CreativeColor.h"
 #include "core/render/NoiseReduction.h"
 #include "core/render/RetouchPass.h"
 #include <algorithm>
@@ -125,7 +127,7 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const DevelopPipeline pipeline(edits, calibration);
     std::vector<float> developedPixels;
 #if !defined(LUMA_UX_CPU_RENDER_ROWS)
-    if (accelerator)
+    if (accelerator && pipeline.gpuCompatible())
         developedPixels = accelerator->develop(input, pipeline, stop);
 #endif
     if (!developedPixels.empty() && developedPixels.size() != input.rgb.size())
@@ -134,7 +136,7 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                     developedPixels);
     const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
                                     &noise, developedPixels);
-    const auto referencePixel = [&](int sx, int sy) {
+    const auto detailPixel = [&](int sx, int sy) {
         const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
         const auto developed =
             noise.active()
@@ -145,6 +147,14 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                     : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
         return sharpening.pixel(developed, sx, sy);
     };
+    auto presenceEdits = edits;
+    if (diagnostic != DetailDiagnostic::none) presenceEdits.setEnabled(Correction::presence, false);
+    const PresencePass presence(input, presenceEdits, detailPixel, stop, detailScale);
+    const auto referencePixel = [&](int x, int y) { return presence.pixel(detailPixel(x,y),x,y); };
+    auto referenceEdits = edits;
+    referenceEdits.setEnabled(Correction::pointColor, false);
+    referenceEdits.setEnabled(Correction::grading, false);
+    const DevelopPipeline pointReference(referenceEdits, calibration);
     DisplayTransform transform(displayProfile);
     std::vector<float> row(static_cast<std::size_t>(width) * 3);
     for (int y = 0; y < height; ++y) {
@@ -172,9 +182,21 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                     value = alpha > 1e-8F ? value / alpha : 0;
                 coverage = std::clamp(alpha, 0.F, 1.F);
             }
+            if (diagnostic == DetailDiagnostic::none)
+                rgb = applyOutputEffects(rgb, edits, x, y, width, height, detailScale);
             if (histogramSample) result.histogram->add(rgb, coverage);
             if (!rowClipping.empty())
                 rowClipping[static_cast<std::size_t>(x)] = coverage > 0 ? clippingFlags(rgb) : 0;
+            if (analysis.pointColorRange && diagnostic == DetailDiagnostic::none) {
+                const auto range = geometry.sample(x,y,[&](int sx,int sy) {
+                    const auto i=(static_cast<std::size_t>(sy)*input.width+sx)*3;
+                    const auto color=pointReference.pixel({input.rgb[i],input.rgb[i+1],input.rgb[i+2]});
+                    const auto a=input.coverage(sx,sy);
+                    return std::array{static_cast<float>(pointColorWeight(color,edits.creative))*a,a,0.F};
+                });
+                const float weight=range[1]>1e-8F?range[0]/range[1]:0;
+                rgb={weight,weight,weight};
+            }
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
         }

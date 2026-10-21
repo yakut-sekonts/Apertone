@@ -6,6 +6,8 @@
 #include "core/render/LocalAdjustments.h"
 #include "core/render/NoiseReduction.h"
 #include "core/render/RetouchPass.h"
+#include "core/render/Presence.h"
+#include "core/render/CreativeColor.h"
 #include <algorithm>
 #include <cmath>
 
@@ -45,17 +47,18 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
                 progress(0.2 + value * 0.2);
         },
         &noise);
+    const auto detailPixel = [&](int sx,int sy) {
+        const auto i=(static_cast<std::size_t>(sy)*input.width+sx)*3;
+        const auto developed=noise.active()?noise.pixel({},sx,sy):pipeline.pixel({input.rgb[i],input.rgb[i+1],input.rgb[i+2]});
+        return sharpening.pixel(developed,sx,sy);
+    };
+    const PresencePass presence(input,edits,detailPixel,stop);
     LinearOutput result(geometry.width(), geometry.height());
     for (int y = 0; y < result.height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < result.width; ++x) {
             auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
-                const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
-                const auto developed =
-                    noise.active() ? noise.pixel({}, sx, sy)
-                                   : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
-                                                     input.rgb[offset + 2]});
-                auto color = local.pixel(sharpening.pixel(developed, sx, sy),
+                auto color = local.pixel(presence.pixel(detailPixel(sx,sy),sx,sy),
                                          (sx + 0.5) / input.width, (sy + 0.5) / input.height);
                 if (!input.alpha.empty())
                     for (auto &value : color)
@@ -70,6 +73,7 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
             if (!input.alpha.empty())
                 for (auto &value : rgb)
                     value = alpha > 1e-8F ? value / alpha : 0;
+            rgb = applyOutputEffects(rgb, edits, x, y, result.width, result.height);
             const auto target = (static_cast<std::size_t>(y) * result.width + x) * 4;
             for (std::size_t c = 0; c < 3; ++c)
                 result.rgba[target + c] = rgb[c];

@@ -169,7 +169,7 @@ Initial source workflows implemented, unbuilt and unqualified: descriptive
 metadata/XMP and export integration, backup scheduling/retention/restore,
 catalog create/open, Missing/Locate/Locate Folder and bounded folder watching.
 Metadata preserves ordered creators and custom labels, maps XMP -1 to Reject,
-and schedules sidecar updates after flag changes; catalog schema is now 18.
+and schedules sidecar updates after flag changes; catalog schema is now 21.
 Startup recovery handles unavailable catalogs and interrupted sessions; local
 Diagnostics exposes system/cache information and a report without photo data.
 Named processing versions persist full edits, masks and retouch without copying
@@ -189,6 +189,21 @@ Per-process rotating event logs and local crash capture are also implemented in
 source; reports stay local and are excluded from the shareable JSON.
 Large catalogs, fault injection, UI/performance regression and all QA are
 deferred to final preparation. See [implementation and limits](docs/PHASE9_DEVELOPMENT.md).
+
+## Functional completion before 1.0 — source only
+
+All eight requested functional blocks have source workflows: Presence, Point Color,
+Color Grading, Post Crop Vignette/Grain, Smart Collections with nested AND/OR/NOT,
+Select/Candidate Compare with linked zoom/pan, local Auto Adjust, and advanced
+Add/Copy/Move import with date folders, naming, metadata/develop presets, keywords
+and optional second backup. New creative values participate in Undo/autosave,
+presets, batch edits, named versions, thumbnails and export. The import journal
+preserves options, per-item metadata and pending Move cleanup across a crash.
+
+See the [completion ledger](docs/FUNCTIONAL_COMPLETION.md) and
+[ADR 0030](docs/adr/0030-functional-completion.md) for contracts and limits. These
+items are implemented in source, **not built or qualified**. Earlier milestone
+sections describe historical delivery and do not imply these new blocks shipped.
 
 ## 1.0 — Stable daily-use release
 

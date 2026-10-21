@@ -1,5 +1,6 @@
 #include "core/render/DevelopPipeline.h"
 #include "core/color/WhiteBalance.h"
+#include "core/render/CreativeColor.h"
 #include <algorithm>
 #include <cmath>
 
@@ -14,6 +15,7 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
       curves_{ToneCurve(edits.curves[0]), ToneCurve(edits.curves[1]), ToneCurve(edits.curves[2]),
               ToneCurve(edits.curves[3])} {
     edits.validate();
+    creativeColorActive_ = creativeColorActive(edits);
     for (auto value : calibration.cameraToSRGB)
         if (!std::isfinite(value))
             throw std::runtime_error("Invalid camera color matrix.");
@@ -118,6 +120,6 @@ std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
         for (std::size_t c = 0; c < 3; ++c)
             rgb[c] = static_cast<float>(decodeSRGB(encoded[c]));
     }
-    return rgb;
+    return creativeColorActive_ ? applyCreativeColor(rgb, edits_) : rgb;
 }
 } // namespace luma

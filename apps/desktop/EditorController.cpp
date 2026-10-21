@@ -23,11 +23,11 @@ QString display(std::optional<double> value, const QString &suffix = {}) {
 std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
                            int resolution, const std::vector<std::uint8_t> &profile,
                            luma::DetailDiagnostic diagnostic, const luma::MaskOverlay &overlay,
-                           bool accelerated, luma::ClippingPreview clipping) {
+                           bool accelerated, luma::ClippingPreview clipping, bool pointRange) {
     QByteArray identity;
     QDataStream stream(&identity, QIODevice::WriteOnly);
     stream.setVersion(QDataStream::Qt_6_0);
-    stream << QStringLiteral("preview-pipeline-v3") << QString::fromStdString(asset.id)
+    stream << QStringLiteral("preview-pipeline-v4") << QString::fromStdString(asset.id)
            << QString::fromStdString(asset.checksum) << resolution
            << luma::encodePreset({"Preview", {}, edits, luma::allSettingsGroups})
            << QByteArray::fromStdString(luma::encodeLocalMasks(edits.localMasks))
@@ -35,7 +35,7 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
            << QByteArray(reinterpret_cast<const char *>(profile.data()),
                          static_cast<qsizetype>(profile.size()))
            << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id)
-           << overlay.opacity << accelerated << static_cast<int>(clipping);
+           << overlay.opacity << accelerated << static_cast<int>(clipping) << pointRange;
     for (const auto component : overlay.color)
         stream << component;
     return QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().toStdString();
@@ -81,6 +81,10 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     QGuiApplication::instance()->installEventFilter(this);
 }
 EditorController::~EditorController() {
+    compareJob_.cancel();
+    compareJobs_.shutdown();
+    creativeJob_.cancel();
+    creativeJobs_.shutdown();
     whiteBalanceJob_.cancel();
     whiteBalanceJobs_.shutdown();
     retouchJob_.cancel();
@@ -163,7 +167,7 @@ QSize EditorController::previewPixelSize() const {
 }
 void EditorController::setOneToOne(bool value) {
     if (oneToOne_ == value || (value && (!editable() || cropMode_ || guidedMode_ || localMode_ ||
-                                       whiteBalancePicking_ || retouchMode_ != QStringLiteral("off") ||
+                                       whiteBalancePicking_ || pointColorPicking_ || retouchMode_ != QStringLiteral("off") ||
                                        targetedTool_ != QStringLiteral("none"))))
         return;
     if (value && previewPixelSize().isEmpty()) {
@@ -420,6 +424,8 @@ QVariantMap EditorController::parameters() const {
           "crop.quarterTurns", "crop.flipHorizontal", "crop.flipVertical", "lens.distortion",
           "lens.vignetting", "lens.chromaticAberration"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
+    for (const auto &p : luma::creativeParameters)
+        values.insert(QString::fromUtf8(p.name.data(),p.name.size()),history_.current().parameter(p.name));
     for (auto name : luma::transformParameters)
         values.insert(QString::fromUtf8(name), history_.current().parameter(name));
     return values;
@@ -429,12 +435,13 @@ QVariantMap EditorController::correctionStates() const {
     for (const auto *name :
          {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
           "vibrance", "saturation", "curves", "hsl", "sharpening", "luminanceNoise", "colorNoise",
-          "crop", "lens", "transform"})
+          "crop", "lens", "transform", "presence", "pointColor", "grading", "vignette", "grain"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
 }
 void EditorController::beginEdit() {
+    cancelCreative();
     cancelWhiteBalance();
     clearDetailDiagnostic();
     clearPreviewSettings();
@@ -443,6 +450,7 @@ void EditorController::beginEdit() {
         history_.begin();
 }
 void EditorController::endEdit() {
+    cancelCreative();
     cancelWhiteBalance();
     const bool wasEditing = history_.gestureActive();
     cancelLocalSample();
@@ -457,6 +465,7 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    cancelCreative();
     cancelWhiteBalance();
     cancelAI();
     cancelRetouch();
@@ -520,6 +529,7 @@ void EditorController::setWhiteBalancePreset(const QString &name) {
         autoWhiteBalance();
         return;
     }
+    cancelCreative();
     cancelWhiteBalance();
     clearPreviewSettings();
     if (!editable())
@@ -579,6 +589,7 @@ void EditorController::resetEdits() {
     }
 }
 void EditorController::setOriginal(bool value) {
+    cancelCreative();
     cancelWhiteBalance();
     if (busy())
         return;
@@ -619,6 +630,7 @@ void EditorController::render(bool fullQuality) {
         localCanvasReady_ = false;
         emit stateChanged();
     }
+    if (pointColorCanvasReady_) { pointColorCanvasReady_=false; emit stateChanged(); }
     if (whiteBalanceCanvasReady_) {
         whiteBalanceCanvasReady_ = false;
         emit stateChanged();
@@ -626,10 +638,10 @@ void EditorController::render(bool fullQuality) {
     const auto overlay = localRenderOverlay();
     // Geometry tools keep a stable canvas/sample grid throughout a gesture.
     const bool interactive = !fullQuality && session_->interactivePreview &&
-                             diagnostic_ == luma::DetailDiagnostic::none && !whiteBalancePicking_ &&
+                             diagnostic_ == luma::DetailDiagnostic::none && !whiteBalancePicking_ && !pointColorPicking_ &&
                              !cropMode_ && !guidedMode_ && !localMode_ && retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
-    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ &&
+    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ && !pointColorPicking_ &&
                                 !cropMode_ && !guidedMode_ && !localMode_ && targetedTool_ == QStringLiteral("none");
     const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
@@ -649,7 +661,8 @@ void EditorController::render(bool fullQuality) {
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;
-    const auto clipping = clippingPreview_;
+    const bool pointRange = pointColorRange_ && !original_ && !presetPreview_;
+    const auto clipping = pointRange ? luma::ClippingPreview::none : clippingPreview_;
     const auto detailScale = interactive ? session_->interactiveScale : session_->previewScale;
     const auto asset = session_->asset;
     const auto cache = renderedCache_;
@@ -661,14 +674,14 @@ void EditorController::render(bool fullQuality) {
                                  ? accelerator_ : std::shared_ptr<luma::DevelopAccelerator>{};
     const auto key =
         renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
-                       static_cast<bool>(accelerator), clipping);
+                       static_cast<bool>(accelerator), clipping, pointRange);
     const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
          metadata, overlay, asset, service, fullResolution, cache, generation,
-         key, accelerator, interactive, clipping](const luma::JobContext &context) {
+         key, accelerator, interactive, clipping, pointRange](const luma::JobContext &context) {
             try {
                 auto cached = cache->get(key);
                 if (!cached) {
@@ -679,7 +692,7 @@ void EditorController::render(bool fullQuality) {
                         decoded ? decoded->image : *image, edits, orientation, profile,
                         context.stopToken(), decoded ? decoded->calibration : calibration,
                         diagnostic, decoded ? 1 : detailScale, metadata, overlay,
-                        accelerator.get(), {true, clipping});
+                        accelerator.get(), {true, clipping, pointRange});
                     QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
                                   QImage::Format_RGBA8888);
                     auto owned = output.copy();
@@ -705,6 +718,7 @@ void EditorController::render(bool fullQuality) {
                             self->guidedCanvasReady_ = self->guidedMode_;
                             self->localCanvasReady_ = self->localMode_;
                             self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
+                            self->pointColorCanvasReady_ = self->pointColorPicking_;
                             self->publishHistogram(cached->histogram);
                             if (interactive && !self->history_.gestureActive())
                                 self->refineTimer_.start();
@@ -802,6 +816,8 @@ void EditorController::cancelLoad() {
     loadCancellation_.cancel();
 }
 bool EditorController::requestClose() {
+    closeCompare();
+    cancelCreative();
     cancelWhiteBalance();
     cancelAI();
     cancelRetouch();

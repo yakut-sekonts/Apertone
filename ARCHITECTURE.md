@@ -34,7 +34,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/metadata`: typed EXIF and descriptive/XMP values, ordered creators and exact label text; absent numbers remain `std::optional`.
 - `core/edits`: validated typed Develop document; global schema version 8.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations through 18, with pre-migration backups.
+- `core/catalog`: SQLite connection per worker operation and migrations through 21, with pre-migration backups.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
@@ -66,8 +66,8 @@ and transient clipping overlays. Existing non-desktop renderer callers use the
 default disabled analysis request. Export options/documents remain independent.
 `RenderedPreview` couples the QImage and histogram in the same bounded cache
 entry; cache accounting includes both. The existing render generation check
-publishes them together and rejects superseded work. The pipeline-v3 cache key
-includes clipping mode as well as ICC, resolution and diagnostic/mask state.
+publishes them together and rejects superseded work. The pipeline-v4 cache key
+includes clipping and Point Color range modes as well as ICC, resolution and diagnostic/mask state.
 See [ADR 0028](docs/adr/0028-preview-histogram.md) and the unqualified
 [workflow/limits](docs/PHASE9_DEVELOPMENT.md#histogram-and-clipping).
 
@@ -444,3 +444,21 @@ absent features. No unexecuted blocking case qualifies a release; every applicab
 blocking case requires three clean repetitions. See [ADR 0025](docs/adr/0025-ux-regression-release-gate.md)
 and [runner documentation](tests/ux/README.md). Local performance measurements are
 kept separate from hosted CI and from input dispatch timing.
+
+## Creative controls and Library extensions
+
+`CreativeSettings` is a typed parameter registry plus bounded codec. Schema 19
+stores it separately from the existing scalar edit table. The shared CPU pipeline
+adds Point Color/Grading, Presence and post-crop effects; active creative color
+selects the CPU fallback. Snapshot codec 2 and preset codecs 8/9 retain older readers.
+`EditorCreative` performs cancellable source sampling and local Auto Adjust; its
+results enter ordinary edit history. `EditorCompare` freezes two edit documents
+and publishes two temporary images through the existing PreviewProvider.
+
+`SmartRule` compiles bounded recursive predicates to bound SQL. Schema 20 stores
+revisioned rules; the Library reuses its pagination/filtering and refresh lifecycle.
+`ImportOptions` stores immutable source workflow choices. Schema 21 adds session
+options and per-item plans/metadata/Move state to the existing journal. Metadata
+and Develop settings commit with asset registration; source removal follows file
+and backup completion. [ADR 0030](docs/adr/0030-functional-completion.md) specifies
+recovery, naming, backup scope and preservation behavior. All are unqualified.

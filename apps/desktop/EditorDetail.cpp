@@ -84,6 +84,7 @@ bool EditorController::eventFilter(QObject *watched, QEvent *event) {
         }
     } else if (event->type() == QEvent::ApplicationDeactivate) {
         cancelWhiteBalance();
+        cancelCreative();
         if (localGesture_ || histogramGesture_)
             endEdit();
         optionHeld_ = false;

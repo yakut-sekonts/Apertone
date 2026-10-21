@@ -6,8 +6,10 @@
 namespace luma {
 enum class ClippingPreview : std::uint8_t { none = 0, shadows = 1, highlights = 2, both = 3 };
 struct PreviewAnalysisOptions {
+    // Appended to cache identity by the editor; never enabled for exports.
     bool histogram = false;
     ClippingPreview clipping = ClippingPreview::none;
+    bool pointColorRange = false;
 };
 
 // Display-referred sRGB bins from processed, scene-linear sRGB before monitor

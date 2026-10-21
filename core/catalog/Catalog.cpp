@@ -1,4 +1,5 @@
 #include "core/catalog/Catalog.h"
+#include "core/catalog/CreativeStorage.h"
 #include "core/catalog/RetouchStorage.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/LocalMaskStorage.h"
@@ -120,6 +121,7 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
         throw std::runtime_error("Missing stored HSL bands.");
     edits.localMasks = detail::readLocalMasks(db, query.string(0));
     edits.retouch = detail::readRetouch(db, query.string(0));
+    edits.creative = detail::readCreative(db, query.string(0));
     edits.validate();
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
@@ -190,9 +192,9 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 18)
+        if (current == 21)
             return;
-        if (current > 18)
+        if (current > 21)
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
@@ -203,7 +205,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 18) {
+        if (current > 21) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -384,7 +386,11 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         }
         if (current == 17) {
             migrateEditVersions();
+            current = 18;
         }
+        if (current == 18) { migrateCreative(); current = 19; }
+        if (current == 19) { migrateSmartCollections(); current = 20; }
+        if (current == 20) { migrateImportPlans(); current = 21; }
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -624,6 +630,7 @@ void Catalog::writeEdits(const std::string &assetID, const EditDocument &edits) 
         throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
     writeLocalMasks(assetID, edits.localMasks);
     writeRetouch(assetID, edits.retouch);
+    writeCreative(assetID, edits.creative);
     for (const auto *sql : {"DELETE FROM edit_curve_points WHERE asset_id=?1",
                             "DELETE FROM edit_hsl_bands WHERE asset_id=?1"}) {
         Statement clear(db_, sql);

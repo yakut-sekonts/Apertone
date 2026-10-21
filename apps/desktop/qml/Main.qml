@@ -22,7 +22,7 @@ ApplicationWindow {
     palette.highlight: "#dfae77"
     palette.button: "#252a32"
     font.family: "Helvetica Neue"
-    onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
+    onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
@@ -101,7 +101,7 @@ ApplicationWindow {
     Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canUndo : root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canUndo) ? batch.undo() : editor.undo() }
     Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canRedo : root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canRedo) ? batch.redo() : editor.redo() }
     Shortcut { enabled: !updates.restartPending; context: Qt.ApplicationShortcut; sequences: [StandardKey.Quit]; onActivated: root.close() }
-    Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing || editor.whiteBalanceBusy || editor.whiteBalancePicking; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch(); editor.cancelWhiteBalance() } }
+    Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing || editor.whiteBalanceBusy || editor.whiteBalancePicking || editor.creativeBusy || editor.pointColorPicking; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch(); editor.cancelWhiteBalance(); editor.cancelCreative() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
     Shortcut {
@@ -264,7 +264,7 @@ ApplicationWindow {
                             checkable: true; checked: previewViewport.pixelMode
                             enabled: editor.hasPhoto && !editor.busy && !editor.cropMode &&
                                      !editor.guidedMode && !editor.localMode &&
-                                     editor.targetedTool === "none" && !editor.whiteBalancePicking
+                                     editor.targetedTool === "none" && !editor.whiteBalancePicking && !editor.pointColorPicking
                             onClicked: editor.oneToOne = true
                         }
                     }
@@ -277,7 +277,7 @@ ApplicationWindow {
                             clip: true
                             property bool pixelMode: editor.oneToOne && !editor.cropMode &&
                                                      !editor.guidedMode && !editor.localMode &&
-                                                     editor.targetedTool === "none" && !editor.whiteBalancePicking
+                                                     editor.targetedTool === "none" && !editor.whiteBalancePicking && !editor.pointColorPicking
                             contentWidth: pixelMode ? Math.max(width, editor.previewPixelSize.width / Screen.devicePixelRatio) : width
                             contentHeight: pixelMode ? Math.max(height, editor.previewPixelSize.height / Screen.devicePixelRatio) : height
                             interactive: pixelMode
@@ -329,6 +329,19 @@ ApplicationWindow {
                                         mouse.y >= top && mouse.y <= top + previewImage.paintedHeight)
                                         editor.sampleWhiteBalance((mouse.x - left) / previewImage.paintedWidth,
                                                                   (mouse.y - top) / previewImage.paintedHeight)
+                                }
+                            }
+                            MouseArea {
+                                objectName: "develop.pointColor.sampleArea"
+                                anchors.fill: parent; z: 3
+                                enabled: editor.pointColorPicking && editor.hasPhoto && !editor.busy
+                                cursorShape: editor.pointColorCanvasReady ? Qt.CrossCursor : Qt.WaitCursor
+                                onClicked: function(mouse) {
+                                    if (!editor.pointColorCanvasReady || previewImage.status !== Image.Ready) return
+                                    const left=(width-previewImage.paintedWidth)/2, top=(height-previewImage.paintedHeight)/2
+                                    if(previewImage.paintedWidth>0 && previewImage.paintedHeight>0 && mouse.x>=left && mouse.y>=top &&
+                                       mouse.x<=left+previewImage.paintedWidth && mouse.y<=top+previewImage.paintedHeight)
+                                        editor.samplePointColor((mouse.x-left)/previewImage.paintedWidth,(mouse.y-top)/previewImage.paintedHeight)
                                 }
                             }
                             MouseArea {
@@ -418,6 +431,7 @@ ApplicationWindow {
                         spacing: 14
                         HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
+                        CreativePanel { Layout.fillWidth: true }
                         Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
                         RowLayout {
                             CheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Luma", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
