@@ -20,6 +20,18 @@ import urllib.request
 from model_assets import ROOT, SOURCES, describe_models, digest, inventory, read_sources, recipe_digest
 
 
+def require_xcode():
+    try:
+        subprocess.run(["xcrun", "--find", "coremlcompiler"], check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        return subprocess.check_output(["xcodebuild", "-version"], text=True,
+                                       stderr=subprocess.PIPE).strip()
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise SystemExit("Full Xcode with coremlcompiler is required. Select Xcode.app "
+                         "using xcode-select or DEVELOPER_DIR; Command Line Tools alone "
+                         "are insufficient.") from error
+
+
 def source_file(model, cache):
     source = model["source"]
     target = cache / source["filename"]
@@ -145,6 +157,7 @@ def main():
         raise SystemExit("Model conversion requires Python 3.12.")
     if args.output.exists():
         raise SystemExit("Model output already exists. Use a new build directory.")
+    xcode = require_xcode()
     requirements = ROOT / "scripts/model-requirements.txt"
     versions = {}
     for line in requirements.read_text().splitlines():
@@ -178,7 +191,7 @@ def main():
                     "python": platform.python_version(),
                     "resolved_packages": dict(sorted((item.metadata["Name"], item.version)
                                                      for item in importlib.metadata.distributions())),
-                    "xcode": subprocess.check_output(["xcodebuild", "-version"], text=True).strip(),
+                    "xcode": xcode,
                     "qualification": "NOT_RUN"}
         (bundle / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
         os.rename(bundle, args.output)

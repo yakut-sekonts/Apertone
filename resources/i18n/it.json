@@ -792,6 +792,9 @@
     "Fit": "Adatta",
     "Filename": "Nome file",
     "Size": "Dimensione",
-    "Clear": "Cancella"
+    "Clear": "Cancella",
+    "Opacity": "Opacità",
+    "Quit": "Esci",
+    "Search": "Cerca"
   }
 }

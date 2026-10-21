@@ -6,10 +6,12 @@ void showApplicationError(const std::string &title, const std::string &message) 
     @autoreleasepool {
         NSAlert *alert = [[NSAlert alloc] init];
         alert.alertStyle = NSAlertStyleCritical;
-        alert.messageText = [NSString stringWithUTF8String:title.c_str()] ?: @"Luma";
-        alert.informativeText = [NSString stringWithUTF8String:message.c_str()] ?: @"";
+        NSString *titleText = [NSString stringWithUTF8String:title.c_str()];
+        NSString *messageText = [NSString stringWithUTF8String:message.c_str()];
+        alert.messageText = titleText ? titleText : NSLocalizedString(@"Luma", @"Application name");
+        alert.informativeText = messageText ? messageText : @"";
         [NSApp activate];
         [alert runModal];
     }
 }
-}
+} // namespace luma::macos

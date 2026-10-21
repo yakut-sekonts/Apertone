@@ -792,6 +792,9 @@
     "Fit": "Fit",
     "Filename": "Filename",
     "Size": "Size",
-    "Clear": "Clear"
+    "Clear": "Clear",
+    "Opacity": "Opacity",
+    "Quit": "Quit",
+    "Search": "Search"
   }
 }

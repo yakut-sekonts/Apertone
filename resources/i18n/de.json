@@ -792,6 +792,9 @@
     "Fit": "Einpassen",
     "Filename": "Dateiname",
     "Size": "Größe",
-    "Clear": "Leeren"
+    "Clear": "Leeren",
+    "Opacity": "Deckkraft",
+    "Quit": "Beenden",
+    "Search": "Suchen"
   }
 }

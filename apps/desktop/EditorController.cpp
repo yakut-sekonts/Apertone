@@ -1,6 +1,7 @@
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/BundledModels.h"
 #include "apps/shared/PresetStore.h"
+#include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
 #include "platform/macos/MetalDevelop.h"
@@ -34,8 +35,8 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
            << QByteArray::fromStdString(luma::encodeRetouch(edits.retouch))
            << QByteArray(reinterpret_cast<const char *>(profile.data()),
                          static_cast<qsizetype>(profile.size()))
-           << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id)
-           << overlay.opacity << accelerated << static_cast<int>(clipping) << pointRange;
+           << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id) << overlay.opacity
+           << accelerated << static_cast<int>(clipping) << pointRange;
     for (const auto component : overlay.color)
         stream << component;
     return QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().toStdString();
@@ -54,9 +55,9 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
         if (!busy_ && !closing_ && !history_.gestureActive())
             render(true);
     });
-    QSettings settings(
-        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
-        QSettings::IniFormat);
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+                           QStringLiteral("/preview.ini"),
+                       QSettings::IniFormat);
     previewCacheMiB_ =
         std::clamp(settings.value(QStringLiteral("cacheMiB"), 256).toInt(), 64, 2048);
     metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
@@ -73,10 +74,13 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     memoryPressure_ = std::make_unique<luma::macos::MemoryPressureMonitor>(
         [self](luma::macos::MemoryPressure pressure) {
             if (self)
-                QMetaObject::invokeMethod(self, [self, pressure] {
-                    if (self)
-                        self->handleMemoryPressure(pressure);
-                }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, pressure] {
+                        if (self)
+                            self->handleMemoryPressure(pressure);
+                    },
+                    Qt::QueuedConnection);
         });
     QGuiApplication::instance()->installEventFilter(this);
 }
@@ -154,7 +158,8 @@ QSize EditorController::previewPixelSize() const {
     if (!session_)
         return {};
     const auto &metadata = session_->asset.metadata;
-    const auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    const auto edits =
+        original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
     try {
         const luma::CropGeometry geometry(metadata.width, metadata.height, metadata.orientation,
                                           edits);
@@ -166,9 +171,10 @@ QSize EditorController::previewPixelSize() const {
     }
 }
 void EditorController::setOneToOne(bool value) {
-    if (oneToOne_ == value || (value && (!editable() || cropMode_ || guidedMode_ || localMode_ ||
-                                       whiteBalancePicking_ || pointColorPicking_ || retouchMode_ != QStringLiteral("off") ||
-                                       targetedTool_ != QStringLiteral("none"))))
+    if (oneToOne_ == value ||
+        (value && (!editable() || cropMode_ || guidedMode_ || localMode_ || whiteBalancePicking_ ||
+                   pointColorPicking_ || retouchMode_ != QStringLiteral("off") ||
+                   targetedTool_ != QStringLiteral("none"))))
         return;
     if (value && previewPixelSize().isEmpty()) {
         error_ = QStringLiteral("Full-resolution preview exceeds the supported image dimensions.");
@@ -183,9 +189,9 @@ void EditorController::setPreviewCacheMiB(int value) {
     if (value < 64 || value > 2048 || previewCacheMiB_ == value)
         return;
     previewCacheMiB_ = value;
-    QSettings settings(
-        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
-        QSettings::IniFormat);
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+                           QStringLiteral("/preview.ini"),
+                       QSettings::IniFormat);
     settings.setValue(QStringLiteral("cacheMiB"), value);
     applyCacheBudget();
     emit stateChanged();
@@ -201,9 +207,9 @@ void EditorController::setMetalPreview(bool value) {
     if (metalPreview_ == value)
         return;
     metalPreview_ = value;
-    QSettings settings(
-        QString::fromStdString(catalog_.parent_path().string()) + QStringLiteral("/preview.ini"),
-        QSettings::IniFormat);
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+                           QStringLiteral("/preview.ini"),
+                       QSettings::IniFormat);
     settings.setValue(QStringLiteral("metal"), value);
     renderedCache_->clear();
     render();
@@ -251,7 +257,8 @@ void EditorController::openFile(const QUrl &url) {
         deferredOpen_ = url;
         return;
     }
-    if (busy_) return;
+    if (busy_)
+        return;
     if (saving()) {
         deferredOpen_ = url;
         if (saveFailed_) {
@@ -264,9 +271,12 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
-    if (versionsBusy_) return;
+    if (versionsBusy_)
+        return;
     processingVersions_.clear();
-    versionsError_.clear(); versionsStatus_ = QString(); selectedVersionID_.clear();
+    versionsError_.clear();
+    versionsStatus_ = QString();
+    selectedVersionID_.clear();
     cancelAI();
     cancelRetouch();
     retouchMode_ = QStringLiteral("off");
@@ -425,7 +435,8 @@ QVariantMap EditorController::parameters() const {
           "lens.vignetting", "lens.chromaticAberration"})
         values.insert(QString::fromLatin1(name), history_.current().parameter(name));
     for (const auto &p : luma::creativeParameters)
-        values.insert(QString::fromUtf8(p.name.data(),p.name.size()),history_.current().parameter(p.name));
+        values.insert(QString::fromUtf8(p.name.data(), p.name.size()),
+                      history_.current().parameter(p.name));
     for (auto name : luma::transformParameters)
         values.insert(QString::fromUtf8(name), history_.current().parameter(name));
     return values;
@@ -433,9 +444,10 @@ QVariantMap EditorController::parameters() const {
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
     for (const auto *name :
-         {"whiteBalance", "exposure", "contrast", "highlights", "shadows", "whites", "blacks",
-          "vibrance", "saturation", "curves", "hsl", "sharpening", "luminanceNoise", "colorNoise",
-          "crop", "lens", "transform", "presence", "pointColor", "grading", "vignette", "grain"})
+         {"whiteBalance",   "exposure",   "contrast",   "highlights", "shadows",   "whites",
+          "blacks",         "vibrance",   "saturation", "curves",     "hsl",       "sharpening",
+          "luminanceNoise", "colorNoise", "crop",       "lens",       "transform", "presence",
+          "pointColor",     "grading",    "vignette",   "grain"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -630,7 +642,10 @@ void EditorController::render(bool fullQuality) {
         localCanvasReady_ = false;
         emit stateChanged();
     }
-    if (pointColorCanvasReady_) { pointColorCanvasReady_=false; emit stateChanged(); }
+    if (pointColorCanvasReady_) {
+        pointColorCanvasReady_ = false;
+        emit stateChanged();
+    }
     if (whiteBalanceCanvasReady_) {
         whiteBalanceCanvasReady_ = false;
         emit stateChanged();
@@ -638,11 +653,13 @@ void EditorController::render(bool fullQuality) {
     const auto overlay = localRenderOverlay();
     // Geometry tools keep a stable canvas/sample grid throughout a gesture.
     const bool interactive = !fullQuality && session_->interactivePreview &&
-                             diagnostic_ == luma::DetailDiagnostic::none && !whiteBalancePicking_ && !pointColorPicking_ &&
-                             !cropMode_ && !guidedMode_ && !localMode_ && retouchMode_ == QStringLiteral("off") &&
+                             diagnostic_ == luma::DetailDiagnostic::none && !whiteBalancePicking_ &&
+                             !pointColorPicking_ && !cropMode_ && !guidedMode_ && !localMode_ &&
+                             retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
-    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ && !pointColorPicking_ &&
-                                !cropMode_ && !guidedMode_ && !localMode_ && targetedTool_ == QStringLiteral("none");
+    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ &&
+                                !pointColorPicking_ && !cropMode_ && !guidedMode_ && !localMode_ &&
+                                targetedTool_ == QStringLiteral("none");
     const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
@@ -668,20 +685,19 @@ void EditorController::render(bool fullQuality) {
     const auto cache = renderedCache_;
     const auto generation = cache->generation();
     const int resolution = fullResolution ? 0 : (interactive ? 1024 : 2560);
-    const auto accelerator = metalPreview_ &&
-                                     pressure_ == luma::macos::MemoryPressure::normal &&
+    const auto accelerator = metalPreview_ && pressure_ == luma::macos::MemoryPressure::normal &&
                                      diagnostic == luma::DetailDiagnostic::none
-                                 ? accelerator_ : std::shared_ptr<luma::DevelopAccelerator>{};
-    const auto key =
-        renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
-                       static_cast<bool>(accelerator), clipping, pointRange);
+                                 ? accelerator_
+                                 : std::shared_ptr<luma::DevelopAccelerator>{};
+    const auto key = renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
+                                    static_cast<bool>(accelerator), clipping, pointRange);
     const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
-         metadata, overlay, asset, service, fullResolution, cache, generation,
-         key, accelerator, interactive, clipping, pointRange](const luma::JobContext &context) {
+         metadata, overlay, asset, service, fullResolution, cache, generation, key, accelerator,
+         interactive, clipping, pointRange](const luma::JobContext &context) {
             try {
                 auto cached = cache->get(key);
                 if (!cached) {
@@ -691,16 +707,19 @@ void EditorController::render(bool fullQuality) {
                     auto pixels = luma::renderCPU(
                         decoded ? decoded->image : *image, edits, orientation, profile,
                         context.stopToken(), decoded ? decoded->calibration : calibration,
-                        diagnostic, decoded ? 1 : detailScale, metadata, overlay,
-                        accelerator.get(), {true, clipping, pointRange});
+                        diagnostic, decoded ? 1 : detailScale, metadata, overlay, accelerator.get(),
+                        {true, clipping, pointRange});
                     QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
                                   QImage::Format_RGBA8888);
                     auto owned = output.copy();
                     if (owned.isNull())
                         throw std::runtime_error("Cannot allocate the photo preview.");
-                    cached = std::make_shared<RenderedPreview>(RenderedPreview{std::move(owned), std::move(pixels.histogram)});
+                    cached = std::make_shared<RenderedPreview>(
+                        RenderedPreview{std::move(owned), std::move(pixels.histogram)});
                     luma::checkCancellation(context.stopToken());
-                    cache->put(key, cached, static_cast<std::size_t>(cached->image.sizeInBytes()) + sizeof(RenderedPreview),
+                    cache->put(key, cached,
+                               static_cast<std::size_t>(cached->image.sizeInBytes()) +
+                                   sizeof(RenderedPreview),
                                generation);
                 }
                 luma::checkCancellation(context.stopToken());

@@ -57,7 +57,7 @@ Dialog {
         Label { text: qsTranslate("Luma", "Catalog backups contain edits and metadata. Keep a separate backup of your originals and generated DNG files."); wrapMode: Text.Wrap; Layout.fillWidth: true }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Back up now"); enabled: !library.working && !editor.saving; onClicked: { editor.endEdit(); library.backupNow() }; Layout.fillWidth: true }
+            Button { text: qsTranslate("Luma", "Back up now"); enabled: !library.working && !editor.saving; onClicked: { editor.endEdit(); library.backupNow() } Layout.fillWidth: true }
             Button { text: qsTranslate("Luma", "Show backups"); onClicked: Qt.openUrlExternally(library.backupFolder); Layout.fillWidth: true }
         }
         Button { text: qsTranslate("Luma", "Restore backup to a new file"); enabled: !library.working; onClicked: backupFile.open(); Layout.fillWidth: true }

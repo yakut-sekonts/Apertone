@@ -65,7 +65,7 @@ ColumnLayout {
     }
     RowLayout {
         visible:root.rule.kind!=="condition" && root.rule.kind!=="not"
-        enabled:root.depth<7 && root.rule.children.length<16
+        enabled:root.rule.kind!=="condition" && root.depth<7 && root.rule.children.length<16
         Button {text:qsTranslate("Luma","Add condition");onClicked:root.addChild(false)}
         Button {text:qsTranslate("Luma","Add group");onClicked:root.addChild(true)}
     }

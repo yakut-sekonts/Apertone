@@ -2,6 +2,7 @@
 #include "core/catalog/Identity.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
+#include "tests/unit/LegacyCatalogFixture.h"
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QThread>
@@ -101,6 +102,7 @@ void catalogTests(const std::filesystem::path &root, const std::filesystem::path
     db.deleteCollection(collection);
     require(db.libraryCount() == 1, "Deleting collection deleted original.");
     require(db.activeAsset()->edits.exposure == 1.25, "Library mutation changed Develop edits.");
+    sql(path, fixture::removePostV11Tables);
     sql(path,
         R"sql(PRAGMA foreign_keys=OFF;
             CREATE TABLE historical_edits(

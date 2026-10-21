@@ -30,10 +30,16 @@ Dialog {
         id: confirmImport
         title: qsTranslate("Luma", "Read metadata from original and XMP?")
         modal: true; anchors.centerIn: parent; width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 260)
         standardButtons: Dialog.Ok | Dialog.Cancel
-        Label {
-            width: parent.width; wrapMode: Text.Wrap
-            text: qsTranslate("Luma", "Replaces the catalog metadata and this draft with the values from the original and sidecar. Develop edits remain unchanged.")
+        contentItem: ScrollView {
+            id: importWarning
+            clip: true
+            contentWidth: availableWidth
+            Label {
+                width: importWarning.availableWidth; wrapMode: Text.Wrap
+                text: qsTranslate("Luma", "Replaces the catalog metadata and this draft with the values from the original and sidecar. Develop edits remain unchanged.")
+            }
         }
         onAccepted: library.importDescriptiveMetadata()
     }

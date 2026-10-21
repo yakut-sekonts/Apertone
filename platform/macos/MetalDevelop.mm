@@ -1,6 +1,6 @@
 #include "platform/macos/MetalDevelop.h"
-#include "platform/macos/DevelopShader.h"
 #include "core/image/Bayer.h"
+#include "platform/macos/DevelopShader.h"
 #import <Metal/Metal.h>
 #include <algorithm>
 #include <cstring>
@@ -26,14 +26,14 @@ class MetalDevelop final : public DevelopAccelerator {
             const auto count = pixelCount(input.width, input.height);
             const auto capacity = std::min(count, chunkPixels) * 3 * sizeof(float);
             id<MTLBuffer> source = [device_ newBufferWithLength:capacity
-                                                       options:MTLResourceStorageModeShared];
+                                                        options:MTLResourceStorageModeShared];
             id<MTLBuffer> target = [device_ newBufferWithLength:capacity
-                                                       options:MTLResourceStorageModeShared];
+                                                        options:MTLResourceStorageModeShared];
             id<MTLBuffer> invalid = [device_ newBufferWithLength:sizeof(std::uint32_t)
-                                                        options:MTLResourceStorageModeShared];
+                                                         options:MTLResourceStorageModeShared];
             id<MTLBuffer> constants = [device_ newBufferWithBytes:parameters.data()
-                                                         length:parameters.size() * sizeof(float)
-                                                        options:MTLResourceStorageModeShared];
+                                                           length:parameters.size() * sizeof(float)
+                                                          options:MTLResourceStorageModeShared];
             if (!source || !target || !invalid || !constants)
                 return {};
             std::vector<float> result(input.rgb.size());
@@ -53,7 +53,8 @@ class MetalDevelop final : public DevelopAccelerator {
                 [encoder setBuffer:constants offset:0 atIndex:2];
                 [encoder setBytes:&size length:sizeof(size) atIndex:3];
                 [encoder setBuffer:invalid offset:0 atIndex:4];
-                const auto threads = std::min<NSUInteger>(256, pipeline_.maxTotalThreadsPerThreadgroup);
+                const auto threads =
+                    std::min<NSUInteger>(256, pipeline_.maxTotalThreadsPerThreadgroup);
                 [encoder dispatchThreads:MTLSizeMake(size, 1, 1)
                     threadsPerThreadgroup:MTLSizeMake(threads, 1, 1)];
                 [encoder endEncoding];
@@ -93,9 +94,10 @@ class MetalDevelop final : public DevelopAccelerator {
 #pragma clang diagnostic pop
         }
         NSError *error = nil;
-        id<MTLLibrary> library =
-            [device_ newLibraryWithSource:[NSString stringWithUTF8String:developShader]
-                                 options:options error:&error];
+        NSString *source = [NSString stringWithUTF8String:developShader];
+        if (!source)
+            return;
+        id<MTLLibrary> library = [device_ newLibraryWithSource:source options:options error:&error];
         if (!library || !queue_)
             return;
         id<MTLFunction> function = [library newFunctionWithName:@"develop"];

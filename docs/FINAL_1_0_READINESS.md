@@ -5,12 +5,78 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+## Qualification started — 2026-10-21
+
+The source-completion handoff is now being qualified on `codex/1.0-qualification`
+(base `c375740`). Local environment: Apple Silicon arm64, 8 GiB RAM, macOS
+27.0.1 (26A434), Qt 6.10.3, RelWithDebInfo, Python 3.12.15. After the human
+installed Xcode 27.1 (27A9275), accepted its license and completed first launch,
+both model compilations and the full application/PLCrashReporter build succeeded.
+Xcode tools use `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`;
+the existing C++ build still uses its recorded Command Line Tools compiler and
+macOS 27.0 SDK. This is a qualification build, not the final signed artifact.
+
+The first pass exposed a QML syntax error, a backup-helper/member name collision,
+strict Objective-C++ compile errors, missing editor includes and test link
+dependencies. These were fixed with the original compiler warnings enabled.
+New regression coverage exercises creative settings/snapshots/rendering/Auto
+Adjust, smart rule queries/revision conflicts/backup restore, and advanced import
+Copy/Move with secondary backups and frozen metadata/develop settings. Existing
+historical-catalog fixtures and future-preset rejection cases must represent the
+current schema 21 and preset codecs 8/9 without weakening their invariants.
+
+Intermediate logs are retained locally under `.tools/final-*`; only completed,
+retested checks count as passing. This section does not close the full campaign.
+
+### Completed baseline and current blockers
+
+- 54 background CTest cases passed (`final-offscreen-tests-1.xml`), including
+  the full app's ordinary-image, import, edit/export/restart and QML workflows.
+- Three native CTest cases passed in a human-approved uninterrupted interval:
+  eight-language UI, complete masks and local gradients, including restart/export
+  checks (`final-native-tests-1.xml`, 150 seconds). This is not the complete UX spec.
+- The private Nikon RAW case was SKIPPED without its configured fixture; it is
+  not counted among the 57 passing cases.
+- New coverage checks creative controls, smart collections, advanced import and
+  deterministic retouch donor selection. Historical fixtures now construct
+  coherent old catalogs before migrating to schema 21; version-rejection tests
+  distinguish valid mask codec 3 / preset codecs 8–9 from future codecs.
+- Fixed QML errors in catalog maintenance, SmartRuleEditor conditions and wrapped
+  confirmation dialogs. Thumbnail tests wait for the requested asset's loaded
+  metadata page; an empty asynchronous placeholder no longer counts as invalidation.
+- Both `.mlmodelc` resources were compiled, inventoried and installed in Luma.app
+  and the UX bundle. Their manifest remains `qualification: NOT_RUN`.
+- Native CPU numerical comparison against the adapted source networks is **FAIL**:
+  Sky passed all three synthetic inputs (max absolute error 2.39e-7); Denoise
+  failed all three (max error 0.2002, RMSE up to 0.00486). Tolerances remain
+  max error 0.0005 / RMSE 0.00005. HDR/negative-pixel passthrough passed.
+  See [retained numerical evidence](qualification/2026-10-21/model-numerics.json)
+  and LUMA-BUG-036. No model-quality gate is closed.
+- The first Python prediction probe crashed in `libcoremlpython` / `_PyObject_Free`
+  on the Core ML reset queue. Its stack matches the upstream NumPy-owner lifetime
+  bug described in [coremltools #2829](https://github.com/apple/coremltools/pull/2829).
+  The retained numerical probe uses a separate native process with Core ML-owned
+  tensors; it does not patch the pinned converter or hide a crashed process as PASS.
+- Formatting passed. The full clang-tidy pass covered 251 unique translation
+  units and exited 1 with 13 blocking diagnostics in 10 files. All affected files
+  were fixed and passed targeted retests, along with the added native model probe
+  and changed regression tests. The original failing log is retained; this is a
+  full initial pass plus affected-file retests, not a second full clean run.
+  Non-blocking analyzer warnings remain.
+- After the merge worker ownership change, the application rebuilt and its
+  affected QML shell, batch/history and preset regressions passed (3/3).
+
+Formatting-only changes were separated in `e18a2d6`; functional fixes and evidence
+follow separately. The baseline above does not cover all new 0.6–0.9 workflows,
+the 23 legacy gaps, photographic AI quality, load/stress or signed distribution.
+
 ## Source decisions and qualification requirements
 
 - Denoise/Sky delivery is resolved: include both models in the installer and
   Sparkle archive. Pinned NAFNet SIDD and U²-Net Sky sources/licenses, conversion,
   default model lookup and packaging guards are implemented in source. The
-  compiled models and installer have not been built. See [model delivery](BUNDLED_MODELS.md).
+  compiled models now exist, but the installer and model qualification remain
+  open. See [model delivery](BUNDLED_MODELS.md).
 - Qualify the current bounded HDR/panorama algorithms. Further seam optimization,
   projection coverage or tiled processing depends on the photographic/resource
   evidence; do not advertise unimplemented 360° or generative panorama fill.
@@ -83,7 +149,8 @@ SKIP/NOT_RUN/blocked cases as passing.
 
 Build the offline models before configuring the final app. Qualify the pinned
 Python/PyTorch/ONNX/Core ML conversion path, source-to-Core-ML numerical agreement,
-model tensor contracts and toolchain compatibility; no conversion has run yet.
+model tensor contracts and toolchain compatibility. Both models now compile, but
+the native CPU/source numerical comparison blocks acceptance of Denoise.
 Use representative photographs to assess denoise texture/color/highlights/tiles
 and Sky boundaries/no-sky errors, then CPU fallback, cancellation and 8/16 GB
 resource use. Exercise first launch without network, installation in Applications,

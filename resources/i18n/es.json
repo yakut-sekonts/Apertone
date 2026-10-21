@@ -792,6 +792,9 @@
     "Fit": "Encajar",
     "Filename": "Nombre de archivo",
     "Size": "Tamaño",
-    "Clear": "Limpiar"
+    "Clear": "Limpiar",
+    "Opacity": "Opacidad",
+    "Quit": "Salir",
+    "Search": "Buscar"
   }
 }

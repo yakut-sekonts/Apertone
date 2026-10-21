@@ -27,6 +27,15 @@ jobs:
         run: ./scripts/bootstrap.sh
       - name: Build pinned offline Denoise and Sky models
         run: bash scripts/build-bundled-models.sh build/models
+      - name: Check native Core ML numerical agreement
+        run: .tools/model-venv/bin/python scripts/check-model-conversion.py build/models --report build/model-numerics.json
+      - name: Upload model conversion evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: model-numerics
+          path: build/model-numerics.json
+          if-no-files-found: warn
       - name: Configure
         run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
       - name: Build

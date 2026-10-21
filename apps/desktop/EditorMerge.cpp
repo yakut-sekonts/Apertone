@@ -48,22 +48,23 @@ void EditorController::runMerge(const QString &operation,
     error_.clear();
     emit stateChanged();
     try {
+        const auto task = std::make_shared<decltype(work)>(std::move(work));
         aiJob_ = aiJobs_.submit(
-            luma::JobPriority::background,
-            [self, revision, work = std::move(work)](const luma::JobContext &context) {
+            luma::JobPriority::background, [self, revision, task](const luma::JobContext &context) {
                 try {
-                    const auto created = work(context.stopToken(), [self, revision](double value) {
-                        if (self)
-                            QMetaObject::invokeMethod(
-                                self,
-                                [self, revision, value] {
-                                    if (self && self->aiRevision_ == revision) {
-                                        self->aiProgress_ = value;
-                                        emit self->stateChanged();
-                                    }
-                                },
-                                Qt::QueuedConnection);
-                    });
+                    const auto created =
+                        (*task)(context.stopToken(), [self, revision](double value) {
+                            if (self)
+                                QMetaObject::invokeMethod(
+                                    self,
+                                    [self, revision, value] {
+                                        if (self && self->aiRevision_ == revision) {
+                                            self->aiProgress_ = value;
+                                            emit self->stateChanged();
+                                        }
+                                    },
+                                    Qt::QueuedConnection);
+                        });
                     if (self)
                         QMetaObject::invokeMethod(
                             self,

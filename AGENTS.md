@@ -15,3 +15,8 @@
   performance qualification before the final release; fix and retest then.
   Do not publish intermediate development builds or mark deferred checks PASS.
   Keep the existing release gates and historical failure evidence.
+- Final qualification started on 2026-10-21 in `codex/1.0-qualification`, after
+  the eight source-completion blocks were implemented. Builds, tests, static
+  analysis and QA are now in scope. Record actual results and fix failures;
+  this does not waive any final release gate or authorize publishing a
+  partially qualified 1.0.0.

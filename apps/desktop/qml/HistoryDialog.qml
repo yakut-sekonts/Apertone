@@ -69,11 +69,18 @@ Dialog {
         modal: true
         anchors.centerIn: parent
         width: Math.min(dialog.width - 30, 500)
+        implicitHeight: Math.min(dialog.height - 40, 260)
         standardButtons: Dialog.Yes | Dialog.Cancel
         property string revision: ""
-        contentItem: Label {
-            text: qsTranslate("Luma", "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.")
-            wrapMode: Text.Wrap
+        contentItem: ScrollView {
+            id: clearWarning
+            clip: true
+            contentWidth: availableWidth
+            Label {
+                width: clearWarning.availableWidth
+                text: qsTranslate("Luma", "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.")
+                wrapMode: Text.Wrap
+            }
         }
         onAccepted: editor.clearHistory(revision)
     }

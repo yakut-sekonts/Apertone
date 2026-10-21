@@ -1,9 +1,9 @@
 #include "core/catalog/Catalog.h"
 #include "core/catalog/CreativeStorage.h"
-#include "core/catalog/RetouchStorage.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/LocalMaskStorage.h"
 #include "core/catalog/MetadataStorage.h"
+#include "core/catalog/RetouchStorage.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
 #include "core/render/TransformMapping.h"
@@ -126,8 +126,8 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
                                edits.transform, true);
-    return {query.string(0), query.string(1), query.string(2), metadata, edits,
-            detail::readMetadataOverlay(db, query.string(0))};
+    return {query.string(0), query.string(1), query.string(2),
+            metadata,        edits,           detail::readMetadataOverlay(db, query.string(0))};
 }
 constexpr auto selectFields =
     "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
@@ -388,9 +388,17 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
             migrateEditVersions();
             current = 18;
         }
-        if (current == 18) { migrateCreative(); current = 19; }
-        if (current == 19) { migrateSmartCollections(); current = 20; }
-        if (current == 20) { migrateImportPlans(); current = 21; }
+        if (current == 18) {
+            migrateCreative();
+            current = 19;
+        }
+        if (current == 19) {
+            migrateSmartCollections();
+            current = 20;
+        }
+        if (current == 20) {
+            migrateImportPlans();
+        }
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

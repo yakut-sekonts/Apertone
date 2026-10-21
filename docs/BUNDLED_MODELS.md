@@ -1,8 +1,9 @@
 # Bundled offline model delivery
 
 Decision: the user requested installer-bundled models on 2026-10-21. This is a
-source implementation, **not built or qualified**. No intermediate installer or
-model conversion is run during development. Stable remains 0.5.1.
+source implementation under final qualification. Both models compiled on
+2026-10-21 with Xcode 27.1, but **are not qualified**: the Denoise numerical
+comparison currently fails. No installer was published. Stable remains 0.5.1.
 
 ## Runtime
 
@@ -65,12 +66,26 @@ checks the pinned recipe, complete file inventory and hashes without extraction.
 Models are signed as application resources and included in both the DMG's app
 and Sparkle ZIP; there is no independently downloaded model/update channel.
 
-## Deferred qualification
+## Qualification
 
-The conversion recipe, Core ML compiler compatibility, tensor contracts and
-numerical equivalence have not run. In particular, coremltools 9.0 documents
+The conversion recipe and Core ML compilation have run. The synthetic CPU
+comparison passes for Sky and fails for Denoise; see
+[the qualification record](FINAL_1_0_READINESS.md#completed-baseline-and-current-blockers).
+In particular, coremltools 9.0 documents
 testing with an earlier PyTorch version than this recipe's patched 2.10 loader;
-conversion compatibility must be established during final preparation.
+conversion accuracy must be established during final preparation.
+
+Run the numerical comparison with:
+
+```sh
+.tools/model-venv/bin/python scripts/check-model-conversion.py build/models --report build/model-numerics.json
+```
+
+This uses the adapted source networks and a standalone native Core ML CPU probe.
+It checks three deterministic inputs per model, finite Float32 tensor contracts,
+Sky output bounds and exact Denoise passthrough outside the trained range. It is
+an additional CI/release gate, not a photographic, GPU/ANE or tiling test. Native
+prediction failures and signals fail the report; reports are never overwritten.
 
 Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
 comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,

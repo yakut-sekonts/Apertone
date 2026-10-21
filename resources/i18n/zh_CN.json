@@ -792,6 +792,9 @@
     "Fit": "适合",
     "Filename": "文件名",
     "Size": "大小",
-    "Clear": "清除"
+    "Clear": "清除",
+    "Opacity": "不透明度",
+    "Quit": "退出",
+    "Search": "搜索"
   }
 }
