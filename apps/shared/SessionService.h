@@ -1,10 +1,10 @@
 #pragma once
-#include "core/catalog/Catalog.h"
 #include "core/cache/ByteLruCache.h"
+#include "core/catalog/Catalog.h"
 #include "core/color/RawColorCalibration.h"
 #include "core/export/ExportOptions.h"
-#include "core/image/FloatImage.h"
 #include "core/image/DecodedImage.h"
+#include "core/image/FloatImage.h"
 #include "core/jobs/Cancellation.h"
 #include <functional>
 #include <memory>
@@ -33,11 +33,15 @@ class SessionService {
                      const std::function<void(double)> &progress = {}) const;
     void verify() const;
     std::shared_ptr<const DecodedImage> fullResolution(const AssetRecord &asset,
-                                                     CancellationToken stop = {}) const;
+                                                       CancellationToken stop = {}) const;
     void setCacheBudget(std::size_t bytes);
     void clearCache();
-    CacheStatistics previewCacheStatistics() const { return previews_->statistics(); }
-    CacheStatistics sourceCacheStatistics() const { return originals_->statistics(); }
+    CacheStatistics previewCacheStatistics() const {
+        return previews_->statistics();
+    }
+    CacheStatistics sourceCacheStatistics() const {
+        return originals_->statistics();
+    }
 
   private:
     struct PreviewSource {

@@ -27,11 +27,15 @@ inline constexpr std::array creativeParameters{
     CreativeParameter{"grading.shadows.saturation", "Shadows saturation", 0, 100, 0, 1024, 524288},
     CreativeParameter{"grading.shadows.luminance", "Shadows luminance", -100, 100, 0, 1024, 524288},
     CreativeParameter{"grading.midtones.hue", "Midtones hue", 0, 360, 0, 1024, 524288},
-    CreativeParameter{"grading.midtones.saturation", "Midtones saturation", 0, 100, 0, 1024, 524288},
-    CreativeParameter{"grading.midtones.luminance", "Midtones luminance", -100, 100, 0, 1024, 524288},
+    CreativeParameter{"grading.midtones.saturation", "Midtones saturation", 0, 100, 0, 1024,
+                      524288},
+    CreativeParameter{"grading.midtones.luminance", "Midtones luminance", -100, 100, 0, 1024,
+                      524288},
     CreativeParameter{"grading.highlights.hue", "Highlights hue", 0, 360, 0, 1024, 524288},
-    CreativeParameter{"grading.highlights.saturation", "Highlights saturation", 0, 100, 0, 1024, 524288},
-    CreativeParameter{"grading.highlights.luminance", "Highlights luminance", -100, 100, 0, 1024, 524288},
+    CreativeParameter{"grading.highlights.saturation", "Highlights saturation", 0, 100, 0, 1024,
+                      524288},
+    CreativeParameter{"grading.highlights.luminance", "Highlights luminance", -100, 100, 0, 1024,
+                      524288},
     CreativeParameter{"grading.global.hue", "Global hue", 0, 360, 0, 1024, 524288},
     CreativeParameter{"grading.global.saturation", "Global saturation", 0, 100, 0, 1024, 524288},
     CreativeParameter{"grading.global.luminance", "Global luminance", -100, 100, 0, 1024, 524288},
@@ -44,8 +48,7 @@ inline constexpr std::array creativeParameters{
     CreativeParameter{"vignette.highlights", "Highlights", 0, 100, 0, 2048, 1048576},
     CreativeParameter{"grain.amount", "Amount", 0, 100, 0, 2048, 2097152},
     CreativeParameter{"grain.size", "Size", 0, 100, 25, 2048, 2097152},
-    CreativeParameter{"grain.roughness", "Roughness", 0, 100, 50, 2048, 2097152}
-};
+    CreativeParameter{"grain.roughness", "Roughness", 0, 100, 50, 2048, 2097152}};
 inline constexpr std::uint32_t creativeCorrectionMask = 4063232;
 bool isCreativeParameter(std::string_view name);
 const CreativeParameter &creativeParameter(std::string_view name);

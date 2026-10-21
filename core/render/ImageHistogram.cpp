@@ -12,20 +12,24 @@ std::uint8_t clippingFlags(const std::array<float, 3> &rgb) {
 void ImageHistogram::add(const std::array<float, 3> &rgb, float coverage) {
     if (!std::isfinite(coverage) || coverage < 0 || coverage > 1)
         throw std::runtime_error("Invalid histogram coverage.");
-    if (coverage == 0) return;
+    if (coverage == 0)
+        return;
     for (const auto value : rgb)
-        if (!std::isfinite(value)) throw std::runtime_error("Non-finite histogram pixel.");
+        if (!std::isfinite(value))
+            throw std::runtime_error("Non-finite histogram pixel.");
     const auto bin = [](double linear) {
-        return static_cast<std::size_t>(std::clamp(
-            std::lround(encodeSRGB(std::clamp(linear, 0.0, 1.0)) * 255), 0L, 255L));
+        return static_cast<std::size_t>(
+            std::clamp(std::lround(encodeSRGB(std::clamp(linear, 0.0, 1.0)) * 255), 0L, 255L));
     };
     for (std::size_t channel = 0; channel < 3; ++channel)
         bins[channel][bin(rgb[channel])] += coverage;
     const double luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
     bins[3][bin(luminance)] += coverage;
     const auto flags = clippingFlags(rgb);
-    if (flags & 1) shadows += coverage;
-    if (flags & 2) highlights += coverage;
+    if (flags & 1)
+        shadows += coverage;
+    if (flags & 2)
+        highlights += coverage;
     weight += coverage;
     ++samples;
 }

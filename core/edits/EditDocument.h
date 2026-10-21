@@ -1,6 +1,6 @@
 #pragma once
-#include "core/edits/CropSettings.h"
 #include "core/edits/CreativeSettings.h"
+#include "core/edits/CropSettings.h"
 #include "core/edits/LensSettings.h"
 #include "core/edits/LocalMasks.h"
 #include "core/edits/Retouch.h"
@@ -30,8 +30,12 @@ enum class Correction : std::uint32_t {
     colorNoise = 8192,
     crop = 16384,
     lens = 32768,
-    transform = 65536, presence = 131072, pointColor = 262144,
-    grading = 524288, vignette = 1048576, grain = 2097152
+    transform = 65536,
+    presence = 131072,
+    pointColor = 262144,
+    grading = 524288,
+    vignette = 1048576,
+    grain = 2097152
 };
 struct CurvePoint {
     double x = 0;

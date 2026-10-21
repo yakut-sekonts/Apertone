@@ -11,4 +11,4 @@ struct SystemDiagnostics {
 };
 // No serial numbers, host names, user names or filesystem paths.
 SystemDiagnostics systemDiagnostics();
-}
+} // namespace luma::macos

@@ -4,10 +4,10 @@
 #include "core/image/FloatImage.h"
 #include "core/jobs/Cancellation.h"
 #include "core/metadata/PhotoMetadata.h"
-#include "core/render/LocalAdjustments.h"
 #include "core/render/DevelopAccelerator.h"
-#include "core/render/Sharpening.h"
 #include "core/render/ImageHistogram.h"
+#include "core/render/LocalAdjustments.h"
+#include "core/render/Sharpening.h"
 #include <cstdint>
 #include <optional>
 #include <span>

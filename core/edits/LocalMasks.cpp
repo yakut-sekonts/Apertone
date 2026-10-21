@@ -276,7 +276,7 @@ std::size_t count(std::istream &in, std::size_t maximum) {
     return static_cast<std::size_t>(v);
 }
 MaskGeometry geometryIn(std::istream &in, std::size_t &totalPoints, std::size_t &totalStrokes,
-                         std::size_t &totalBitmapPixels, int version) {
+                        std::size_t &totalBitmapPixels, int version) {
     MaskGeometry g;
     std::string marker;
     int shape = -1;
@@ -385,8 +385,8 @@ std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
                 component.operation = static_cast<MaskOperation>(operation);
                 component.enabled = flag(in);
                 component.inverted = flag(in);
-                component.geometry = geometryIn(in, totalPoints, totalStrokes, totalBitmapPixels,
-                                                 version);
+                component.geometry =
+                    geometryIn(in, totalPoints, totalStrokes, totalBitmapPixels, version);
                 mask.components.push_back(std::move(component));
             }
         }

@@ -26,8 +26,7 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     if (!cached) {
         auto decoded = PhotoDecoder().decode(path, stop, progress);
         auto preview = std::make_shared<FloatImage>(standardPreview(decoded.image, 2560, stop));
-        auto interactive =
-            std::make_shared<FloatImage>(standardPreview(decoded.image, 1024, stop));
+        auto interactive = std::make_shared<FloatImage>(standardPreview(decoded.image, 1024, stop));
         const auto scale = [&](const FloatImage &image) {
             return std::min(static_cast<double>(image.width) / decoded.image.width,
                             static_cast<double>(image.height) / decoded.image.height);
@@ -46,17 +45,18 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     auto metadata = cached->metadata;
     MetadataService::readSourceMetadata(path, metadata, stop);
     auto asset = catalog.addAndSelect(path, checksum, metadata);
-    const auto bytes = (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
-                        cached->interactive->rgb.capacity() +
-                        cached->interactive->alpha.capacity()) * sizeof(float);
+    const auto bytes =
+        (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
+         cached->interactive->rgb.capacity() + cached->interactive->alpha.capacity()) *
+        sizeof(float);
     previews_->put(key, cached, bytes, generation);
     if (progress)
         progress(1);
-    return {std::move(asset), cached->standard, cached->calibration, cached->standardScale,
-            cached->interactive, cached->interactiveScale};
+    return {std::move(asset),      cached->standard,    cached->calibration,
+            cached->standardScale, cached->interactive, cached->interactiveScale};
 }
-std::shared_ptr<const DecodedImage>
-SessionService::fullResolution(const AssetRecord &asset, CancellationToken stop) const {
+std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRecord &asset,
+                                                                   CancellationToken stop) const {
     const auto path = std::filesystem::canonical(asset.path);
     const auto size = std::filesystem::file_size(path);
     const auto time = std::filesystem::last_write_time(path);
@@ -70,8 +70,7 @@ SessionService::fullResolution(const AssetRecord &asset, CancellationToken stop)
     if (!decoded)
         decoded = std::make_shared<DecodedImage>(PhotoDecoder().decode(path, stop));
     checkCancellation(stop);
-    if (size != std::filesystem::file_size(path) ||
-        time != std::filesystem::last_write_time(path))
+    if (size != std::filesystem::file_size(path) || time != std::filesystem::last_write_time(path))
         throw std::runtime_error("Original changed during full-resolution decoding.");
     const auto bytes =
         (decoded->image.rgb.capacity() + decoded->image.alpha.capacity()) * sizeof(float);
@@ -120,10 +119,9 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
         throw std::runtime_error("Export cannot replace the original image.");
     if (Catalog(catalogPath_).originalAtPath(target, stop))
         throw std::runtime_error("Export cannot replace a catalog original.");
-    for (const auto &name :
-         {catalog.filename().string() + "-wal", catalog.filename().string() + "-shm",
-          std::string("presets.json"), std::string("export-settings.json"),
-          std::string("preview.ini")}) {
+    for (const auto &name : {catalog.filename().string() + "-wal",
+                             catalog.filename().string() + "-shm", std::string("presets.json"),
+                             std::string("export-settings.json"), std::string("preview.ini")}) {
         const auto state = catalog.parent_path() / name;
         if (target == state || (std::filesystem::exists(target) && std::filesystem::exists(state) &&
                                 std::filesystem::equivalent(target, state)))
@@ -155,7 +153,8 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     const auto guard = [&](const std::function<void()> &install) {
         Catalog(catalogPath_).installExport(target, stop, install);
     };
-    macos::writeImage(decoded, edits, destination, options, stop, progress, source, guard, asset.descriptive);
+    macos::writeImage(decoded, edits, destination, options, stop, progress, source, guard,
+                      asset.descriptive);
 }
 void SessionService::verify() const {
     Catalog(catalogPath_).verify();

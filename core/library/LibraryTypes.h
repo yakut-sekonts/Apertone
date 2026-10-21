@@ -1,11 +1,11 @@
 #pragma once
+#include "core/edits/EditDocument.h"
+#include "core/metadata/DescriptiveMetadata.h"
 #include <cstdint>
 #include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
-#include "core/edits/EditDocument.h"
-#include "core/metadata/DescriptiveMetadata.h"
 
 namespace luma {
 struct LibraryFilter {
@@ -71,7 +71,8 @@ struct ImportJournal {
 std::string encodeImportOptions(const ImportOptions &options);
 ImportOptions decodeImportOptions(const std::string &document);
 std::filesystem::path importRelativePath(const std::filesystem::path &source,
-    std::optional<std::int64_t> capturedAt,int index,const ImportOptions &options);
-DescriptiveMetadata importMetadata(DescriptiveMetadata original,const DescriptiveMetadata &preset);
+                                         std::optional<std::int64_t> capturedAt, int index,
+                                         const ImportOptions &options);
+DescriptiveMetadata importMetadata(DescriptiveMetadata original, const DescriptiveMetadata &preset);
 void validateLabel(const std::string &label);
 } // namespace luma

@@ -1,8 +1,8 @@
 #pragma once
+#include "core/metadata/DescriptiveMetadata.h"
 #include <cstdint>
 #include <optional>
 #include <string>
-#include "core/metadata/DescriptiveMetadata.h"
 
 namespace luma {
 struct PhotoMetadata {

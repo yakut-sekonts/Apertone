@@ -1,6 +1,6 @@
 #include "platform/macos/ImageAlignment.h"
-#include "platform/macos/CFHandle.h"
 #include "core/image/Bayer.h"
+#include "platform/macos/CFHandle.h"
 #import <Vision/Vision.h>
 #include <algorithm>
 
@@ -11,26 +11,32 @@ CFHandle<CGImageRef> image(ai::RgbaImage input) {
     if (input.width > 1024 || input.height > 1024)
         throw std::runtime_error("Alignment reference exceeds its budget.");
     CFHandle color(CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
-    CFHandle data(CGDataProviderCreateWithData(nullptr, input.pixels.data(), input.pixels.size(), nullptr));
-    CFHandle result(CGImageCreate(input.width, input.height, 8, 32, input.width * 4, color.get(),
-        static_cast<CGBitmapInfo>(kCGImageAlphaLast) | kCGBitmapByteOrder32Big,
-        data.get(), nullptr, false, kCGRenderingIntentDefault));
-    if (!result) throw std::runtime_error("Cannot prepare alignment image.");
+    CFHandle data(
+        CGDataProviderCreateWithData(nullptr, input.pixels.data(), input.pixels.size(), nullptr));
+    CFHandle result(
+        CGImageCreate(input.width, input.height, 8, 32, input.width * 4, color.get(),
+                      static_cast<CGBitmapInfo>(kCGImageAlphaLast) | kCGBitmapByteOrder32Big,
+                      data.get(), nullptr, false, kCGRenderingIntentDefault));
+    if (!result)
+        throw std::runtime_error("Cannot prepare alignment image.");
     return result;
 }
-}
+} // namespace
 Homography alignImages(ai::RgbaImage reference, ai::RgbaImage floating, CancellationToken stop) {
     checkCancellation(stop);
     if (reference.width != floating.width || reference.height != floating.height)
         throw std::runtime_error("Alignment requires matching upright image dimensions.");
     @autoreleasepool {
         const auto target = image(reference), source = image(floating);
-        auto *request = [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:source.get() options:@{}];
+        auto *request =
+            [[VNHomographicImageRegistrationRequest alloc] initWithTargetedCGImage:source.get()
+                                                                           options:@{}];
         request.revision = VNHomographicImageRegistrationRequestRevision1;
         auto *handler = [[VNImageRequestHandler alloc] initWithCGImage:target.get() options:@{}];
         NSError *error = nil;
-        if (![handler performRequests:@[request] error:&error] || request.results.count != 1)
-            throw std::runtime_error("Could not align these frames. Use images with sufficient overlap.");
+        if (![handler performRequests:@[ request ] error:&error] || request.results.count != 1)
+            throw std::runtime_error(
+                "Could not align these frames. Use images with sufficient overlap.");
         checkCancellation(stop);
         const auto matrix = request.results.firstObject.warpTransform;
         Homography native;

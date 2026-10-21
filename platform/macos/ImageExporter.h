@@ -1,8 +1,8 @@
 #pragma once
 #include "core/edits/EditDocument.h"
 #include "core/export/ExportOptions.h"
-#include "core/raw/RawDecoder.h"
 #include "core/metadata/DescriptiveMetadata.h"
+#include "core/raw/RawDecoder.h"
 
 namespace luma::macos {
 using ExportInstallGuard = std::function<void(const std::function<void()> &)>;

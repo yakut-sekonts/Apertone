@@ -20,7 +20,7 @@ std::array<double, 9> inverse(const std::array<float, 9> &m) {
 }
 } // namespace
 std::array<float, 3> whiteBalanceGains(double temperature, double tint,
-                                 const RawColorCalibration &calibration) {
+                                       const RawColorCalibration &calibration) {
     // Kang et al. 2002 Planckian locus approximation, 2000–25000 K.
     const double t = 1000 / temperature;
     const double x = temperature <= 4000
@@ -46,8 +46,8 @@ std::array<float, 3> whiteBalanceGains(double temperature, double tint,
             static_cast<float>(neutral[1] / neutral[2])};
 }
 WhiteBalanceEstimate estimateWhiteBalance(const std::array<double, 3> &neutral,
-                                           const RawColorCalibration &calibration,
-                                           CancellationToken stop) {
+                                          const RawColorCalibration &calibration,
+                                          CancellationToken stop) {
     for (const auto value : calibration.cameraToSRGB)
         if (!std::isfinite(value))
             throw std::runtime_error("Invalid camera color matrix.");
@@ -57,8 +57,8 @@ WhiteBalanceEstimate estimateWhiteBalance(const std::array<double, 3> &neutral,
         // M * diag(gains) * sample = k * (1,1,1). Camera channels need
         // not themselves be equal when the rendered working RGB is neutral.
         const auto white = m[c * 3] + m[c * 3 + 1] + m[c * 3 + 2];
-        if (!std::isfinite(neutral[c]) || neutral[c] <= 1e-8 ||
-            !std::isfinite(white) || white <= 1e-8)
+        if (!std::isfinite(neutral[c]) || neutral[c] <= 1e-8 || !std::isfinite(white) ||
+            white <= 1e-8)
             throw std::runtime_error("This sample cannot produce a neutral white balance.");
         desired[c] = white / neutral[c];
     }

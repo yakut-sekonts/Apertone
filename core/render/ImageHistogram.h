@@ -27,6 +27,7 @@ class HistogramSamplingGrid {
   public:
     HistogramSamplingGrid(int width, int height);
     bool contains(int x, int y) const;
+
   private:
     std::vector<bool> columns_, rows_;
 };

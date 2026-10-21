@@ -1,8 +1,8 @@
-#include "apps/desktop/EditorController.h"
 #include "apps/desktop/BundledModels.h"
+#include "apps/desktop/EditorController.h"
 #include "apps/shared/DerivedImage.h"
-#include "core/raw/RawDecoder.h"
 #include "core/image/Bayer.h"
+#include "core/raw/RawDecoder.h"
 #include "platform/macos/CoreMLDenoise.h"
 #include <QFileInfo>
 #include <QPointer>
@@ -14,15 +14,18 @@ QString EditorController::denoiseModelName() const {
     return QFileInfo(denoiseModelPath_).fileName();
 }
 bool EditorController::denoiseModelBundled() const {
-    return !denoiseModelPath_.isEmpty() && denoiseModelPath_ ==
-        luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise);
+    return !denoiseModelPath_.isEmpty() &&
+           denoiseModelPath_ ==
+               luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise);
 }
 void EditorController::setDenoiseModel(const QUrl &url) {
-    if (!url.isEmpty() && !url.isLocalFile()) return;
+    if (!url.isEmpty() && !url.isLocalFile())
+        return;
     cancelAI();
     const auto overridePath = url.isEmpty() ? QString() : url.toLocalFile();
     denoiseModelPath_ = overridePath.isEmpty()
-        ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise) : overridePath;
+                            ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise)
+                            : overridePath;
     QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
                        QSettings::IniFormat);
     // Persist only the user's override. Bundled paths are resolved again after
@@ -31,8 +34,8 @@ void EditorController::setDenoiseModel(const QUrl &url) {
     emit stateChanged();
 }
 void EditorController::denoisePhoto(double amount) {
-    if (!editable() || aiBusy_ || !denoiseModelConfigured() ||
-        !std::isfinite(amount) || amount <= 0 || amount > 100)
+    if (!editable() || aiBusy_ || !denoiseModelConfigured() || !std::isfinite(amount) ||
+        amount <= 0 || amount > 100)
         return;
     cancelAI();
     setRetouchMode(QStringLiteral("off"));
@@ -49,16 +52,22 @@ void EditorController::denoisePhoto(double amount) {
     error_.clear();
     emit stateChanged();
     try {
-        aiJob_ = aiJobs_.submit(luma::JobPriority::background,
-            [self, revision, asset, service, catalog, path, amount](const luma::JobContext &context) {
+        aiJob_ = aiJobs_.submit(
+            luma::JobPriority::background, [self, revision, asset, service, catalog, path,
+                                            amount](const luma::JobContext &context) {
                 try {
                     const auto stop = context.stopToken();
                     const auto progress = [self, revision](double value) {
-                        if (self) QMetaObject::invokeMethod(self, [self, revision, value] {
-                            if (self && self->aiRevision_ == revision) {
-                                self->aiProgress_ = value; emit self->stateChanged();
-                            }
-                        }, Qt::QueuedConnection);
+                        if (self)
+                            QMetaObject::invokeMethod(
+                                self,
+                                [self, revision, value] {
+                                    if (self && self->aiRevision_ == revision) {
+                                        self->aiProgress_ = value;
+                                        emit self->stateChanged();
+                                    }
+                                },
+                                Qt::QueuedConnection);
                     };
                     // This action is for RAW/Linear DNG, not an embedded JPEG preview.
                     (void)luma::RawDecoder().inspect(asset.path, stop);
@@ -72,46 +81,73 @@ void EditorController::denoisePhoto(double amount) {
                     for (std::size_t i = 0; i < input.rgb.size() / 3; ++i) {
                         if (base.rgba[i * 4 + 3] != 1)
                             throw std::runtime_error("AI Denoise requires an opaque RAW image.");
-                        for (std::size_t c = 0; c < 3; ++c) input.rgb[i * 3 + c] = base.rgba[i * 4 + c];
+                        for (std::size_t c = 0; c < 3; ++c)
+                            input.rgb[i * 3 + c] = base.rgba[i * 4 + c];
                     }
                     progress(.15);
-                    auto result = provider->denoise(input, amount / 100, stop,
-                        [&](double value) { progress(.15 + .7 * value); });
+                    auto result = provider->denoise(input, amount / 100, stop, [&](double value) {
+                        progress(.15 + .7 * value);
+                    });
                     for (std::size_t i = 0; i < result.rgb.size() / 3; ++i) {
-                        if ((i & 65535) == 0) luma::checkCancellation(stop);
-                        for (std::size_t c = 0; c < 3; ++c) base.rgba[i * 4 + c] = result.rgb[i * 3 + c];
+                        if ((i & 65535) == 0)
+                            luma::checkCancellation(stop);
+                        for (std::size_t c = 0; c < 3; ++c)
+                            base.rgba[i * 4 + c] = result.rgb[i * 3 + c];
                     }
                     QByteArray metadata;
                     QXmlStreamWriter writer(&metadata);
-                    writer.writeStartElement("x:xmpmeta"); writer.writeNamespace("adobe:ns:meta/", "x");
-                    writer.writeStartElement("rdf:RDF"); writer.writeNamespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "rdf");
-                    writer.writeStartElement("rdf:Description"); writer.writeNamespace("https://luma.photo/ns/1.0/", "luma");
+                    writer.writeStartElement("x:xmpmeta");
+                    writer.writeNamespace("adobe:ns:meta/", "x");
+                    writer.writeStartElement("rdf:RDF");
+                    writer.writeNamespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "rdf");
+                    writer.writeStartElement("rdf:Description");
+                    writer.writeNamespace("https://luma.photo/ns/1.0/", "luma");
                     writer.writeAttribute("rdf:about", "");
                     writer.writeAttribute("luma:Operation", "AI Denoise");
                     writer.writeAttribute("luma:SourceID", QString::fromStdString(asset.id));
-                    writer.writeAttribute("luma:SourceSHA256", QString::fromStdString(asset.checksum));
+                    writer.writeAttribute("luma:SourceSHA256",
+                                          QString::fromStdString(asset.checksum));
                     writer.writeAttribute("luma:Amount", QString::number(amount));
-                    writer.writeAttribute("luma:Provider", QString::fromStdString(provider->identifier()));
-                    writer.writeEndElement(); writer.writeEndElement(); writer.writeEndElement();
-                    const auto created = luma::createDerivedImage(catalog, base, metadata.toStdString(), stop,
+                    writer.writeAttribute("luma:Provider",
+                                          QString::fromStdString(provider->identifier()));
+                    writer.writeEndElement();
+                    writer.writeEndElement();
+                    writer.writeEndElement();
+                    const auto created = luma::createDerivedImage(
+                        catalog, base, metadata.toStdString(), stop,
                         [&](double value) { progress(.85 + .15 * value); });
-                    if (self) QMetaObject::invokeMethod(self, [self, revision, created] {
-                        if (!self || self->aiRevision_ != revision) return;
-                        self->aiBusy_ = false;
-                        self->aiProgress_ = 1;
-                        emit self->stateChanged();
-                        self->openFile(QUrl::fromLocalFile(QString::fromStdString(created.string())));
-                    }, Qt::QueuedConnection);
+                    if (self)
+                        QMetaObject::invokeMethod(
+                            self,
+                            [self, revision, created] {
+                                if (!self || self->aiRevision_ != revision)
+                                    return;
+                                self->aiBusy_ = false;
+                                self->aiProgress_ = 1;
+                                emit self->stateChanged();
+                                self->openFile(
+                                    QUrl::fromLocalFile(QString::fromStdString(created.string())));
+                            },
+                            Qt::QueuedConnection);
                 } catch (const std::exception &failure) {
                     const auto message = QString::fromUtf8(failure.what());
                     const bool cancelled = context.stopToken().isCancelled();
-                    if (self) QMetaObject::invokeMethod(self, [self, revision, message, cancelled] {
-                        if (!self || self->aiRevision_ != revision) return;
-                        self->aiBusy_ = false;
-                        if (!cancelled) self->error_ = message;
-                        emit self->stateChanged();
-                    }, Qt::QueuedConnection);
+                    if (self)
+                        QMetaObject::invokeMethod(
+                            self,
+                            [self, revision, message, cancelled] {
+                                if (!self || self->aiRevision_ != revision)
+                                    return;
+                                self->aiBusy_ = false;
+                                if (!cancelled)
+                                    self->error_ = message;
+                                emit self->stateChanged();
+                            },
+                            Qt::QueuedConnection);
                 }
             });
-    } catch (const std::exception &failure) { cancelAI(); advancedFailure(failure); }
+    } catch (const std::exception &failure) {
+        cancelAI();
+        advancedFailure(failure);
+    }
 }

@@ -35,7 +35,7 @@ void createEmpty(const std::filesystem::path &path) {
     close(file);
     // Failed initialization preserves the file for diagnosis, never replaces it.
 }
-}
+} // namespace
 CatalogStartup::CatalogStartup(QObject *parent) : QObject(parent) {}
 CatalogStartup::~CatalogStartup() {
     cancellation_.cancel();
@@ -53,21 +53,24 @@ QUrl CatalogStartup::backupFolder() const {
     return QUrl::fromLocalFile(catalogPath_ + QStringLiteral(".luma-backups"));
 }
 void CatalogStartup::acquire(const QString &path) {
-    if (path.isEmpty()) throw std::runtime_error("Choose a catalog file.");
+    if (path.isEmpty())
+        throw std::runtime_error("Choose a catalog file.");
     const QFileInfo file(path);
     catalogPath_ = file.absoluteFilePath();
     if (!QDir().mkpath(file.absolutePath()))
         throw std::runtime_error("Cannot create the catalog folder.");
     if (file.isSymLink() && !file.exists())
         throw std::runtime_error("The catalog link points to a missing file.");
-    const auto canonical = file.exists() ? file.canonicalFilePath()
-        : file.absoluteDir().canonicalPath() + "/" + file.fileName();
+    const auto canonical = file.exists()
+                               ? file.canonicalFilePath()
+                               : file.absoluteDir().canonicalPath() + "/" + file.fileName();
     if (canonical.isEmpty() || (file.exists() && !file.isFile()))
         throw std::runtime_error("Choose a catalog file.");
     auto next = std::make_unique<QLockFile>(canonical + QStringLiteral(".desktop.lock"));
     next->setStaleLockTime(0);
     if (!next->tryLock())
-        throw std::runtime_error("This catalog is already open in another Luma window, or its folder is not writable.");
+        throw std::runtime_error(
+            "This catalog is already open in another Luma window, or its folder is not writable.");
     catalogPath_ = canonical;
     markerPath_ = canonical + QStringLiteral(".running.json");
     lock_ = std::move(next);
@@ -89,8 +92,11 @@ bool CatalogStartup::prepare(const QString &path, bool allowCreate, bool interac
     const bool quitOnLastWindow = application->quitOnLastWindowClosed();
     application->setQuitOnLastWindowClosed(false);
     struct RestoreQuitPolicy {
-        QGuiApplication *app; bool value;
-        ~RestoreQuitPolicy() { app->setQuitOnLastWindowClosed(value); }
+        QGuiApplication *app;
+        bool value;
+        ~RestoreQuitPolicy() {
+            app->setQuitOnLastWindowClosed(value);
+        }
     } policy{application, quitOnLastWindow};
     std::unique_ptr<LocalizationController> localization;
     QQmlApplicationEngine engine;
@@ -116,7 +122,8 @@ bool CatalogStartup::prepare(const QString &path, bool allowCreate, bool interac
     return accepted;
 }
 void CatalogStartup::start(const QString &path, Operation operation, const QString &backup) {
-    if (busy_ || quitting_) return;
+    if (busy_ || quitting_)
+        return;
     recoveryPending_ = false;
     error_.clear();
     lock_.reset();
@@ -130,34 +137,41 @@ void CatalogStartup::start(const QString &path, Operation operation, const QStri
         busy_ = true;
         emit changed();
         const QPointer<CatalogStartup> self(this);
-        job_ = jobs_.submit(luma::JobPriority::interactive,
-            [self, target, source, operation, interrupted, stop](const luma::JobContext &) {
-                QString error;
-                try {
-                    luma::checkCancellation(stop);
-                    if (operation == Operation::restore) {
-                        luma::Catalog::restoreBackupTo(source, target, stop);
-                    } else if (operation == Operation::create ||
-                               (operation == Operation::initial && !std::filesystem::exists(target))) {
-                        createEmpty(target);
-                    } else if (!std::filesystem::is_regular_file(target)) {
-                        throw std::runtime_error("The catalog is missing. Reconnect its disk or choose another catalog.");
-                    }
-                    // After an interrupted session, inspect the existing SQLite
-                    // snapshot before opening a writable connection/migration.
-                    if (interrupted && operation != Operation::create)
-                        luma::Catalog::verifyBackup(target, stop);
-                    luma::checkCancellation(stop);
-                    luma::Catalog catalog(target, luma::CatalogOpenMode::existingOnly);
-                    (void)catalog.activeAsset();
-                    luma::checkCancellation(stop);
-                } catch (const std::exception &failure) {
-                    error = QString::fromUtf8(failure.what());
+        job_ = jobs_.submit(luma::JobPriority::interactive, [self, target, source, operation,
+                                                             interrupted,
+                                                             stop](const luma::JobContext &) {
+            QString error;
+            try {
+                luma::checkCancellation(stop);
+                if (operation == Operation::restore) {
+                    luma::Catalog::restoreBackupTo(source, target, stop);
+                } else if (operation == Operation::create ||
+                           (operation == Operation::initial && !std::filesystem::exists(target))) {
+                    createEmpty(target);
+                } else if (!std::filesystem::is_regular_file(target)) {
+                    throw std::runtime_error(
+                        "The catalog is missing. Reconnect its disk or choose another catalog.");
                 }
-                if (self) QMetaObject::invokeMethod(self, [self, error, interrupted] {
-                    if (self) self->complete(error, interrupted);
-                }, Qt::QueuedConnection);
-            });
+                // After an interrupted session, inspect the existing SQLite
+                // snapshot before opening a writable connection/migration.
+                if (interrupted && operation != Operation::create)
+                    luma::Catalog::verifyBackup(target, stop);
+                luma::checkCancellation(stop);
+                luma::Catalog catalog(target, luma::CatalogOpenMode::existingOnly);
+                (void)catalog.activeAsset();
+                luma::checkCancellation(stop);
+            } catch (const std::exception &failure) {
+                error = QString::fromUtf8(failure.what());
+            }
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, error, interrupted] {
+                        if (self)
+                            self->complete(error, interrupted);
+                    },
+                    Qt::QueuedConnection);
+        });
     } catch (const std::exception &failure) {
         complete(QString::fromUtf8(failure.what()), false);
     }
@@ -165,7 +179,11 @@ void CatalogStartup::start(const QString &path, Operation operation, const QStri
 void CatalogStartup::complete(const QString &error, bool interrupted) {
     busy_ = false;
     error_ = error;
-    if (quitting_) { emit changed(); emit finished(false); return; }
+    if (quitting_) {
+        emit changed();
+        emit finished(false);
+        return;
+    }
     if (!error_.isEmpty()) {
         lock_.reset();
         emit changed();
@@ -173,18 +191,25 @@ void CatalogStartup::complete(const QString &error, bool interrupted) {
     }
     recoveryPending_ = interrupted;
     emit changed();
-    if (!interrupted) continueSession(true);
+    if (!interrupted)
+        continueSession(true);
 }
 void CatalogStartup::continueSession(bool restorePhoto) {
-    if (busy_ || quitting_ || !error_.isEmpty() || !lock_) return;
-    const auto bytes = QJsonDocument(QJsonObject{
-        {"schema", 1}, {"version", QCoreApplication::applicationVersion()},
-        {"pid", QCoreApplication::applicationPid()},
-        {"startedAtUtc", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)}}).toJson();
+    if (busy_ || quitting_ || !error_.isEmpty() || !lock_)
+        return;
+    const auto bytes =
+        QJsonDocument(
+            QJsonObject{{"schema", 1},
+                        {"version", QCoreApplication::applicationVersion()},
+                        {"pid", QCoreApplication::applicationPid()},
+                        {"startedAtUtc", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)}})
+            .toJson();
     QSaveFile marker(markerPath_);
     marker.setDirectWriteFallback(false);
-    if (!marker.open(QIODevice::WriteOnly) || marker.write(bytes) != bytes.size() || !marker.commit()) {
-        error_ = QStringLiteral("Cannot record the catalog session. Check available disk space and folder permissions.");
+    if (!marker.open(QIODevice::WriteOnly) || marker.write(bytes) != bytes.size() ||
+        !marker.commit()) {
+        error_ = QStringLiteral("Cannot record the catalog session. Check available disk space and "
+                                "folder permissions.");
         emit changed();
         return;
     }
@@ -198,10 +223,12 @@ void CatalogStartup::continueSession(bool restorePhoto) {
     emit finished(true);
 }
 void CatalogStartup::openCatalog(const QUrl &path) {
-    if (path.isLocalFile()) start(path.toLocalFile(), Operation::open);
+    if (path.isLocalFile())
+        start(path.toLocalFile(), Operation::open);
 }
 void CatalogStartup::createCatalog(const QUrl &path) {
-    if (path.isLocalFile()) start(path.toLocalFile(), Operation::create);
+    if (path.isLocalFile())
+        start(path.toLocalFile(), Operation::create);
 }
 void CatalogStartup::restoreBackup(const QUrl &source, const QUrl &destination) {
     if (source.isLocalFile() && destination.isLocalFile())
@@ -213,5 +240,6 @@ void CatalogStartup::quit() {
     // a JobHandle before it starts would skip the callback and strand the UI.
     cancellation_.cancel();
     emit changed();
-    if (!busy_) emit finished(false);
+    if (!busy_)
+        emit finished(false);
 }

@@ -40,9 +40,9 @@ std::string encodeRetouch(const std::vector<RetouchStroke> &strokes) {
     out << std::setprecision(std::numeric_limits<double>::max_digits10);
     out << "LUMA_RETOUCH 1 " << strokes.size() << '\n';
     for (const auto &s : strokes) {
-        out << s.id << ' ' << static_cast<int>(s.mode) << ' ' << s.enabled << ' '
-            << s.radius << ' ' << s.feather << ' ' << s.opacity << ' '
-            << s.sourceOffsetX << ' ' << s.sourceOffsetY << ' ' << s.points.size() << '\n';
+        out << s.id << ' ' << static_cast<int>(s.mode) << ' ' << s.enabled << ' ' << s.radius << ' '
+            << s.feather << ' ' << s.opacity << ' ' << s.sourceOffsetX << ' ' << s.sourceOffsetY
+            << ' ' << s.points.size() << '\n';
         for (const auto &p : s.points)
             out << p[0] << ' ' << p[1] << '\n';
     }
@@ -56,8 +56,8 @@ std::vector<RetouchStroke> decodeRetouch(std::string_view text) {
     std::string magic;
     int version = 0;
     std::size_t count = 0, total = 0;
-    if (!(in >> magic >> version >> count) || magic != "LUMA_RETOUCH" ||
-        version != 1 || count > 256)
+    if (!(in >> magic >> version >> count) || magic != "LUMA_RETOUCH" || version != 1 ||
+        count > 256)
         throw std::runtime_error("Unsupported retouch document.");
     std::vector<RetouchStroke> result;
     for (std::size_t i = 0; i < count; ++i) {
@@ -66,8 +66,8 @@ std::vector<RetouchStroke> decodeRetouch(std::string_view text) {
         std::size_t points = 0;
         if (!(in >> stroke.id >> mode >> enabled >> stroke.radius >> stroke.feather >>
               stroke.opacity >> stroke.sourceOffsetX >> stroke.sourceOffsetY >> points) ||
-            mode < 0 || mode > 2 || enabled < 0 || enabled > 1 || points < 1 ||
-            points > 4096 || total + points > 32768)
+            mode < 0 || mode > 2 || enabled < 0 || enabled > 1 || points < 1 || points > 4096 ||
+            total + points > 32768)
             throw std::runtime_error("Invalid retouch document.");
         total += points;
         stroke.mode = static_cast<RetouchMode>(mode);

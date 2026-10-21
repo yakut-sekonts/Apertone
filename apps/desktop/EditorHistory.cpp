@@ -10,14 +10,17 @@ QString describe(const luma::EditHistoryChange &change) {
         const bool exposure = change.label == "Exposure";
         const bool temperature = change.label == "Temperature";
         auto number = QLocale().toString(*change.value, exposure ? 'f' : 'g', exposure ? 2 : 6);
-        if (exposure && *change.value > 0) number.prepend(QLatin1Char('+'));
+        if (exposure && *change.value > 0)
+            number.prepend(QLatin1Char('+'));
         label += QLatin1Char(' ') + number;
-        if (temperature) label += QStringLiteral(" K");
+        if (temperature)
+            label += QStringLiteral(" K");
     }
-    if (!change.subject.empty()) label = QString::fromStdString(change.subject) + QStringLiteral(" — ") + label;
+    if (!change.subject.empty())
+        label = QString::fromStdString(change.subject) + QStringLiteral(" — ") + label;
     return label;
 }
-}
+} // namespace
 
 QString EditorController::historyHandle(std::uint64_t id) const {
     return QString::number(historyGeneration_) + QLatin1Char(':') + QString::number(id);
@@ -27,24 +30,34 @@ QString EditorController::historyRevision() const {
 }
 std::optional<std::uint64_t> EditorController::resolveHistoryHandle(const QString &handle) const {
     const auto prefix = QString::number(historyGeneration_) + QLatin1Char(':');
-    if (!handle.startsWith(prefix)) return std::nullopt;
+    if (!handle.startsWith(prefix))
+        return std::nullopt;
     bool valid = false;
     const auto id = handle.mid(prefix.size()).toULongLong(&valid);
-    if (!valid || historyHandle(id) != handle || !history_.document(id)) return std::nullopt;
+    if (!valid || historyHandle(id) != handle || !history_.document(id))
+        return std::nullopt;
     return id;
 }
 QVariantList EditorController::processingHistory() const {
     QVariantList rows;
-    if (!session_) return rows;
+    if (!session_)
+        return rows;
     for (const auto &entry : history_.items()) {
         QStringList changes;
-        for (const auto &change : entry.changes) changes.append(describe(change));
+        for (const auto &change : entry.changes)
+            changes.append(describe(change));
         const bool singleChange = entry.action.empty() && changes.size() == 1;
-        const auto title = singleChange ? changes.front() : QCoreApplication::translate("Luma",
-            entry.action.empty() ? "Processing settings" : entry.action.c_str());
-        rows.append(QVariantMap{{"id", historyHandle(entry.id)}, {"title", title},
-            {"details", singleChange ? QString() : changes.join(QStringLiteral(" · "))},
-            {"current", entry.current}, {"redo", entry.redo}});
+        const auto title =
+            singleChange
+                ? changes.front()
+                : QCoreApplication::translate("Luma", entry.action.empty() ? "Processing settings"
+                                                                           : entry.action.c_str());
+        rows.append(
+            QVariantMap{{"id", historyHandle(entry.id)},
+                        {"title", title},
+                        {"details", singleChange ? QString() : changes.join(QStringLiteral(" · "))},
+                        {"current", entry.current},
+                        {"redo", entry.redo}});
     }
     return rows;
 }
@@ -57,7 +70,8 @@ void EditorController::finishHistoryTools() {
     endEdit();
 }
 void EditorController::prepareHistory() {
-    if (!editable() || exporting_ || !deferredOpen_.isEmpty()) return;
+    if (!editable() || exporting_ || !deferredOpen_.isEmpty())
+        return;
     finishHistoryTools();
     historyError_.clear();
     versionsError_.clear();
@@ -65,12 +79,14 @@ void EditorController::prepareHistory() {
     emit stateChanged();
 }
 void EditorController::jumpToHistory(const QString &handle) {
-    if (!editable() || exporting_ || !deferredOpen_.isEmpty()) return;
+    if (!editable() || exporting_ || !deferredOpen_.isEmpty())
+        return;
     finishHistoryTools();
     historyError_.clear();
     const auto id = resolveHistoryHandle(handle);
     if (!id) {
-        historyError_ = QStringLiteral("This history state is no longer available. Select a current row.");
+        historyError_ =
+            QStringLiteral("This history state is no longer available. Select a current row.");
         emit stateChanged();
         return;
     }
@@ -80,19 +96,23 @@ void EditorController::jumpToHistory(const QString &handle) {
         const bool wasOriginal = original_;
         history_.seek(*id);
         original_ = false;
-        if (history_.revision() != revision) editsChanged();
-        else if (wasOriginal) render();
+        if (history_.revision() != revision)
+            editsChanged();
+        else if (wasOriginal)
+            render();
     } catch (const std::exception &failure) {
         historyError_ = QString::fromUtf8(failure.what());
     }
     emit stateChanged();
 }
 void EditorController::clearHistory(const QString &revision) {
-    if (!editable() || exporting_ || !deferredOpen_.isEmpty()) return;
+    if (!editable() || exporting_ || !deferredOpen_.isEmpty())
+        return;
     finishHistoryTools();
     historyError_.clear();
     if (revision != historyRevision()) {
-        historyError_ = QStringLiteral("History changed while confirmation was open. Review it and try again.");
+        historyError_ =
+            QStringLiteral("History changed while confirmation was open. Review it and try again.");
     } else {
         // Only the session journal changes; current edits, autosave, named
         // versions and the independent multi-photo batch journal stay intact.
@@ -101,12 +121,14 @@ void EditorController::clearHistory(const QString &revision) {
     emit stateChanged();
 }
 void EditorController::saveHistoryVersion(const QString &handle, const QString &name) {
-    if (!editable() || exporting_ || !deferredOpen_.isEmpty()) return;
+    if (!editable() || exporting_ || !deferredOpen_.isEmpty())
+        return;
     finishHistoryTools();
     historyError_.clear();
     const auto id = resolveHistoryHandle(handle);
     if (!id) {
-        historyError_ = QStringLiteral("This history state is no longer available. Select a current row.");
+        historyError_ =
+            QStringLiteral("This history state is no longer available. Select a current row.");
         emit stateChanged();
         return;
     }

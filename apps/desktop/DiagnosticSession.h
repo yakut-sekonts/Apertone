@@ -1,6 +1,6 @@
 #pragma once
-#include <QUrl>
 #include <QString>
+#include <QUrl>
 #include <array>
 #include <atomic>
 #include <condition_variable>
@@ -13,9 +13,18 @@
 class QLockFile;
 namespace luma::desktop {
 enum class LogLevel { trace, debug, info, warning, error };
-enum class LogEvent { sessionStarted, sessionFinished, sessionFailed, catalogReady,
-    recoveryRequested, crashCaptureUnavailable, historyUnavailable, operationStarted,
-    operationFinished, operationFailed };
+enum class LogEvent {
+    sessionStarted,
+    sessionFinished,
+    sessionFailed,
+    catalogReady,
+    recoveryRequested,
+    crashCaptureUnavailable,
+    historyUnavailable,
+    operationStarted,
+    operationFinished,
+    operationFailed
+};
 enum class LoggedWorkflow { application, library, editor, exportQueue, count };
 
 // No free-form text enters the persistent log. Files and reports stay local.
@@ -25,15 +34,32 @@ class DiagnosticSession final {
     ~DiagnosticSession();
     DiagnosticSession(const DiagnosticSession &) = delete;
     DiagnosticSession &operator=(const DiagnosticSession &) = delete;
-    void record(LogLevel level, LogEvent event, LoggedWorkflow workflow = LoggedWorkflow::application) noexcept;
+    void record(LogLevel level, LogEvent event,
+                LoggedWorkflow workflow = LoggedWorkflow::application) noexcept;
     void observe(LoggedWorkflow workflow, bool busy, bool error) noexcept;
-    void markCleanExit() { cleanExit_ = true; }
-    QUrl folder() const { return root_.isEmpty() ? QUrl{} : QUrl::fromLocalFile(root_); }
-    bool loggingAvailable() const { return logAvailable_.load(); }
-    bool crashCaptureEnabled() const { return crashCaptureEnabled_; }
-    std::uint64_t droppedEvents() const { return dropped_.load(); }
+    void markCleanExit() {
+        cleanExit_ = true;
+    }
+    QUrl folder() const {
+        return root_.isEmpty() ? QUrl{} : QUrl::fromLocalFile(root_);
+    }
+    bool loggingAvailable() const {
+        return logAvailable_.load();
+    }
+    bool crashCaptureEnabled() const {
+        return crashCaptureEnabled_;
+    }
+    std::uint64_t droppedEvents() const {
+        return dropped_.load();
+    }
+
   private:
-    struct Event { LogLevel level; LogEvent event; LoggedWorkflow workflow; std::int64_t milliseconds; };
+    struct Event {
+        LogLevel level;
+        LogEvent event;
+        LoggedWorkflow workflow;
+        std::int64_t milliseconds;
+    };
     QString root_, session_, version_;
     std::unique_ptr<QLockFile> lock_;
     std::mutex mutex_;
@@ -47,4 +73,4 @@ class DiagnosticSession final {
     void maintainHistory();
     void writeLoop(std::stop_token stop) noexcept;
 };
-}
+} // namespace luma::desktop

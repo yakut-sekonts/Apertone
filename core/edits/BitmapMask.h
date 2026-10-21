@@ -19,9 +19,15 @@ class BitmapMask {
             throw std::runtime_error("Invalid bitmap mask dimensions.");
         values_ = std::make_shared<const std::vector<std::uint8_t>>(std::move(values));
     }
-    bool empty() const { return !values_; }
-    int width() const { return width_; }
-    int height() const { return height_; }
+    bool empty() const {
+        return !values_;
+    }
+    int width() const {
+        return width_;
+    }
+    int height() const {
+        return height_;
+    }
     std::span<const std::uint8_t> pixels() const {
         return values_ ? std::span<const std::uint8_t>(*values_) : std::span<const std::uint8_t>{};
     }

@@ -13,7 +13,8 @@ struct EditHistoryChange {
     std::optional<double> value;
     std::string subject;
 };
-std::vector<EditHistoryChange> describeEditChange(const EditDocument &before, const EditDocument &after);
+std::vector<EditHistoryChange> describeEditChange(const EditDocument &before,
+                                                  const EditDocument &after);
 
 struct EditHistoryItem {
     std::uint64_t id = 0;
@@ -29,19 +30,29 @@ class EditHistory {
         : current_{std::move(initial), 0, std::move(action), {}} {
         current_.document.validate();
     }
-    const EditDocument &current() const { return current_.document; }
+    const EditDocument &current() const {
+        return current_.document;
+    }
     // Pure observations: never finish or mutate an active gesture.
-    bool gestureActive() const noexcept { return gesture_.has_value(); }
+    bool gestureActive() const noexcept {
+        return gesture_.has_value();
+    }
     bool canUndo() const {
         return !undo_.empty() || (gesture_ && gesture_->document != current_.document);
     }
-    bool canRedo() const { return !redo_.empty() && !gesture_; }
-    std::uint64_t revision() const noexcept { return revision_; }
+    bool canRedo() const {
+        return !redo_.empty() && !gesture_;
+    }
+    std::uint64_t revision() const noexcept {
+        return revision_;
+    }
     void begin() {
-        if (!gesture_) gesture_ = current_;
+        if (!gesture_)
+            gesture_ = current_;
     }
     void end() {
-        if (!gesture_) return;
+        if (!gesture_)
+            return;
         if (gesture_->document != current_.document) {
             auto changes = describeEditChange(gesture_->document, current_.document);
             push(undo_, std::move(*gesture_));
@@ -55,7 +66,8 @@ class EditHistory {
     }
     void apply(EditDocument next, std::string action = {}) {
         next.validate();
-        if (next == current_.document) return;
+        if (next == current_.document)
+            return;
         if (gesture_) {
             current_.document = std::move(next);
             return;
@@ -68,7 +80,8 @@ class EditHistory {
     }
     void undo() {
         end();
-        if (undo_.empty()) return;
+        if (undo_.empty())
+            return;
         push(redo_, std::move(current_));
         current_ = std::move(undo_.back());
         undo_.pop_back();
@@ -76,7 +89,8 @@ class EditHistory {
     }
     void redo() {
         end();
-        if (redo_.empty()) return;
+        if (redo_.empty())
+            return;
         push(undo_, std::move(current_));
         current_ = std::move(redo_.back());
         redo_.pop_back();
@@ -90,26 +104,38 @@ class EditHistory {
         const auto append = [&](const State &state, bool current, bool redo) {
             result.push_back({state.id, state.action, state.changes, current, redo});
         };
-        for (const auto &state : undo_) append(state, false, false);
+        for (const auto &state : undo_)
+            append(state, false, false);
         append(gesture_ ? *gesture_ : current_, true, false);
-        for (auto it = redo_.rbegin(); it != redo_.rend(); ++it) append(*it, false, true);
+        for (auto it = redo_.rbegin(); it != redo_.rend(); ++it)
+            append(*it, false, true);
         return result;
     }
     // Callers must finish the gesture before resolving a stable state handle.
     const EditDocument *document(std::uint64_t id) const {
-        if (gesture_) return nullptr;
-        if (current_.id == id) return &current_.document;
-        for (const auto &state : undo_) if (state.id == id) return &state.document;
-        for (const auto &state : redo_) if (state.id == id) return &state.document;
+        if (gesture_)
+            return nullptr;
+        if (current_.id == id)
+            return &current_.document;
+        for (const auto &state : undo_)
+            if (state.id == id)
+                return &state.document;
+        for (const auto &state : redo_)
+            if (state.id == id)
+                return &state.document;
         return nullptr;
     }
     bool seek(std::uint64_t id) {
         end();
-        if (!document(id)) return false;
-        if (std::any_of(undo_.begin(), undo_.end(), [id](const auto &state) { return state.id == id; })) {
-            while (current_.id != id) undo();
+        if (!document(id))
+            return false;
+        if (std::any_of(undo_.begin(), undo_.end(),
+                        [id](const auto &state) { return state.id == id; })) {
+            while (current_.id != id)
+                undo();
         } else {
-            while (current_.id != id) redo();
+            while (current_.id != id)
+                redo();
         }
         return true;
     }
@@ -135,7 +161,8 @@ class EditHistory {
     std::optional<State> gesture_;
     std::uint64_t nextID_ = 1, revision_ = 0;
     static void push(std::vector<State> &stack, State value) {
-        if (stack.size() == 200) stack.erase(stack.begin());
+        if (stack.size() == 200)
+            stack.erase(stack.begin());
         stack.push_back(std::move(value));
     }
 };

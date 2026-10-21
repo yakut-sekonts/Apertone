@@ -2,10 +2,10 @@
 #include <cstdint>
 #include <optional>
 #include <span>
-#include <vector>
 #include <sqlite3.h>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace luma::detail {
 class Statement {
@@ -34,14 +34,17 @@ class Statement {
             fail();
     }
     void blob(int index, std::span<const std::uint8_t> value) {
-        if (value.size() > 8192 || sqlite3_bind_blob(statement_, index, value.data(),
-            static_cast<int>(value.size()), SQLITE_TRANSIENT) != SQLITE_OK)
+        if (value.size() > 8192 ||
+            sqlite3_bind_blob(statement_, index, value.data(), static_cast<int>(value.size()),
+                              SQLITE_TRANSIENT) != SQLITE_OK)
             fail();
     }
     std::vector<std::uint8_t> bytes(int column) const {
         const int size = sqlite3_column_bytes(statement_, column);
-        const auto *value = static_cast<const std::uint8_t *>(sqlite3_column_blob(statement_, column));
-        if (sqlite3_column_type(statement_, column) != SQLITE_BLOB || !value || size < 1 || size > 8192)
+        const auto *value =
+            static_cast<const std::uint8_t *>(sqlite3_column_blob(statement_, column));
+        if (sqlite3_column_type(statement_, column) != SQLITE_BLOB || !value || size < 1 ||
+            size > 8192)
             throw std::runtime_error("Invalid stored binary field.");
         return {value, value + size};
     }

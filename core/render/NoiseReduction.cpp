@@ -111,10 +111,11 @@ NoiseReductionPass::NoiseReductionPass(const FloatImage &input, const DevelopPip
         checkCancellation(stop);
         for (int x = 0; x < width_; ++x) {
             const auto i = (static_cast<std::size_t>(y) * width_ + x) * 3;
-            const auto rgb = developedPixels.empty()
-                                 ? pipeline.pixel({input.rgb[i], input.rgb[i + 1], input.rgb[i + 2]})
-                                 : std::array{developedPixels[i], developedPixels[i + 1],
-                                              developedPixels[i + 2]};
+            const auto rgb =
+                developedPixels.empty()
+                    ? pipeline.pixel({input.rgb[i], input.rgb[i + 1], input.rgb[i + 2]})
+                    : std::array{developedPixels[i], developedPixels[i + 1],
+                                 developedPixels[i + 2]};
             for (auto value : rgb)
                 if (!std::isfinite(value))
                     throw std::runtime_error("Non-finite noise reduction pixel.");

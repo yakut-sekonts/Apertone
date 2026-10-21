@@ -19,11 +19,11 @@ MemoryPressureMonitor::MemoryPressureMonitor(std::function<void(MemoryPressure)>
         return;
     auto *state = state_.get();
     dispatch_source_set_event_handler(state_->source, ^{
-        const auto flags = dispatch_source_get_data(state->source);
-        const auto pressure = flags & DISPATCH_MEMORYPRESSURE_CRITICAL ? MemoryPressure::critical
-                              : flags & DISPATCH_MEMORYPRESSURE_WARN ? MemoryPressure::warning
+      const auto flags = dispatch_source_get_data(state->source);
+      const auto pressure = flags & DISPATCH_MEMORYPRESSURE_CRITICAL ? MemoryPressure::critical
+                            : flags & DISPATCH_MEMORYPRESSURE_WARN   ? MemoryPressure::warning
                                                                      : MemoryPressure::normal;
-        callback(pressure);
+      callback(pressure);
     });
     dispatch_resume(state_->source);
 }
@@ -32,7 +32,8 @@ MemoryPressureMonitor::~MemoryPressureMonitor() {
         dispatch_source_cancel(state_->source);
         // Destruction is on the owner thread. Drain queued handlers before the
         // state they capture is released.
-        dispatch_sync(state_->queue, ^{});
+        dispatch_sync(state_->queue, ^{
+                      });
     }
 }
 } // namespace luma::macos

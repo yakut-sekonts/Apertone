@@ -62,7 +62,8 @@ void set(CGMutableImageMetadataRef metadata, CFStringRef dictionary, CFStringRef
 } // namespace
 CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &source,
                                                    const ExportOptions &options, int width,
-                                                   int height, const std::optional<MetadataOverlay> &overlay) {
+                                                   int height,
+                                                   const std::optional<MetadataOverlay> &overlay) {
     CFHandle<CGMutableImageMetadataRef> result(CGImageMetadataCreateMutable());
     if (!result)
         throw std::runtime_error("Cannot allocate export metadata.");
@@ -80,7 +81,8 @@ CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &
         input.get(), CGImageSourceGetPrimaryImageIndex(input.get()), nullptr));
     if (overlay) {
         auto overridden = applyMetadataOverlay(metadata.get(), *overlay);
-        metadata = CFHandle<CGImageMetadataRef>(overridden ? static_cast<CGImageMetadataRef>(CFRetain(overridden.get())) : nullptr);
+        metadata = CFHandle<CGImageMetadataRef>(
+            overridden ? static_cast<CGImageMetadataRef>(CFRetain(overridden.get())) : nullptr);
     }
     if (metadata) {
         result =

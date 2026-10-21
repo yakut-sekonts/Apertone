@@ -26,9 +26,8 @@ class ISegmentationProvider {
     virtual ExecutionLocation location() const = 0;
     virtual bool supports(Selection selection) const = 0;
     // Point coordinates are normalized top-left image coordinates.
-    virtual BitmapMask segment(RgbaImage image, Selection selection,
-                                std::array<double, 2> point, CancellationToken stop,
-                                const Progress &progress = {}) = 0;
+    virtual BitmapMask segment(RgbaImage image, Selection selection, std::array<double, 2> point,
+                               CancellationToken stop, const Progress &progress = {}) = 0;
 };
 class IDenoiseProvider {
   public:
@@ -36,7 +35,7 @@ class IDenoiseProvider {
     virtual std::string identifier() const = 0;
     virtual ExecutionLocation location() const = 0;
     virtual FloatImage denoise(const FloatImage &linear, double amount, CancellationToken stop,
-                                const Progress &progress = {}) = 0;
+                               const Progress &progress = {}) = 0;
 };
 class IEmbeddingProvider {
   public:

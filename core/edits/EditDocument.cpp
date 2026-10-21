@@ -98,7 +98,8 @@ void EditDocument::validate() const {
     }
 }
 double EditDocument::parameter(std::string_view name) const {
-    if (isCreativeParameter(name)) return creative.parameter(name);
+    if (isCreativeParameter(name))
+        return creative.parameter(name);
     if (name.starts_with("transform."))
         return transform.parameter(name);
     if (name.starts_with("lens."))
@@ -140,12 +141,18 @@ void EditDocument::setParameters(const std::vector<std::pair<std::string, double
     *this = next;
 }
 Correction EditDocument::correction(std::string_view name) {
-    if (isCreativeParameter(name)) return static_cast<Correction>(creativeParameter(name).correction);
-    if (name == "presence") return Correction::presence;
-    if (name == "pointColor") return Correction::pointColor;
-    if (name == "grading") return Correction::grading;
-    if (name == "vignette") return Correction::vignette;
-    if (name == "grain") return Correction::grain;
+    if (isCreativeParameter(name))
+        return static_cast<Correction>(creativeParameter(name).correction);
+    if (name == "presence")
+        return Correction::presence;
+    if (name == "pointColor")
+        return Correction::pointColor;
+    if (name == "grading")
+        return Correction::grading;
+    if (name == "vignette")
+        return Correction::vignette;
+    if (name == "grain")
+        return Correction::grain;
     if (name == "transform")
         return Correction::transform;
     if (name.starts_with("transform.")) {

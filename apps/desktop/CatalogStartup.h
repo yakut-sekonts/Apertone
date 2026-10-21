@@ -21,14 +21,28 @@ class CatalogStartup final : public QObject {
     explicit CatalogStartup(QObject *parent = nullptr);
     ~CatalogStartup() override;
     bool prepare(const QString &path, bool allowCreate, bool interactive);
-    QString catalogPath() const { return catalogPath_; }
-    QString error() const { return error_; }
-    bool busy() const { return busy_; }
-    bool recoveryPending() const { return recoveryPending_; }
-    bool quitting() const { return quitting_; }
-    bool restorePhoto() const { return restorePhoto_; }
+    QString catalogPath() const {
+        return catalogPath_;
+    }
+    QString error() const {
+        return error_;
+    }
+    bool busy() const {
+        return busy_;
+    }
+    bool recoveryPending() const {
+        return recoveryPending_;
+    }
+    bool quitting() const {
+        return quitting_;
+    }
+    bool restorePhoto() const {
+        return restorePhoto_;
+    }
     QUrl backupFolder() const;
-    void markCleanExit() { cleanExit_ = true; }
+    void markCleanExit() {
+        cleanExit_ = true;
+    }
     static QString rememberedCatalog();
 
     Q_INVOKABLE void openCatalog(const QUrl &path);
@@ -39,6 +53,7 @@ class CatalogStartup final : public QObject {
   signals:
     void changed();
     void finished(bool accepted);
+
   private:
     enum class Operation { open, create, restore, initial };
     QString catalogPath_, error_, markerPath_;

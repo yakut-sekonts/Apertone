@@ -13,7 +13,9 @@ class DevelopPipeline {
     // basic[20], flags[2], parametric[4], HSL[24],
     // curve endpoint slopes[8], four 4097-sample PCHIP tables.
     std::vector<float> gpuParameters() const;
-    bool gpuCompatible() const { return !creativeColorActive_; }
+    bool gpuCompatible() const {
+        return !creativeColorActive_;
+    }
 
   private:
     bool creativeColorActive_ = false;

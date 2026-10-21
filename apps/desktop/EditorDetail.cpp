@@ -58,12 +58,16 @@ void EditorController::refreshDetailDiagnostic() {
         else if (detailControl_.startsWith(QStringLiteral("noise.color")))
             next = luma::DetailDiagnostic::noiseColor;
     }
-    auto clipping = static_cast<luma::ClippingPreview>((shadowClipping_ ? 1 : 0) | (highlightClipping_ ? 2 : 0));
+    auto clipping = static_cast<luma::ClippingPreview>((shadowClipping_ ? 1 : 0) |
+                                                       (highlightClipping_ ? 2 : 0));
     if (optionHeld_ && editable() && !original_ &&
-        (detailControl_ == QStringLiteral("whites") || detailControl_ == QStringLiteral("blacks")) &&
+        (detailControl_ == QStringLiteral("whites") ||
+         detailControl_ == QStringLiteral("blacks")) &&
         history_.current().enabled(luma::EditDocument::correction(detailControl_.toStdString())))
-        clipping = detailControl_ == QStringLiteral("whites") ? luma::ClippingPreview::highlights : luma::ClippingPreview::shadows;
-    if (next != luma::DetailDiagnostic::none) clipping = luma::ClippingPreview::none;
+        clipping = detailControl_ == QStringLiteral("whites") ? luma::ClippingPreview::highlights
+                                                              : luma::ClippingPreview::shadows;
+    if (next != luma::DetailDiagnostic::none)
+        clipping = luma::ClippingPreview::none;
     if (next == diagnostic_ && clipping == clippingPreview_)
         return;
     diagnostic_ = next;

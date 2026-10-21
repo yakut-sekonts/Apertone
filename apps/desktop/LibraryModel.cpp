@@ -28,7 +28,8 @@ LocalizedText summary(const luma::ImportSummary &result) {
 } // namespace
 LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     : QAbstractListModel(parent), catalog_(std::move(catalog)) {
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini", QSettings::IniFormat);
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
+                       QSettings::IniFormat);
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
     initializeMaintenance();
     filterTimer_.setSingleShot(true);
@@ -41,7 +42,9 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     const auto backupPolicy = static_cast<luma::BackupSchedule>(backupSchedule_);
     const int backupKeep = backupKeep_;
     const bool writeXMP = autoWriteXMP_;
-    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop, clearSemantic, backupPolicy, backupKeep, writeXMP](const auto &) {
+    writes_.submit(luma::JobPriority::background, [self, path, recoveryStop, clearSemantic,
+                                                   backupPolicy, backupKeep,
+                                                   writeXMP](const auto &) {
         QString error, report;
         std::vector<luma::ImportSummary> recovered;
         try {
@@ -49,7 +52,8 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
                 luma::Catalog(path).clearSemanticIndex();
             recovered = luma::LibraryService(path).recover(recoveryStop);
             luma::BackupService(path).run(backupPolicy, backupKeep, false, recoveryStop);
-            if (writeXMP) luma::MetadataService(path).writePendingSidecars(recoveryStop);
+            if (writeXMP)
+                luma::MetadataService(path).writePendingSidecars(recoveryStop);
             if (!recovered.empty())
                 report = ::importReport(path, recovered.back());
         } catch (const std::exception &e) {
@@ -93,10 +97,10 @@ int LibraryModel::rowCount(const QModelIndex &parent) const {
     return parent.isValid() ? 0 : count_;
 }
 QHash<int, QByteArray> LibraryModel::roleNames() const {
-    return {{AssetID, "assetID"},        {Filename, "filename"}, {Path, "pathURL"},
-            {Thumbnail, "thumbnailURL"}, {Rating, "rating"},     {Flag, "flagValue"},
-            {Label, "colorLabel"},       {Camera, "cameraName"}, {Selected, "selected"},
-            {Active, "activePhoto"}, {Missing, "sourceMissing"}};
+    return {{AssetID, "assetID"},        {Filename, "filename"},    {Path, "pathURL"},
+            {Thumbnail, "thumbnailURL"}, {Rating, "rating"},        {Flag, "flagValue"},
+            {Label, "colorLabel"},       {Camera, "cameraName"},    {Selected, "selected"},
+            {Active, "activePhoto"},     {Missing, "sourceMissing"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -174,7 +178,8 @@ void LibraryModel::page(int number) {
                     return;
                 rows = luma::Catalog(path).libraryPage(filter, number * pageSize, pageSize);
                 for (auto &item : rows) {
-                    if (context.stopToken().isCancelled()) return;
+                    if (context.stopToken().isCancelled())
+                        return;
                     std::error_code error;
                     item.missing = !std::filesystem::exists(item.path, error) && !error;
                 }
@@ -253,7 +258,8 @@ void LibraryModel::reload(bool clear) {
                 anchorRow = static_cast<int>(*index);
             for (const auto &c : db.collections())
                 collections.push_back(QVariantMap{{"id", QString::fromStdString(c.id)},
-                                                  {"name", QString::fromStdString(c.name)}, {"smart",c.smart},
+                                                  {"name", QString::fromStdString(c.name)},
+                                                  {"smart", c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
         } catch (const std::exception &e) {
             count = 0;
@@ -412,7 +418,7 @@ void LibraryModel::setExternalBusy(bool busy) {
     emit stateChanged();
 }
 void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
-                           std::function<bool()> updateView, bool syncXMP) {
+                          std::function<bool()> updateView, bool syncXMP) {
     if (working())
         return;
     writing_ = true;
@@ -424,36 +430,39 @@ void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
     const auto refresh = std::make_shared<std::function<bool()>>(std::move(updateView));
     const bool writeXMP = autoWriteXMP_ && syncXMP;
     const auto stop = importCancellation_.token();
-    writes_.submit(luma::JobPriority::background, [self, path, operation, refresh, writeXMP, stop](const auto &) {
-        QString error;
-        try {
-            luma::Catalog db(path);
-            (*operation)(db);
-            if (writeXMP) luma::MetadataService(path).writePendingSidecars(stop);
-        } catch (const std::exception &e) {
-            error = QString::fromUtf8(e.what());
-        }
-        if (self)
-            QMetaObject::invokeMethod(
-                self,
-                [self, error, refresh] {
-                    if (!self)
-                        return;
-                    self->writing_ = false;
-                    self->error_ = error;
-                    if (!error.isEmpty() || !*refresh || !(*refresh)())
-                        self->reload(false);
-                    emit self->stateChanged();
-                    self->checkClose();
-                },
-                Qt::QueuedConnection);
-    });
+    writes_.submit(luma::JobPriority::background,
+                   [self, path, operation, refresh, writeXMP, stop](const auto &) {
+                       QString error;
+                       try {
+                           luma::Catalog db(path);
+                           (*operation)(db);
+                           if (writeXMP)
+                               luma::MetadataService(path).writePendingSidecars(stop);
+                       } catch (const std::exception &e) {
+                           error = QString::fromUtf8(e.what());
+                       }
+                       if (self)
+                           QMetaObject::invokeMethod(
+                               self,
+                               [self, error, refresh] {
+                                   if (!self)
+                                       return;
+                                   self->writing_ = false;
+                                   self->error_ = error;
+                                   if (!error.isEmpty() || !*refresh || !(*refresh)())
+                                       self->reload(false);
+                                   emit self->stateChanged();
+                                   self->checkClose();
+                               },
+                               Qt::QueuedConnection);
+                   });
 }
 bool LibraryModel::refreshMetadata(const std::vector<std::string> &ids, int role,
                                    const QVariant &value) {
     // Membership/order must remain stable. A pending filter/selection needs its
     // normal reload, and a matching metadata filter may remove changed assets.
-    if (std::any_of(collections_.begin(),collections_.end(),[](const QVariant &v){return v.toMap().value("smart").toBool();}) ||
+    if (std::any_of(collections_.begin(), collections_.end(),
+                    [](const QVariant &v) { return v.toMap().value("smart").toBool(); }) ||
         loading_ || selecting_ || filterTimer_.isActive() ||
         !std::is_sorted(ids.begin(), ids.end()) ||
         (role != Rating && role != Flag && role != Label) ||
@@ -547,10 +556,12 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
     options.destination = destination.toLocalFile().toStdString();
     options.recursive = recursive;
     options.skipDuplicates = skipDuplicates;
-    startImport(std::move(sources),std::move(options));
+    startImport(std::move(sources), std::move(options));
 }
-bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,luma::ImportOptions options) {
-    if(working())return false;
+bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,
+                               luma::ImportOptions options) {
+    if (working())
+        return false;
     importReport_.clear();
     importing_ = true;
     progress_ = 0;
@@ -562,58 +573,62 @@ bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,luma::
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
     try {
-    imports_.submit(luma::JobPriority::background, [self, path, sources, options,
-                                                    stop](const auto &) {
-        QString error, report;
-        LocalizedText message;
-        auto last = std::chrono::steady_clock::now();
-        try {
-            const auto update = [self, &last](double value, const std::string &name) {
-                const auto now = std::chrono::steady_clock::now();
-                if (value < 1 && now - last < std::chrono::milliseconds(100))
-                    return;
-                last = now;
+        imports_.submit(
+            luma::JobPriority::background, [self, path, sources, options, stop](const auto &) {
+                QString error, report;
+                LocalizedText message;
+                auto last = std::chrono::steady_clock::now();
+                try {
+                    const auto update = [self, &last](double value, const std::string &name) {
+                        const auto now = std::chrono::steady_clock::now();
+                        if (value < 1 && now - last < std::chrono::milliseconds(100))
+                            return;
+                        last = now;
+                        if (self)
+                            QMetaObject::invokeMethod(
+                                self,
+                                [self, value, name] {
+                                    if (!self)
+                                        return;
+                                    self->progress_ = value;
+                                    self->status_ = LocalizedText(QStringLiteral("Importing %1"))
+                                                        .arg(QString::fromStdString(name));
+                                    emit self->stateChanged();
+                                },
+                                Qt::QueuedConnection);
+                    };
+                    const auto result =
+                        luma::LibraryService(path).import(sources, options, stop, update);
+                    message = summary(result);
+                    report = ::importReport(path, result);
+                } catch (const std::exception &e) {
+                    if (stop.isCancelled())
+                        message = QStringLiteral("Import cancelled");
+                    else
+                        error = QString::fromUtf8(e.what());
+                }
                 if (self)
                     QMetaObject::invokeMethod(
                         self,
-                        [self, value, name] {
+                        [self, error, message, report] {
                             if (!self)
                                 return;
-                            self->progress_ = value;
-                            self->status_ = LocalizedText(QStringLiteral("Importing %1"))
-                                                .arg(QString::fromStdString(name));
+                            self->importing_ = false;
+                            self->error_ = error;
+                            self->status_ = message;
+                            self->importReport_ = report;
+                            self->reload(false);
                             emit self->stateChanged();
+                            self->checkClose();
                         },
                         Qt::QueuedConnection);
-            };
-            const auto result = luma::LibraryService(path).import(sources, options, stop, update);
-            message = summary(result);
-            report = ::importReport(path, result);
-        } catch (const std::exception &e) {
-            if (stop.isCancelled())
-                message = QStringLiteral("Import cancelled");
-            else
-                error = QString::fromUtf8(e.what());
-        }
-        if (self)
-            QMetaObject::invokeMethod(
-                self,
-                [self, error, message, report] {
-                    if (!self)
-                        return;
-                    self->importing_ = false;
-                    self->error_ = error;
-                    self->status_ = message;
-                    self->importReport_ = report;
-                    self->reload(false);
-                    emit self->stateChanged();
-                    self->checkClose();
-                },
-                Qt::QueuedConnection);
-    });
-    return true;
-    } catch(const std::exception &failure) {
-        importing_=false;error_=QString::fromUtf8(failure.what());emit stateChanged();return false;
+            });
+        return true;
+    } catch (const std::exception &failure) {
+        importing_ = false;
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+        return false;
     }
 }
 void LibraryModel::cancelImport() {

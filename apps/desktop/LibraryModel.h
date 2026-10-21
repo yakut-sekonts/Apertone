@@ -3,8 +3,8 @@
 #include "apps/shared/LibraryService.h"
 #include "core/jobs/JobManager.h"
 #include <QAbstractListModel>
-#include <QSet>
 #include <QFileSystemWatcher>
+#include <QSet>
 #include <QTimer>
 #include <QUrl>
 #include <QVariantList>
@@ -69,10 +69,18 @@ class LibraryModel final : public QAbstractListModel {
         return selecting_;
     }
     void setExternalBusy(bool busy);
-    QVariantMap descriptiveMetadata() const { return descriptiveMetadata_; }
-    int backupSchedule() const { return backupSchedule_; }
-    int backupKeep() const { return backupKeep_; }
-    bool autoWriteXMP() const { return autoWriteXMP_; }
+    QVariantMap descriptiveMetadata() const {
+        return descriptiveMetadata_;
+    }
+    int backupSchedule() const {
+        return backupSchedule_;
+    }
+    int backupKeep() const {
+        return backupKeep_;
+    }
+    bool autoWriteXMP() const {
+        return autoWriteXMP_;
+    }
     void setBackupSchedule(int value);
     void setBackupKeep(int value);
     void setAutoWriteXMP(bool value);
@@ -90,7 +98,8 @@ class LibraryModel final : public QAbstractListModel {
     std::vector<std::string> selectionIDs() const;
     Q_INVOKABLE QStringList selectedAssetIDs() const {
         QStringList result;
-        for (const auto &id : selectionIDs()) result.append(QString::fromStdString(id));
+        for (const auto &id : selectionIDs())
+            result.append(QString::fromStdString(id));
         return result;
     }
     bool importing() const {
@@ -114,12 +123,24 @@ class LibraryModel final : public QAbstractListModel {
     QVariantList collections() const {
         return collections_;
     }
-    bool semanticEnabled() const { return semanticEnabled_; }
-    bool semanticBusy() const { return semanticBusy_; }
-    double semanticProgress() const { return semanticProgress_; }
-    QString semanticStatus() const { return semanticStatus_.text(); }
-    QString semanticError() const { return semanticError_; }
-    QVariantList semanticResults() const { return semanticResults_; }
+    bool semanticEnabled() const {
+        return semanticEnabled_;
+    }
+    bool semanticBusy() const {
+        return semanticBusy_;
+    }
+    double semanticProgress() const {
+        return semanticProgress_;
+    }
+    QString semanticStatus() const {
+        return semanticStatus_.text();
+    }
+    QString semanticError() const {
+        return semanticError_;
+    }
+    QVariantList semanticResults() const {
+        return semanticResults_;
+    }
     Q_INVOKABLE void buildSemanticIndex();
     Q_INVOKABLE void searchSemantic(const QString &query);
     Q_INVOKABLE void cancelSemantic();
@@ -142,16 +163,18 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void rate(int value);
     Q_INVOKABLE void flag(int value);
     Q_INVOKABLE void label(const QString &value);
-    Q_INVOKABLE void editSmartCollection(const QString &id,const QString &name);
-    Q_INVOKABLE void saveSmartCollection(const QString &id,const QString &name,const QString &revision,const QVariantMap &rule);
+    Q_INVOKABLE void editSmartCollection(const QString &id, const QString &name);
+    Q_INVOKABLE void saveSmartCollection(const QString &id, const QString &name,
+                                         const QString &revision, const QVariantMap &rule);
     Q_INVOKABLE void createCollection(const QString &name);
     Q_INVOKABLE void renameCollection(const QString &id, const QString &name);
     Q_INVOKABLE void deleteCollection(const QString &id);
     Q_INVOKABLE void collectionMembership(const QString &id, bool add);
     QVariantList importMetadataPresets() const;
-    Q_INVOKABLE bool saveImportMetadataPreset(const QString &name,const QVariantMap &values);
+    Q_INVOKABLE bool saveImportMetadataPreset(const QString &name, const QVariantMap &values);
     Q_INVOKABLE bool removeImportMetadataPreset(const QString &name);
-    Q_INVOKABLE bool importAdvanced(const QList<QUrl> &sources,const QVariantMap &settings,const QString &developPreset);
+    Q_INVOKABLE bool importAdvanced(const QList<QUrl> &sources, const QVariantMap &settings,
+                                    const QString &developPreset);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE void cancelImport();
@@ -163,10 +186,11 @@ class LibraryModel final : public QAbstractListModel {
     void openRequested(const QUrl &url);
     void closeReady();
     void metadataChanged();
-    void smartCollectionReady(const QString &id,const QString &name,const QString &revision,const QVariantMap &rule);
+    void smartCollectionReady(const QString &id, const QString &name, const QString &revision,
+                              const QVariantMap &rule);
 
   private:
-    bool startImport(std::vector<std::filesystem::path> sources,luma::ImportOptions options);
+    bool startImport(std::vector<std::filesystem::path> sources, luma::ImportOptions options);
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
     luma::JobManager semanticJobs_;
@@ -207,7 +231,8 @@ class LibraryModel final : public QAbstractListModel {
     void reload(bool clear);
     void selectionChanged();
     void selectRange(int offset, int length, bool toggle);
-    void mutate(std::function<void(luma::Catalog &)> work, std::function<bool()> updateView = {}, bool syncXMP = false);
+    void mutate(std::function<void(luma::Catalog &)> work, std::function<bool()> updateView = {},
+                bool syncXMP = false);
     bool refreshMetadata(const std::vector<std::string> &ids, int role, const QVariant &value);
     void checkClose();
 };

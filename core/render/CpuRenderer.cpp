@@ -5,11 +5,11 @@
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
 #include "core/lens/LensCorrection.h"
+#include "core/render/CreativeColor.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
-#include "core/render/Presence.h"
-#include "core/render/CreativeColor.h"
 #include "core/render/NoiseReduction.h"
+#include "core/render/Presence.h"
 #include "core/render/RetouchPass.h"
 #include <algorithm>
 #include <cmath>
@@ -87,9 +87,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
                                  DetailDiagnostic diagnostic, double detailScale,
                                  PhotoMetadata metadata, MaskOverlay overlay
 #if !defined(LUMA_UX_CPU_RENDER_ROWS)
-                                 , DevelopAccelerator *accelerator, PreviewAnalysisOptions analysis
+                                 ,
+                                 DevelopAccelerator *accelerator, PreviewAnalysisOptions analysis
 #endif
-                                 ) {
+) {
 #if defined(LUMA_UX_CPU_RENDER_ROWS)
     const PreviewAnalysisOptions analysis{};
 #endif
@@ -112,8 +113,10 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
         result.histogram.emplace();
         histogramGrid.emplace(width, height);
     }
-    const auto clipping = diagnostic == DetailDiagnostic::none ? analysis.clipping : ClippingPreview::none;
-    std::vector<std::uint8_t> rowClipping(clipping == ClippingPreview::none ? 0 : static_cast<std::size_t>(width));
+    const auto clipping =
+        diagnostic == DetailDiagnostic::none ? analysis.clipping : ClippingPreview::none;
+    std::vector<std::uint8_t> rowClipping(
+        clipping == ClippingPreview::none ? 0 : static_cast<std::size_t>(width));
     const double sourceAspect = metadata.width > 0 && metadata.height > 0
                                     ? static_cast<double>(metadata.width) / metadata.height
                                     : static_cast<double>(input.width) / input.height;
@@ -133,24 +136,26 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     if (!developedPixels.empty() && developedPixels.size() != input.rgb.size())
         throw std::runtime_error("Invalid accelerated Develop buffer.");
     const NoiseReductionPass noise(input, pipeline, edits, stop, detailScale, diagnostic, {},
-                                    developedPixels);
+                                   developedPixels);
     const SharpeningPass sharpening(input, pipeline, edits, stop, detailScale, diagnostic, {},
                                     &noise, developedPixels);
     const auto detailPixel = [&](int sx, int sy) {
         const auto offset = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
         const auto developed =
-            noise.active()
-                ? noise.pixel({}, sx, sy)
-                : !developedPixels.empty()
-                    ? std::array{developedPixels[offset], developedPixels[offset + 1],
-                                 developedPixels[offset + 2]}
-                    : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
+            noise.active() ? noise.pixel({}, sx, sy)
+            : !developedPixels.empty()
+                ? std::array{developedPixels[offset], developedPixels[offset + 1],
+                             developedPixels[offset + 2]}
+                : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1], input.rgb[offset + 2]});
         return sharpening.pixel(developed, sx, sy);
     };
     auto presenceEdits = edits;
-    if (diagnostic != DetailDiagnostic::none) presenceEdits.setEnabled(Correction::presence, false);
+    if (diagnostic != DetailDiagnostic::none)
+        presenceEdits.setEnabled(Correction::presence, false);
     const PresencePass presence(input, presenceEdits, detailPixel, stop, detailScale);
-    const auto referencePixel = [&](int x, int y) { return presence.pixel(detailPixel(x,y),x,y); };
+    const auto referencePixel = [&](int x, int y) {
+        return presence.pixel(detailPixel(x, y), x, y);
+    };
     auto referenceEdits = edits;
     referenceEdits.setEnabled(Correction::pointColor, false);
     referenceEdits.setEnabled(Correction::grading, false);
@@ -171,7 +176,8 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
             });
             const bool histogramSample = histogramGrid && histogramGrid->contains(x, y);
             float coverage = 1.F;
-            if ((histogramSample || !rowClipping.empty()) && !geometry.opaque() && !geometry.covered(x, y))
+            if ((histogramSample || !rowClipping.empty()) && !geometry.opaque() &&
+                !geometry.covered(x, y))
                 coverage = 0.F;
             if (!input.alpha.empty()) {
                 const auto alpha = geometry.sample(x, y, [&](int sx, int sy) {
@@ -184,18 +190,21 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
             }
             if (diagnostic == DetailDiagnostic::none)
                 rgb = applyOutputEffects(rgb, edits, x, y, width, height, detailScale);
-            if (histogramSample) result.histogram->add(rgb, coverage);
+            if (histogramSample)
+                result.histogram->add(rgb, coverage);
             if (!rowClipping.empty())
                 rowClipping[static_cast<std::size_t>(x)] = coverage > 0 ? clippingFlags(rgb) : 0;
             if (analysis.pointColorRange && diagnostic == DetailDiagnostic::none) {
-                const auto range = geometry.sample(x,y,[&](int sx,int sy) {
-                    const auto i=(static_cast<std::size_t>(sy)*input.width+sx)*3;
-                    const auto color=pointReference.pixel({input.rgb[i],input.rgb[i+1],input.rgb[i+2]});
-                    const auto a=input.coverage(sx,sy);
-                    return std::array{static_cast<float>(pointColorWeight(color,edits.creative))*a,a,0.F};
+                const auto range = geometry.sample(x, y, [&](int sx, int sy) {
+                    const auto i = (static_cast<std::size_t>(sy) * input.width + sx) * 3;
+                    const auto color =
+                        pointReference.pixel({input.rgb[i], input.rgb[i + 1], input.rgb[i + 2]});
+                    const auto a = input.coverage(sx, sy);
+                    return std::array{
+                        static_cast<float>(pointColorWeight(color, edits.creative)) * a, a, 0.F};
                 });
-                const float weight=range[1]>1e-8F?range[0]/range[1]:0;
-                rgb={weight,weight,weight};
+                const float weight = range[1] > 1e-8F ? range[0] / range[1] : 0;
+                rgb = {weight, weight, weight};
             }
             for (std::size_t c = 0; c < 3; ++c)
                 row[static_cast<std::size_t>(x) * 3 + c] = rgb[c];
@@ -241,9 +250,11 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
             }
         if (!rowClipping.empty())
             for (int x = 0; x < width; ++x) {
-                const auto flags = rowClipping[static_cast<std::size_t>(x)] & static_cast<std::uint8_t>(clipping);
+                const auto flags =
+                    rowClipping[static_cast<std::size_t>(x)] & static_cast<std::uint8_t>(clipping);
                 const auto offset = static_cast<std::size_t>(x) * 4;
-                if (!flags || destination[offset + 3] == 0) continue;
+                if (!flags || destination[offset + 3] == 0)
+                    continue;
                 // UI overlay colors, applied after ICC and mask overlays. Alpha
                 // and the clean histogram are preserved; exports opt out.
                 destination[offset] = flags & 2 ? 255 : 32;

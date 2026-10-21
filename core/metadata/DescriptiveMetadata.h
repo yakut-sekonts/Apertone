@@ -9,10 +9,12 @@ struct DescriptiveMetadata {
     std::string title, caption, copyright, location;
     std::vector<std::string> creators, keywords;
     int rating = 0;
-    int flag = 0; // Library Reject (-1), Unflagged (0), Pick (1).
+    int flag = 0;      // Library Reject (-1), Unflagged (0), Pick (1).
     std::string label; // Exact XMP text, not restricted to Library color tokens.
     std::string colorLabel() const;
-    int xmpRating() const { return flag == -1 ? -1 : rating; }
+    int xmpRating() const {
+        return flag == -1 ? -1 : rating;
+    }
     void validate() const;
     bool operator==(const DescriptiveMetadata &) const = default;
 };
@@ -25,5 +27,8 @@ struct MetadataSnapshot {
     bool initialized = false;
     std::string readError;
 };
-struct MetadataOverlay { DescriptiveMetadata values; bool includeText = false; };
-}
+struct MetadataOverlay {
+    DescriptiveMetadata values;
+    bool includeText = false;
+};
+} // namespace luma

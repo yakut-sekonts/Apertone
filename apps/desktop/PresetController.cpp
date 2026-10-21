@@ -203,6 +203,10 @@ void PresetController::pasteSettings() {
 }
 
 QString PresetController::importSnapshot(const QString &id) {
-    try {return QString::fromUtf8(luma::encodePreset(find(id)));}
-    catch(const std::exception &error){failure(error);return {}; }
+    try {
+        return QString::fromUtf8(luma::encodePreset(find(id)));
+    } catch (const std::exception &error) {
+        failure(error);
+        return {};
+    }
 }

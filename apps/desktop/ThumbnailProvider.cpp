@@ -66,10 +66,11 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
     const auto &asset = snapshot->asset;
     const auto encoded =
         luma::encodePreset({"Thumbnail", {}, asset.edits, luma::allSettingsGroups});
-    const auto identity = QByteArray::fromStdString(asset.checksum) + "|" +
-                          QByteArray::number(snapshot->revision) + "|" + encoded + "|local-v2|" +
-                          QByteArray::fromStdString(luma::encodeLocalMasks(asset.edits.localMasks)) +
-                          "|retouch-v1|" + QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
+    const auto identity =
+        QByteArray::fromStdString(asset.checksum) + "|" + QByteArray::number(snapshot->revision) +
+        "|" + encoded + "|local-v2|" +
+        QByteArray::fromStdString(luma::encodeLocalMasks(asset.edits.localMasks)) + "|retouch-v1|" +
+        QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     const auto directory =
         catalog.parent_path() / (catalog.filename().string() + ".luma-cache") / "thumbnails";

@@ -2,14 +2,14 @@
 #include "apps/desktop/LocalizedText.h"
 #include "apps/desktop/PreviewProvider.h"
 #include "apps/shared/SessionService.h"
+#include "core/ai/Providers.h"
 #include "core/edits/EditHistory.h"
 #include "core/jobs/JobManager.h"
 #include "core/render/CropGeometry.h"
+#include "core/render/DevelopAccelerator.h"
 #include "core/render/LocalAdjustments.h"
 #include "core/render/PerspectiveCorrection.h"
 #include "core/render/Sharpening.h"
-#include "core/render/DevelopAccelerator.h"
-#include "core/ai/Providers.h"
 #include "platform/macos/MemoryPressure.h"
 #include <QObject>
 #include <QQuickWindow>
@@ -65,11 +65,14 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
     Q_PROPERTY(QVariantList creativeParameters READ creativeParameters CONSTANT)
     Q_PROPERTY(bool creativeBusy READ creativeBusy NOTIFY stateChanged)
-    Q_PROPERTY(bool pointColorPicking READ pointColorPicking WRITE setPointColorPicking NOTIFY stateChanged)
-    Q_PROPERTY(bool pointColorRange READ pointColorRange WRITE setPointColorRange NOTIFY stateChanged)
+    Q_PROPERTY(bool pointColorPicking READ pointColorPicking WRITE setPointColorPicking NOTIFY
+                   stateChanged)
+    Q_PROPERTY(
+        bool pointColorRange READ pointColorRange WRITE setPointColorRange NOTIFY stateChanged)
     Q_PROPERTY(bool pointColorCanvasReady READ pointColorCanvasReady NOTIFY stateChanged)
     Q_PROPERTY(bool whiteBalanceBusy READ whiteBalanceBusy NOTIFY stateChanged)
-    Q_PROPERTY(bool whiteBalancePicking READ whiteBalancePicking WRITE setWhiteBalancePicking NOTIFY stateChanged)
+    Q_PROPERTY(bool whiteBalancePicking READ whiteBalancePicking WRITE setWhiteBalancePicking NOTIFY
+                   stateChanged)
     Q_PROPERTY(bool whiteBalanceCanvasReady READ whiteBalanceCanvasReady NOTIFY stateChanged)
     Q_PROPERTY(QString whiteBalanceMessage READ whiteBalanceMessage NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
@@ -95,7 +98,8 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY stateChanged)
     Q_PROPERTY(bool oneToOne READ oneToOne WRITE setOneToOne NOTIFY stateChanged)
     Q_PROPERTY(QSize previewPixelSize READ previewPixelSize NOTIFY stateChanged)
-    Q_PROPERTY(int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
+    Q_PROPERTY(
+        int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
     Q_PROPERTY(bool metalPreview READ metalPreview WRITE setMetalPreview NOTIFY stateChanged)
     Q_PROPERTY(bool aiBusy READ aiBusy NOTIFY stateChanged)
     Q_PROPERTY(bool aiObjectPicking READ aiObjectPicking NOTIFY stateChanged)
@@ -121,7 +125,8 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantMap histogram READ histogram NOTIFY histogramChanged)
     Q_PROPERTY(bool histogramPending READ histogramPending NOTIFY histogramChanged)
     Q_PROPERTY(bool shadowClipping READ shadowClipping WRITE setShadowClipping NOTIFY stateChanged)
-    Q_PROPERTY(bool highlightClipping READ highlightClipping WRITE setHighlightClipping NOTIFY stateChanged)
+    Q_PROPERTY(bool highlightClipping READ highlightClipping WRITE setHighlightClipping NOTIFY
+                   stateChanged)
     Q_PROPERTY(int previewClipping READ previewClipping NOTIFY stateChanged)
 
   public:
@@ -304,31 +309,52 @@ class EditorController final : public QObject {
     }
     void setOneToOne(bool value);
     QSize previewPixelSize() const;
-    int previewCacheMiB() const { return previewCacheMiB_; }
+    int previewCacheMiB() const {
+        return previewCacheMiB_;
+    }
     void setPreviewCacheMiB(int value);
-    bool metalPreview() const { return metalPreview_; }
+    bool metalPreview() const {
+        return metalPreview_;
+    }
     void setMetalPreview(bool value);
-    bool aiBusy() const { return aiBusy_; }
-    bool aiObjectPicking() const { return aiObjectPicking_; }
-    double aiProgress() const { return aiProgress_; }
-    QString aiOperation() const { return aiOperation_; }
+    bool aiBusy() const {
+        return aiBusy_;
+    }
+    bool aiObjectPicking() const {
+        return aiObjectPicking_;
+    }
+    double aiProgress() const {
+        return aiProgress_;
+    }
+    QString aiOperation() const {
+        return aiOperation_;
+    }
     Q_INVOKABLE void mergeHDRPhotos(const QStringList &ids, double deghost = 50);
-    Q_INVOKABLE void mergePanoramaPhotos(const QStringList &ids, int projection, double fieldOfView, bool boundaryWarp = false);
+    Q_INVOKABLE void mergePanoramaPhotos(const QStringList &ids, int projection, double fieldOfView,
+                                         bool boundaryWarp = false);
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
     Q_INVOKABLE void beginAIObjectSelection();
     Q_INVOKABLE void cancelAI();
     QString denoiseModelName() const;
-    bool denoiseModelConfigured() const { return !denoiseModelPath_.isEmpty(); }
+    bool denoiseModelConfigured() const {
+        return !denoiseModelPath_.isEmpty();
+    }
     bool denoiseModelBundled() const;
     Q_INVOKABLE void setDenoiseModel(const QUrl &url);
     QString skyModelName() const;
-    bool skyModelConfigured() const { return !skyModelPath_.isEmpty(); }
+    bool skyModelConfigured() const {
+        return !skyModelPath_.isEmpty();
+    }
     bool skyModelBundled() const;
     Q_INVOKABLE void setSkyModel(const QUrl &url);
     Q_INVOKABLE void denoisePhoto(double amount = 100);
-    QString retouchMode() const { return retouchMode_; }
+    QString retouchMode() const {
+        return retouchMode_;
+    }
     void setRetouchMode(const QString &mode);
-    bool retouchBusy() const { return retouchBusy_; }
+    bool retouchBusy() const {
+        return retouchBusy_;
+    }
     QVariantMap retouchState() const;
     QVariantList retouchItems() const;
     QVariantMap retouchOverlay() const;
@@ -347,11 +373,21 @@ class EditorController final : public QObject {
                 renderedCache_->statistics()};
     }
     QString catalogPath() const;
-    QVariantList processingVersions() const { return processingVersions_; }
-    bool versionsBusy() const { return versionsBusy_; }
-    QString versionsError() const { return versionsError_; }
-    QString versionsStatus() const { return versionsStatus_.text(); }
-    QString selectedVersionID() const { return selectedVersionID_; }
+    QVariantList processingVersions() const {
+        return processingVersions_;
+    }
+    bool versionsBusy() const {
+        return versionsBusy_;
+    }
+    QString versionsError() const {
+        return versionsError_;
+    }
+    QString versionsStatus() const {
+        return versionsStatus_.text();
+    }
+    QString selectedVersionID() const {
+        return selectedVersionID_;
+    }
     Q_INVOKABLE void refreshVersions();
     Q_INVOKABLE void saveVersion(const QString &name);
     Q_INVOKABLE void restoreVersion(const QString &id, const QString &revision);
@@ -359,16 +395,28 @@ class EditorController final : public QObject {
     Q_INVOKABLE void deleteVersion(const QString &id, const QString &revision);
     QVariantList processingHistory() const;
     QString historyRevision() const;
-    QString historyError() const { return historyError_; }
+    QString historyError() const {
+        return historyError_;
+    }
     Q_INVOKABLE void prepareHistory();
     Q_INVOKABLE void jumpToHistory(const QString &id);
     Q_INVOKABLE void clearHistory(const QString &revision);
     Q_INVOKABLE void saveHistoryVersion(const QString &id, const QString &name);
-    QVariantMap histogram() const { return histogram_; }
-    bool histogramPending() const { return histogramPending_; }
-    bool shadowClipping() const { return shadowClipping_; }
-    bool highlightClipping() const { return highlightClipping_; }
-    int previewClipping() const { return static_cast<int>(clippingPreview_); }
+    QVariantMap histogram() const {
+        return histogram_;
+    }
+    bool histogramPending() const {
+        return histogramPending_;
+    }
+    bool shadowClipping() const {
+        return shadowClipping_;
+    }
+    bool highlightClipping() const {
+        return highlightClipping_;
+    }
+    int previewClipping() const {
+        return static_cast<int>(clippingPreview_);
+    }
     void setShadowClipping(bool value);
     void setHighlightClipping(bool value);
     Q_INVOKABLE bool beginHistogramEdit(const QString &parameter);
@@ -403,25 +451,39 @@ class EditorController final : public QObject {
     Q_INVOKABLE void setParameter(const QString &name, double value);
     Q_INVOKABLE void setCorrectionEnabled(const QString &name, bool enabled);
     Q_INVOKABLE void setWhiteBalancePreset(const QString &name);
-    bool whiteBalanceBusy() const { return whiteBalanceBusy_; }
-    bool whiteBalancePicking() const { return whiteBalancePicking_; }
+    bool whiteBalanceBusy() const {
+        return whiteBalanceBusy_;
+    }
+    bool whiteBalancePicking() const {
+        return whiteBalancePicking_;
+    }
     bool whiteBalanceCanvasReady() const {
         return whiteBalancePicking_ && whiteBalanceCanvasReady_ && !whiteBalanceBusy_ && !busy();
     }
-    QString whiteBalanceMessage() const { return whiteBalanceMessage_.text(); }
+    QString whiteBalanceMessage() const {
+        return whiteBalanceMessage_.text();
+    }
     void setWhiteBalancePicking(bool enabled);
     QVariantList creativeParameters() const;
-    bool creativeBusy() const { return creativeBusy_; }
-    bool pointColorPicking() const { return pointColorPicking_; }
-    bool pointColorRange() const { return pointColorRange_; }
-    bool pointColorCanvasReady() const { return pointColorPicking_ && pointColorCanvasReady_ && !creativeBusy_ && !busy(); }
+    bool creativeBusy() const {
+        return creativeBusy_;
+    }
+    bool pointColorPicking() const {
+        return pointColorPicking_;
+    }
+    bool pointColorRange() const {
+        return pointColorRange_;
+    }
+    bool pointColorCanvasReady() const {
+        return pointColorPicking_ && pointColorCanvasReady_ && !creativeBusy_ && !busy();
+    }
     void setPointColorPicking(bool value);
     void setPointColorRange(bool value);
     QVariantMap comparison() const;
     Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
     Q_INVOKABLE void closeCompare();
     Q_INVOKABLE void autoAdjust();
-    Q_INVOKABLE void samplePointColor(double x,double y);
+    Q_INVOKABLE void samplePointColor(double x, double y);
     Q_INVOKABLE void cancelCreative();
     Q_INVOKABLE void autoWhiteBalance();
     Q_INVOKABLE void sampleWhiteBalance(double x, double y);
@@ -450,8 +512,9 @@ class EditorController final : public QObject {
     bool versionsBusy_ = false;
     QString versionsError_, selectedVersionID_;
     LocalizedText versionsStatus_;
-    void runVersionAction(VersionAction action, const QString &id = {}, const QString &revision = {},
-                          const QString &name = {}, std::optional<luma::EditDocument> snapshot = std::nullopt);
+    void runVersionAction(VersionAction action, const QString &id = {},
+                          const QString &revision = {}, const QString &name = {},
+                          std::optional<luma::EditDocument> snapshot = std::nullopt);
     void finishHistoryTools();
     QString historyHandle(std::uint64_t id) const;
     std::optional<std::uint64_t> resolveHistoryHandle(const QString &id) const;
@@ -461,11 +524,16 @@ class EditorController final : public QObject {
     bool histogramPending_ = false, shadowClipping_ = false, highlightClipping_ = false;
     luma::ClippingPreview clippingPreview_ = luma::ClippingPreview::none;
     void publishHistogram(const std::optional<luma::ImageHistogram> &histogram);
-    struct HistogramGesture { QString parameter; double initial; std::uint64_t revision; };
+    struct HistogramGesture {
+        QString parameter;
+        double initial;
+        std::uint64_t revision;
+    };
     std::optional<HistogramGesture> histogramGesture_;
     void runMerge(const QString &operation,
                   std::function<std::filesystem::path(luma::CancellationToken,
-                      const std::function<void(double)> &)> work);
+                                                      const std::function<void(double)> &)>
+                      work);
     bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
     QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
     double localOverlayOpacity_ = 0.45;
@@ -534,8 +602,9 @@ class EditorController final : public QObject {
     luma::JobManager creativeJobs_;
     luma::JobHandle creativeJob_;
     std::uint64_t creativeRevision_ = 0;
-    bool creativeBusy_ = false, pointColorPicking_ = false, pointColorCanvasReady_ = false, pointColorRange_ = false;
-    void runCreative(std::optional<std::array<double,2>> point);
+    bool creativeBusy_ = false, pointColorPicking_ = false, pointColorCanvasReady_ = false,
+         pointColorRange_ = false;
+    void runCreative(std::optional<std::array<double, 2>> point);
     luma::JobManager whiteBalanceJobs_;
     luma::JobHandle whiteBalanceJob_;
     std::uint64_t whiteBalanceRevision_ = 0;

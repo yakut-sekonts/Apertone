@@ -29,32 +29,41 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
     const RetouchPass retouch(optics.image(), edits.retouch, stop);
     const auto &image = retouch.image();
     const CropGeometry geometry(image.width, image.height, metadata.orientation, edits);
-    struct Sample { std::array<double, 3> rgb{}; double coverage = 0; };
+    struct Sample {
+        std::array<double, 3> rgb{};
+        double coverage = 0;
+    };
     const auto sample = [&](double x, double y) {
         Sample result;
-        if (!geometry.covered(x, y)) return result;
+        if (!geometry.covered(x, y))
+            return result;
         const auto position = geometry.source(x, y);
         const auto sx = std::clamp(position[0], 0.0, static_cast<double>(image.width - 1));
         const auto sy = std::clamp(position[1], 0.0, static_cast<double>(image.height - 1));
         const int x0 = static_cast<int>(std::floor(sx)), y0 = static_cast<int>(std::floor(sy));
         const double fx = sx - x0, fy = sy - y0;
-        const std::array<double, 4> weights{(1-fx)*(1-fy), fx*(1-fy), (1-fx)*fy, fx*fy};
+        const std::array<double, 4> weights{(1 - fx) * (1 - fy), fx * (1 - fy), (1 - fx) * fy,
+                                            fx * fy};
         for (int i = 0; i < 4; ++i) {
             const int px = std::min(x0 + (i & 1), image.width - 1);
             const int py = std::min(y0 + (i >> 1), image.height - 1);
             const auto weight = weights[i] * image.coverage(px, py);
-            if (weight <= 0) continue;
+            if (weight <= 0)
+                continue;
             const auto offset = (static_cast<std::size_t>(py) * image.width + px) * 3;
             for (std::size_t c = 0; c < 3; ++c) {
-                if (!std::isfinite(image.rgb[offset + c])) return Sample{};
+                if (!std::isfinite(image.rgb[offset + c]))
+                    return Sample{};
                 result.rgb[c] += weight * image.rgb[offset + c];
             }
             result.coverage += weight;
         }
-        if (result.coverage <= 1e-8) return Sample{};
+        if (result.coverage <= 1e-8)
+            return Sample{};
         for (auto &channel : result.rgb) {
             channel /= result.coverage;
-            if (channel <= 1e-8) return Sample{};
+            if (channel <= 1e-8)
+                return Sample{};
         }
         // Reject unreliable shadows/highlights in As Shot working RGB. Current
         // user exposure/WB/tone/local adjustments never affect sample admission.
@@ -72,8 +81,10 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
     double weight = 0;
     int accepted = 0;
     const auto accumulate = [&](const Sample &value) {
-        if (value.coverage <= 1e-8) return;
-        for (std::size_t c = 0; c < 3; ++c) sum[c] += value.rgb[c] * value.coverage;
+        if (value.coverage <= 1e-8)
+            return;
+        for (std::size_t c = 0; c < 3; ++c)
+            sum[c] += value.rgb[c] * value.coverage;
         weight += value.coverage;
         ++accepted;
     };
@@ -85,7 +96,8 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
                                      static_cast<double>(geometry.height() - 1));
         // An invalid center must not silently select an opaque neighbor.
         if (sample(cx, cy).coverage <= 1e-8)
-            throw std::runtime_error("Choose a midtone neutral area away from transparency and clipping.");
+            throw std::runtime_error(
+                "Choose a midtone neutral area away from transparency and clipping.");
         for (int dy = -2; dy <= 2; ++dy) {
             checkCancellation(stop);
             for (int dx = -2; dx <= 2; ++dx) {
@@ -95,7 +107,8 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
             }
         }
     } else {
-        const int columns = std::min(192, geometry.width()), rows = std::min(192, geometry.height());
+        const int columns = std::min(192, geometry.width()),
+                  rows = std::min(192, geometry.height());
         required = std::min(16, columns * rows);
         for (int y = 0; y < rows; ++y) {
             checkCancellation(stop);
@@ -106,7 +119,8 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
     }
     if (accepted < required || weight < required * 0.1)
         throw std::runtime_error("Not enough usable pixels to estimate white balance.");
-    for (auto &channel : sum) channel /= weight;
+    for (auto &channel : sum)
+        channel /= weight;
     return estimateWhiteBalance(sum, calibration, stop);
 }
 } // namespace luma

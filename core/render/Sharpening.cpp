@@ -94,13 +94,12 @@ SharpeningPass::SharpeningPass(const FloatImage &input, const DevelopPipeline &p
         for (int x = 0; x < width_; ++x) {
             const auto index = static_cast<std::size_t>(y) * width_ + x;
             const auto offset = index * 3;
-            const auto rgb = noise && noise->active()
-                                 ? noise->pixel({}, x, y)
-                                 : !developedPixels.empty()
-                                     ? std::array{developedPixels[offset], developedPixels[offset + 1],
-                                                  developedPixels[offset + 2]}
-                                     : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
-                                                       input.rgb[offset + 2]});
+            const auto rgb = noise && noise->active() ? noise->pixel({}, x, y)
+                             : !developedPixels.empty()
+                                 ? std::array{developedPixels[offset], developedPixels[offset + 1],
+                                              developedPixels[offset + 2]}
+                                 : pipeline.pixel({input.rgb[offset], input.rgb[offset + 1],
+                                                   input.rgb[offset + 2]});
             luminance_[index] = static_cast<float>(luminance(rgb));
             if (!std::isfinite(luminance_[index]))
                 throw std::runtime_error("Non-finite luminance in sharpening.");

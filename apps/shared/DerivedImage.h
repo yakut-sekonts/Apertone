@@ -10,4 +10,4 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
                                          const LinearOutput &image, std::string_view provenance,
                                          CancellationToken stop = {},
                                          const std::function<void(double)> &progress = {});
-}
+} // namespace luma
