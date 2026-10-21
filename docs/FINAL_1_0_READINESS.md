@@ -28,9 +28,12 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   UI. Qualify round trips, stale revisions/quotas, corruption/failure behavior,
   autosave/close/update coordination, migration and backups. See
   [version behavior](PHASE9_DEVELOPMENT.md#named-processing-versions).
-- The full requirement §33 History browser remains unimplemented: arbitrary
-  history navigation and creation of a version directly from a history row.
-  Session Undo/Redo and named snapshots must not be described as that workflow.
+- The §33 History browser now has a source implementation: chronological states,
+  arbitrary navigation, guarded clear and named-version creation from any retained
+  state. History stays session-local (200 steps); the UI states its lifetime.
+  Qualify branch/gesture semantics, stale handles/confirmation, snapshot fidelity,
+  keyboard/scroll behavior and autosave/close coordination. Persistent history is
+  not implemented. See [History behavior](PHASE9_DEVELOPMENT.md#history-browser).
 
 ## Final campaign
 

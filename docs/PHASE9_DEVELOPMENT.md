@@ -103,10 +103,48 @@ guards prevent applying a late result to another photo or newer edit. If close
 was requested while reading a version, its result is not applied during shutdown.
 Database failures leave current edits unchanged and expose an error in the dialog.
 
-This implements requirement §34, not the complete §33 History browser. Undo/Redo
-remains session-local; arbitrary history navigation, persistent history and
-creating a version directly from a historical row are not implemented here.
-All version behavior and migration are unbuilt and unqualified.
+This implements requirement §34. The session History browser below connects
+historical states to the same persistent versions. All version behavior and
+migration are unbuilt and unqualified.
+
+## History browser
+
+Develop → History exposes the existing bounded Undo/Redo journal: up to 200
+steps plus the retained baseline, in chronological order. The current state and
+later Redo states are marked separately. A slider/brush gesture still commits
+one step; no-op edits and gestures returning to their starting values keep the
+Redo branch. New edits after Undo discard later states. Descriptions are derived
+once on commit from full edit differences; global/local parameter values, mask
+names and group-level curve/HSL/geometry/retouch changes are translated for display.
+Reset, settings application and version restoration have explicit action labels.
+
+Selecting a row does not change the edit. Go to selected state navigates the
+existing journal without creating an extra step, preserving later Redo states.
+It validates geometry, leaves Before/Original display and schedules the ordinary
+autosave/render path once. Save selected state as version captures that complete
+historical document directly on the existing catalog worker, without navigating,
+changing the current edit or discarding Redo. It shares named-version limits,
+errors, busy/load/close guards and persistence.
+
+Clear history requires confirmation and retains current edits, saved versions,
+the original and pending autosave. The clear itself cannot be undone. State IDs
+are never reused within a session; generation-scoped string handles reject stale
+rows after photo loads, batch boundaries, pruning and branch replacement. Clear
+also checks a revision captured before confirmation so later edits are not erased
+by an old prompt. QML refreshes rows only on journal revision/language changes,
+retains selection by ID and preserves scroll position across those refreshes.
+
+History is session-local and this limitation is visible in the dialog. Loading a
+photo again, restarting, or applying a batch change to the active photo establishes
+a new baseline. The first row says Opened photo, not Import, because an existing
+catalog edit may be the baseline. History does not store ratings or other photo
+metadata and is not a durable audit log. Batch Undo remains a separate atomic
+multi-photo journal; History's buttons and Cmd+Z/Redo do not fall through to it.
+Saved versions are the durable way to retain a historical state.
+
+The source implements the §33 browsing/clear/snapshot workflows with this explicit
+session lifetime. No persistence extension or 1.0 qualification is claimed. See
+[ADR 0027](adr/0027-session-history-browser.md).
 
 ## Backup and recovery
 
@@ -243,6 +281,14 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
   names, quotas, stale revisions, corrupted documents, disk-full failures,
   concurrent writes, photo switching, autosave failures and close/update waits.
   Qualify the new dialog at minimum size, keyboard-only and in all languages.
+- Qualify History's 200-step boundary, no-op/changed/cancelled gestures, branching,
+  Undo/Redo and arbitrary jumps using independent expected documents. Include
+  version creation from Undo/Redo rows without changing the active edit, stale
+  handles after prune/clear/load/batch, stale clear confirmation, geometry
+  failures, autosave/close failures and original-display handling. Exercise
+  keyboard navigation, translated labels, mask names containing markup/percent
+  signs and viewport retention during render/autosave notifications. Durable
+  history across reopening is not implemented; verify the visible lifetime note.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
 - Cover startup cancellation, missing volumes, multiple windows, stale markers,

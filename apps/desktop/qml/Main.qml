@@ -25,6 +25,7 @@ ApplicationWindow {
     onLibraryModeChanged: {if(libraryMode) { editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
+    HistoryDialog { id: processingHistory }
     function ensureActiveFocusVisible(scroll) {
         const item = root.activeFocusItem
         const view = scroll ? scroll.contentItem : null
@@ -51,6 +52,7 @@ ApplicationWindow {
         ensureActiveFocusVisible(adjustmentsScroll)
         ensureActiveFocusVisible(exportSettings.contentItem)
         ensureActiveFocusVisible(presetSettings.editorScrollView)
+        ensureActiveFocusVisible(processingHistory.editorScrollView)
     }
     onActiveFocusItemChanged: Qt.callLater(root.revealActiveFocus)
     Connections {
@@ -96,8 +98,8 @@ ApplicationWindow {
     Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
     Connections { target: editor; function onCloseReady() { root.close() } }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
-    Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo() }
-    Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo() }
+    Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canUndo : root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canUndo) ? batch.undo() : editor.undo() }
+    Shortcut { sequences: [StandardKey.Redo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canRedo : root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canRedo) ? batch.redo() : editor.redo() }
     Shortcut { enabled: !updates.restartPending; context: Qt.ApplicationShortcut; sequences: [StandardKey.Quit]; onActivated: root.close() }
     Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
@@ -220,6 +222,13 @@ ApplicationWindow {
                         Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
                         Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
+                        Button {
+                            objectName: "develop.history"
+                            text: qsTranslate("Luma", "History")
+                            enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
+                            Layout.fillWidth: true
+                            onClicked: processingHistory.open()
+                        }
                         Button {
                             objectName: "develop.versions"
                             text: qsTranslate("Luma", "Processing versions")

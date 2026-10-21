@@ -16,7 +16,7 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
         endEdit();
         if (next == history_.current())
             return;
-        history_.apply(next);
+        history_.apply(next, "Apply settings");
         editsChanged();
     } catch (const std::exception &failure) {
         advancedFailure(failure);
@@ -74,7 +74,9 @@ void EditorController::finishExternalEdits(const std::optional<luma::EditDocumen
     if (edits && session_) {
         edits->validate();
         session_->asset.edits = *edits;
-        history_ = luma::EditHistory(*edits);
+        history_ = luma::EditHistory(*edits, "After batch change");
+        ++historyGeneration_;
+        historyError_.clear();
         render();
     }
     editingLocked_ = false;

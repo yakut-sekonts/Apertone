@@ -13,7 +13,7 @@ void EditorController::deleteVersion(const QString &id, const QString &revision)
     runVersionAction(VersionAction::remove, id, revision);
 }
 void EditorController::runVersionAction(VersionAction action, const QString &id, const QString &revision,
-                                        const QString &name) {
+                                        const QString &name, std::optional<luma::EditDocument> snapshot) {
     if (!session_ || busy() || exporting_ || closing_ || editingLocked_ || !deferredOpen_.isEmpty()) return;
     std::int64_t expectedRevision = 0;
     if (action == VersionAction::restore || action == VersionAction::rename || action == VersionAction::remove) {
@@ -36,7 +36,7 @@ void EditorController::runVersionAction(VersionAction action, const QString &id,
     const auto assetID = session_->asset.id;
     const auto sourceGeneration = loadRevision_;
     const auto editGeneration = editRevision_;
-    const auto snapshot = action == VersionAction::create ? std::optional(history_.current()) : std::nullopt;
+    if (action == VersionAction::create && !snapshot) snapshot = history_.current();
     const auto catalog = catalog_;
     const auto trimmedName = name.trimmed().toStdString();
     versionsBusy_ = true; versionsError_.clear(); versionsStatus_ = QStringLiteral("Working with versions…");
@@ -89,7 +89,7 @@ void EditorController::runVersionAction(VersionAction action, const QString &id,
                                     self->validateGeometry(*restored);
                                     self->original_ = false;
                                     if (*restored != self->history_.current()) {
-                                        self->history_.apply(std::move(*restored));
+                                        self->history_.apply(std::move(*restored), "Restore version");
                                         self->editsChanged();
                                     } else {
                                         self->render();

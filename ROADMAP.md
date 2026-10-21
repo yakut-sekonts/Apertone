@@ -173,7 +173,10 @@ and schedules sidecar updates after flag changes; catalog schema is now 18.
 Startup recovery handles unavailable catalogs and interrupted sessions; local
 Diagnostics exposes system/cache information and a report without photo data.
 Named processing versions persist full edits, masks and retouch without copying
-originals; restoration is one Undo step. The full History browser remains separate.
+originals; restoration is one Undo step. The session History browser lists retained
+steps, supports arbitrary navigation/clear and creates a persistent named version
+from any retained state. Its 200-step journal resets at photo/batch boundaries;
+it is not persistent history across reopening.
 Per-process rotating event logs and local crash capture are also implemented in
 source; reports stay local and are excluded from the shareable JSON.
 Large catalogs, fault injection, UI/performance regression and all QA are

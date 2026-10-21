@@ -174,6 +174,13 @@ Independent correction bits disable processing while retaining parameter values.
 The bounded per-session history records one slider gesture as one operation.
 Undo/Redo updates the same document and uses the same autosave/render path.
 Session changes establish a new history baseline; history is not durable yet.
+`EditHistory` associates retained documents with stable IDs and commit-time
+descriptions. Its browser reads metadata only; arbitrary navigation moves the
+existing stack states and performs one autosave/render update. Generation-scoped
+UI handles and revision-guarded clear refuse stale requests. A historical state
+can be captured by the named-version worker without replacing the current edit.
+The eight-language dialog exposes the session lifetime and preserves viewport
+across model refreshes. See [ADR 0027](docs/adr/0027-session-history-browser.md).
 
 Export rechecks source SHA-256 and decodes full resolution on the I/O lane.
 ImageIO encodes JPEG/PNG/TIFF16, using an explicitly embedded deterministic sRGB

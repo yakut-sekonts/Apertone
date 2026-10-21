@@ -105,6 +105,9 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString versionsError READ versionsError NOTIFY stateChanged)
     Q_PROPERTY(QString versionsStatus READ versionsStatus NOTIFY stateChanged)
     Q_PROPERTY(QString selectedVersionID READ selectedVersionID NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList processingHistory READ processingHistory NOTIFY stateChanged)
+    Q_PROPERTY(QString historyRevision READ historyRevision NOTIFY stateChanged)
+    Q_PROPERTY(QString historyError READ historyError NOTIFY stateChanged)
 
   public:
     EditorController(std::filesystem::path catalog, PreviewProvider *provider,
@@ -339,6 +342,13 @@ class EditorController final : public QObject {
     Q_INVOKABLE void restoreVersion(const QString &id, const QString &revision);
     Q_INVOKABLE void renameVersion(const QString &id, const QString &revision, const QString &name);
     Q_INVOKABLE void deleteVersion(const QString &id, const QString &revision);
+    QVariantList processingHistory() const;
+    QString historyRevision() const;
+    QString historyError() const { return historyError_; }
+    Q_INVOKABLE void prepareHistory();
+    Q_INVOKABLE void jumpToHistory(const QString &id);
+    Q_INVOKABLE void clearHistory(const QString &revision);
+    Q_INVOKABLE void saveHistoryVersion(const QString &id, const QString &name);
     QString sourcePath() const;
     bool presetPreview() const {
         return presetPreview_.has_value();
@@ -392,7 +402,12 @@ class EditorController final : public QObject {
     QString versionsError_, selectedVersionID_;
     LocalizedText versionsStatus_;
     void runVersionAction(VersionAction action, const QString &id = {}, const QString &revision = {},
-                          const QString &name = {});
+                          const QString &name = {}, std::optional<luma::EditDocument> snapshot = std::nullopt);
+    void finishHistoryTools();
+    QString historyHandle(std::uint64_t id) const;
+    std::optional<std::uint64_t> resolveHistoryHandle(const QString &id) const;
+    std::uint64_t historyGeneration_ = 0;
+    QString historyError_;
     void runMerge(const QString &operation,
                   std::function<std::filesystem::path(luma::CancellationToken,
                       const std::function<void(double)> &)> work);

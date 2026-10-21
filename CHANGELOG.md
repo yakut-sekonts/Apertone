@@ -35,6 +35,10 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Named processing versions: full edits/masks/retouch stored in the catalog,
   restore as one Undo step, rename/delete with stale-revision guards and bounded
   storage; eight-language desktop UI. Originals and photo metadata stay separate.
+- Session History browser: labeled steps, arbitrary Undo/Redo navigation, guarded
+  clear and direct named-version creation from a retained state. Stable handles,
+  eight-language UI and explicit 200-step/session lifetime; original photos and
+  current edits are retained when clearing history. Still unbuilt/unqualified.
 - SQLite pre-migration backups; catalog 11→18 migrations.
 - Source-only Developer ID/hardened-runtime/notarization packaging with isolated
   Actions setup and refusal of unsigned/non-notarized 1.x publication.

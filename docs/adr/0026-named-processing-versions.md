@@ -41,3 +41,7 @@ This does not implement the requirement §33 History browser, persistent Undo
 history or direct snapshot creation from a historical row. Migration, round trips,
 UI, autosave/close races and failure behavior still require final qualification.
 No test/build/QA execution accompanies this source implementation.
+
+Follow-up: [ADR 0027](0027-session-history-browser.md) adds the session browser
+and creation from a historical row using this storage. Durable Undo history
+remains outside these changes; all qualification is still deferred.

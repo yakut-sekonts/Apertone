@@ -330,6 +330,8 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             self->session_ = std::move(result);
                             self->previewReady_ = false;
                             self->history_ = luma::EditHistory(self->session_->asset.edits);
+                            ++self->historyGeneration_;
+                            self->historyError_.clear();
                             self->original_ = false;
                             self->oneToOne_ = false;
                             self->render();
@@ -556,7 +558,7 @@ void EditorController::resetEdits() {
     clearPreviewSettings();
     if (editable() && history_.current() != luma::EditDocument{}) {
         history_.end();
-        history_.apply({});
+        history_.apply({}, "Reset edits");
         editsChanged();
     }
 }
