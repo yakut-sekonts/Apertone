@@ -126,7 +126,7 @@ DiagnosticSession::DiagnosticSession(bool enabled) {
         lock_ = std::move(lock);
         version_ = QCoreApplication::applicationVersion();
         enabled_ = true;
-        writer_ = std::jthread([this](std::stop_token stop) { writeLoop(stop); });
+        writer_ = std::thread([this] { writeLoop(); });
         record(LogLevel::info, LogEvent::sessionStarted);
         crashCaptureEnabled_ =
             macos::enableCrashCapture(std::filesystem::path(session.toStdString()));
@@ -143,7 +143,7 @@ DiagnosticSession::~DiagnosticSession() {
     if (writer_.joinable()) {
         {
             std::lock_guard guard(mutex_);
-            writer_.request_stop();
+            stopRequested_ = true;
         }
         condition_.notify_all();
         writer_.join();
@@ -210,7 +210,7 @@ void DiagnosticSession::maintainHistory() {
         }
     }
 }
-void DiagnosticSession::writeLoop(std::stop_token stop) noexcept {
+void DiagnosticSession::writeLoop() noexcept {
     int fd = -1;
     bool inFlight = false;
     try {
@@ -224,7 +224,7 @@ void DiagnosticSession::writeLoop(std::stop_token stop) noexcept {
             Event value;
             {
                 std::unique_lock guard(mutex_);
-                condition_.wait(guard, [&] { return stop.stop_requested() || !pending_.empty(); });
+                condition_.wait(guard, [&] { return stopRequested_ || !pending_.empty(); });
                 if (pending_.empty())
                     break;
                 value = pending_.front();

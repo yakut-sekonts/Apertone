@@ -65,12 +65,15 @@ class DiagnosticSession final {
     std::mutex mutex_;
     std::condition_variable condition_;
     std::deque<Event> pending_;
-    std::jthread writer_;
+    // Xcode 16's libc++ does not provide jthread/stop_token. Shutdown is guarded
+    // by mutex_ and the destructor joins after the queued events are drained.
+    std::thread writer_;
+    bool stopRequested_ = false;
     std::array<std::array<bool, 2>, static_cast<std::size_t>(LoggedWorkflow::count)> states_{};
     std::atomic_bool enabled_{false}, logAvailable_{false};
     std::atomic<std::uint64_t> dropped_{0};
     bool cleanExit_ = false, crashCaptureEnabled_ = false;
     void maintainHistory();
-    void writeLoop(std::stop_token stop) noexcept;
+    void writeLoop() noexcept;
 };
 } // namespace luma::desktop

@@ -144,6 +144,13 @@ target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 include(CTest)
 option(LUMA_ENABLE_SCALE_CONTRACT_TESTS "Enable deferred application scale contracts for pre-1.0 qualification" OFF)
 if(BUILD_TESTING)
+    add_executable(luma_diagnostic_session_tests tests/unit/DiagnosticSessionTests.cpp
+        apps/desktop/DiagnosticSession.cpp)
+    target_include_directories(luma_diagnostic_session_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(luma_diagnostic_session_tests PRIVATE Qt6::Core)
+    target_compile_options(luma_diagnostic_session_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME diagnostic-session-shutdown COMMAND luma_diagnostic_session_tests)
+    set_tests_properties(diagnostic-session-shutdown PROPERTIES TIMEOUT 20 LABELS "unit;diagnostics")
     add_test(NAME model-xcode-preflight COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/unit/test_model_toolchain.py")
     set_tests_properties(model-xcode-preflight PROPERTIES TIMEOUT 15 LABELS "unit;models")
