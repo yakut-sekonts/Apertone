@@ -100,13 +100,18 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool denoiseModelConfigured READ denoiseModelConfigured NOTIFY stateChanged)
     Q_PROPERTY(bool denoiseModelBundled READ denoiseModelBundled NOTIFY stateChanged)
     Q_PROPERTY(QString catalogPath READ catalogPath CONSTANT)
+    Q_PROPERTY(QVariantList processingVersions READ processingVersions NOTIFY stateChanged)
+    Q_PROPERTY(bool versionsBusy READ versionsBusy NOTIFY stateChanged)
+    Q_PROPERTY(QString versionsError READ versionsError NOTIFY stateChanged)
+    Q_PROPERTY(QString versionsStatus READ versionsStatus NOTIFY stateChanged)
+    Q_PROPERTY(QString selectedVersionID READ selectedVersionID NOTIFY stateChanged)
 
   public:
     EditorController(std::filesystem::path catalog, PreviewProvider *provider,
                      QObject *parent = nullptr);
     ~EditorController() override;
     bool busy() const {
-        return busy_;
+        return busy_ || versionsBusy_;
     }
     bool saving() const {
         return pendingSave_ || pendingWrites_ > 0 || saveFailed_;
@@ -324,6 +329,16 @@ class EditorController final : public QObject {
                 renderedCache_->statistics()};
     }
     QString catalogPath() const;
+    QVariantList processingVersions() const { return processingVersions_; }
+    bool versionsBusy() const { return versionsBusy_; }
+    QString versionsError() const { return versionsError_; }
+    QString versionsStatus() const { return versionsStatus_.text(); }
+    QString selectedVersionID() const { return selectedVersionID_; }
+    Q_INVOKABLE void refreshVersions();
+    Q_INVOKABLE void saveVersion(const QString &name);
+    Q_INVOKABLE void restoreVersion(const QString &id, const QString &revision);
+    Q_INVOKABLE void renameVersion(const QString &id, const QString &revision, const QString &name);
+    Q_INVOKABLE void deleteVersion(const QString &id, const QString &revision);
     QString sourcePath() const;
     bool presetPreview() const {
         return presetPreview_.has_value();
@@ -371,6 +386,13 @@ class EditorController final : public QObject {
     void closeReady();
 
   private:
+    enum class VersionAction { list, create, restore, rename, remove };
+    QVariantList processingVersions_;
+    bool versionsBusy_ = false;
+    QString versionsError_, selectedVersionID_;
+    LocalizedText versionsStatus_;
+    void runVersionAction(VersionAction action, const QString &id = {}, const QString &revision = {},
+                          const QString &name = {});
     void runMerge(const QString &operation,
                   std::function<std::filesystem::path(luma::CancellationToken,
                       const std::function<void(double)> &)> work);

@@ -45,6 +45,10 @@ struct FileRecord {
     std::int64_t size = 0;
 };
 struct RelinkRecord { FileRecord source; std::filesystem::path destination; };
+struct EditVersionInfo {
+    std::string id, name, createdAt;
+    std::int64_t revision = 0;
+};
 enum class CatalogOpenMode { createIfMissing, existingOnly };
 
 /// Each instance owns a connection on the calling worker thread.
@@ -138,6 +142,11 @@ class Catalog {
     std::vector<FileRecord> fileRecords(const std::string &after = {}, int limit = 128) const;
     std::optional<FileRecord> fileRecord(const std::string &id) const;
     void relink(const std::vector<RelinkRecord> &records);
+    std::vector<EditVersionInfo> editVersions(const std::string &assetID) const;
+    std::string createEditVersion(const std::string &assetID, const std::string &name, const EditDocument &edits);
+    EditDocument editVersion(const std::string &assetID, const std::string &id, std::int64_t revision) const;
+    void renameEditVersion(const std::string &assetID, const std::string &id, std::int64_t revision, const std::string &name);
+    void deleteEditVersion(const std::string &assetID, const std::string &id, std::int64_t revision);
 
   private:
     enum class BatchState { none, applied, undone };
@@ -158,6 +167,7 @@ class Catalog {
     void migrateDerivedImages();
     void migrateMetadata();
     void migrateMetadataInterop();
+    void migrateEditVersions();
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);

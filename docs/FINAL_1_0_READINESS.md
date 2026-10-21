@@ -23,6 +23,14 @@ update its Sparkle channel until the complete campaign, fixes and retests finish
   no capture/rotation/formatting execution has taken place. The dependency is
   pinned, its license travels with the bundle and reports remain local. See
   [diagnostics design and limits](PHASE9_DEVELOPMENT.md#local-logs-and-crash-reports).
+- Named processing versions now have a source implementation (schema 18):
+  full-document storage, guarded CRUD, one-step Undo on restore and eight-language
+  UI. Qualify round trips, stale revisions/quotas, corruption/failure behavior,
+  autosave/close/update coordination, migration and backups. See
+  [version behavior](PHASE9_DEVELOPMENT.md#named-processing-versions).
+- The full requirement §33 History browser remains unimplemented: arbitrary
+  history navigation and creation of a version directly from a history row.
+  Session Undo/Redo and named snapshots must not be described as that workflow.
 
 ## Final campaign
 

@@ -34,7 +34,7 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 - `core/metadata`: typed EXIF and descriptive/XMP values, ordered creators and exact label text; absent numbers remain `std::optional`.
 - `core/edits`: validated typed Develop document; global schema version 8.
 - `core/presets`: validated subset merge of implemented settings groups.
-- `core/catalog`: SQLite connection per worker operation and migrations through 17, with pre-migration backups.
+- `core/catalog`: SQLite connection per worker operation and migrations through 18, with pre-migration backups.
 - `core/jobs`: bounded queue, interactive priority, cancellation, state, progress
   and error storage.
 - `apps/shared`: open/restore/save and import/recovery workflows independent of GUI.
@@ -44,6 +44,18 @@ by desktop, CLI and integration tests. macOS-specific code lives under
 Source implementations of masks, bounded caches, local AI and category-based
 semantic search are described in the phase 0.6–0.9 development records. They are
 unbuilt and unqualified until the final release campaign.
+
+## Named processing versions
+
+`EditSnapshot` is an explicit, bounded, versioned serialization of the complete
+EditDocument, including local masks and retouch. It is independent of sparse
+presets and does not include original image pixels or photo metadata. Catalog
+schema 18 stores immutable documents in `edit_versions`, with per-photo name
+uniqueness, quotas and revision-guarded rename/delete. Serialization and SQLite
+work run on the editor I/O worker; lists read metadata only. Restore enters the
+existing Undo/autosave/render path after geometry and generation checks.
+See [phase-0.9 version semantics](docs/PHASE9_DEVELOPMENT.md#named-processing-versions).
+The implementation has not been built or qualified.
 
 ## Local diagnostics and crash capture
 

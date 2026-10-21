@@ -190,9 +190,9 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 17)
+        if (current == 18)
             return;
-        if (current > 17)
+        if (current > 18)
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
@@ -203,7 +203,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 17) {
+        if (current > 18) {
             throw std::runtime_error("Catalog was created by a newer version of Luma.");
         }
         if (current == 0) {
@@ -380,6 +380,10 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         }
         if (current == 16) {
             migrateMetadataInterop();
+            current = 17;
+        }
+        if (current == 17) {
+            migrateEditVersions();
         }
         execute("COMMIT;");
     } catch (...) {

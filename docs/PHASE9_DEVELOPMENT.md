@@ -1,7 +1,7 @@
 # Phase 0.9 source development
 
 Status: **initial implementation, unbuilt and unqualified**. Catalog schema is
-17. Source versions are development markers, not published releases. Stable
+18. Source versions are development markers, not published releases. Stable
 remains 0.5.1; its catalog must be restored from a pre-upgrade snapshot to downgrade.
 
 ## Metadata and XMP
@@ -63,6 +63,50 @@ during migration. External packet backups and revision guards remain in place.
 
 These interoperability decisions are implemented in source; external XMP round
 trips, migration, export privacy and the updated UI still require final qualification.
+
+## Named processing versions
+
+Develop → Processing versions stores the current full EditDocument in the
+catalog without copying the original. Create, list, restore, rename and confirmed
+delete work on the active photo. Names are trimmed in the UI, bounded to 512
+UTF-8 bytes, case-sensitive and unique within that photo. Invalid UTF-8/control
+characters are refused. The list loads only names/IDs/revisions/timestamps; a
+single selected document is decoded on demand on the I/O worker.
+
+Snapshots include every current global correction and enable flag, curves, HSL,
+Detail, crop, optics, transform, complete local masks (including bitmap coverage)
+and retouch strokes/donor offsets. They exclude image pixels, original paths,
+ratings, flags, keywords, descriptive metadata, UI/tool state and preset hover.
+Before/Original display does not change the processing state that is saved.
+Creating a version captures current edits even before their autosave finishes;
+it does not claim that a previously failed autosave has succeeded.
+
+Migration 18 adds `edit_versions` with an asset foreign key, immutable document,
+revision-guarded rename/delete and transactional create/quota/name handling. Each
+photo allows up to 100 versions and 256 MiB of encoded version data; an individual
+snapshot is bounded to 20 MiB. Limits produce visible errors rather than pruning
+versions. Deletion retains the current edit and original. Catalog backups include
+versions; original photo files still require separate backups.
+
+The version-1 codec explicitly covers EditDocument schema 8, uses classic-locale
+round-trip double precision and strict canonical decoding, and composes the
+existing versioned mask/retouch codecs. Unknown schemas, invalid fields, excessive
+counts, truncated and noncanonical data are refused. Changes to this layout need
+an explicit codec version/reader; these snapshots are not Lightroom presets or
+an external interchange format.
+
+Restore closes transient tools, validates the document against photo geometry,
+then applies it as one Undo step and schedules ordinary autosave/thumbnail
+invalidation. Restoring identical edits is a no-op in history. Version I/O holds
+the editor's busy state; close/update waits for completion, and load/edit revision
+guards prevent applying a late result to another photo or newer edit. If close
+was requested while reading a version, its result is not applied during shutdown.
+Database failures leave current edits unchanged and expose an error in the dialog.
+
+This implements requirement §34, not the complete §33 History browser. Undo/Redo
+remains session-local; arbitrary history navigation, persistent history and
+creating a version directly from a historical row are not implemented here.
+All version behavior and migration are unbuilt and unqualified.
 
 ## Backup and recovery
 
@@ -189,11 +233,16 @@ behavior remain unqualified; no whole-catalog live-watching claim is made.
 
 ## Outstanding qualification and source decisions
 
-- Build every target and update fixtures for schema 17 and the Missing role.
+- Build every target and update fixtures for schema 18 and the Missing role.
 - Exercise multilingual/large metadata, external XMP round trips, unsupported
   namespaces, concurrency, permission/disk failures and pending-write recovery.
   Include ordered/repeated creators, exact custom label text, explicit No label,
   standard-color mapping, Reject/Unflag/Pick changes and stale revision refusal.
+- Cover named-version round trips for every edit field, masks/bitmap coverage and
+  retouch, restart/backup/restore, Undo/Redo, no-op restores, duplicate/Unicode
+  names, quotas, stale revisions, corrupted documents, disk-full failures,
+  concurrent writes, photo switching, autosave failures and close/update waits.
+  Qualify the new dialog at minimum size, keyboard-only and in all languages.
 - Cover backup retention, migration/restore, derived journals and original
   invariants under fault injection; originals/DNGs need independent backup.
 - Cover startup cancellation, missing volumes, multiple windows, stale markers,

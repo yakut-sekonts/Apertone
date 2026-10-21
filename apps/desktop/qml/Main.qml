@@ -24,6 +24,7 @@ ApplicationWindow {
     font.family: "Helvetica Neue"
     onLibraryModeChanged: {if(libraryMode) { editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
+    VersionsDialog { id: processingVersions }
     function ensureActiveFocusVisible(scroll) {
         const item = root.activeFocusItem
         const view = scroll ? scroll.contentItem : null
@@ -219,6 +220,13 @@ ApplicationWindow {
                         Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
                         Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
+                        Button {
+                            objectName: "develop.versions"
+                            text: qsTranslate("Luma", "Processing versions")
+                            enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
+                            Layout.fillWidth: true
+                            onClicked: processingVersions.open()
+                        }
                         PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
                         Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }

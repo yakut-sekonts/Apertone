@@ -53,7 +53,7 @@ void EditorController::clearPreviewSettings() {
 }
 
 bool EditorController::canPrepareBatch() const {
-    return !transformAutoBusy_ && !busy_ && !exporting_ && !closing_ && !editingLocked_ &&
+    return !transformAutoBusy_ && !busy() && !exporting_ && !closing_ && !editingLocked_ &&
            deferredOpen_.isEmpty();
 }
 QString EditorController::photoID() const {

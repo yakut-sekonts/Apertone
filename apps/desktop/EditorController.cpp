@@ -238,9 +238,14 @@ void EditorController::restore() {
     load(std::nullopt);
 }
 void EditorController::openFile(const QUrl &url) {
-    if (!url.isLocalFile() || busy_ || closing_ || editingLocked_) {
+    if (!url.isLocalFile() || closing_ || editingLocked_) {
         return;
     }
+    if (versionsBusy_) {
+        deferredOpen_ = url;
+        return;
+    }
+    if (busy_) return;
     if (saving()) {
         deferredOpen_ = url;
         if (saveFailed_) {
@@ -253,6 +258,9 @@ void EditorController::openFile(const QUrl &url) {
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
 void EditorController::load(std::optional<std::filesystem::path> source) {
+    if (versionsBusy_) return;
+    processingVersions_.clear();
+    versionsError_.clear(); versionsStatus_ = QString(); selectedVersionID_.clear();
     cancelAI();
     cancelRetouch();
     retouchMode_ = QStringLiteral("off");
@@ -367,7 +375,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     });
 }
 bool EditorController::editable() const {
-    return session_ && !busy_ && !closing_ && !editingLocked_;
+    return session_ && !busy() && !closing_ && !editingLocked_;
 }
 QVariantMap EditorController::parameters() const {
     QVariantMap values;
@@ -553,7 +561,7 @@ void EditorController::resetEdits() {
     }
 }
 void EditorController::setOriginal(bool value) {
-    if (busy_)
+    if (busy())
         return;
     cancelAI();
     setRetouchMode(QStringLiteral("off"));
@@ -768,7 +776,7 @@ bool EditorController::requestClose() {
     closeTransformTool();
     if (editingLocked_)
         return false;
-    if (!busy_ && !saving() && !exporting_) {
+    if (!busy() && !saving() && !exporting_) {
         return true;
     }
     if (saveFailed_) {
@@ -784,7 +792,7 @@ bool EditorController::requestClose() {
     return false;
 }
 void EditorController::checkClose() {
-    if (closing_ && !busy_ && !saving() && !exporting_) {
+    if (closing_ && !busy() && !saving() && !exporting_) {
         emit closeReady();
     }
 }

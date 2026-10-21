@@ -32,7 +32,10 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Local rotating event logs and pinned PLCrashReporter crash capture, isolated
   per process. Inactive reports are formatted on the next launch; local folder
   access and capability status are available in all eight languages. No upload.
-- SQLite pre-migration backups; catalog 11→17 migrations.
+- Named processing versions: full edits/masks/retouch stored in the catalog,
+  restore as one Undo step, rename/delete with stale-revision guards and bounded
+  storage; eight-language desktop UI. Originals and photo metadata stay separate.
+- SQLite pre-migration backups; catalog 11→18 migrations.
 - Source-only Developer ID/hardened-runtime/notarization packaging with isolated
   Actions setup and refusal of unsigned/non-notarized 1.x publication.
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
