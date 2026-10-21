@@ -30,6 +30,9 @@ retested checks count as passing. This section does not close the full campaign.
 
 ### Completed baseline and current blockers
 
+[Machine-readable baseline](qualification/2026-10-21/baseline.json) records the
+source commit, per-case outcomes and hashes of retained local logs.
+
 - 54 background CTest cases passed (`final-offscreen-tests-1.xml`), including
   the full app's ordinary-image, import, edit/export/restart and QML workflows.
 - Three native CTest cases passed in a human-approved uninterrupted interval:
