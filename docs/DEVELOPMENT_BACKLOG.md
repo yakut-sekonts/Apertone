@@ -9,20 +9,22 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 [Issue #48](https://github.com/yakut-sekonts/Luma/issues/48) and
 [the release record](releases/v0.5.1-quality.md).
 
-## LUMA-BUG-035 — Library scroll returns to the beginning on photo selection
+## LUMA-BUG-035 — Filmstrip/Library scroll returns on photo selection
 
 - GitHub: [Issue #49](https://github.com/yakut-sekonts/Luma/issues/49).
-- Status: **bounded offscreen regression passes; native confirmation remains open**.
+- Status: **bounded grid and filmstrip regressions pass offscreen/native; broader qualification remains open**.
 - Reported: 2026-10-20, after installation of the 0.5.1 release.
-  The exact running build has not been independently established.
+  The recording displays 0.5.1; the exact executable identity is unavailable.
 - Reproduction supplied by the user: import photographs, scroll down through
   the Library, then select a photograph.
 - Actual: the list jumps back to the beginning after every selection.
 - Expected: selecting a photograph preserves the visible asset anchor and its
   offset; opening it and returning from Develop also preserves that viewport.
-- Evidence supplied: local screen recording
-  `Запись экрана — 2026-10-20 в 17.33.02.mov`. The recording has not been
-  independently analyzed; the description above records the user's report.
+- Recording reviewed on 2026-10-22: the affected surface is the horizontal
+  Develop filmstrip. Two photo switches return it to the initial filename range.
+  The earlier Library grid scenario alone did not cover this evidence. See
+  [recording observations and hashes](qualification/2026-10-22/scroll-recording.json).
+  Original media and extracted frames remain local.
 - Source change: opening an asset already present in a loaded metadata page
   updates Active/Selected roles without resetting the model. Card clicks set
   the view's current index before transferring focus; the grid starts with no
@@ -36,8 +38,21 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   transient click motion, absence of model resets and keyboard reveal. Two
   targeted QML mutations are rejected by the expected scroll/reset assertions.
   See [retained failures and retests](qualification/2026-10-22/library-scroll-and-cancel.json).
-- Native macOS/trackpad/Retina behavior, the original recording, other sort/filter
-  combinations and large catalogs remain part of final qualification. This does
+- Native follow-up on 2026-10-22 passes 3/3 Library runs on Cocoa/Metal, Retina
+  DPR 2; neighboring keyboard checks pass 6/6. Source/build provenance and
+  originals remain intact, with no QML warnings. See
+  [native evidence](qualification/2026-10-22/native-scroll-cancel.json).
+- A separate filmstrip regression reproduced a 24.82 px partial-card shift.
+  Mouse clicks now retain horizontal position; explicit Left/Right navigation
+  reveals the current card after mouse positioning. Final offscreen checks pass
+  grid 3/3, filmstrip 3/3, keyboard 6/6 and neighboring selection/scroll 9/9.
+  The prior positioning still fails the final anchor oracle. Frame-synchronized
+  positions distinguish visible motion from synchronous intermediate property
+  changes. See [failures, controls and retests](qualification/2026-10-22/filmstrip-keyboard-followup.json).
+- The final native follow-up passes grid 3/3, filmstrip 3/3 and keyboard 6/6 on
+  Cocoa/Metal, Retina DPR 2, with intact originals and no QML warnings.
+- Physical trackpad/wheel input, other window sizes,
+  sort/filter combinations and large catalogs remain part of final qualification. This does
   not establish reproduction of the user's exact installed build or close 1.0 QA.
 
 ## LUMA-BUG-036 — Compiled Denoise differs from its source network

@@ -530,6 +530,17 @@ ApplicationWindow {
             visible: !root.libraryMode && (library.count > 0 || (library.loading && editor.hasPhoto))
             Layout.fillWidth: true; Layout.preferredHeight: visible ? 112 : 0
             orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
+            function moveCurrentPhoto(direction, event) {
+                event.accepted = event.modifiers === Qt.NoModifier
+                if (!event.accepted) return
+                if (direction > 0) incrementCurrentIndex()
+                else decrementCurrentIndex()
+                // Mouse clicks retain their viewport. Keyboard navigation must
+                // explicitly reveal its item even after that positioning.
+                if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+            }
+            Keys.onRightPressed: function(event) { moveCurrentPhoto(1, event) }
+            Keys.onLeftPressed: function(event) { moveCurrentPhoto(-1, event) }
             delegate: PhotoCard { width: 128; height: 104; compact: true }
             ScrollBar.horizontal: ScrollBar { objectName: "develop.filmstripBar" }
         }

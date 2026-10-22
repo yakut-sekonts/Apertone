@@ -152,6 +152,32 @@ and requires this gate; release packaging stops on failure. A fresh output
 directory is required to preserve prior evidence. This remains bounded evidence,
 not acceptance of all camera noise, visual detail or full-resolution resource use.
 
+Sky has a separate bounded photographic/runtime gate:
+
+```sh
+.tools/model-venv/bin/python -m unittest discover -s tests/models -p test_sky_photographs.py
+.tools/model-venv/bin/python scripts/check-sky-photographs.py build/models --probe build/luma_sky_runtime_probe --output build/sky-photographs
+```
+
+`tests/assets/filters/sky-regions.json` records conservative day/night sky and
+non-sky interiors, including an entire indoor portrait as a negative sample.
+Regions were selected before prediction; unknown boundaries are not treated as
+background. Source and native output must independently pass the fixed mean and
+selected-area limits. Actual native RGBA preprocessing and uint8 output are
+compared with independent PyTorch bilinear resize and the pinned source network.
+The maximum-error bound is 0.0005 plus half a uint8 quantization step (0.5/255);
+the separate Float32 conversion thresholds are unchanged. The probe also checks
+progress, unchanged input, unsupported selections, invalid buffers, cancellation
+and repeatability after cancellation. Seven oracle tests reject degenerate masks,
+hidden false positives, weak confidence and invalid region/plane inputs.
+
+The initial local result is 3/3 PASS for source quality, native quality and
+runtime numerical agreement. CI requires this outcome; release packaging stops
+on failure. Both workflows retain reports, logs and comparison sheets. A fresh
+output directory prevents overwriting evidence. This qualifies only the annotated
+interiors; it does not establish dense boundary accuracy or full scene quality.
+See [Sky evidence](qualification/2026-10-22/sky-followup.json).
+
 Require representative RAW/ordinary-image Sky scenes, denoise texture/color/noise
 comparisons, HDR/negative-sample preservation, tiled edges, no-sky false positives,
 orientation/crop alignment, CPU fallback, cancellation and 8/16 GB resource tests.

@@ -11,12 +11,12 @@ struct VisibleCard {
     int row;
     QRectF box;
 };
-std::vector<VisibleCard> visibleCards(Context &c) {
-    auto *grid = c.driver->item("library.grid");
+std::vector<VisibleCard> visibleCards(Context &c, bool filmstrip = false) {
+    auto *grid = c.driver->item(filmstrip ? "develop.filmstrip" : "library.grid");
     std::vector<VisibleCard> cards;
     std::function<void(QQuickItem *)> visit = [&](QQuickItem *parent) {
         for (auto *item : parent->childItems()) {
-            if (item->objectName().startsWith("library.card.")) {
+            if (item->objectName().startsWith(filmstrip ? "filmstrip.card." : "library.card.")) {
                 const auto box = item->mapRectToItem(grid, item->boundingRect());
                 const auto asset = item->property("assetID").toString();
                 if (item->isVisible() && box.intersects(grid->boundingRect()))
@@ -31,11 +31,13 @@ std::vector<VisibleCard> visibleCards(Context &c) {
               [](const auto &a, const auto &b) { return a.row < b.row; });
     return cards;
 }
-void settled(Context &c) {
+void settled(Context &c, bool filmstrip = false) {
     c.driver->wait(
         [&] {
             return !c.library.loading() && !c.library.working() && !c.library.selecting() &&
-                   !c.driver->object("library.grid")->property("moving").toBool();
+                   !c.driver->object(filmstrip ? "develop.filmstrip" : "library.grid")
+                        ->property("moving")
+                        .toBool();
         },
         "Library selection and scroll settled");
     require(c.library.error().isEmpty(), c.library.error());
@@ -106,10 +108,192 @@ void verify(Context &c, const QJsonObject &before, const QString &action, QJsonA
                 std::abs(before["height"].toDouble() - after["height"].toDouble()) <= 1,
             "Photo selection/open/return changed Library's visible asset anchor or offset");
 }
+QJsonObject filmstripSnapshot(Context &c) {
+    const auto cards = visibleCards(c, true);
+    require(!cards.empty() && !cards.front().asset.isEmpty(), "Filmstrip has no visible anchor");
+    auto *view = c.driver->item("develop.filmstrip");
+    return {{"anchor", cards.front().asset},   {"row", cards.front().row},
+            {"offset", cards.front().box.x()}, {"content_x", view->property("contentX").toDouble()},
+            {"width", view->width()},          {"count", c.library.count()}};
+}
+void filmstripScroll(Context &c, QJsonArray &checks) {
+    auto &d = *c.driver;
+    d.doubleClick(c.card(0));
+    c.loaded();
+    auto *view = d.item("develop.filmstrip");
+    for (const double fraction : {.3, .88}) {
+        auto *bar = d.item("develop.filmstripBar");
+        auto *thumb =
+            qobject_cast<QQuickItem *>(qvariant_cast<QObject *>(bar->property("contentItem")));
+        require(thumb && thumb->width() > 0, "Filmstrip has no scrollbar thumb");
+        const auto center = thumb->mapToItem(bar, {thumb->width() / 2, thumb->height() / 2});
+        const double travel = bar->property("availableWidth").toDouble() - thumb->width();
+        require(travel > 0 && bar->width() > 0 && bar->height() > 0, "Filmstrip cannot scroll");
+        const double target =
+            bar->property("leftPadding").toDouble() + travel * fraction + thumb->width() / 2;
+        d.drag("develop.filmstripBar", {center.x() / bar->width(), center.y() / bar->height()},
+               {target / bar->width(), .5});
+        settled(c, true);
+        const double maximum = view->property("contentWidth").toDouble() - view->width();
+        require(maximum > 0 && std::abs(view->property("contentX").toDouble() / maximum -
+                                        fraction) <= 2 / travel + 1e-4,
+                "Filmstrip drag did not reach its requested deep viewport");
+        d.wait(
+            [&] {
+                const auto cards = visibleCards(c, true);
+                return !cards.empty() &&
+                       std::all_of(cards.begin(), cards.end(), [&](const auto &card) {
+                           return !card.asset.isEmpty() &&
+                                  c.library.data(c.library.index(card.row), LibraryModel::AssetID)
+                                          .toString() == card.asset;
+                       });
+            },
+            "Scrolled filmstrip metadata ready");
+        const auto before = filmstripSnapshot(c);
+        require(before["content_x"].toDouble() > view->width(),
+                "Filmstrip fixture is not deep enough");
+        if (fraction > .8)
+            require(before["row"].toInt() >= LibraryModel::pageSize,
+                    "Filmstrip did not cross metadata page");
+        for (bool last : {false, true}) {
+            auto cards = visibleCards(c, true);
+            std::erase_if(cards, [&](const auto &card) {
+                return last ? !view->boundingRect().contains(card.box)
+                            : !view->boundingRect().contains(card.box.center());
+            });
+            require(cards.size() >= 2, "Filmstrip requires two real pointer targets");
+            const auto chosen = last ? cards.back() : cards.front();
+            auto *content =
+                qobject_cast<QQuickItem *>(qvariant_cast<QObject *>(view->property("contentItem")));
+            require(content, "Filmstrip has no observable content item");
+            const double initialX = content->x();
+            QJsonArray positions{initialX};
+            QJsonArray framePositions;
+            bool overflow = false;
+            QObject observer;
+            QObject::connect(content, &QQuickItem::xChanged, &observer, [&] {
+                if (positions.size() < 64)
+                    positions.append(content->x());
+                else
+                    overflow = true;
+            });
+            // currentIndex can move and restore content inside one click handler.
+            // Keep that trace, but judge visible movement at scene synchronization.
+            // Qt blocks the GUI thread during this direct callback, so reading
+            // the content item and recording these samples cannot race GUI work.
+            QObject::connect(
+                c.window, &QQuickWindow::beforeSynchronizing, &observer,
+                [&] {
+                    if (framePositions.size() < 256)
+                        framePositions.append(content->x());
+                    else
+                        overflow = true;
+                },
+                Qt::DirectConnection);
+            QSignalSpy resets(&c.library, &QAbstractItemModel::modelReset);
+            QSignalSpy activation(&c.library, &LibraryModel::openRequested);
+            QSignalSpy loaded(&c.editor, &EditorController::photoLoaded);
+            d.click(chosen.selector);
+            c.loaded();
+            settled(c, true);
+            const auto after = filmstripSnapshot(c);
+            checks.append(QJsonObject{{"action", "filmstrip-single-click"},
+                                      {"chosen", chosen.asset},
+                                      {"before", before},
+                                      {"after", after},
+                                      {"content_item_x", positions},
+                                      {"frame_content_item_x", framePositions},
+                                      {"overflow", overflow},
+                                      {"model_resets", resets.count()},
+                                      {"activations", activation.count()},
+                                      {"loads", loaded.count()}});
+            require(c.editor.photoID() == chosen.asset && activation.count() == 1 &&
+                        loaded.count() == 1 &&
+                        c.library.selectionIDs() ==
+                            std::vector<std::string>{chosen.asset.toStdString()},
+                    "Filmstrip click did not select and open exactly its visible photo once");
+            require(resets.isEmpty() && before["anchor"] == after["anchor"] &&
+                        before["count"] == after["count"] &&
+                        std::abs(before["offset"].toDouble() - after["offset"].toDouble()) <= 1 &&
+                        std::abs(before["content_x"].toDouble() - after["content_x"].toDouble()) <=
+                            1,
+                    "Filmstrip click/open moved its visible anchor or reset the model");
+            require(!overflow && !framePositions.isEmpty() &&
+                        std::all_of(framePositions.begin(), framePositions.end(),
+                                    [&](const auto &value) {
+                                        return std::isfinite(value.toDouble()) &&
+                                               std::abs(value.toDouble() - initialX) <= 1;
+                                    }),
+                    "Filmstrip click moved a frame's viewport by more than one logical pixel");
+        }
+        const int previousRow = view->property("currentIndex").toInt();
+        const double previousX = view->property("contentX").toDouble();
+        QSignalSpy keyboardActivations(&c.library, &LibraryModel::openRequested);
+        d.key(Qt::Key_Right);
+        try {
+            d.wait(
+                [&] {
+                    const auto cards = visibleCards(c, true);
+                    return view->property("contentX").toDouble() > previousX + 1 &&
+                           std::any_of(cards.begin(), cards.end(), [&](const auto &card) {
+                               return card.row == previousRow + 1 &&
+                                      view->boundingRect().contains(card.box);
+                           });
+                },
+                "Filmstrip Right-key current-item reveal completed", 5000);
+        } catch (...) {
+            QJsonArray geometry;
+            for (const auto &card : visibleCards(c, true))
+                geometry.append(QJsonObject{{"row", card.row},
+                                            {"x", card.box.x()},
+                                            {"y", card.box.y()},
+                                            {"width", card.box.width()},
+                                            {"height", card.box.height()}});
+            checks.append(QJsonObject{{"action", "filmstrip-keyboard-failure"},
+                                      {"previous_row", previousRow},
+                                      {"current_row", view->property("currentIndex").toInt()},
+                                      {"state", filmstripSnapshot(c)},
+                                      {"cards", geometry},
+                                      {"height", view->height()}});
+            throw;
+        }
+        settled(c, true);
+        require(view->property("currentIndex").toInt() == previousRow + 1,
+                "Filmstrip mouse retention broke Right-key navigation");
+        checks.append(QJsonObject{{"action", "filmstrip-keyboard-right"},
+                                  {"before_row", previousRow},
+                                  {"after_row", view->property("currentIndex").toInt()},
+                                  {"before_x", previousX},
+                                  {"after", filmstripSnapshot(c)}});
+        const double rightX = view->property("contentX").toDouble();
+        constexpr int leftSteps = 12; // Cross this bounded fixture's visible row.
+        for (int step = 0; step < leftSteps; ++step)
+            d.key(Qt::Key_Left);
+        d.wait(
+            [&] {
+                const auto cards = visibleCards(c, true);
+                return view->property("contentX").toDouble() < rightX - 1 &&
+                       std::any_of(
+                           cards.begin(), cards.end(),
+                           [&](const auto &card) {
+                               return card.row == previousRow + 1 - leftSteps &&
+                                      view->boundingRect().contains(card.box);
+                           });
+            },
+            "Filmstrip Left-key current-item reveal completed", 5000);
+        require(view->property("currentIndex").toInt() == previousRow + 1 - leftSteps &&
+                    keyboardActivations.isEmpty(),
+                "Filmstrip arrow navigation opened a photo or changed the wrong current item");
+        checks.append(QJsonObject{{"action", "filmstrip-keyboard-left"},
+                                  {"key_presses", leftSteps},
+                                  {"after", filmstripSnapshot(c)}});
+    }
+}
 } // namespace
 
 bool libraryScrollCandidate(Context &c, const QString &id) {
-    if (id != "CANDIDATE-LIBRARY-SELECTION-SCROLL")
+    const bool filmstrip = id == "CANDIDATE-FILMSTRIP-SELECTION-SCROLL";
+    if (id != "CANDIDATE-LIBRARY-SELECTION-SCROLL" && !filmstrip)
         return false;
     constexpr int count = 176;
     require(count > LibraryModel::pageSize, "Fixture must cross a production metadata page");
@@ -117,7 +301,9 @@ bool libraryScrollCandidate(Context &c, const QString &id) {
     auto &d = *c.driver;
     QJsonArray checks;
     try {
-        for (int phase = 0; phase < 3; ++phase) {
+        if (filmstrip)
+            filmstripScroll(c, checks);
+        for (int phase = 0; phase < (filmstrip ? 0 : 3); ++phase) {
             const QString search = phase == 1 ? "Photo-01" : "";
             if (phase > 0) {
                 d.type("library.search", search);
@@ -206,6 +392,7 @@ bool libraryScrollCandidate(Context &c, const QString &id) {
         writeJson(c.root + "/library-selection-scroll.json",
                   {{"status", "PASS"},
                    {"photos", count},
+                   {"surface", filmstrip ? "filmstrip" : "library"},
                    {"checks", checks},
                    {"native_file_chooser", "fixture-boundary"},
                    {"sort", "default filename/ID"}});

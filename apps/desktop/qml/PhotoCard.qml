@@ -83,13 +83,17 @@ Rectangle {
             // Set the actual clicked item before activating the view's focus
             // scope; otherwise it may reveal its stale current item (row zero).
             const view = card.keyboardView
+            const previousX = view ? view.contentX : 0
             const previousY = view ? view.contentY : 0
             if (view) view.currentIndex = card.index
             card.forceActiveFocus(Qt.MouseFocusReason)
             // Mouse selection must retain the viewport, including a partly
             // visible row. Explicit positioning also cancels Qt's deferred
             // current-cell reveal; keyboard navigation still follows its item.
-            if (view && !card.compact) view.contentY = previousY
+            if (view) {
+                if (card.compact) view.contentX = previousX
+                else view.contentY = previousY
+            }
             library.select(card.index, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0, (mouse.modifiers & Qt.ShiftModifier) !== 0)
             if (card.compact && mouse.modifiers === Qt.NoModifier && !editor.busy) library.activate(card.index)
         }

@@ -156,7 +156,8 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "RACE005 forbids ignored variant/stage/state-root flags");
-        if (id == "CANDIDATE-LIBRARY-SELECTION-SCROLL")
+        if (id == "CANDIDATE-LIBRARY-SELECTION-SCROLL" ||
+            id == "CANDIDATE-FILMSTRIP-SELECTION-SCROLL")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "Library scroll regression forbids variant/stage/state-root flags");

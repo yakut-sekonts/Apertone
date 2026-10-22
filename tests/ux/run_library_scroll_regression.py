@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Bounded BUG-035 regression; does not qualify native scrolling or load behavior."""
+"""Bounded BUG-035 regression; does not qualify physical trackpad input or load behavior."""
 import hashlib
 from pathlib import Path
 
 import run_ux_suite as runner
 
 IDENTIFIER = 'CANDIDATE-LIBRARY-SELECTION-SCROLL'
+FILMSTRIP_IDENTIFIER = 'CANDIDATE-FILMSTRIP-SELECTION-SCROLL'
+IDENTIFIERS = {IDENTIFIER, FILMSTRIP_IDENTIFIER}
 INVENTORY = [{'id': IDENTIFIER, 'severity': 'P1', 'scope': 'CURRENT', 'mode': 'REGRESSION',
-              'scenario': 'Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.'}]
+              'scenario': 'Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.'},
+             {'id': FILMSTRIP_IDENTIFIER, 'severity': 'P1', 'scope': 'CURRENT', 'mode': 'REGRESSION',
+              'scenario': 'Develop filmstrip retains horizontal anchor and offset after clicks and photo loads; Right-key reveal still works.'}]
 
 
 def fixtures(folder):
@@ -24,6 +28,6 @@ def fixtures(folder):
 
 
 if __name__ == '__main__':
-    raise SystemExit(runner.main(inventory=INVENTORY, executable_ids={IDENTIFIER},
+    raise SystemExit(runner.main(inventory=INVENTORY, executable_ids=IDENTIFIERS,
                                 fixture_factory=fixtures, domain='supplemental',
                                 default_report_name='ux-library-scroll-report'))

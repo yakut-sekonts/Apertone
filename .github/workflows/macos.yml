@@ -54,6 +54,12 @@ jobs:
         id: model_photographs
         continue-on-error: true
         run: .tools/model-venv/bin/python scripts/check-denoise-photographs.py build/models --probe build/luma_denoise_runtime_probe --output build/denoise-photographs
+      - name: Check Sky photographic interiors and native provider contracts
+        id: model_sky_photographs
+        continue-on-error: true
+        run: |
+          .tools/model-venv/bin/python -m unittest discover -s tests/models -p test_sky_photographs.py
+          .tools/model-venv/bin/python scripts/check-sky-photographs.py build/models --probe build/luma_sky_runtime_probe --output build/sky-photographs
       - name: Upload photographic model evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -64,6 +70,16 @@ jobs:
             build/denoise-photographs/*/comparison.png
             build/denoise-photographs/*/native.log
           if-no-files-found: warn
+      - name: Upload Sky photographic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sky-photographs
+          path: |
+            build/sky-photographs/report.json
+            build/sky-photographs/*/comparison.png
+            build/sky-photographs/*/native.log
+          if-no-files-found: warn
       - name: Unit and integration tests
         run: .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
       - name: Build and attest UX executable
@@ -72,7 +88,7 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
       - name: Supplemental selected-asset keyboard regression
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
-      - name: Library selection preserves deep scroll
+      - name: Library and filmstrip selection preserve deep scroll
         run: .tools/venv/bin/python tests/ux/run_library_scroll_regression.py --build build --runs 3 --require-build-provenance
       - name: Keyboard import edit export at minimum window
         run: .tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build --runs 3 --require-build-provenance
@@ -159,7 +175,7 @@ jobs:
       - name: clang-tidy
         run: ./scripts/check-tidy.sh build
       - name: Require model numerical agreement and source and photographic quality
-        if: ${{ !cancelled() && (steps.model_numerics.outcome != 'success' || steps.model_quality.outcome != 'success' || steps.model_photographs.outcome != 'success') }}
+        if: ${{ !cancelled() && (steps.model_numerics.outcome != 'success' || steps.model_quality.outcome != 'success' || steps.model_photographs.outcome != 'success' || steps.model_sky_photographs.outcome != 'success') }}
         run: |
           echo '::error::Model numerical agreement, source quality or photographic runtime quality did not pass; see model evidence artifacts.'
           exit 1

@@ -60,9 +60,79 @@ These runs use the local offscreen/software backend, not the native macOS UI.
 - Formatting, affected-file clang-tidy (with non-blocking warnings), 40 runner
   tests and 10 quality-policy tests passed. Post-fix hosted CI is pending.
 
-Native scrolling, additional filter/sort/load coverage and the remaining final
-campaign stay open. The stable release is still 0.5.1; this is not a release gate
-waiver or approval to publish 1.0.0.
+The subsequent human-authorized native interval passed **18/18** repetitions on
+Cocoa/Metal with Retina DPR 2: Library scroll 3/3, Tab/Return/keypad activation
+6/6, DSC006 3/3 and TRN003/TRN004 6/6. No QML warnings were recorded. All reports
+retain the clean `ff2bcb0` source/build attestation and original-file integrity.
+See [native evidence](qualification/2026-10-22/native-scroll-cancel.json).
+The chooser remains a fixture boundary. Physical trackpad/wheel input, other
+window sizes, additional filter/sort/load coverage and the remaining final
+campaign stay open. Stable distribution remains 0.5.1.
+
+### Recording, filmstrip and hosted keyboard follow-up — 2026-10-22
+
+[Review of the supplied recording](qualification/2026-10-22/scroll-recording.json)
+identifies the original surface as the horizontal Develop filmstrip, with 0.5.1
+visible in the window. The earlier grid-only regression did not qualify this
+surface. A new 176-image case reproduces a 24.82 px partial-card shift in current
+source; compact PhotoCard now preserves `contentX` after mouse focus. A subsequent
+check found Right-key index advancement without revealing the next card; explicit
+Left/Right containment fixes it. The test checks the actual anchor/offset,
+single activation/load, no reset, frame-synchronized positions and navigation in
+both directions across the metadata-page boundary.
+
+Final local offscreen retests: grid **3/3**, filmstrip **3/3**, keyboard **6/6** and
+neighboring SEL017/SEL018/DSC006 **9/9**, with no QML warnings. A control restoring
+the previous horizontal positioning fails the unchanged final-anchor assertion.
+The intermediate property-only observer incorrectly counted a move-and-restore
+inside one synchronous handler as visible motion; its failures are retained.
+The final observer records both property notifications and nonempty positions at
+scene synchronization. The subsequent authorized native run passes grid **3/3**,
+filmstrip **3/3** and keyboard **6/6** on Cocoa/Metal, Retina DPR 2, with no QML
+warnings and intact originals. Reports attest the same dirty worktree based on
+`ff2bcb0`; this is distinct from the earlier clean-commit run. Physical trackpad
+input and complete native UX qualification remain open.
+See [exact evidence](qualification/2026-10-22/filmstrip-keyboard-followup.json).
+
+[Hosted CI on ff2bcb0](https://github.com/yakut-sekonts/Luma/actions/runs/39762926272)
+passes model conversion/numerical/source/photographic checks, application build,
+unit/integration tests and blocking UX (**195 PASS**, 29 SKIPPED,
+92 NOT_IMPLEMENTED result entries). Supplemental keyboard returns **5 PASS /
+1 FAIL**; later supplemental and lint stages are skipped. Its last keypad run
+retained a destroyed PhotoCard pointer even though both actual Tab directions
+reached the expected UUID. The observer now resolves the current card by UUID
+without setting focus or mutating the model. A declared QML control that recreates
+the delegate passes with one observed instance replacement. The original failure
+and artifact digest are [retained](qualification/2026-10-22/ci-ff2bcb0.json).
+The post-fix hosted run remains pending; no full release gate is closed.
+
+### Sky photographic interiors and runtime contracts — 2026-10-22
+
+[Raw report](qualification/2026-10-22/sky-photographs.json) and
+[bounded visual observations/provenance](qualification/2026-10-22/sky-followup.json)
+record **3/3 source and 3/3 native photographic cases PASS**. Conservative regions
+were annotated before prediction on the existing licensed day/night/indoor PNGs.
+The indoor portrait has no mask pixels at or above 0.5; day/night sky interiors
+pass the fixed confidence/coverage criteria and annotated river, rocks and tower
+interiors pass the background limits. Unannotated pixels remain unknown.
+
+The application's real CoreMLSky provider is compared with independent PyTorch
+resize plus the pinned source network. Maximum source/native difference is
+0.001969, below 0.0005 plus the unavoidable half-step of the provider's uint8 mask
+(0.5/255). This does not loosen the separate Float32 Core ML numerical gate.
+Native progress/input preservation, unsupported selections, malformed input,
+pre-cancel, cancellation after resize and exact replay after cancellation pass.
+Seven oracle controls reject constant/inverted masks, concealed false positives,
+weak confidence and malformed annotations/probability planes.
+
+CI and release packaging now require this check and preserve its report, native
+logs and comparison sheets. Initial local build, affected clang-tidy, formatting
+and workflow YAML parsing pass; independent hosted execution is pending.
+No production Sky code, weights or conversion recipe changed. The three sheets
+were inspected, with soft/coarse fine edges and missed gaps in foliage recorded.
+Dense boundary accuracy, RAW and broader scene coverage, crop/orientation mapping,
+CPU fallback, actual accelerator placement and resource limits remain open. The
+full 1.0 gate remains **NOT QUALIFIED**.
 
 ### Completed baseline and current blockers
 
