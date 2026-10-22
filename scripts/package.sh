@@ -5,10 +5,6 @@ build_directory="${1:-build}"
 sdk="$PWD/.tools/qt/6.10.3/macos"
 output="$PWD/dist"
 version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$build_directory/Luma.app/Contents/Info.plist")
-if [[ "${version%%.*}" -ge 1 && ( -z "${LUMA_SIGNING_IDENTITY:-}" || -z "${LUMA_NOTARY_PROFILE:-}" ) ]]; then
-    echo 'Luma 1.0 and later require Developer ID signing and a configured notarytool Keychain profile.' >&2
-    exit 1
-fi
 if [[ -n "${LUMA_SIGNING_IDENTITY:-}" && -z "${LUMA_NOTARY_PROFILE:-}" ]]; then
     echo 'Developer ID packaging requires LUMA_NOTARY_PROFILE.' >&2
     exit 1
@@ -85,6 +81,7 @@ commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(
 signed = bool(os.environ.get("LUMA_SIGNING_IDENTITY"))
 models_manifest = (app / "Contents/Resources/Models/manifest.json").read_bytes()
 info = {"version": version, "source_commit": commit, "platform": "macOS 14+", "architecture": "arm64",
+        "distribution": "github-open-source",
         "signing": "developer-id" if signed else "ad-hoc",
         "bundled_models": json.loads(models_manifest)["models"],
         "models_manifest_sha256": hashlib.sha256(models_manifest).hexdigest(),

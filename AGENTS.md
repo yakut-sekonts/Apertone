@@ -20,3 +20,8 @@
   analysis and QA are now in scope. Record actual results and fix failures;
   this does not waive any final release gate or authorize publishing a
   partially qualified 1.0.0.
+- Distribution decision, 2026-10-22: the user cannot join Apple Developer
+  Program and defines a full release as open-source publication on GitHub.
+  Developer ID/notarization are optional, not release blockers. Ship truthful
+  ad-hoc/non-notarized provenance, installation guidance and Sparkle-signed
+  updates. All other final QA, artifact and data-preservation gates remain.

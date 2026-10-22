@@ -22,10 +22,16 @@ XMP preset import. Publication is approved after CI with
 [23 explicitly unqualified functional contracts](docs/releases/v0.5.1-quality.md);
 this is not a full UX qualification.
 
+Future releases, including 1.0, use the same open-source GitHub distribution:
+standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
+Sparkle-signed updates. Apple Developer Program membership is not required.
+The full pre-release QA gate remains required. See
+[release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
+
 ## Included in source: phases 0.4–0.5
 
-The `codex/1.0-development` branch additionally contains **unbuilt, unqualified
-0.6–0.9 development**: Metal/caches, local AI/retouch/search, HDR/panorama,
+The `codex/1.0-qualification` branch contains **0.6–0.9 development undergoing
+final qualification**: Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
 RGB/luminance Histogram with clipping overlays, Auto WB and a neutral eyedropper.
 The eight remaining functional source blocks now include Presence, Point Color,
@@ -34,7 +40,8 @@ advanced import with Move, naming, presets and a second backup. See the
 [completion ledger](docs/FUNCTIONAL_COMPLETION.md) and [behavior/limits](docs/adr/0030-functional-completion.md).
 These features are not in the published
 0.5.1 installer. See [final readiness](docs/FINAL_1_0_READINESS.md) before using
-or distributing a new build. All testing is deferred to final qualification.
+or distributing a new build. Final testing and fixes are in progress; this is
+not yet a qualified 1.0 release.
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.

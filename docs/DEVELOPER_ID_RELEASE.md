@@ -1,4 +1,8 @@
-# Developer ID distribution — source implementation, not qualified
+# Optional Developer ID distribution — source implementation, not qualified
+
+The owner chose open-source GitHub distribution on 2026-10-22 without an Apple
+Developer Program membership. This document describes an optional future path;
+it is not a prerequisite for 1.0. See [the active policy](OPEN_SOURCE_RELEASE.md).
 
 The release packaging code now supports Developer ID signing, hardened runtime,
 Apple notarization and stapled tickets for both the application and DMG. It has
@@ -45,13 +49,14 @@ checksums and preparing the Sparkle appcast.
 The sealed bundle's BUILD_INFO describes build identity and its required
 notarization policy, without prematurely claiming acceptance. The external release
 BUILD_INFO adds `notarized: true` and both submission IDs only after acceptance.
-Tag checks, packaging and publication refuse ad-hoc/non-notarized 1.x artifacts.
-Development 0.x packaging retains its existing ad-hoc path when no identity is
-configured. This does not authorize publishing an unqualified development build.
+Packaging uses ad-hoc signing when no identity is configured, including 1.x.
+Publication requires explicit, accurate signing/notarization metadata. If the
+optional Developer ID path is selected, both Accepted receipts remain mandatory.
+This does not authorize publishing an unqualified development build.
 
 ## Final qualification
 
-Before 1.0, run the whole release path with real authorized credentials, inspect
+Before adopting this optional path, run it with real authorized credentials, inspect
 Apple's results, verify nested signatures and entitlements, and test a quarantined
 download after copying from the DMG into Applications. Include Qt QML JIT,
 Metal/Core ML, Sparkle's helpers, update/relaunch and offline ticket behavior.

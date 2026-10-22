@@ -28,12 +28,15 @@ jobs:
         id: apple
         env:
           APPLE_CONFIGURED: ${{ secrets.APPLE_CERTIFICATE_P12 != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' && secrets.APPLE_NOTARY_KEY_P8 != '' && secrets.APPLE_NOTARY_KEY_ID != '' && secrets.APPLE_NOTARY_ISSUER_ID != '' && vars.APPLE_SIGNING_IDENTITY != '' }}
-          RELEASE_REF: ${{ github.ref }}
+          APPLE_REQUESTED: ${{ vars.APPLE_SIGNING_IDENTITY != '' }}
         run: |
           echo "configured=$APPLE_CONFIGURED" >> "$GITHUB_OUTPUT"
-          if [[ "$RELEASE_REF" =~ ^refs/tags/v[1-9][0-9]*\. && "$APPLE_CONFIGURED" != true ]]; then
-            echo 'Luma 1.0 and later require configured Developer ID and notarization credentials.' >&2
+          if [[ "$APPLE_REQUESTED" == true && "$APPLE_CONFIGURED" != true ]]; then
+            echo 'Optional Developer ID signing was requested, but its credentials are incomplete.' >&2
             exit 1
+          fi
+          if [[ "$APPLE_CONFIGURED" != true ]]; then
+            echo 'GitHub open-source release: ad-hoc signature, without Apple notarization.'
           fi
       - name: Sparkle signing key is missing
         if: steps.configuration.outputs.configured != 'true'

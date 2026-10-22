@@ -33,12 +33,22 @@ if not re.fullmatch(r"[0-9a-f]{40}", arguments.source_commit):
 if info["version"] != version or info["source_commit"] != arguments.source_commit:
     raise SystemExit("Asset version/source commit does not match the release tag.")
 if int(version.split(".")[0]) >= 1:
-    receipts = info.get("notarization", {})
-    if (info.get("signing") != "developer-id" or info.get("notarized") is not True or
-            any(receipts.get(kind, {}).get("status") != "Accepted" or
-                not re.fullmatch(r"[0-9a-fA-F-]{36}", receipts.get(kind, {}).get("submission_id", ""))
-                for kind in ("app", "dmg"))):
-        raise SystemExit("Luma 1.0 and later require Developer ID signing and accepted app/DMG notarization.")
+    if not info.get("dependencies", {}).get("Sparkle"):
+        raise SystemExit("Luma 1.0 and later require the signed Sparkle update channel.")
+    if info.get("distribution") != "github-open-source":
+        raise SystemExit("Luma 1.0 and later require the explicit GitHub open-source distribution policy.")
+    if info.get("signing") == "ad-hoc":
+        if info.get("notarized") is not False or info.get("notarization"):
+            raise SystemExit("Ad-hoc artifacts must explicitly declare that Apple notarization is absent.")
+    elif info.get("signing") == "developer-id":
+        receipts = info.get("notarization", {})
+        if (info.get("notarized") is not True or
+                any(receipts.get(kind, {}).get("status") != "Accepted" or
+                    not re.fullmatch(r"[0-9a-fA-F-]{36}", receipts.get(kind, {}).get("submission_id", ""))
+                    for kind in ("app", "dmg"))):
+            raise SystemExit("Developer ID artifacts require accepted app/DMG notarization.")
+    else:
+        raise SystemExit("Unsupported release signing mode.")
 paths = [folder / f"Luma-{version}-macos-arm64.zip", folder / f"Luma-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
 if info.get("dependencies", {}).get("Sparkle"):
     ns = "http://www.andymatuschak.org/xml-namespaces/sparkle"

@@ -405,16 +405,27 @@ them to the privacy-limited diagnostic JSON or upload them.
 
 ## Distribution
 
+User decision, 2026-10-22: Apple Developer Program is unavailable. A full release
+means open-source publication on GitHub, with standalone DMG/ZIP and the signed
+Sparkle update channel. Developer ID/notarization are now optional and are no
+longer release blockers. This supersedes the previous signing requirement only;
+it does not waive the final functional, image, UX, recovery or load qualification.
+See [the current distribution policy](OPEN_SOURCE_RELEASE.md).
+
 The existing release workflows and Sparkle signing checks remain in place.
 The 0.5.1 limited-release exception does not authorize a 1.0 exception. Final
-distribution also needs Developer ID signing, hardened runtime and notarization,
-standalone Applications installation/launch, DMG/ZIP checksums, updater signature
+distribution needs standalone Applications installation/launch, DMG/ZIP checksums, updater signature
 verification, bell notification, upgrade/relaunch and data preservation. Apple
-Developer signing credentials have not been supplied or inspected by this work.
+Developer signing credentials are neither required nor configured for this release.
 The [Developer ID packaging path](DEVELOPER_ID_RELEASE.md) is now implemented
 in source, including isolated Actions credential setup and accepted/stapled
-app/DMG tickets. It is unexecuted; final signing and installation evidence is
-still required. The source guards refuse an ad-hoc 1.x publication.
+app/DMG tickets. This optional path is unexecuted. The selected ad-hoc path must
+retain explicit `notarized: false` provenance and be tested with a quarantined
+download using the documented per-app macOS approval; no global security change.
+
+The available local Mac has 8 GiB RAM. The user has no 16 GiB Mac and can connect
+an external monitor. Neither the 16 GiB configuration nor external-display checks
+are marked passed by that availability statement.
 
 Publish only after all required results are documented and accepted. Keep the
 post-1.0 Impeccable/Taste frontend redesign outside this qualification scope.
