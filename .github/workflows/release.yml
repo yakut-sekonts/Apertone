@@ -116,6 +116,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
       - name: Supplemental selected-asset keyboard regression
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
+      - name: Library selection preserves deep scroll
+        run: .tools/venv/bin/python tests/ux/run_library_scroll_regression.py --build build --runs 3 --require-build-provenance
       - name: Keyboard import edit export at minimum window
         run: .tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build --runs 3 --require-build-provenance
       - name: Localized preset dialogs at minimum window
@@ -146,6 +148,7 @@ jobs:
           path: |
             build/ux-report/
             build/ux-keyboard-report/
+            build/ux-library-scroll-report/
             build/ux-keyboard-workflow-report/
             build/ux-localized-dialog-report/
             build/ux-mask-handles-report/
@@ -164,6 +167,8 @@ jobs:
             build/ux-artifacts/20*/**/metrics.json
             build/ux-artifacts/20*/**/actions.jsonl
             build/ux-artifacts/20*/**/keyboard-activation.json
+            build/ux-artifacts/20*/**/library-selection-scroll.json
+            build/ux-artifacts/20*/**/auto-cancel-delivery.json
             build/ux-artifacts/20*/**/keyboard-workflow.json
             build/ux-artifacts/20*/**/localized-dialogs.json
             build/ux-artifacts/20*/**/dialog-*.png

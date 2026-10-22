@@ -156,6 +156,10 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "RACE005 forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-LIBRARY-SELECTION-SCROLL")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Library scroll regression forbids variant/stage/state-root flags");
         if (parser.value("case") == "UX-APP-004" && parser.value("stage") == "verify")
             ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
