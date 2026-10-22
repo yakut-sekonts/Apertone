@@ -12,25 +12,33 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 ## LUMA-BUG-035 — Library scroll returns to the beginning on photo selection
 
 - GitHub: [Issue #49](https://github.com/yakut-sekonts/Luma/issues/49).
-- Status: **open — source fix implemented; confirmation deferred to final QA**.
+- Status: **bounded offscreen regression passes; native confirmation remains open**.
 - Reported: 2026-10-20, after installation of the 0.5.1 release.
   The exact running build has not been independently established.
 - Reproduction supplied by the user: import photographs, scroll down through
   the Library, then select a photograph.
 - Actual: the list jumps back to the beginning after every selection.
 - Expected: selecting a photograph preserves the visible asset anchor and its
-  offset in the viewport; the selected photo opens without resetting scroll.
+  offset; opening it and returning from Develop also preserves that viewport.
 - Evidence supplied: local screen recording
   `Запись экрана — 2026-10-20 в 17.33.02.mov`. The recording has not been
   independently analyzed; the description above records the user's report.
-- Likely investigation area, not an established cause: Library selection,
-  `photoOpened`, model reload/reset, and viewport restoration.
 - Source change: opening an asset already present in a loaded metadata page
   updates Active/Selected roles without resetting the model. Card clicks set
   the view's current index before transferring focus; the grid starts with no
-  implicit current item. This has not been run or independently confirmed.
-- Final qualification must cover click selection after deep scrolling, repeated
-  selection, paged results, sort/filter combinations and asynchronous photo load.
+  implicit current item. Final qualification additionally reproduced a 10 px
+  shift while the grid was hidden after opening a photo. Explicitly retaining
+  `contentY` after mouse focus cancels Qt's deferred current-cell reveal without
+  disabling arrow-key navigation.
+- 2026-10-22: three local offscreen repetitions pass with 176 generated PNGs,
+  a metadata-page boundary, two selections, open/return, filename filtering and
+  clearing the filter. The oracle checks the actual visible asset/offset,
+  transient click motion, absence of model resets and keyboard reveal. Two
+  targeted QML mutations are rejected by the expected scroll/reset assertions.
+  See [retained failures and retests](qualification/2026-10-22/library-scroll-and-cancel.json).
+- Native macOS/trackpad/Retina behavior, the original recording, other sort/filter
+  combinations and large catalogs remain part of final qualification. This does
+  not establish reproduction of the user's exact installed build or close 1.0 QA.
 
 ## LUMA-BUG-036 — Compiled Denoise differs from its source network
 

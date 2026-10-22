@@ -28,6 +28,42 @@ current schema 21 and preset codecs 8/9 without weakening their invariants.
 Intermediate logs are retained locally under `.tools/final-*`; only completed,
 retested checks count as passing. This section does not close the full campaign.
 
+### Library scroll and cancellation follow-up — 2026-10-22
+
+[Evidence](qualification/2026-10-22/library-scroll-and-cancel.json) retains the
+original failures, source/binary hashes, local report locations and retests.
+These runs use the local offscreen/software backend, not the native macOS UI.
+
+- BUG-035 now has a mandatory supplemental CI/release regression with 176 small
+  PNGs. Selection, open/return, filename filtering and metadata paging preserve
+  the actual visible asset and offset in three repetitions. A newly reproduced
+  10 px return shift is fixed by retaining the mouse-selected viewport after
+  focus transfer. Arrow-key reveal remains active. Two targeted QML mutations
+  fail the expected offset/model-reset assertions.
+- Adjacent Tab/Return/keypad activation passed 6/6. DSC006 passed 3/3 after its
+  obsolete requirement for a Library reload was replaced with observation of
+  the actual prior/busy/photoLoaded transitions. Viewport geometry, controls,
+  rendered edits and durable settings remain checked in both directions.
+- [CI on 406f161](https://github.com/yakut-sekonts/Luma/actions/runs/39627660731)
+  passed model conversion/numerical/source/photographic checks, app build and
+  unit/integration tests. Blocking UX returned 194 PASS / 1 FAIL, plus 29 SKIPPED
+  and 92 NOT_IMPLEMENTED entries. These are repeat/result counts, not unique
+  completed specification scenarios. The failure was TRN003 repeat 2: Cancel
+  unavailable; subsequent supplemental and lint stages were skipped.
+- The old TRN003 adapter passed 10/10 locally, so the CI failure was not locally
+  reproduced. Its generic QObject MetaCall interception could hold an unrelated
+  preview/save delivery. TRN003/TRN004 now use the existing test-only actual
+  successful Auto-result gate and a calibrated 320×240 fixture. Real Cancel
+  input precedes delivery; the same operation must be rejected exactly once by
+  the original stale-revision guard. Both cases pass 3/3; no production Auto
+  implementation or cancellation guard was changed.
+- Formatting, affected-file clang-tidy (with non-blocking warnings), 40 runner
+  tests and 10 quality-policy tests passed. Post-fix hosted CI is pending.
+
+Native scrolling, additional filter/sort/load coverage and the remaining final
+campaign stay open. The stable release is still 0.5.1; this is not a release gate
+waiver or approval to publish 1.0.0.
+
 ### Completed baseline and current blockers
 
 [Machine-readable baseline](qualification/2026-10-21/baseline.json) records the
