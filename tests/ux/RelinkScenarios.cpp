@@ -1,12 +1,17 @@
 #include "apps/shared/MetadataService.h"
+#include "apps/shared/PhotoDecoder.h"
+#include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "tests/ux/CrashScenarios.h"
+#include "tests/ux/OwnedVolume.h"
 #include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
+#include <QColorSpace>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QSignalSpy>
 #include <algorithm>
 
@@ -125,7 +130,148 @@ void missing(Context &c, const std::string &photo, bool expected) {
     }
 }
 } // namespace
+bool externalDailyRelinkScenario(Context &c) {
+    auto &d = *c.driver;
+    require(c.library.count() == 0 && !c.editor.hasPhoto(),
+            "Daily external-volume workflow requires a fresh owned catalog");
+    const auto original = c.fixture + "/Photo-0000.png";
+    const auto control = c.root + "/Control.png";
+    const auto checksum = luma::macos::sha256File(original.toStdString());
+    require(QFile::copy(c.fixture + "/Photo-0001.png", control),
+            "Cannot create daily relink control original");
+    OwnedVolume volume(d, c.root);
+    try {
+        volume.createAndAttach();
+        const auto external = volume.mountPath() + "/External.png";
+        require(QFile::copy(original, external), "Cannot populate the owned mounted volume");
+        volume.pinOriginals({{"External.png", QString::fromStdString(checksum)}});
+        const QList<QUrl> urls{QUrl::fromLocalFile(external), QUrl::fromLocalFile(control)};
+        require(d.object("library.importDialog")->setProperty("sources", QVariant::fromValue(urls)),
+                "Daily relink Import refused owned sources");
+        d.click("library.importButton");
+        d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
+               "Daily external-volume Import opened");
+        d.click("library.importStart");
+        idle(c);
+        require(c.library.error().isEmpty() && c.library.count() == 2,
+                "Daily relink originals were not imported");
+        luma::Catalog catalog(c.catalogFile.toStdString());
+        const auto rows = catalog.libraryPage({}, 0, 2);
+        const auto source = std::find_if(rows.begin(), rows.end(), [&](const auto &asset) {
+            return asset.path == external.toStdString();
+        });
+        const auto other = std::find_if(rows.begin(), rows.end(), [&](const auto &asset) {
+            return asset.path == control.toStdString();
+        });
+        require(source != rows.end() && other != rows.end(), "Daily relink lost source identities");
+        const auto controlRecord = catalog.assetByID(other->id).value();
+        d.doubleClick(card(c, source->id));
+        c.loaded();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.addMask(2);
+        d.drag("localMaskGestureArea", {.2, .3}, {.8, .7});
+        d.wait([&] { return c.editor.localCanvasReady(); }, "External original brush rendered");
+        c.reveal("local_exposure");
+        d.drag("local_exposure", d.sliderThumb("local_exposure"), {.65, .5});
+        c.saved();
+        const auto committed = catalog.assetSnapshot(source->id).value();
+        require(committed.asset.edits.exposure > 0 && !committed.asset.edits.localMasks.empty(),
+                "Daily relink requires saved global and local edits");
+        const auto replacement = c.root + "/Relinked.png";
+        require(QFile::copy(external, replacement) &&
+                    luma::macos::sha256File(replacement.toStdString()) == checksum,
+                "Relink replacement is not an exact owned source copy");
+        d.click("main.libraryButton");
+        idle(c);
+        d.doubleClick(card(c, other->id));
+        c.loaded();
+        d.click("main.libraryButton");
+        idle(c);
+        volume.detach();
+        missing(c, source->id, true);
+        missing(c, other->id, false);
+        d.click(card(c, source->id));
+        metadata(c, source->id);
+        locate(c, replacement.toStdString(), false);
+        require(c.library.error().isEmpty(), c.library.error());
+        closeMetadata(c);
+        if (QGuiApplication::platformName() == "offscreen") {
+            auto *focus = QGuiApplication::focusWindow();
+            d.log({{"action", "owned_chooser_offscreen_focus"},
+                   {"root_active", c.window->isActive()},
+                   {"focus_class",
+                    focus ? QString::fromUtf8(focus->metaObject()->className()) : QString()},
+                   {"focus_visible", focus && focus->isVisible()},
+                   {"focus_is_root", focus == c.window}});
+            if (focus && focus != c.window && !focus->isVisible()) {
+                // The explicit chooser-result fixture closes the fallback popup
+                // without a window-system focus event on offscreen. Restore only
+                // that hidden-window case, never an active modal or Cocoa focus.
+                c.window->requestActivate();
+                d.wait([&] { return QGuiApplication::focusWindow() == c.window; },
+                       "Offscreen owner reactivated after the hidden chooser fixture");
+            }
+        }
+        missing(c, source->id, false);
+        const auto relinked = catalog.assetSnapshot(source->id).value();
+        require(relinked.asset.path == replacement.toStdString() &&
+                    relinked.asset.edits == committed.asset.edits &&
+                    relinked.revision == committed.revision && catalog.libraryCount() == 2,
+                "Relink lost the original identity, full document or committed revision");
+        d.doubleClick(card(c, source->id));
+        c.loaded();
+        require(c.editor.currentSettings() == committed.asset.edits,
+                "Relinked original did not restore global/local edits");
+        c.reveal("develop.contrastSlider");
+        d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});
+        c.saved();
+        const auto edited = c.editor.currentSettings();
+        require(edited != committed.asset.edits &&
+                    catalog.assetSnapshot(source->id)->asset.edits == edited,
+                "Editing did not continue after external-volume relink");
+        d.click("main.undoButton");
+        c.saved();
+        require(c.editor.currentSettings() == committed.asset.edits,
+                "Continued Undo lost the exact pre-relink document");
+        d.click("main.redoButton");
+        c.saved();
+        require(c.editor.currentSettings() == edited, "Continued Redo lost the edited document");
+        const auto decoded = luma::PhotoDecoder().decode(replacement.toStdString());
+        const auto reference =
+            luma::renderCPU(decoded.image, edited, decoded.metadata.orientation, {}, {},
+                            decoded.calibration, luma::DetailDiagnostic::none, 1, decoded.metadata);
+        const QImage output(c.exportPNG("Relink-daily"));
+        const auto pixels = output.convertToFormat(QImage::Format_RGBA8888);
+        require(!pixels.isNull() && pixels.size() == QSize(reference.width, reference.height) &&
+                    output.colorSpace() == QColorSpace(QColorSpace::SRgb),
+                "Relinked export lost full resolution or sRGB profile");
+        for (int y = 0; y < pixels.height(); ++y)
+            require(std::equal(pixels.constScanLine(y),
+                               pixels.constScanLine(y) + pixels.width() * 4,
+                               reference.rgba.data() + y * reference.width * 4),
+                    "Relinked export differs from the independent CPU document");
+        require(catalog.assetByID(other->id)->edits == controlRecord.edits &&
+                    luma::macos::sha256File(controlRecord.path) == controlRecord.checksum &&
+                    luma::macos::sha256File(replacement.toStdString()) == checksum,
+                "Continued relink workflow changed an original or the control document");
+        volume.remount();
+        volume.verifyOriginals();
+        volume.checkpoint("daily_relink_continued",
+                          {{"source_id", QString::fromStdString(source->id)},
+                           {"export_cpu_pixels_exact", true},
+                           {"physical_usb_exercised", false}});
+        volume.finalize();
+        c.checkData();
+        return true;
+    } catch (const std::exception &error) {
+        volume.checkpoint("daily_relink_failure", {{"error", QString::fromUtf8(error.what())}});
+        throw;
+    }
+}
 bool relinkScenario(Context &c, const QString &id) {
+    if (id == "UX-P10-DAY-009")
+        return externalDailyRelinkScenario(c);
     const bool absent = id == "UX-P09-RLK-001";
     const bool tree = id == "UX-P09-RLK-003";
     const bool wrong = id == "UX-P09-RLK-004";

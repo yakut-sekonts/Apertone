@@ -5,6 +5,26 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### External-volume relink daily workflow — 2026-10-24
+
+[Evidence](qualification/2026-10-24/daily-external-relink.json): DAY009 uses a real
+owned HFS+ disk image, normal detach, Missing/Locate, identity and exact full-document
+preservation, continued edits/Undo/Redo and exact CPU PNG pixels. Remount verifies
+pinned original hashes; mandatory cleanup and catalog integrity pass. Final runs
+pass **3/3 offscreen + 3/3 Cocoa/Metal**. Initial offscreen failures were an invisible
+fallback chooser retaining keyboard focus after the explicit picker-result fixture;
+only that hidden offscreen owner is reactivated. Native runs never needed this.
+Build, 19 affected CTest checks, format and both affected tidy units pass.
+Physical USB removal and native picker navigation remain separate. **23 blocking /
+308 total** applicable IDs remain unadapted.
+
+[Historical full CI](qualification/2026-10-24/historical-ci-40015920664.json)
+40015920664 completed on branch head 2e9e8b4 / merge build 863eb852: **351 PASS /
+12 FAIL / 34 SKIPPED / 31 NOT_IMPLEMENTED**, full clang-tidy PASS. Failures are three
+GPU002 assertions and nine pre-fix Denoise SIGBUS crashes. The summary archive's
+GitHub SHA-256 was verified. Hosted Denoise fix already passes 9/9 separately;
+current full CI and remaining release gates are still open.
+
 ### Offline provider failure preserves daily work — 2026-10-24
 
 [Evidence](qualification/2026-10-24/offline-daily.json): DAY012 runs under a

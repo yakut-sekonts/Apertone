@@ -70,6 +70,10 @@ int main(int argc, char **argv) {
     ShutdownMarker contextDestroying{"context.owner.destroy.begin"};
     try {
         const auto id = parser.value("case");
+        if (id == "UX-P10-DAY-009")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Daily external-volume relink requires fresh owned state");
         if (id == "UX-P10-DAY-012") {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
