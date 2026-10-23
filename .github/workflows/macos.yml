@@ -142,6 +142,9 @@ jobs:
       - name: Auto Transform completion regression
         if: ${{ !cancelled() && steps.ux_build.outcome == 'success' }}
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
+      - name: Metadata forms and XMP preservation regression
+        if: ${{ !cancelled() && steps.ux_build.outcome == 'success' }}
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P09-META-002 --case UX-P09-META-007 --case UX-P09-XMP-002 --case UX-P09-XMP-003 --case UX-P09-XMP-004 --case UX-P09-XMP-005 --runs 3 --require-build-provenance --report build/ux-metadata-xmp-report
       - name: Upload UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -157,6 +160,7 @@ jobs:
             build/ux-auto-transform-report/
             build/ux-preview-ordering-report/
             build/ux-viewer-input-report/
+            build/ux-metadata-xmp-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
             build/ux-thumbnail-away-back-report/

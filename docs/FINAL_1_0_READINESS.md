@@ -29,6 +29,11 @@ separately from the reproduced production defect. These checks do not qualify
 crash/disk-full recovery, native file pickers, load or the complete phase 0.9.
 Full hosted CI and all remaining release gates are still required.
 
+CI and release workflows explicitly run all six metadata/XMP cases three times
+and retain their report. Only two belong to the blocking inventory; the four
+regression cases must not disappear from hosted coverage. This addition keeps
+existing failure propagation and source attestation requirements.
+
 ### Cancel Import and catalog maintenance — 2026-10-23
 
 [Evidence](qualification/2026-10-23/import-cancel-maintenance.json) records a
