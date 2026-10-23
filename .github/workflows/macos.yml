@@ -88,6 +88,17 @@ jobs:
       - name: Unit and integration tests
         if: ${{ !cancelled() && steps.application_build.outcome == 'success' }}
         run: .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
+      - name: Preserve CTest diagnostics before UX checks
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ctest-evidence
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/Testing/Temporary/LastTestsFailed.log
+            build/Testing/Temporary/CTestCostData.txt
+          if-no-files-found: warn
+          retention-days: 7
       - name: Build and attest UX executable
         id: ux_build
         if: ${{ !cancelled() && steps.application_build.outcome == 'success' }}
