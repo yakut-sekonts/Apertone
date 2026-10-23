@@ -36,5 +36,10 @@
   "phase_semantics": "Source implementation available; this manifest does not certify QA or release readiness.",
   "implemented_targets": {
     "UX-PRV-012": "0.6"
-  }
+  },
+  "implemented_scenarios": [
+    "UX-P10-A11Y-002",
+    "UX-P10-DAY-007",
+    "UX-P10-DAY-013"
+  ]
 }

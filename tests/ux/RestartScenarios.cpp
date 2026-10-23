@@ -45,7 +45,9 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
         return;
     auto &d = *c.driver;
     const bool mask = id == "UX-MSK-008" || id == "UX-MSK-040";
-    const bool killed = id == "UX-UND-014" || id == "UX-UND-015" || id == "UX-REC-007";
+    const bool dailyKill = id == "UX-P10-DAY-007";
+    const bool committedKill = id == "UX-UND-014" || dailyKill;
+    const bool killed = committedKill || id == "UX-UND-015" || id == "UX-REC-007";
     const bool detail = id == "UX-DTL-012" || id == "UX-SLD-020";
     const bool crop = id == "UX-CRP-018";
     const bool transform = id == "UX-TRN-015";
@@ -70,8 +72,16 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
         if (killed) {
             c.saved();
             c.reveal(ids::exposure);
-            if (id == "UX-UND-014") {
+            if (committedKill) {
                 d.drag(ids::exposure, {.5, .5}, {.65, .5});
+                if (dailyKill) {
+                    c.addMask(2);
+                    d.drag("localMaskGestureArea", {.2, .3}, {.8, .7});
+                    d.wait([&] { return c.editor.localCanvasReady(); },
+                           "Daily-use brush gesture rendered");
+                    c.reveal("local_exposure");
+                    d.drag("local_exposure", d.sliderThumb("local_exposure"), {.65, .5});
+                }
                 c.saved();
             }
             const auto document = c.editor.currentSettings();
@@ -89,7 +99,22 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
                 require(stored->edits == document,
                         "Expected document serializer lost in-memory fields");
             }
-            writeJson(c.stateRoot + "/expected.json", {{"source", c.editor.sourcePath()}});
+            const auto snapshot = luma::Catalog(c.catalogFile.toStdString())
+                                      .assetSnapshot(c.editor.photoID().toStdString());
+            require(snapshot.has_value(), "Kill fixture lost its committed asset snapshot");
+            writeJson(c.stateRoot + "/expected.json",
+                      {{"source", c.editor.sourcePath()},
+                       {"id", c.editor.photoID()},
+                       {"revision", qint64(snapshot->revision)},
+                       {"prepare_pid", QCoreApplication::applicationPid()}});
+            if (dailyKill) {
+                require(snapshot->asset.edits == document && document.exposure > 1 &&
+                            document.localMasks.size() == 1 &&
+                            !document.localMasks.front().strokes.empty() &&
+                            document.localMasks.front().adjustments[0] > 0,
+                        "Daily-use kill needs a complete committed global/local document");
+                killCheckpoint(c, id, stage, "daily.committed-global-and-local-edits");
+            }
             struct Unblock {
                 SqliteFault &fault;
                 ~Unblock() {
@@ -99,7 +124,7 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
             [[maybe_unused]] const Unblock unblock{c.storageFault};
             if (id == "UX-REC-007")
                 c.storageFault.holdWrites(true);
-            if (id != "UX-UND-014") {
+            if (!committedKill) {
                 d.drag(ids::exposure, {.5, .5}, {.7, .5});
                 require(c.editor.saving(), "Kill fixture missed pending save");
                 if (id == "UX-REC-007")
@@ -192,6 +217,26 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
             "Process restart lost/crossed the saved document or mask geometry");
     require(!c.editor.canUndo() && !c.editor.canRedo(),
             "Session-local history crossed a process restart");
+    if (dailyKill) {
+        require(expected["prepare_pid"].toInteger() != QCoreApplication::applicationPid(),
+                "Daily-use recovery did not start a new process");
+        const auto snapshot = luma::Catalog(c.catalogFile.toStdString())
+                                  .assetSnapshot(c.editor.photoID().toStdString());
+        require(snapshot && c.editor.photoID() == expected["id"].toString() &&
+                    snapshot->revision == expected["revision"].toInteger() &&
+                    snapshot->asset.edits == document->edits &&
+                    luma::macos::sha256File(snapshot->asset.path) == snapshot->asset.checksum,
+                "Daily-use restart changed identity, revision, committed edits or original");
+        c.reveal(ids::exposure);
+        d.drag(ids::exposure, d.sliderThumb(ids::exposure), {.3, .5});
+        c.saved();
+        require(c.editor.currentSettings().exposure < -1 && c.editor.canUndo(),
+                "Recovered daily-use session cannot accept another edit");
+        d.click(ids::undo);
+        c.saved();
+        require(c.editor.currentSettings() == document->edits,
+                "New-session Undo did not return to the complete recovered document");
+    }
     if (mask) {
         require(!c.editor.currentSettings().localMasks.empty() && !c.editor.localMode() &&
                     !c.editor.localGestureActive(),

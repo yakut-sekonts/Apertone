@@ -44,6 +44,7 @@ CASE_PROFILE_IDS = AI_PROFILE_IDS | CATALOG_SCALE_IDS | MERGE_PROFILE_IDS | THUM
 NATIVE_ONLY_CONTRACTS = {
     'UX-MAC-001': {'platform': 'cocoa', 'graphics_api': 'metal', 'device_pixel_ratio': 2},
     CROP_DONE_CASE: {'platform': 'cocoa', 'graphics_api': 'metal'},
+    'UX-P10-A11Y-002': {'platform': 'cocoa'},
 }
 
 
@@ -116,6 +117,8 @@ RESTART.update(('UX-P09-XMP-012', 'UX-P09-FLT-002'))
 CRASH_IDS = {f'UX-P09-FLT-{i:03}' for i in (1, 3, 4, 5, 6)}
 RESTART.update(CRASH_IDS)
 KILL.update(CRASH_IDS)
+RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-013'))
+KILL.add('UX-P10-DAY-007')
 NATIVE.add('UX-P09-XMP-001')
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
@@ -174,6 +177,7 @@ NATIVE.add(CROP_DONE_CASE)
 NATIVE.add(CURRENT_FILENAME_CASE)
 NATIVE.add(PARTIAL_RENDER_CASE)
 NATIVE.add('UX-P09-PERF-001')  # Executable Python schema adapter; no native UI claim.
+NATIVE.add('UX-P10-A11Y-002')
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -250,6 +254,11 @@ def implemented_scope(scope, identifier=None):
     if scope == 'TARGET':
         return MANIFEST.get('implemented_targets', {}).get(identifier, scope)
     return scope
+
+
+def capability_implemented(scope, identifier):
+    return (implemented_scope(scope, identifier) in ('ALL', 'CURRENT', *MANIFEST['completed_phases'])
+            or identifier in MANIFEST.get('implemented_scenarios', ()))
 
 
 def in_scope(scope, through, identifier=None):
@@ -721,7 +730,7 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
     selected_rows = [row for row in selected_inventory if row_selected(row, args)]
     fixture_rows = [row for row in selected_rows
                     if row['id'] in selected_executable and in_scope(row['scope'], args.through, row['id'])
-                    and implemented_scope(row['scope'], row['id']) in ('ALL', 'CURRENT', *MANIFEST['completed_phases'])
+                    and capability_implemented(row['scope'], row['id'])
                     and not (args.quality_only and quality_skip_reason(row))
                     and not (domain == 'specification' and unsupported_backend_requirement(row['id']))]
     case_profile_rows = [row for row in fixture_rows
@@ -807,7 +816,7 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
             identifier, scope, mode = row['id'], row['scope'], row['mode']
             repetitions = repetitions_for(row, args)
             applicable = in_scope(scope, args.through, identifier)
-            capable = implemented_scope(scope, identifier) in ('ALL', 'CURRENT', *MANIFEST['completed_phases'])
+            capable = capability_implemented(scope, identifier)
             if not applicable or not capable or identifier == 'UX-MSK-005':
                 results.append({**row, 'status': 'NOT_IMPLEMENTED', 'notes': ['Capability absent; future phase/conditional tool']})
                 continue

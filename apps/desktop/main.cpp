@@ -380,8 +380,10 @@ int main(int argc, char **argv) {
         const auto exportPath = parser.value(QStringLiteral("test-export"));
         auto exportStarted = std::make_shared<bool>(false);
         const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
+        // This acceptance state machine waits for previewUrl as well as edits.
+        // previewChanged includes stateChanged and the independent render completion.
         QObject::connect(
-            &editor, &EditorController::stateChanged, &app,
+            &editor, &EditorController::previewChanged, &app,
             [&editor, &app, window, editing, target, applied, finished, screenshot, develop,
              exportPath, exportStarted, cancelExport, closeDuringExport, testSource, advanced, lens,
              transform, localMasks, &presets, filter, xmp] {

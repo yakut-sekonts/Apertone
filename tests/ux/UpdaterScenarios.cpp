@@ -23,7 +23,8 @@ std::shared_ptr<InstallProbe> requestInstallation(Context &c) {
     c.updates.postponeInstallation([probe, &c] {
         ++probe->calls;
         try {
-            probe->ready = !c.editor.transformAutoBusy() && !c.editor.busy() &&
+            probe->ready = !c.editor.aiBusy() && !c.editor.retouchBusy() &&
+                           !c.editor.transformAutoBusy() && !c.editor.busy() &&
                            !c.editor.saving() && !c.editor.exporting() && !c.library.working() &&
                            !c.batch.working() && !c.exporter.working();
             require(probe->ready, "Installer callback ran before active operations settled");

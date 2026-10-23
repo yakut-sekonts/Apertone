@@ -5,6 +5,34 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Hosted Denoise confirmation and release foundations — 2026-10-24
+
+[Evidence](qualification/2026-10-24/release-foundations.json): supervised hosted
+run **40028704668 passes 9/9** Denoise checks on 44397a9, with unchanged five-second
+watchdog, exact source provenance, originals and catalog integrity. The combined
+joined inference stack, parameter cache and coalesced progress fix closes the
+reproduced BUG072 crash/watchdog; full branch CI remains pending.
+
+DAY007 now performs an actual SIGKILL after committed global/local edits, restores
+the exact document in a new process and continues editing/Undo. DAY013 switches
+language mid-project and verifies exact restart/continued work. A11Y002 checks
+roles, names and states for eight primary controls in the actual Cocoa AX tree.
+Restart regression passes **21/21 offscreen**; restart/zoom **6/6 native**; repeated
+release foundations **15/15 native**. Four previously pressure-affected zoom checks
+pass in the follow-up without suppressing OS warnings. Historical failures remain.
+
+Full CTest exposed stale stateChanged-only acceptance observers after preview
+completion was split into previewChanged. Common-image restore failed and RAW
+restore timed out; the initial run was stopped during test 61. The observer now
+subscribes to previewChanged, which also forwards document changes. Rebuilt full
+CTest: **69 PASS / 1 SKIP** (private Nikon D7500 NEF unavailable), no CLI exclusions.
+Full build, format and mandatory affected tidy pass; nonblocking warnings remain.
+
+There are **28 blocking / 313 total** applicable IDs without adapters. This is
+partial phase 1.0 coverage, not full qualification or native VoiceOver/chooser
+certification. Installation, actual update, artifact, load/stress/soak and other
+remaining gates still apply. No release has been published.
+
 ### Coalesced Denoise progress and batch/history — 2026-10-24
 
 [Follow-up evidence](qualification/2026-10-24/denoise-progress-coalescing.json): hosted

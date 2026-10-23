@@ -693,3 +693,10 @@ GUI heartbeat watchdog. Keep this open until the supervised hosted workflow pass
 A separate LLDB PASS is diagnostic evidence only. Actual local memory warnings
 also cancel Denoise and disable full zoom; retain these failures and OS event logs.
 No forced-normal monitor or relaxed timing/numeric budget is used to hide them.
+
+
+BUG072 follow-up, 2026-10-24: supervised hosted run 40028704668 on 44397a9
+passes 9/9 DNS001/002/008 with the original five-second watchdog. Joined inference
+stack, parameter-map caching and coalesced DNG progress fix the reproduced failure.
+Artifact 12534337423 SHA-256 is recorded in release-foundations.json. Full branch
+CI and broader pressure/quality qualification remain separate gates.

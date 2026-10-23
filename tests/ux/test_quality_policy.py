@@ -98,6 +98,18 @@ class QualityPolicyTests(unittest.TestCase):
         self.assertFalse(runner.phase_selected(row, '0.5'))
         result = self.run_cli([row], flags=('--suite', 'regression', '--through', '0.6', '--case', row['id']), manifest=runner.MANIFEST)
         self.assertEqual((result['code'], result['children'], result['fixtures']), (0, 1, 1))
+
+    def test_partial_release_workflows_do_not_admit_the_whole_phase(self):
+        self.assertNotIn('1.0', runner.MANIFEST['completed_phases'])
+        for identifier in ('UX-P10-DAY-007', 'UX-P10-DAY-013'):
+            self.assertTrue(runner.capability_implemented('1.0', identifier))
+            self.assertFalse(runner.in_scope('1.0', '0.9', identifier))
+            row = next(row for row in runner.INVENTORY if row['id'] == identifier)
+            self.assertEqual((row['scope'], row['mode']), ('1.0', 'BLOCKING'))
+            result = self.run_cli([row], flags=('--through', '1.0', '--case', identifier),
+                                  manifest=runner.MANIFEST)
+            self.assertEqual((result['code'], result['children'], result['fixtures']), (0, 1, 1))
+        self.assertFalse(runner.capability_implemented('1.0', 'UX-P10-DAY-008'))
         self.assertEqual(result['summary']['release_gate'], 'NOT_QUALIFIED')
 
     def test_quality_ci_runs_safe_case_and_retains_deferred_case_as_skipped(self):
