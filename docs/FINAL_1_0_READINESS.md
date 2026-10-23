@@ -20,15 +20,15 @@ long supplemental checks; the complete archive remains unchanged.
 
 [Evidence](qualification/2026-10-23/catalog-restore.json) adds BKP002/006/007 to
 the official adapter set. Together with manual backup, all four cases pass
-**12/12 offscreen**. A real edit after backup makes the live catalog different;
+**12/12 offscreen and 4/4 Cocoa/Metal DPR2**. A real edit after backup makes the live catalog different;
 restore reproduces the selected snapshot's edits, revision and photo identity.
 Corrupt input publishes no destination, and restoring over the active catalog
 is explicitly refused. Existing backups, originals and the live document/history
 remain unchanged. No temporary leftovers or QML warnings occur.
 
 This exercises the production restore handler through a declared FileDialog
-selection fixture, not native source/destination pickers. Native Cocoa/Metal
-confirmation is PENDING; a fresh quiet interval has been requested. Full build,
+selection fixture, not native source/destination pickers. Fresh native confirmation passes all four cases without QML warnings or original/
+catalog integrity failures; the one-minute interval is complete and Mac is free. Full build,
 5 affected CTest checks, 11 policy tests, formatting and affected blocking tidy
 pass. CI/release run all four cases three times and retain reports. The current
 inventory has 52 applicable blocking scenarios without adapters; neither that
