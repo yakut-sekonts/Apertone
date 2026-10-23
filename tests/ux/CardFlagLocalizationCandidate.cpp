@@ -1,4 +1,5 @@
 #include "apps/shared/PresetStore.h"
+#include "tests/ux/MemoryPressureProbe.h"
 #include "tests/ux/PreviewResultProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
@@ -525,6 +526,15 @@ bool cardFlagLocalizationCandidate(Context &c, const QString &id) {
         require(languages[index].toMap()["code"].toString() ==
                     QString::fromLatin1(locales[static_cast<std::size_t>(index)].code),
                 "Actual languageChoice order differs from the explicit independent manifest");
+    // Observe real OS pressure without suppressing callbacks or injecting state.
+    // It may legitimately re-render while this caption-only scenario is running.
+    QObject observation;
+    QObject::connect(&c.editor, &EditorController::stateChanged, &observation, [&] {
+        d.log({{"action", "card_flags_editor_state"},
+               {"pressure", int(MemoryPressureProbe::current(c.editor))},
+               {"preview_url", c.editor.previewUrl()},
+               {"histogram_pending", c.editor.histogramPending()}});
+    });
     c.import(2); // Declared chooser-result setup; actual Import buttons/processing.
     const auto rows = luma::Catalog(c.catalogFile.toStdString()).libraryPage({}, 0, 2);
     require(rows.size() == 2 && rows[0].id != rows[1].id && rows[0].flag == 0 &&
@@ -549,7 +559,6 @@ bool cardFlagLocalizationCandidate(Context &c, const QString &id) {
     edited.exposure = 5;
     const auto positivePixels = fixtureReference(c, edited, source);
     {
-        PreviewResultGate final(c.editor, 2560);
         d.press("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"));
         d.move("develop.exposureSlider", {1., .5});
         d.wait(
@@ -559,6 +568,10 @@ bool cardFlagLocalizationCandidate(Context &c, const QString &id) {
             },
             "Actual interactive seed preview before pointer release");
         const auto interactiveURL = c.editor.previewUrl();
+        // Arm only after the edited interactive result has arrived. A refinement
+        // from initial photo loading may still finish before the drag starts;
+        // that unrelated completion must not become this gesture's held final.
+        PreviewResultGate final(c.editor, 2560);
         d.release("develop.exposureSlider", {1., .5});
         d.wait(
             [&] {
@@ -567,6 +580,19 @@ bool cardFlagLocalizationCandidate(Context &c, const QString &id) {
             },
             "Actual identical-pixel final completion retained");
         const auto held = final.snapshot();
+        d.log({{"action", "card_flags_pending_final_observation"},
+               {"held", bool(held.held)},
+               {"asset_matches", held.held && held.held->assetID == expected[0].id},
+               {"held_pixels_match", held.pixels == positivePixels},
+               {"hook_failed", held.hookFailed},
+               {"released", held.released},
+               {"deliveries", int(held.deliveries)},
+               {"pixels_ready", previewPixelsReady(c, positivePixels)},
+               {"interactive_url", interactiveURL},
+               {"actual_url", c.editor.previewUrl()},
+               {"busy", c.editor.busy()},
+               {"histogram_pending", c.editor.histogramPending()},
+               {"preview_settled", previewSettled(c, positivePixels)}});
         require(held.held && held.held->assetID == expected[0].id &&
                     held.pixels == positivePixels && !held.hookFailed && !held.released &&
                     held.deliveries == 0 && previewPixelsReady(c, positivePixels) &&

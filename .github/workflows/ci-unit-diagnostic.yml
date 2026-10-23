@@ -39,6 +39,39 @@ jobs:
         run: .tools/venv/bin/cmake --build build --parallel 3 --target luma_photo_metadata_tests luma_library_tests luma_cli Luma
       - name: Reproduce XMP and Library tests
         run: .tools/venv/bin/ctest --test-dir build --output-on-failure -R '^(native-xmp-metadata-lists|library-import-restart)$'
+      - name: Build and attest affected UX tests
+        run: .tools/venv/bin/python tests/ux/build_ux.py --build build
+      - name: Metadata XMP regression
+        id: xmp_ux
+        continue-on-error: true
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P09-META-002 --case UX-P09-META-007 --case UX-P09-XMP-002 --case UX-P09-XMP-003 --case UX-P09-XMP-004 --case UX-P09-XMP-005 --runs 3 --require-build-provenance --report build/ux-metadata-xmp-report
+      - name: Library and filmstrip scroll regression
+        id: scroll_ux
+        continue-on-error: true
+        run: .tools/venv/bin/python tests/ux/run_library_scroll_regression.py --build build --runs 3 --require-build-provenance
+      - name: PhotoCard regression
+        id: card_ux
+        continue-on-error: true
+        run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
+      - name: Require affected UX checks
+        if: always()
+        env:
+          XMP: ${{ steps.xmp_ux.outcome }}
+          SCROLL: ${{ steps.scroll_ux.outcome }}
+          CARD: ${{ steps.card_ux.outcome }}
+        run: test "$XMP" = success && test "$SCROLL" = success && test "$CARD" = success
+      - name: Preserve UX diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: affected-ux-diagnostic
+          path: |
+            build/ux-*/UX_REPORT.json
+            build/ux-artifacts/**/actions.jsonl
+            build/ux-artifacts/**/library-selection-scroll.json
+            build/ux-artifacts/**/card-flags-invariant-failure.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Preserve diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
