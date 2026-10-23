@@ -15,7 +15,9 @@ jobs:
     # Release branches/tags retain their independent mandatory checks.
     if: github.head_ref != 'codex/1.0-development'
     runs-on: macos-15
-    timeout-minutes: 60
+    # Model qualification plus the complete UX/lint sequence exceeds the old
+    # 60-minute budget. Individual scenario deadlines and all gates stay intact.
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4.2.2
       - uses: actions/setup-python@v5.6.0

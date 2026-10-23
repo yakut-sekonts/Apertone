@@ -375,6 +375,22 @@ their 56/50/84 inventory cases, with applicability review for conditional tools.
 Existing unit/model reports remain separate evidence. Release qualification is
 still open, including load, hardware, installation and updater checks.
 
+The actual `SessionService` integration additionally passes cold/warm PNG decode,
+distinct standard/interactive resolutions, fresh saved edits on cache hits,
+byte-limited eviction with exact regenerated pixels/alpha, full-resolution cache
+reuse, zero-budget operation/resume and ownership after purge. A purge during
+the real decoder's progress callback prevents late insertion into the old
+generation. Cancelled reads preserve catalog state; a populated full-resolution
+cache still refuses an explicitly changed test-owned source checksum. Both
+cache CTest targets pass, as do formatting and blocking tidy checks. These small
+isolated fixtures do not qualify OS memory pressure, RAW quality or process RSS.
+[Evidence](qualification/2026-10-23/session-cache-followup.json).
+
+The CI job budget is now 90 minutes: the prior run reached PhotoCard at about
+59 minutes before failure skipped later UX/lint steps. Individual scenario
+deadlines, numeric budgets and release gates are unchanged; release packaging
+already has its separate 120-minute budget.
+
 ### WB, targeted gestures and native follow-up — 2026-10-23
 
 [Evidence](qualification/2026-10-23/wb-targeted-native-followup.json) retains the
