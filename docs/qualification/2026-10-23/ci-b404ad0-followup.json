@@ -1506,7 +1506,174 @@
       "release_gate": "NOT_QUALIFIED"
     },
     "native": {
-      "status": "NOT_RUN"
+      "file": {
+        "path": "build-verify/ux-final-library-frames-native/UX_REPORT.json",
+        "sha256": "d8d66afbbc449e9107b2a3489493dc22af0ea8ab257f11cd7a2d7f9427fdba95",
+        "bytes": 6625
+      },
+      "hardware": {
+        "chip": "Apple M3",
+        "model": "Mac15,3",
+        "ram_bytes": "8589934592",
+        "macos": "27.0.1",
+        "qt": "6.10.3",
+        "commit": "9f55a9ad36bfcf956e618d49b16c0b2c1a1514d7",
+        "worktree_dirty": false,
+        "source_tree_sha256": "174bcbed42e0a0370458fe3d54d7ef0c3595ad0ea1281890ed2ef2eb8e53baca",
+        "test_executable_sha256": "066c027af86d90b60b8ebb9b5f156f6490cbbe404db3bf76e6afdfb346202676",
+        "native_bundle_info": {
+          "status": "PASS",
+          "bundle_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app",
+          "info_plist_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app/Contents/Info.plist",
+          "info_plist_sha256": "b810d7e2e286fa8ea73bad661b79ae4b141650543f374c5fc07e244be9066510",
+          "bundle_identifier": "app.luma.ux-tests",
+          "bundle_executable": "luma_ux_tests",
+          "bundle_name": "LumaUXTests",
+          "bundle_display_name": "LumaUXTests",
+          "package_type": "APPL",
+          "cli_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests",
+          "canonical_executable": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app/Contents/MacOS/luma_ux_tests",
+          "executable_sha256": "066c027af86d90b60b8ebb9b5f156f6490cbbe404db3bf76e6afdfb346202676"
+        },
+        "source_snapshot_point": "suite_end",
+        "build_directory": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify",
+        "hosted_ci": false,
+        "performance_mode": "MEASURE_ONLY"
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "9f55a9ad36bfcf956e618d49b16c0b2c1a1514d7",
+        "reason": ""
+      },
+      "source_consistency": "PASS",
+      "summary": {
+        "PASS": 2
+      },
+      "original_hashes": "PASS",
+      "results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 4036,
+          "frame_intervals": 207,
+          "frame_max_ms": 154,
+          "frame_p50_ms": 6,
+          "frame_p95_ms": 88,
+          "frame_p99_ms": 145,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "CANDIDATE-LIBRARY-SELECTION-SCROLL",
+          "input_dispatch_p95_ms": 128.53875,
+          "main_loop_stall_max_ms": 227,
+          "message": "",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 144.203125,
+          "rss_last_mb": 201.9375,
+          "rss_minutes": [
+            {
+              "maximum_mb": 223.796875,
+              "mean_mb": 200.22098214285714,
+              "minimum_mb": 144.203125,
+              "minute": 0,
+              "samples": 14
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 223.796875,
+          "rss_samples": 14,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 11,
+          "stall_over_250_ms": 0,
+          "status": "PASS",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 0,
+          "child_reported_status": "PASS",
+          "intentional_kill_requested": false,
+          "catalog_integrity": "PASS",
+          "scope": "CURRENT",
+          "mode": "REGRESSION",
+          "severity_if_failed": "P1",
+          "scenario": "Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261023T142758Z-73508/CANDIDATE-LIBRARY-SELECTION-SCROLL/repeat-1",
+          "child_pid": 73539,
+          "wall_duration_ms": 4860,
+          "original_integrity": "PASS"
+        },
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 3459,
+          "frame_intervals": 239,
+          "frame_max_ms": 250,
+          "frame_p50_ms": 1,
+          "frame_p95_ms": 110,
+          "frame_p99_ms": 145,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "CANDIDATE-FILMSTRIP-SELECTION-SCROLL",
+          "input_dispatch_p95_ms": 31.81525,
+          "main_loop_stall_max_ms": 245,
+          "message": "",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 142.46875,
+          "rss_last_mb": 257.671875,
+          "rss_minutes": [
+            {
+              "maximum_mb": 267.9375,
+              "mean_mb": 232.65625,
+              "minimum_mb": 142.46875,
+              "minute": 0,
+              "samples": 11
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 267.9375,
+          "rss_samples": 11,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 13,
+          "stall_over_250_ms": 0,
+          "status": "PASS",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 0,
+          "child_reported_status": "PASS",
+          "intentional_kill_requested": false,
+          "catalog_integrity": "PASS",
+          "scope": "CURRENT",
+          "mode": "REGRESSION",
+          "severity_if_failed": "P1",
+          "scenario": "Develop filmstrip retains horizontal anchor and offset after clicks and photo loads; Right-key reveal still works.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261023T142758Z-73508/CANDIDATE-FILMSTRIP-SELECTION-SCROLL/repeat-1",
+          "child_pid": 73568,
+          "wall_duration_ms": 4277,
+          "original_integrity": "PASS"
+        }
+      ],
+      "release_gate": "NOT_QUALIFIED"
     },
     "hosted_retest": {
       "status": "PENDING",
@@ -2403,7 +2570,114 @@
     ],
     "cause": "The later URL-only mismatch remains unexplained. OS pressure was not observed in the ten passing diagnostic repeats and is not asserted as cause. Gate ordering removes an unrelated initial-refinement capture opportunity, not proof of the original hosted failure cause.",
     "native": {
-      "status": "NOT_RUN"
+      "file": {
+        "path": "build-verify/ux-final-card-pressure-native/UX_REPORT.json",
+        "sha256": "62575d1b7c609fcc1dcd842882a6f040ebd4a5d7c65d9788c99ad9f18708a43f",
+        "bytes": 4859
+      },
+      "hardware": {
+        "chip": "Apple M3",
+        "model": "Mac15,3",
+        "ram_bytes": "8589934592",
+        "macos": "27.0.1",
+        "qt": "6.10.3",
+        "commit": "9f55a9ad36bfcf956e618d49b16c0b2c1a1514d7",
+        "worktree_dirty": false,
+        "source_tree_sha256": "174bcbed42e0a0370458fe3d54d7ef0c3595ad0ea1281890ed2ef2eb8e53baca",
+        "test_executable_sha256": "066c027af86d90b60b8ebb9b5f156f6490cbbe404db3bf76e6afdfb346202676",
+        "native_bundle_info": {
+          "status": "PASS",
+          "bundle_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app",
+          "info_plist_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app/Contents/Info.plist",
+          "info_plist_sha256": "b810d7e2e286fa8ea73bad661b79ae4b141650543f374c5fc07e244be9066510",
+          "bundle_identifier": "app.luma.ux-tests",
+          "bundle_executable": "luma_ux_tests",
+          "bundle_name": "LumaUXTests",
+          "bundle_display_name": "LumaUXTests",
+          "package_type": "APPL",
+          "cli_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests",
+          "canonical_executable": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/luma_ux_tests.app/Contents/MacOS/luma_ux_tests",
+          "executable_sha256": "066c027af86d90b60b8ebb9b5f156f6490cbbe404db3bf76e6afdfb346202676"
+        },
+        "source_snapshot_point": "suite_end",
+        "build_directory": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify",
+        "hosted_ci": false,
+        "performance_mode": "MEASURE_ONLY"
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "9f55a9ad36bfcf956e618d49b16c0b2c1a1514d7",
+        "reason": ""
+      },
+      "source_consistency": "PASS",
+      "summary": {
+        "PASS": 1
+      },
+      "original_hashes": "PASS",
+      "results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 5327,
+          "frame_intervals": 202,
+          "frame_max_ms": 277,
+          "frame_p50_ms": 13,
+          "frame_p95_ms": 122,
+          "frame_p99_ms": 151,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION",
+          "input_dispatch_p95_ms": 28,
+          "main_loop_stall_max_ms": 177,
+          "message": "",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 152.078125,
+          "rss_last_mb": 244.640625,
+          "rss_minutes": [
+            {
+              "maximum_mb": 291.1875,
+              "mean_mb": 244.00625,
+              "minimum_mb": 152.078125,
+              "minute": 0,
+              "samples": 20
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 291.1875,
+          "rss_samples": 20,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 17,
+          "stall_over_250_ms": 0,
+          "status": "PASS",
+          "warnings": [],
+          "window_size": {
+            "height": 640,
+            "width": 1000
+          },
+          "window_state": "visible",
+          "child_returncode": 0,
+          "child_reported_status": "PASS",
+          "intentional_kill_requested": false,
+          "catalog_integrity": "PASS",
+          "scope": "CURRENT",
+          "mode": "REGRESSION",
+          "severity_if_failed": "P2",
+          "scenario": "Two real PNG cards, actual metadata Flag controls and Settings language choice: exact English/Russian and eight-locale Pick/Reject captions, typed documents/history/durable flags/current thumbnails/source guards. Not full VIS007/VIS008/LOC coverage.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261023T142810Z-73230/CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION/repeat-1",
+          "child_pid": 73635,
+          "wall_duration_ms": 5763,
+          "original_integrity": "PASS"
+        }
+      ],
+      "release_gate": "NOT_QUALIFIED"
     },
     "hosted_retest": {
       "status": "PENDING",
@@ -2465,7 +2739,7 @@
   },
   "limitations": [
     "No overall CI PASS; full static and all missing blocking adapters remain required.",
-    "Native Mac interval requested but no approval inferred.",
+    "Approved native interval completed: six XMP, two scroll and one PhotoCard PASS; Mac released.",
     "No 1.0 tag, release, appcast or release waiver."
   ]
 }

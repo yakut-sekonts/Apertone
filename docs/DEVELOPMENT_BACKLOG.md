@@ -447,7 +447,7 @@ supplemental sequence, while retaining the complete later evidence archive.
 
 ## LUMA-BUG-056 — macOS 15 XMP XML and language interoperability
 
-- Status: **fixed in source; affected hosted unit/integration PASS; full CI/native retest pending**.
+- Status: **fixed in source; affected hosted unit/integration and native UX PASS; full CI pending**.
 - Hosted ImageIO 15 rejects legal leading whitespace/BOM and XML declarations.
   Its language-alternative parser also replaces a non-default language with
   x-default; writing a parsed packet therefore loses another application's text.
@@ -458,7 +458,8 @@ supplemental sequence, while retaining the complete later evidence archive.
 - Independent XML oracles cover language preservation, namespace aliases,
   repeated writes, Unicode/list order, prologs and ambiguous-input rejection.
   Hosted macOS 15 XMP + Library integration pass 2/2; local full CTest has
-  62 PASS / one private Nikon SKIP, with 18 affected offscreen UX repetitions PASS.
+  62 PASS / one private Nikon SKIP, with 18 affected offscreen UX repetitions
+  and six Cocoa/Metal DPR2 checks PASS.
 - [Evidence](qualification/2026-10-23/xmp-macos15-portability.json).
 
 ### BUG-045 follow-up — 2026-10-23
@@ -469,5 +470,6 @@ remain unchanged. Passive pressure observation and per-condition diagnostics are
 added; ten subsequent runs pass with normal pressure throughout. No cause is
 inferred from those passes. The held-final fixture is now armed after the edited
 interactive result, so it cannot capture an unrelated initial-load refinement.
-The defect remains open pending native/hosted diagnosis.
+One native Cocoa/Metal DPR2 repeat also passes. The defect remains open pending
+hosted diagnosis; no root cause is inferred from passing repeats.
 [Evidence](qualification/2026-10-23/ci-b404ad0-followup.json).

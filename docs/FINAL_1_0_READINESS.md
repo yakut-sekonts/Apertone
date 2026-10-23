@@ -15,15 +15,15 @@ output restore compatibility. The affected hosted unit + Library integration
 pass **2/2**, with identical production/unit sources to the main worktree.
 Full local build and CTest pass **62 / one private Nikon SKIP**; the six affected
 metadata/XMP UI scenarios have **18 offscreen PASS** across two reports. An
-accidentally selected unadapted META001 remains explicitly SKIPPED. Native
-confirmation and the new hosted UX run remain pending; this is not full CI PASS.
+accidentally selected unadapted META001 remains explicitly SKIPPED. Fresh native confirmation passes **6/6 Cocoa/Metal DPR2** without QML warnings
+or integrity failures. The new hosted UX run remains pending; this is not full CI PASS.
 
 [Retained CI/UI evidence](qualification/2026-10-23/ci-b404ad0-followup.json)
 records all b404ad0 UX failures. Library scroll now checks synchronized rendered
 frames and the final anchor at the unchanged one-pixel tolerance, retaining raw
-in-handler movement; it passes **6/6 offscreen**. PhotoCard's final-result gate
+in-handler movement; it passes **6/6 offscreen and 2/2 Cocoa/Metal DPR2**. PhotoCard's final-result gate
 is armed after the edited interactive image, and passive OS pressure observations
-are retained. The latest **10/10 PASS** do not close BUG-045: a prior local failure
+are retained. The latest **10/10 offscreen and 1/1 native PASS** do not close BUG-045: a prior local failure
 changed only preview URL, with identical pixels and preserved document/history.
 The cause remains open. Full hosted clang-tidy is still running on b404ad0; no
 new main-branch push interrupts that valuable scan.
