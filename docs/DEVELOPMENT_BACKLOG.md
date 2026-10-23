@@ -607,3 +607,15 @@ and 3 Cocoa/Metal DPR2 runs. Full build and six affected CTest entries pass.
 Evidence: `qualification/2026-10-23/denoise-ui-workflow.json`. This closes these
 bounded local workflows only; model photographs, load, other cancellation
 boundaries and full hosted/release qualification remain separate.
+
+### LUMA-GAP-066 — Fresh-process catalog scale and populated virtualization
+
+CAT001/006/011 now open 10k/100k/500k metadata catalogs in a fresh process and
+traverse nine actual scrollbar positions, requiring populated visible cards and
+bounded QML delegates/model pages. Nine final Cocoa/Metal DPR2 runs pass.
+Independent full SQLite integrity checks moved to a test worker after a retained
+500k thread sample identified audit work blocking the test GUI. The five-second
+watchdog is unchanged. Initial close-predicate failures and weaker placeholder
+runs remain in `qualification/2026-10-23/catalog-scale-open.json`. Six affected
+UX regressions and seven CTest entries pass. Actual-photo load, sustained use,
+latency/resource budgets and complete release qualification remain separate.

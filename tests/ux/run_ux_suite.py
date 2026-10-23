@@ -20,6 +20,7 @@ from export_current_filename_fixtures import (OFFICIAL_CASE as CURRENT_FILENAME_
                                               official_fixture as current_filename_fixture)
 from metadata_display_fixtures import (OFFICIAL_CASE as METADATA_DISPLAY_CASE,
                                        official_fixture as metadata_display_fixture)
+from catalog_scale_fixtures import CASE_PROFILE_IDS as CATALOG_SCALE_IDS, official_fixture as catalog_scale_fixture
 from merge_fixtures import CASE_PROFILE_IDS as MERGE_PROFILE_IDS, official_fixture as merge_fixture
 import importlib.util
 import json
@@ -35,7 +36,7 @@ import sys
 import time
 import zlib
 
-CASE_PROFILE_IDS = MERGE_PROFILE_IDS | THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
+CASE_PROFILE_IDS = CATALOG_SCALE_IDS | MERGE_PROFILE_IDS | THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
 
 # These adapters have explicit actual-native render contracts. NATIVE below means
 # implemented adapter, not compatibility with every requested Qt backend.
@@ -106,6 +107,7 @@ RESTART.update(('UX-PRS-011', 'UX-PRS-018', 'UX-REC-009', 'UX-APP-004', 'UX-SLD-
 RESTART.add('UX-EXP-025')
 RESTART.update(('UX-P08-PAN-012', 'UX-P08-FLT-001'))
 RESTART.add('UX-P07-DNS-008')
+RESTART.update(CATALOG_SCALE_IDS)
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
 NATIVE.add('UX-APP-010')
@@ -738,7 +740,9 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         hash_profiles = [(fixture_folder, base_checksums)]
         for row in case_profile_rows:
             folder = run_root / 'case-fixtures' / row['id']
-            if row['id'] in MERGE_PROFILE_IDS:
+            if row['id'] in CATALOG_SCALE_IDS:
+                extra_checksums, profile = catalog_scale_fixture(folder, owned_root=run_root, case_id=row['id'])
+            elif row['id'] in MERGE_PROFILE_IDS:
                 extra_checksums, profile = merge_fixture(folder, owned_root=run_root, case_id=row['id'])
             elif row['id'] == WATERMARK_CASE:
                 extra_checksums, profile = watermark_fixture(folder, owned_root=run_root)

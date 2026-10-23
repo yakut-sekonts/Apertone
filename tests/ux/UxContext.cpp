@@ -13,6 +13,8 @@
 #include <QScreen>
 #include <algorithm>
 #include <bit>
+#include <chrono>
+#include <future>
 #include <sqlite3.h>
 std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks callbacks) {
     return std::make_unique<ux::NativeUpdaterProbe>(std::move(callbacks));
@@ -275,23 +277,34 @@ void Context::reveal(const QString &id) {
     throw std::runtime_error("Cannot scroll to control: " + id.toStdString());
 }
 void Context::checkData() {
-    luma::Catalog catalog(catalogFile.toStdString());
-    catalog.verify();
-    sqlite3 *database = nullptr;
-    require(sqlite3_open_v2(catalogFile.toUtf8().constData(), &database, SQLITE_OPEN_READONLY,
-                            nullptr) == SQLITE_OK,
-            "Cannot verify UX catalog");
-    sqlite3_stmt *statement = nullptr;
-    const bool prepared = sqlite3_prepare_v2(database, "PRAGMA integrity_check", -1, &statement,
-                                             nullptr) == SQLITE_OK;
-    const bool valid =
-        prepared && sqlite3_step(statement) == SQLITE_ROW &&
-        QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(statement, 0))) ==
-            "ok";
-    sqlite3_finalize(statement);
-    sqlite3_close(database);
-    require(valid, "UX catalog integrity failed");
+    // The independent full-database oracle is test work. Keep it off the GUI
+    // thread so large integrity scans do not masquerade as application hangs.
+    // The real GUI heartbeat/watchdog remains active with its original budget.
+    const auto databasePath = catalogFile;
+    auto audit = std::async(std::launch::async, [databasePath] {
+        luma::Catalog catalog(databasePath.toStdString());
+        catalog.verify();
+        sqlite3 *database = nullptr;
+        require(sqlite3_open_v2(databasePath.toUtf8().constData(), &database, SQLITE_OPEN_READONLY,
+                                nullptr) == SQLITE_OK,
+                "Cannot verify UX catalog");
+        sqlite3_stmt *statement = nullptr;
+        const bool prepared = sqlite3_prepare_v2(database, "PRAGMA integrity_check", -1, &statement,
+                                                 nullptr) == SQLITE_OK;
+        const bool valid =
+            prepared && sqlite3_step(statement) == SQLITE_ROW &&
+            QString::fromUtf8(reinterpret_cast<const char *>(sqlite3_column_text(statement, 0))) ==
+                "ok";
+        sqlite3_finalize(statement);
+        sqlite3_close(database);
+        require(valid, "UX catalog integrity failed");
+    });
+    driver->wait(
+        [&] { return audit.wait_for(std::chrono::seconds(0)) == std::future_status::ready; },
+        "Independent catalog integrity audit completed", 60000);
+    audit.get();
 }
+
 void Context::finish(const QString &id, const QString &status, const QString &message) {
     auto values = metrics.json();
     values["id"] = id;

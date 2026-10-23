@@ -5,6 +5,33 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Fresh-process catalogs at 10k / 100k / 500k — 2026-10-23
+
+[Evidence](qualification/2026-10-23/catalog-scale-open.json): **9/9 Cocoa/Metal
+DPR2 PASS**, three separate prepare/verify process pairs per size. Actual startup
+opens the existing catalog without test repopulation or refresh. Nine physical
+scrollbar positions require bounded delegates/pages and real visible IDs,
+filenames and Missing state. The 500k screenshot was visually inspected after
+adding the populated-card requirement. Catalog integrity/foreign keys pass.
+Six affected recovery/Denoise/Float DNG/metadata/XMP/backup regressions, seven
+CTest entries, full build, format and mandatory affected tidy pass.
+
+The original three failures expose an incorrect test expectation that working()
+becomes false after closing_ is set; it does not. A retained 500k failure and
+thread sample identify the test's full PRAGMA integrity audit on the GUI thread.
+That same complete oracle now runs in a worker while the genuine heartbeat and
+unchanged five-second watchdog stay active. The initial nine native passes did
+not require populated cards; their screenshot exposed transient placeholders.
+The stronger final runs use an isolated empty source folder so evidence writes
+do not trigger source-watch reloads, and wait for actual visible card data.
+All earlier outcomes remain retained; none is rewritten as PASS.
+
+These are **metadata-only catalogs**, not photo-decode or sustained-load tests.
+Expected missing-original QML warnings remain recorded. Whole-run timings include
+setup, audit and shutdown and do not qualify startup latency. No 16 GiB/external
+display or memory-slope qualification is inferred. Remaining applicable blocking
+IDs without adapters: **16**. Complete release qualification remains open.
+
 ### Bundled AI Denoise workflow — 2026-10-23
 
 [Evidence](qualification/2026-10-23/denoise-ui-workflow.json): **9/9 repeated

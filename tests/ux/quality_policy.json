@@ -769,6 +769,18 @@
     "UX-VIS-012": {
       "reason": "20 repeated panel expansion/scroll/collapse/reflow cycles.",
       "source": "tests/ux/VisualRemainingScenarios.cpp:885"
+    },
+    "UX-P09-CAT-001": {
+      "reason": "Populates 10000 metadata rows, opens them in a fresh process and traverses nine grid regions. Run in the final catalog/load campaign.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:metadataFixture,catalogScaleRestartScenario"
+    },
+    "UX-P09-CAT-006": {
+      "reason": "Populates 100000 metadata rows, opens them in a fresh process and traverses nine grid regions. Run in the final catalog/load campaign.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:metadataFixture,catalogScaleRestartScenario"
+    },
+    "UX-P09-CAT-011": {
+      "reason": "Populates 500000 metadata rows, opens them in a fresh process and traverses nine grid regions. Run in the final catalog/load campaign.",
+      "source": "tests/ux/LibraryScaleScenarios.cpp:metadataFixture,catalogScaleRestartScenario"
     }
   },
   "fixture_photo_overrides": {

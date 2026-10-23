@@ -13,6 +13,7 @@ bool presetRemainingRestartScenario(Context &, const QString &, const QString &)
 bool thumbnailRestartScenario(Context &, const QString &, const QString &);
 bool whiteBalanceRestartScenario(Context &, const QString &, const QString &);
 bool appMissingSourceRestartScenario(Context &, const QString &, const QString &);
+bool catalogScaleRestartScenario(Context &, const QString &, const QString &);
 bool mergeRestartScenario(Context &, const QString &, const QString &);
 namespace {
 void quit(Context &c) {
@@ -23,7 +24,7 @@ void quit(Context &c) {
 }
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
-    if (mergeRestartScenario(c, id, stage))
+    if (catalogScaleRestartScenario(c, id, stage) || mergeRestartScenario(c, id, stage))
         return;
     if (exportSettingsRestartScenario(c, id, stage) || whiteBalanceRestartScenario(c, id, stage) ||
         appMissingSourceRestartScenario(c, id, stage) ||
