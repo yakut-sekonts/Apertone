@@ -131,6 +131,16 @@ jobs:
         run: .tools/venv/bin/python tests/ux/build_ux.py --build build
       - name: Bounded functional blocking UX checks before packaging
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
+      - name: Preserve blocking UX summary before supplemental checks
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ux-blocking-summary
+          path: |
+            build/ux-report/
+            build/ux-build-provenance.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Supplemental selected-asset keyboard regression
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: Library and filmstrip selection preserve deep scroll
