@@ -5,6 +5,31 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Persisted thumbnail cache byte cap — 2026-10-23
+
+[Evidence](qualification/2026-10-23/thumbnail-cache-bound.json) adds blocking
+UX-P06-LRU-002. A real warm provider response left an oversized persisted cache
+at 536,882,181 bytes, above the 536,870,912-byte cap. New thumbnail publication
+already enforced the cap, but a cache-hit-only session never did. The provider
+now checks its first successful disk hit under the existing cache mutex; later
+hits do not rescan, and every new publication retains its existing trim.
+
+Two owned images and sparse cache ballast exercise cold insertion, oldest-entry
+eviction and a persisted JPEG loaded without its original. A newly created real
+engine provider and a never-displayed second image rule out Qt pixmap reuse;
+actual response/texture observations are mandatory. Real filters and scene pixels,
+full saved documents/revisions and original hashes are checked. The new case
+passes **3/3 offscreen**, with six affected CTest entries, full application build,
+format, affected blocking clang-tidy and 11 policy tests PASS. Native confirmation
+is pending a fresh quiet-desktop interval. Earlier fixture failures are retained
+and distinguished from the actual provider negative control.
+
+This is disk byte accounting with sparse files, not a 512 MiB physical-write
+workload, whole-app restart, memory-growth or multi-process cache-concurrency
+qualification. External enlargement during an already checked provider lifetime
+is not watched. Remaining unadapted applicable blocking IDs decrease to **44**;
+the complete release gate and BUG045 remain open.
+
 ### Missing originals and relink preservation — 2026-10-23
 
 [Evidence](qualification/2026-10-23/relink-missing-originals.json) adds official

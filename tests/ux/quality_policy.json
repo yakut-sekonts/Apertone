@@ -294,7 +294,8 @@
     "UX-P09-RLK-003",
     "UX-P09-RLK-004",
     "UX-P09-RLK-006",
-    "UX-P09-RLK-007"
+    "UX-P09-RLK-007",
+    "UX-P06-LRU-002"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -772,7 +773,8 @@
     "UX-P09-RLK-003": 3,
     "UX-P09-RLK-004": 3,
     "UX-P09-RLK-006": 3,
-    "UX-P09-RLK-007": 3
+    "UX-P09-RLK-007": 3,
+    "UX-P06-LRU-002": 2
   },
   "default_quality_photo_count": 10
 }

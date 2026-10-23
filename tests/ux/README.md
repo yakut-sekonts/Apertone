@@ -1,5 +1,16 @@
 # Native UX regression
 
+Official `UX-P06-LRU-002` checks the actual thumbnail provider's 512 MiB disk cap
+with two owned photos and two 256 MiB sparse cache entries (less than 1 MiB physical
+allocation each). Cold insertion and the first warm hit on a recreated real
+provider must evict the oldest entry, retain the newer/current JPEGs and preserve
+a non-JPEG marker. The second photo has never appeared in QML: a real successful
+worker/texture response while its original is hidden rules out Qt pixmap reuse
+and regeneration. Actual filters and scene pixels, saved revisions/documents,
+original hashes and JPEG bytes are checked. Sparse entries are cleaned on failure
+as well as success. This is bounded disk accounting; it does not qualify RSS/VRAM,
+whole-app restart, multi-process cache concurrency or a physical 512 MiB workload.
+
 Official `UX-P09-RLK-001/002/003/004/006/007` use three owned PNGs with Unicode
 paths and a two-member collection. Actual UI saves Exposure and descriptive
 metadata, moves one original or its parent tree, checks Missing badges, then

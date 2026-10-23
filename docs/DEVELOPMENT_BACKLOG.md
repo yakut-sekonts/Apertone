@@ -505,3 +505,20 @@ The defect remains open; no root cause is inferred from passing repeats.
   and catalog checks pass without QML warnings. Native picker interaction, volume
   mount lifecycle, network filesystems and crash/load qualification remain open.
 - [Evidence](qualification/2026-10-23/relink-missing-originals.json).
+
+## LUMA-BUG-059 — Persisted thumbnail cache exceeds its cap on cache-only reopening
+
+- Status: **fixed; 3/3 offscreen UX and six affected CTest entries PASS;
+  native/hosted confirmation pending**.
+- A newly created genuine provider returned a valid cached JPEG while retaining
+  536,882,181 bytes above the 512 MiB cap. New writes trim, but warm reads previously
+  skipped it. The first successful cache hit now validates the cap under the
+  existing mutex; subsequent hits avoid directory scans. New writes still trim.
+- The two-photo test requires a genuine successful worker/texture response with
+  the owned original absent, explicit sparse ballast, deterministic oldest-entry
+  eviction, preserved unrelated file and JPEG bytes, actual UI pixels and complete
+  document/source integrity. Initial fixtures that could reuse Qt pixmaps are
+  retained as harness failures, not accepted as causal evidence.
+- RSS/VRAM, large navigation, physical disk pressure, concurrent application
+  processes and external enlargement of an active provider's cache remain separate.
+- [Evidence](qualification/2026-10-23/thumbnail-cache-bound.json).
