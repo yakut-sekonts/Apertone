@@ -1,3 +1,4 @@
+#include "core/io/StagingFile.h"
 #ifndef _DARWIN_C_SOURCE
 #define _DARWIN_C_SOURCE
 #endif
@@ -511,6 +512,10 @@ std::vector<ImportSummary> LibraryService::recover(CancellationToken stop) const
                 "Interrupted derived image changed; file and journal preserved.");
         catalog.finishDerived(record);
     }
+    (void)StagingFile::cleanup(derivedFolder, ".luma-derived-");
+    (void)StagingFile::cleanup(std::filesystem::absolute(catalog_).parent_path() /
+                                   (catalog_.filename().string() + ".luma-backups"),
+                               ".luma-backup-");
     std::vector<ImportSummary> summaries;
     for (const auto &journal : catalog.unfinishedImports()) {
         checkCancellation(stop);

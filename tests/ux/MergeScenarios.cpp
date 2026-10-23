@@ -2,6 +2,8 @@
 #include "core/export/LinearOutput.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/ImageAlignment.h"
+#include "tests/ux/CrashScenarios.h"
+#include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QDir>
@@ -706,4 +708,104 @@ bool mergeRestartScenario(Context &c, const QString &id, const QString &stage) {
             "Post-restart Undo changed the saved derived document or file");
     return true;
 }
+bool mergeCrashScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P09-FLT-006")
+        return false;
+    auto &d = *c.driver;
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    const auto expectedPath = (c.stateRoot + "/expected-merge-crash.sqlite").toStdString();
+    if (stage == "prepare") {
+        (void)importSources(c, false);
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        d.click("main.libraryButton");
+        d.click(c.card(0));
+        d.click(c.card(2), Qt::ShiftModifier);
+        idle(c);
+        catalog.backupTo(expectedPath);
+        d.click("library.photoActions");
+        d.click("library.hdr");
+        d.wait([&] { return d.object("merge.hdr")->property("opened").toBool(); },
+               "Crash HDR dialog opened");
+        PersistenceGate gate(c.catalogFile.toStdString(), {"derived.before-register"});
+        d.click("merge.hdr.create");
+        d.wait([&] { return gate.snapshot().held || !c.editor.aiBusy(); },
+               "Actual HDR installed before registration", 60000);
+        const auto observed = gate.snapshot();
+        require(observed.held && !observed.hookFailed && observed.events.size() == 1 &&
+                    c.editor.aiBusy(),
+                "HDR did not reach registration checkpoint: " + c.editor.error());
+        const auto &event = observed.events.front();
+        const auto pending = catalog.pendingDerived();
+        require(pending.size() == 1 && pending.front().path == event.target &&
+                    catalog.libraryCount() == 3 &&
+                    luma::macos::sha256File(event.target) == pending.front().checksum &&
+                    std::filesystem::equivalent(event.target, event.temporary),
+                "Installed HDR is not recoverably journaled before registration");
+        const FloatDng stored(event.target);
+        require(stored.maximum > 1.1, "HDR crash fixture lost radiometric range");
+        writeJson(c.stateRoot + "/merge-crash-expected.json",
+                  {{"prepare_pid", QCoreApplication::applicationPid()},
+                   {"path", QString::fromStdString(event.target.string())},
+                   {"checksum", QString::fromStdString(pending.front().checksum)}});
+        killCheckpoint(c, id, stage, "derived.before-register");
+    }
+    require(stage == "verify", "Invalid merge crash stage");
+    const auto saved = crashExpectation(c, "merge-crash-expected.json");
+    idle(c);
+    luma::Catalog expected(expectedPath);
+    require(c.library.error().isEmpty() && catalog.libraryCount() == 4 &&
+                catalog.pendingDerived().empty(),
+            "Startup did not register installed HDR exactly once: " + c.library.error());
+    std::vector<luma::AssetRecord> sources;
+    for (const auto &photo : expected.libraryIDs({}))
+        sources.push_back(expected.assetByID(photo).value());
+    unchanged(c, sources);
+    std::string derivedID;
+    for (const auto &photo : catalog.libraryIDs({})) {
+        const auto asset = catalog.assetByID(photo).value();
+        if (QString::fromStdString(asset.path.string()) == saved["path"].toString()) {
+            require(derivedID.empty() &&
+                        asset.checksum == saved["checksum"].toString().toStdString(),
+                    "HDR recovery duplicated identity or changed checksum");
+            derivedID = photo;
+            require(luma::macos::sha256File(asset.path) == asset.checksum &&
+                        FloatDng(asset.path).maximum > 1.1,
+                    "HDR recovery changed installed Float DNG");
+        }
+    }
+    require(!derivedID.empty(), "Recovered HDR missing from Library");
+    d.doubleClick("library.card." + QString::fromStdString(derivedID));
+    c.loaded();
+    c.saved();
+    const auto original = c.editor.currentSettings();
+    const auto reference = fixtureReference(c);
+    d.wait(
+        [&] {
+            return previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), reference,
+                                      c.editor.metalPreview());
+        },
+        "Recovered HDR preview matches independent CPU rendering");
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.3, .5});
+    c.saved();
+    require(c.editor.currentSettings() != original && c.editor.canUndo(),
+            "Recovered HDR is not editable");
+    d.click("main.undoButton");
+    c.saved();
+    require(c.editor.currentSettings() == original && c.editor.canRedo() &&
+                catalog.libraryCount() == 4 && catalog.pendingDerived().empty(),
+            "Recovered HDR Undo changed membership or complete document");
+    unchanged(c, sources);
+    require(QDir(c.catalogFile + ".luma-derived")
+                .entryList({".luma-derived-*"}, QDir::Files | QDir::Hidden)
+                .empty(),
+            "HDR recovery left an owned crash staging file");
+    d.log({{"action", "merge_registration_kill_recovered"}, {"registered_results", 1}});
+    return true;
+}
+
 } // namespace ux

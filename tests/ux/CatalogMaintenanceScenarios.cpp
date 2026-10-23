@@ -1,4 +1,6 @@
 #include "platform/macos/FileHasher.h"
+#include "tests/ux/CrashScenarios.h"
+#include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include <QDir>
 #include <QFile>
@@ -187,4 +189,104 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
     require(c.warnings.isEmpty(), "Manual backup produced QML warnings: " + c.warnings.join('\n'));
     return true;
 }
+bool backupCrashScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P09-FLT-003")
+        return false;
+    auto &d = *c.driver;
+    const auto expectedPath = (c.stateRoot + "/expected-backup.sqlite").toStdString();
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    if (stage == "prepare") {
+        c.import(1);
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.saved();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        catalog.backupTo(expectedPath);
+        const auto before = savedBackups(c.library.backupFolder());
+        require(!before.empty(), "Backup crash requires a prior valid snapshot");
+        QJsonObject hashes;
+        for (const auto &[path, hash] : before) {
+            luma::Catalog::verifyBackup(path);
+            hashes[QString::fromStdString(path.string())] = QString::fromStdString(hash);
+        }
+        openMaintenance(c);
+        PersistenceGate gate(c.catalogFile.toStdString(), {"backup.after-step"});
+        d.click("catalog.backupNow");
+        d.wait([&] { return gate.snapshot().held; }, "Actual SQLite backup step reached");
+        const auto observed = gate.snapshot();
+        require(!observed.hookFailed && observed.events.size() == 1 && c.library.working(),
+                "Backup kill did not retain the actual worker");
+        const auto &event = observed.events.front();
+        require(std::filesystem::is_regular_file(event.temporary) &&
+                    !std::filesystem::exists(event.target) &&
+                    savedBackups(c.library.backupFolder()) == before,
+                "Incomplete backup was published or changed an earlier snapshot");
+        writeJson(c.stateRoot + "/backup-crash-expected.json",
+                  {{"prepare_pid", QCoreApplication::applicationPid()},
+                   {"previous", hashes},
+                   {"unpublished", QString::fromStdString(event.target.string())}});
+        killCheckpoint(c, id, stage, "backup.after-step");
+    }
+    require(stage == "verify", "Invalid backup crash stage");
+    const auto saved = crashExpectation(c, "backup-crash-expected.json");
+    d.wait([&] { return !c.library.working() && !c.library.loading(); },
+           "Backup recovery startup settled");
+    require(!QFile::exists(saved["unpublished"].toString()),
+            "Crash published an unfinished backup");
+    const auto hashes = saved["previous"].toObject();
+    for (auto it = hashes.begin(); it != hashes.end(); ++it) {
+        const auto path = it.key().toStdString();
+        require(luma::macos::sha256File(path) == it.value().toString().toStdString(),
+                "Crash changed prior backup bytes");
+        luma::Catalog::verifyBackup(path);
+    }
+    luma::Catalog expected(expectedPath);
+    require(catalog.libraryIDs({}) == expected.libraryIDs({}),
+            "Backup crash changed catalog membership");
+    for (const auto &photo : expected.libraryIDs({})) {
+        const auto before = expected.assetSnapshot(photo).value(),
+                   now = catalog.assetSnapshot(photo).value();
+        require(now.asset.edits == before.asset.edits && now.revision == before.revision &&
+                    now.asset.path == before.asset.path &&
+                    now.asset.checksum == before.asset.checksum &&
+                    luma::macos::sha256File(now.asset.path) == before.asset.checksum,
+                "Backup crash changed originals or committed documents");
+    }
+    openMaintenance(c);
+    const auto before = savedBackups(c.library.backupFolder());
+    d.click("catalog.backupNow");
+    d.wait([&] { return !c.library.working() && !c.library.loading(); },
+           "Post-crash backup completed");
+    require(c.library.error().isEmpty(), c.library.error());
+    auto added = savedBackups(c.library.backupFolder());
+    for (const auto &[path, hash] : before) {
+        require(added.contains(path) && added.at(path) == hash,
+                "Backup retry changed a prior snapshot");
+        added.erase(path);
+    }
+    require(added.size() == 1, "Backup retry did not publish exactly one snapshot");
+    luma::Catalog::verifyBackup(added.begin()->first);
+    luma::Catalog retried(added.begin()->first);
+    require(retried.libraryIDs({}) == expected.libraryIDs({}),
+            "Retry backup lost catalog membership");
+    for (const auto &photo : expected.libraryIDs({})) {
+        const auto beforePhoto = expected.assetSnapshot(photo).value(),
+                   after = retried.assetSnapshot(photo).value();
+        require(after.asset.edits == beforePhoto.asset.edits &&
+                    after.revision == beforePhoto.revision,
+                "Retry snapshot lost complete saved edits");
+    }
+    require(QDir(c.library.backupFolder().toLocalFile())
+                .entryList({".luma-backup-*"}, QDir::Files | QDir::Hidden)
+                .empty(),
+            "Backup retry left an owned crash staging file");
+    d.log({{"action", "backup_kill_recovered"},
+           {"previous_snapshots", hashes.size()},
+           {"new_snapshots", 1}});
+    closeMaintenance(c);
+    return true;
+}
+
 } // namespace ux

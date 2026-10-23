@@ -712,7 +712,117 @@ bool xmpAtomicScenario(Context &c, const QString &id, const QString &stage) {
                 source, std::span(reinterpret_cast<const std::uint8_t *>(packet.constData()),
                                   packet.size())) == serialized,
             "Recovered XMP lost supported descriptive fields");
+    require(QDir(QString::fromStdString(source.parent_path().string()))
+                .entryList({".luma-xmp-*"}, QDir::Files | QDir::Hidden)
+                .empty(),
+            "XMP retry left an owned crash staging file");
     d.screenshot(c.root + "/atomic-xmp-recovered.png");
+    return true;
+}
+
+bool metadataBatchCrashScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P09-FLT-005")
+        return false;
+    auto &d = *c.driver;
+    const auto expectedPath = (c.stateRoot + "/expected-batch.sqlite").toStdString();
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    if (stage == "prepare") {
+        c.import(4);
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        require(c.editor.currentSettings().exposure > 0,
+                "Batch crash fixture requires saved edits");
+        d.click("main.libraryButton");
+        d.click(c.card(0));
+        d.click(c.card(1), Qt::ControlModifier);
+        d.click(c.card(2), Qt::ControlModifier);
+        require(c.library.selectedCount() == 3 && !c.library.autoWriteXMP(),
+                "Batch crash requires three selected photos and one control");
+        const auto selected = c.library.selectionIDs();
+        const auto ordered = catalog.libraryIDs({});
+        require(ordered.size() == 4 && selected.size() == 3 &&
+                    std::all_of(ordered.begin(), ordered.begin() + 3,
+                                [&](const auto &photo) {
+                                    return std::find(selected.begin(), selected.end(), photo) !=
+                                           selected.end();
+                                }),
+                "Batch oracle must match actual selected identities");
+        catalog.backupTo(expectedPath);
+        struct Release {
+            SqliteFault &fault;
+            ~Release() {
+                fault.holdWrites(false);
+            }
+        };
+        [[maybe_unused]] const Release release{c.storageFault};
+        c.storageFault.holdWrites(true);
+        d.click("library.rate.4");
+        d.wait([&] { return c.storageFault.writeBlocked(); },
+               "Actual batch WAL checkpoint entered");
+        require(c.library.working(), "Batch operation completed before kill checkpoint");
+        writeJson(c.stateRoot + "/batch-crash-expected.json",
+                  {{"prepare_pid", QCoreApplication::applicationPid()}});
+        luma::Catalog expected(expectedPath);
+        for (const auto &photo : expected.libraryIDs({})) {
+            const auto before = expected.metadataSnapshot(photo);
+            const auto visible = catalog.metadataSnapshot(photo);
+            require(visible.values == before.values && visible.revision == before.revision &&
+                        visible.writtenRevision == before.writtenRevision,
+                    "Uncommitted batch is visible through an independent connection");
+        }
+        writeJson(c.root + "/metrics.json", c.metrics.json());
+        writeJson(c.root + "/kill-ready.json", {{"id", id},
+                                                {"stage", stage},
+                                                {"pid", QCoreApplication::applicationPid()},
+                                                {"utc_ms", QDateTime::currentMSecsSinceEpoch()},
+                                                {"checkpoint", "batch-first-durable-WAL-write"}});
+        d.wait([] { return false; }, "Parent SIGKILL was not delivered", 10000);
+        throw std::runtime_error("Batch kill checkpoint unexpectedly returned");
+    }
+    require(stage == "verify", "Unknown batch crash stage");
+    QFile info(c.stateRoot + "/batch-crash-expected.json");
+    require(info.open(QIODevice::ReadOnly), "Missing batch crash expectation");
+    require(QJsonDocument::fromJson(info.readAll()).object()["prepare_pid"].toInteger() !=
+                QCoreApplication::applicationPid(),
+            "Batch recovery did not use a fresh process");
+    idle(c);
+    luma::Catalog expected(expectedPath);
+    const auto ids = expected.libraryIDs({});
+    require(ids.size() == 4 && catalog.libraryIDs({}) == ids && c.library.count() == 4,
+            "Batch crash changed catalog membership");
+    auto preserve = [&](bool completed) {
+        for (std::size_t i = 0; i < ids.size(); ++i) {
+            const auto old = expected.assetSnapshot(ids[i]).value();
+            const auto now = catalog.assetSnapshot(ids[i]).value();
+            require(now.asset.path == old.asset.path && now.asset.checksum == old.asset.checksum &&
+                        now.asset.edits == old.asset.edits && now.revision == old.revision &&
+                        luma::macos::sha256File(now.asset.path) == old.asset.checksum,
+                    "Batch crash/retry changed an original, saved edits or identity");
+            const auto before = expected.metadataSnapshot(ids[i]);
+            const auto after = catalog.metadataSnapshot(ids[i]);
+            auto values = before.values;
+            if (completed && i < 3)
+                values.rating = 4;
+            require(after.values == values &&
+                        after.revision == before.revision + (completed && i < 3 ? 1 : 0) &&
+                        after.writtenRevision == before.writtenRevision &&
+                        after.sidecarHash == before.sidecarHash,
+                    "Batch recovery/retry exposed partial metadata or changed its control asset");
+        }
+    };
+    preserve(false);
+    d.click(c.card(0));
+    d.click(c.card(1), Qt::ControlModifier);
+    d.click(c.card(2), Qt::ControlModifier);
+    d.click("library.rate.4");
+    idle(c);
+    require(c.library.error().isEmpty(), c.library.error());
+    preserve(true);
+    d.log({{"action", "real_batch_kill_recovered"}, {"selected_assets", 3}, {"control_assets", 1}});
+    d.screenshot(c.root + "/batch-recovered.png");
     return true;
 }
 

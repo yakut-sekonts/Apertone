@@ -22,6 +22,7 @@ include(cmake/Sparkle.cmake)
 include(cmake/CrashReporter.cmake)
 
 add_library(luma_core STATIC
+    core/io/StagingFile.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
@@ -178,6 +179,11 @@ if(BUILD_TESTING)
     add_test(NAME advanced-import-copy-move-backup COMMAND luma_advanced_import_tests
         "${CMAKE_SOURCE_DIR}/tests/assets/images/quadrants.webp")
     set_tests_properties(advanced-import-copy-move-backup PROPERTIES TIMEOUT 30 LABELS "unit;import")
+    add_executable(luma_staging_tests tests/unit/StagingFileTests.cpp)
+    target_link_libraries(luma_staging_tests PRIVATE luma_core)
+    target_compile_options(luma_staging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME owned-staging-crash-cleanup COMMAND luma_staging_tests)
+    set_tests_properties(owned-staging-crash-cleanup PROPERTIES TIMEOUT 20 LABELS "unit;recovery")
     add_executable(luma_photo_metadata_tests tests/unit/PhotoMetadataTests.cpp)
     target_link_libraries(luma_photo_metadata_tests PRIVATE luma_services Qt6::Core)
     target_compile_options(luma_photo_metadata_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -274,7 +280,8 @@ if(BUILD_TESTING)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_AUTO_TRANSFORM_PROBE)
     # Direct UX objects replace the static library's matching service object;
     # only the test executable compiles the real filesystem checkpoints.
-    target_sources(luma_ux_tests PRIVATE tests/ux/PersistenceProbe.cpp apps/shared/MetadataService.cpp)
+    target_sources(luma_ux_tests PRIVATE tests/ux/PersistenceProbe.cpp apps/shared/MetadataService.cpp
+        core/catalog/Catalog.cpp core/catalog/CatalogBackup.cpp apps/shared/DerivedImage.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_PERSISTENCE_PROBE)
     target_sources(luma_ux_tests PRIVATE tests/ux/RetouchResultProbe.cpp tests/ux/RetouchScenarios.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_RETOUCH_RESULT_PROBE)

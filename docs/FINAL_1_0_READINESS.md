@@ -5,6 +5,28 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Persistence checkpoints and owned staging cleanup — 2026-10-23
+
+[Evidence](qualification/2026-10-23/persistence-kill-recovery.json): **24/24 offscreen
++ 8/8 Cocoa/Metal DPR2 PASS** across XMP, both sides of catalog COMMIT, backup,
+relink, metadata batch and HDR registration. Actual parent SIGKILL is followed by
+fresh application processes. Full documents, originals, exact old/new revisions,
+prior backups and exactly-once registration/retry are checked independently.
+
+BUG070 is fixed for fully recorded new stages: separate locked ownership records
+identify exact path/device/inode. Recovery removes only inactive matching stages;
+live operations, unmarked legacy files, symlinks and replaced inodes survive.
+The first inode-flock implementation blocked SQLite backup; that failure is
+retained and corrected by locking only the separate record. Full build, nine
+affected CTest entries, strengthened staging safety unit, format, mandatory tidy
+and shipping/UX symbol isolation pass. Earlier fixture/oracle/unit/tidy failures
+remain in the evidence. Native backup/HDR result screenshots were inspected.
+
+Cleanup is conservative: legacy or incompletely initialized ownership records
+are preserved. Power loss, external disks and native picker navigation are not
+certified here. **Two** phase 0.6–0.9 blocking IDs still need adapters. Phase 1.0,
+complete load/performance/quality, artifacts/update and BUG045/069 remain open.
+
 ### Atomic XMP publication and real process kills — 2026-10-23
 
 [Evidence](qualification/2026-10-23/xmp-atomic-crash.json): XMP001/XMP012/FLT002

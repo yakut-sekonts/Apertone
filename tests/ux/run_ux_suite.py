@@ -112,6 +112,9 @@ RESTART.update(('UX-P08-PAN-012', 'UX-P08-FLT-001'))
 RESTART.add('UX-P07-DNS-008')
 RESTART.update(CATALOG_SCALE_IDS)
 RESTART.update(('UX-P09-XMP-012', 'UX-P09-FLT-002'))
+CRASH_IDS = {f'UX-P09-FLT-{i:03}' for i in (1, 3, 4, 5, 6)}
+RESTART.update(CRASH_IDS)
+KILL.update(CRASH_IDS)
 NATIVE.add('UX-P09-XMP-001')
 NATIVE.update(RESTART)
 NATIVE.update(f'UX-BAT-{i:03}' for i in (1, 2, 3, 5, 6, 8, 9, 10, 12, 15))
@@ -388,9 +391,9 @@ def execute(row, directory, arguments, fixture_folder):
         try:
             while process.poll() is None:
                 ready = directory / 'kill-ready.json'
-                if row['id'] in KILL and getattr(arguments, 'stage', None) == 'prepare' and ready.exists():
+                if row['id'] in KILL and getattr(arguments, 'stage', None) in ('prepare', 'prepare-committed') and ready.exists():
                     marker = json.loads(ready.read_text())
-                    if marker.get('id') != row['id'] or marker.get('stage') != 'prepare' or marker.get('pid') != process.pid:
+                    if marker.get('id') != row['id'] or marker.get('stage') != arguments.stage or marker.get('pid') != process.pid:
                         reason = 'Invalid intentional-kill stage marker'
                     elif row['id'] == 'UX-UND-015' and time.time() * 1000 - marker['utc_ms'] > 100:
                         reason = 'Pending-debounce kill missed its 100 ms fixture window'
@@ -485,6 +488,8 @@ def execute_scenario(row, directory, arguments, fixture_folder):
         stages = variants
     elif cycles:
         stages = ['cycle'] * cycles
+    elif row['id'] == 'UX-P09-FLT-001':
+        stages = ['prepare', 'verify', 'prepare-committed', 'verify-committed']
     else:
         stages = ['prepare', 'verify']
     outcomes = []
@@ -496,7 +501,8 @@ def execute_scenario(row, directory, arguments, fixture_folder):
             options.pop('state_root', None)
             options['variant'] = stage
         else:
-            options.update(stage=stage, state_root=directory / 'state')
+            state = 'state-committed' if stage.endswith('-committed') else 'state'
+            options.update(stage=stage, state_root=directory / state)
         options = argparse.Namespace(**options)
         outcome = execute(row, directory / f'{index + 1:02}-{stage}', options, fixture_folder)
         outcomes.append(outcome)

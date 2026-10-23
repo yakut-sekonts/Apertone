@@ -511,6 +511,47 @@ else:
             self.assertEqual(len(result['stages']), 2)
             self.assertNotEqual(result['stages'][0]['child_pid'], result['stages'][1]['child_pid'])
 
+    def test_commit_checkpoints_use_separate_state_pairs_and_propagate_failure(self):
+        row = {'id': 'UX-P09-FLT-001', 'scope': '0.9', 'mode': 'BLOCKING',
+               'severity': 'P0', 'scenario': 'Commit checkpoint supervisor accounting'}
+        for failed in (None, 'prepare', 'verify', 'prepare-committed', 'verify-committed'):
+            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                calls = []
+                def execute(row, destination, options, fixture):
+                    calls.append((options.stage, options.state_root))
+                    return {'id': row['id'], 'status': 'FAIL' if options.stage == failed else 'PASS',
+                            'message': options.stage, 'wall_duration_ms': 1}
+                with patch.object(runner, 'execute', side_effect=execute):
+                    result = runner.execute_scenario(row, root / 'result', argparse.Namespace(), root)
+                stages = ['prepare', 'verify', 'prepare-committed', 'verify-committed']
+                required = stages if failed is None else stages[:stages.index(failed) + 1]
+                self.assertEqual([stage for stage, _ in calls], required)
+                self.assertEqual([state for _, state in calls], [root / 'result' /
+                    ('state-committed' if stage.endswith('-committed') else 'state') for stage in required])
+                self.assertEqual(result['status'], 'FAIL' if failed else 'PASS')
+                self.assertEqual(result['wall_duration_ms'], len(required))
+
+    def test_committed_checkpoint_requires_actual_sigkill(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            child.write_text('''#!/usr/bin/env python3
+import json,os,sys,time
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+(r/"metrics.json").write_text(json.dumps({"checkpoint_metric":42}))
+(r/"kill-ready.json").write_text(json.dumps({"id":"UX-P09-FLT-001","stage":"prepare-committed","pid":os.getpid(),"utc_ms":time.time_ns()//1000000}))
+time.sleep(30)
+''')
+            child.chmod(0o755)
+            result = runner.execute({'id':'UX-P09-FLT-001','scope':'0.9','mode':'BLOCKING',
+                                     'severity':'P0','scenario':'Fake committed checkpoint'}, root / 'result',
+                                    argparse.Namespace(build=root, timeout=10, stage='prepare-committed'), root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['child_returncode'], -signal.SIGKILL)
+            self.assertTrue(result['intentional_kill'])
+
     def _fake_isolated_variant_children(self, identifier, variants, failed_variant=None):
         # Infrastructure fixture only: no native application, volume or UI claim.
         with tempfile.TemporaryDirectory() as directory:

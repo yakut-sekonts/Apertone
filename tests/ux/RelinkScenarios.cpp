@@ -1,5 +1,7 @@
 #include "apps/shared/MetadataService.h"
 #include "platform/macos/FileHasher.h"
+#include "tests/ux/CrashScenarios.h"
+#include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QDir>
@@ -69,7 +71,8 @@ void closeMetadata(Context &c) {
     c.driver->wait([&] { return !c.driver->object("photoMetadata")->property("visible").toBool(); },
                    "Relink metadata dialog dismissed");
 }
-void locate(Context &c, const std::filesystem::path &path, bool folder) {
+void locate(Context &c, const std::filesystem::path &path, bool folder,
+            bool awaitCompletion = true) {
     auto &d = *c.driver;
     const auto button = folder ? "metadata.locateFolder" : "metadata.locateOriginal";
     const auto dialogID = folder ? "metadata.locateFolderDialog" : "metadata.locateFileDialog";
@@ -106,7 +109,8 @@ void locate(Context &c, const std::filesystem::path &path, bool folder) {
                 QMetaObject::invokeMethod(dialog, "accepted", Qt::DirectConnection),
             "Locate dialog lacks its production close/accepted handlers");
     d.wait([&] { return !dialog->property("visible").toBool(); }, "Locate chooser closed");
-    idle(c);
+    if (awaitCompletion)
+        idle(c);
 }
 void missing(Context &c, const std::string &photo, bool expected) {
     auto &d = *c.driver;
@@ -377,4 +381,110 @@ bool relinkScenario(Context &c, const QString &id) {
            {"native_picker_selection_exercised", false}});
     return true;
 }
+bool relinkCrashScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P09-FLT-004")
+        return false;
+    auto &d = *c.driver;
+    const auto root = std::filesystem::path(c.stateRoot.toStdString());
+    const auto oldPath = root / "old-originals/Relink.png",
+               newPath = root / "moved-originals/Renamed.png";
+    const auto expectedPath = root / "expected-relink.sqlite";
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    if (stage == "prepare") {
+        std::filesystem::create_directory(oldPath.parent_path());
+        std::filesystem::create_directory(newPath.parent_path());
+        const auto inputs = QDir(c.fixture).entryList({"*.png"}, QDir::Files, QDir::Name);
+        require(!inputs.empty() && QFile::copy(c.fixture + '/' + inputs.front(),
+                                               QString::fromStdString(oldPath.string())),
+                "Cannot create owned relink crash original");
+        require(d.object("library.importDialog")
+                    ->setProperty("sources", QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(
+                                                 QString::fromStdString(oldPath.string()))})),
+                "Cannot set relink import fixture");
+        d.click("library.importButton");
+        d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
+               "Relink crash import opened");
+        d.click("library.importStart");
+        idle(c);
+        require(c.library.count() == 1 && c.library.error().isEmpty(), c.library.error());
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        const auto photo = c.editor.photoID().toStdString();
+        d.click("main.libraryButton");
+        d.click(c.card(0));
+        d.click("library.rate.4");
+        idle(c);
+        catalog.backupTo(expectedPath);
+        std::filesystem::rename(oldPath, newPath);
+        missing(c, photo, true);
+        metadata(c, photo);
+        struct Release {
+            SqliteFault &fault;
+            ~Release() {
+                fault.holdWrites(false);
+            }
+        };
+        [[maybe_unused]] const Release release{c.storageFault};
+        c.storageFault.holdWrites(true);
+        locate(c, newPath, false, false);
+        d.wait([&] { return c.storageFault.writeBlocked(); },
+               "Actual relink commit WAL write reached");
+        require(c.library.working() && catalog.assetByID(photo)->path == oldPath,
+                "Uncommitted relink changed independently observed mapping");
+        writeJson(c.stateRoot + "/relink-crash-expected.json",
+                  {{"prepare_pid", QCoreApplication::applicationPid()},
+                   {"photo", QString::fromStdString(photo)}});
+        killCheckpoint(c, id, stage, "relink-first-durable-WAL-write");
+    }
+    require(stage == "verify", "Invalid relink crash stage");
+    const auto saved = crashExpectation(c, "relink-crash-expected.json");
+    idle(c);
+    luma::Catalog expected(expectedPath);
+    const auto photo = saved["photo"].toString().toStdString();
+    const auto baseline = expected.assetSnapshot(photo).value();
+    const auto values = expected.metadataSnapshot(photo);
+    auto preserve = [&](const std::filesystem::path &path) {
+        const auto current = catalog.assetSnapshot(photo).value();
+        const auto currentValues = catalog.metadataSnapshot(photo);
+        require(catalog.libraryIDs({}) == expected.libraryIDs({}) && current.asset.path == path &&
+                    current.asset.checksum == baseline.asset.checksum &&
+                    current.asset.edits == baseline.asset.edits &&
+                    current.revision == baseline.revision &&
+                    currentValues.values == values.values &&
+                    currentValues.revision == values.revision + (path == newPath ? 1 : 0) &&
+                    currentValues.writtenRevision == values.writtenRevision &&
+                    currentValues.sidecarHash == values.sidecarHash &&
+                    !std::filesystem::exists(oldPath) &&
+                    luma::macos::sha256File(newPath) == baseline.asset.checksum,
+                "Relink crash/retry lost mapping atomicity, original, edits or metadata");
+    };
+    preserve(oldPath);
+    missing(c, photo, true);
+    d.click(card(c, photo));
+    metadata(c, photo);
+    locate(c, newPath, false);
+    require(c.library.error().isEmpty(), c.library.error());
+    closeMetadata(c);
+    missing(c, photo, false);
+    preserve(newPath);
+    d.doubleClick(card(c, photo));
+    c.loaded();
+    c.saved();
+    require(c.editor.currentSettings() == baseline.asset.edits &&
+                c.editor.sourcePath().toStdString() == newPath.string(),
+            "Recovered relink did not open saved document");
+    const auto reference = fixtureReference(c);
+    d.wait(
+        [&] {
+            return previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), reference,
+                                      c.editor.metalPreview());
+        },
+        "Recovered relink preview matches independent CPU rendering");
+    d.log({{"action", "relink_commit_kill_recovered"}, {"photo", QString::fromStdString(photo)}});
+    return true;
+}
+
 } // namespace ux

@@ -1,6 +1,10 @@
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+#include "tests/ux/PersistenceProbe.h"
+#endif
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
+#include "core/io/StagingFile.h"
 #include <chrono>
 #include <fcntl.h>
 #include <sqlite3.h>
@@ -58,23 +62,16 @@ void snapshot(sqlite3 *source, const std::filesystem::path &destination, Cancell
     if (std::filesystem::exists(target))
         throw std::runtime_error("Backup destination already exists.");
     std::filesystem::create_directories(target.parent_path());
-    std::string pattern = (target.parent_path() / ".luma-backup-XXXXXX").string();
-    std::vector<char> name(pattern.begin(), pattern.end());
-    name.push_back(0);
-    const int descriptor = mkstemp(name.data());
-    if (descriptor < 0)
-        throw std::runtime_error("Cannot create catalog backup.");
-    close(descriptor);
+    StagingFile staging(target.parent_path(), ".luma-backup-");
     struct Temporary {
         std::filesystem::path path;
         ~Temporary() {
             std::error_code ignored;
-            std::filesystem::remove(path, ignored);
             std::filesystem::remove(path.string() + "-journal", ignored);
             std::filesystem::remove(path.string() + "-wal", ignored);
             std::filesystem::remove(path.string() + "-shm", ignored);
         }
-    } temporary{name.data()};
+    } temporary{staging.path()};
     sqlite3 *output = nullptr;
     if (sqlite3_open_v2(temporary.path.c_str(), &output, SQLITE_OPEN_READWRITE, nullptr) !=
         SQLITE_OK) {
@@ -100,9 +97,19 @@ void snapshot(sqlite3 *source, const std::filesystem::path &destination, Cancell
         }
     } backup{copy};
     auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+    bool firstStep = true;
+#endif
     for (;;) {
         checkCancellation(stop);
         const int status = sqlite3_backup_step(copy, 256);
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+        if (firstStep && (status == SQLITE_OK || status == SQLITE_DONE)) {
+            firstStep = false;
+            ux::observePersistenceCheckpoint(sqlite3_db_filename(source, "main"),
+                                             "backup.after-step", target, temporary.path);
+        }
+#endif
         if (status == SQLITE_DONE)
             break;
         if (status != SQLITE_OK && status != SQLITE_BUSY && status != SQLITE_LOCKED)

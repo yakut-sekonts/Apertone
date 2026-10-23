@@ -1,8 +1,12 @@
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+#include "tests/ux/PersistenceProbe.h"
+#endif
 #include "apps/shared/DerivedImage.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/export/DngWriter.h"
 #include "core/image/Bayer.h"
+#include "core/io/StagingFile.h"
 #include "platform/macos/FileHasher.h"
 #include <algorithm>
 #include <cerrno>
@@ -23,21 +27,8 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
                            (catalog.filename().string() + ".luma-derived");
     std::filesystem::create_directories(directory);
     const auto target = directory / (newID() + ".dng");
-    std::string pattern = (directory / ".luma-derived-XXXXXX").string();
-    std::vector<char> name(pattern.begin(), pattern.end());
-    name.push_back(0);
-    const int descriptor = mkstemp(name.data());
-    if (descriptor < 0)
-        throw std::runtime_error("Cannot create derived image temporary file.");
-    close(descriptor);
-    const std::filesystem::path temporary(name.data());
-    struct Cleanup {
-        std::filesystem::path path;
-        ~Cleanup() {
-            std::error_code ignored;
-            std::filesystem::remove(path, ignored);
-        }
-    } cleanup{temporary};
+    StagingFile staging(directory, ".luma-derived-");
+    const auto &temporary = staging.path();
     const auto profile = linearSRGBProfile();
     const auto bytes =
         std::span(reinterpret_cast<const std::uint8_t *>(provenance.data()), provenance.size());
@@ -78,6 +69,9 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
     }
     // Persist registration even when the UI has closed or cancelled meanwhile.
     // If registration fails, the journal and installed file remain recoverable.
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+    ux::observePersistenceCheckpoint(catalog, "derived.before-register", target, temporary);
+#endif
     database.finishDerived(record);
     return target;
 }

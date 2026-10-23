@@ -1,5 +1,6 @@
 #include "apps/shared/MetadataService.h"
 #include "core/image/Bayer.h"
+#include "core/io/StagingFile.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
 #ifdef LUMA_UX_PERSISTENCE_PROBE
@@ -54,41 +55,27 @@ std::vector<std::uint8_t> readBytes(const std::filesystem::path &path) {
     return bytes;
 }
 struct Temporary {
-    std::filesystem::path path;
+    StagingFile file;
+    const std::filesystem::path &path;
     Temporary(const std::filesystem::path &folder, std::span<const std::uint8_t> bytes,
-              CancellationToken stop) {
-        std::string pattern = (folder / ".luma-xmp-XXXXXX").string();
-        std::vector<char> name(pattern.begin(), pattern.end());
-        name.push_back(0);
-        const Descriptor file{mkstemp(name.data())};
-        if (file.value < 0)
-            throw std::runtime_error("Cannot create XMP temporary file.");
-        path = name.data();
-        try {
-            std::size_t offset = 0;
-            while (offset < bytes.size()) {
-                checkCancellation(stop);
-                const auto count =
-                    ::write(file.value, bytes.data() + offset, bytes.size() - offset);
-                if (count < 0 && errno == EINTR)
-                    continue;
-                if (count <= 0)
-                    throw std::runtime_error("Cannot write XMP sidecar.");
-                offset += static_cast<std::size_t>(count);
-            }
-            if (fsync(file.value) != 0)
-                throw std::runtime_error("Cannot sync XMP sidecar.");
-        } catch (...) {
-            std::error_code ignored;
-            std::filesystem::remove(path, ignored);
-            throw;
+              CancellationToken stop)
+        : file(folder, ".luma-xmp-"), path(file.path()) {
+        std::size_t offset = 0;
+        while (offset < bytes.size()) {
+            checkCancellation(stop);
+            const auto count =
+                ::write(file.descriptor(), bytes.data() + offset, bytes.size() - offset);
+            if (count < 0 && errno == EINTR)
+                continue;
+            if (count <= 0)
+                throw std::runtime_error("Cannot write XMP sidecar.");
+            offset += static_cast<std::size_t>(count);
         }
-    }
-    ~Temporary() {
-        std::error_code ignored;
-        std::filesystem::remove(path, ignored);
+        if (fsync(file.descriptor()) != 0)
+            throw std::runtime_error("Cannot sync XMP sidecar.");
     }
 };
+
 void syncFolder(const std::filesystem::path &path) {
     const Descriptor folder{::open(path.c_str(), O_RDONLY)};
     if (folder.value < 0 || fsync(folder.value) != 0)

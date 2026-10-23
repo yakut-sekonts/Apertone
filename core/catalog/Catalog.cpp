@@ -1,3 +1,6 @@
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+#include "tests/ux/PersistenceProbe.h"
+#endif
 #include "core/catalog/Catalog.h"
 #include "core/catalog/CreativeStorage.h"
 #include "core/catalog/Identity.h"
@@ -558,7 +561,15 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
     execute("BEGIN IMMEDIATE;");
     try {
         writeEdits(assetID, edits);
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+        ux::observePersistenceCheckpoint(sqlite3_db_filename(db_, "main"), "catalog.before-commit",
+                                         {}, {});
+#endif
         execute("COMMIT;");
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+        ux::observePersistenceCheckpoint(sqlite3_db_filename(db_, "main"), "catalog.after-commit",
+                                         {}, {});
+#endif
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
         throw;

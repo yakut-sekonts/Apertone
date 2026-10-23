@@ -657,3 +657,18 @@ but does not remove the old stage. After-rename kill has no stage orphan. Existi
 names do not encode durable ownership: do not broadly delete matching files.
 Implement ownership-aware cleanup and retain actual-kill evidence. Atomic/retry
 contracts pass 9 offscreen + 3 Cocoa/Metal; cleanup is not counted as passed.
+
+### BUG070 fix and persistence qualification — 2026-10-23
+
+Fixed for fully recorded new stages. `StagingFile` holds a separate ownership-record
+lock and matches exact pathname/device/inode before recovery removes a stage.
+Legacy/unmarked, incomplete records, symlinks and replaced inodes are preserved.
+Actual-kill XMP, backup and HDR tests require cleanup; unit tests preserve active
+same/other-process workers, replacement files and installed hard-linked bytes.
+The initial inode-flock implementation conflicted with SQLite; the failure and
+separate-record correction are retained in [evidence](qualification/2026-10-23/persistence-kill-recovery.json).
+All eight persistence scenarios pass 24 offscreen + 8 Cocoa/Metal; full build,
+nine affected CTest entries, strengthened staging unit and mandatory static checks
+pass. No power-loss/external-volume qualification is inferred. Five new blocking
+adapters cover catalog, backup, relink, batch and derived registration kills;
+two applicable blocking IDs from phases 0.6–0.9 remain unadapted.

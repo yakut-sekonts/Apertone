@@ -1,3 +1,6 @@
+#include "platform/macos/FileHasher.h"
+#include "tests/ux/CrashScenarios.h"
+#include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxTestIds.h"
 #include <QCoreApplication>
@@ -7,6 +10,11 @@
 
 namespace ux {
 bool xmpAtomicScenario(Context &, const QString &, const QString &);
+bool catalogCommitCrashScenario(Context &, const QString &, const QString &);
+bool metadataBatchCrashScenario(Context &, const QString &, const QString &);
+bool backupCrashScenario(Context &, const QString &, const QString &);
+bool relinkCrashScenario(Context &, const QString &, const QString &);
+bool mergeCrashScenario(Context &, const QString &, const QString &);
 bool localeRestartScenario(Context &, const QString &, const QString &);
 bool exportSettingsRestartScenario(Context &, const QString &, const QString &);
 bool copyRestartScenario(Context &, const QString &, const QString &);
@@ -25,8 +33,10 @@ void quit(Context &c) {
 }
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
-    if (xmpAtomicScenario(c, id, stage) || catalogScaleRestartScenario(c, id, stage) ||
-        mergeRestartScenario(c, id, stage))
+    if (catalogCommitCrashScenario(c, id, stage) || metadataBatchCrashScenario(c, id, stage) ||
+        backupCrashScenario(c, id, stage) || relinkCrashScenario(c, id, stage) ||
+        mergeCrashScenario(c, id, stage) || xmpAtomicScenario(c, id, stage) ||
+        catalogScaleRestartScenario(c, id, stage) || mergeRestartScenario(c, id, stage))
         return;
     if (exportSettingsRestartScenario(c, id, stage) || whiteBalanceRestartScenario(c, id, stage) ||
         appMissingSourceRestartScenario(c, id, stage) ||
@@ -194,4 +204,81 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
     }
     quit(c);
 }
+bool catalogCommitCrashScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P09-FLT-001")
+        return false;
+    auto &d = *c.driver;
+    const bool committed = stage.endsWith("-committed");
+    const auto expectedPath = (c.stateRoot + "/expected-commit.sqlite").toStdString();
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    if (stage.startsWith("prepare")) {
+        c.import(1);
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.saved();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        catalog.backupTo(expectedPath);
+        const auto photo = c.editor.photoID().toStdString();
+        const auto old = catalog.assetSnapshot(photo).value();
+        const std::string point = committed ? "catalog.after-commit" : "catalog.before-commit";
+        PersistenceGate gate(c.catalogFile.toStdString(), {point});
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.75, .5});
+        const auto desired = c.editor.currentSettings();
+        require(desired != old.asset.edits,
+                "Commit crash fixture needs distinct complete documents");
+        {
+            luma::Catalog expected(expectedPath);
+            expected.saveEdits(photo, desired);
+        }
+        d.wait([&] { return gate.snapshot().held; }, "Actual catalog commit checkpoint reached");
+        const auto visible = catalog.assetSnapshot(photo).value();
+        require(!gate.snapshot().hookFailed &&
+                    visible.asset.edits == (committed ? desired : old.asset.edits) &&
+                    visible.revision == old.revision + (committed ? 1 : 0),
+                "Independent connection saw incorrect catalog transaction state");
+        // Keep both complete documents, without interpreting individual edit fields.
+        luma::Catalog oldState((c.stateRoot + "/old-commit.sqlite").toStdString());
+        auto oldAsset =
+            oldState.addAndSelect(old.asset.path, old.asset.checksum, old.asset.metadata);
+        oldState.saveEdits(oldAsset.id, old.asset.edits);
+        writeJson(c.stateRoot + "/commit-expected.json",
+                  {{"prepare_pid", QCoreApplication::applicationPid()},
+                   {"photo", QString::fromStdString(photo)},
+                   {"old_revision", static_cast<qint64>(old.revision)}});
+        killCheckpoint(c, id, stage, QString::fromStdString(point));
+    }
+    require(stage == "verify" || stage == "verify-committed", "Invalid commit recovery stage");
+    const auto saved = crashExpectation(c, "commit-expected.json");
+    luma::Catalog expected(expectedPath);
+    const auto photo = saved["photo"].toString().toStdString();
+    const auto newState = expected.assetSnapshot(photo).value();
+    const auto oldState =
+        luma::Catalog((c.stateRoot + "/old-commit.sqlite").toStdString()).activeAsset().value();
+    const auto wanted = committed ? newState.asset.edits : oldState.edits;
+    c.editor.restore();
+    c.loaded();
+    c.saved();
+    const auto current = catalog.assetSnapshot(photo).value();
+    require(
+        catalog.libraryIDs({}) == expected.libraryIDs({}) && current.asset.edits == wanted &&
+            current.revision == saved["old_revision"].toInteger() + (committed ? 1 : 0) &&
+            current.asset.path == newState.asset.path &&
+            current.asset.checksum == newState.asset.checksum &&
+            luma::macos::sha256File(current.asset.path) == current.asset.checksum &&
+            c.editor.photoID().toStdString() == photo && c.editor.currentSettings() == wanted &&
+            !c.editor.canUndo() && !c.editor.canRedo(),
+        "Killed catalog transaction lost atomicity, identity, original or complete edit document");
+    c.reveal("develop.contrastSlider");
+    d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});
+    c.saved();
+    d.click("main.undoButton");
+    c.saved();
+    require(c.editor.currentSettings() == wanted && c.editor.canRedo(),
+            "Recovered catalog could not save a new edit and exact Undo");
+    d.log({{"action", "catalog_commit_kill_recovered"}, {"committed", committed}});
+    return true;
+}
+
 } // namespace ux
