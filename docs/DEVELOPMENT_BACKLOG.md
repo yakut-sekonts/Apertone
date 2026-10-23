@@ -619,3 +619,12 @@ watchdog is unchanged. Initial close-predicate failures and weaker placeholder
 runs remain in `qualification/2026-10-23/catalog-scale-open.json`. Six affected
 UX regressions and seven CTest entries pass. Actual-photo load, sustained use,
 latency/resource budgets and complete release qualification remain separate.
+
+### LUMA-GAP-067 — actual AI subject-mask workflow coverage
+
+Added MSK001/003 adapters using the real Apple Vision provider and SHA-pinned
+public-domain portrait. Six repeated offscreen and two Cocoa/Metal runs pass,
+including exact bitmap Undo/Redo and normal Local Adjustments controls. Five
+affected CTest entries, full build and static checks pass. See
+[retained evidence](qualification/2026-10-23/ai-mask-workflow.json). Photographic
+boundary quality, other provider modes and stress remain outside this result.

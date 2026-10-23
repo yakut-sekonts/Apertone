@@ -5,6 +5,18 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Actual AI subject-mask lifecycle — 2026-10-23
+
+[Evidence](qualification/2026-10-23/ai-mask-workflow.json): **6/6 repeated offscreen
++ 2/2 Cocoa/Metal DPR2 PASS**, plus the initial two PASS. Real Apple Vision operates
+on the pinned NASA portrait. Exact bitmap Undo/Redo, visible overlay, local
+exposure pixels, Enabled/Invert/Delete and complete Undo all pass; originals and
+catalog remain intact. The native overlay screenshot was visually inspected.
+Full build, five affected CTest entries, format and mandatory affected tidy pass.
+This does not certify segmentation boundaries across photographs or providers.
+There are **14** applicable blocking IDs still without adapters; no release gate
+is waived or inferred from this workflow result.
+
 ### Fresh-process catalogs at 10k / 100k / 500k — 2026-10-23
 
 [Evidence](qualification/2026-10-23/catalog-scale-open.json): **9/9 Cocoa/Metal

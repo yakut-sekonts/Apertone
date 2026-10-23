@@ -60,7 +60,7 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
+            Button { objectName: "localAI.subject"; text: qsTranslate("Luma", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
             Button { text: qsTranslate("Luma", "Background"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("background") }
         }
         Button {
