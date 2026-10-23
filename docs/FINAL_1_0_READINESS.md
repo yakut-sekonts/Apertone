@@ -5,6 +5,23 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Standalone bundle and current format verification — 2026-10-24
+
+[Evidence](qualification/2026-10-24/standalone-current-bundle.json): the current 0.9.0
+application was packaged with the verified v4 models and passes strict recursive
+ad-hoc signature verification. With developer Qt/Sparkle directories actually hidden,
+the complete standalone verifier passes RAW/common-image Library, editing, complete
+masks, sparse XMP, lens/transform/filter/Undo, export/restart, processed DNG, all eight
+languages and source integrity. Developer SDK locations were restored afterward.
+
+The verifier itself had stale schema expectations: catalog 11, mask version 2 and
+preset library 7. Reproduced failures are retained. It now requires catalog 21,
+mask version 3 with two saved masks, and sparse library/entry version 9; all pixel,
+restart and parameter checks remain. No product serialization changed. The default
+old model cache was correctly rejected; explicit qualified models-v4 packaging
+passed. This bundle is source 2fd6f65, version 0.9.0, not a tagged release or DMG
+installation/update qualification. **22 blocking / 307 total** remain unadapted.
+
 ### Complete 100-photo culling workflow — 2026-10-24
 
 [Evidence](qualification/2026-10-24/daily-culling.json): DAY003 imports 100 distinct
