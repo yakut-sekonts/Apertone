@@ -529,3 +529,20 @@ and multi-file XMP publication have separate cases and remain unqualified.
 Both adapters are in the blocking CI subset and support Cocoa/Metal and offscreen
 software runs. Bounded fixture routing and independent TIFF/EXIF decoding are
 registered as `ux-metadata-display-fixture-accounting` in CTest.
+# Merge workflow qualification — 2026-10-23
+
+`MergeScenarios.cpp` and isolated `merge_fixtures.py` cover MRG001/003/004/005/
+006/009/010, HDR001/009, PAN001/002/004, ALG002 and FLT002. Actual UI clicks create
+HDR/Panorama jobs. A UX-only friend copies their genuine JobHandle; terminal state
+is required before cancellation cleanup is asserted. Real catalog writes are
+held through the existing owned SQLite VFS, after decode/alignment/encoding.
+Shipping symbol isolation rejects the probe in the distributed executable.
+
+EXIF bracket and exact overlapping crops are deterministic, owned and hash
+protected. Independent TIFF/IEEE Float32 and sRGB scene oracles check storage,
+dynamic range, source preservation and panorama content. Source URLs are declared
+picker fixtures; these tests do not qualify native chooser navigation.
+
+Final results: 42 offscreen and 14 Cocoa/Metal DPR2 PASS. Original failures,
+fixture corrections, intermediate HDR rejection and retained limitations are in
+[`merge-workflows.json`](../../docs/qualification/2026-10-23/merge-workflows.json).

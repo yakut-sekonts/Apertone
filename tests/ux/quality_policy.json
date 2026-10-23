@@ -296,7 +296,21 @@
     "UX-P09-RLK-004",
     "UX-P09-RLK-006",
     "UX-P09-RLK-007",
-    "UX-P06-LRU-002"
+    "UX-P06-LRU-002",
+    "UX-P08-FLT-002",
+    "UX-P08-HDR-001",
+    "UX-P08-HDR-009",
+    "UX-P08-MRG-001",
+    "UX-P08-MRG-003",
+    "UX-P08-MRG-004",
+    "UX-P08-MRG-005",
+    "UX-P08-MRG-006",
+    "UX-P08-MRG-009",
+    "UX-P08-MRG-010",
+    "UX-P08-PAN-001",
+    "UX-P08-PAN-002",
+    "UX-P08-PAN-004",
+    "UX-P08-ALG-002"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -312,7 +326,7 @@
       "source": "tests/ux/HistoryStressScenarios.cpp:109,125,142,155"
     },
     "UX-APP-001": {
-      "reason": "50 \u043f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u0437\u0430\u043f\u0443\u0441\u043a\u043e\u0432 \u0438 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u0439 \u0432 runner; repeated-launch workload.",
+      "reason": "50 последовательных запусков и закрытий в runner; repeated-launch workload.",
       "source": "tests/ux/run_ux_suite.py:362"
     },
     "UX-APP-005": {
@@ -776,7 +790,21 @@
     "UX-P09-RLK-006": 3,
     "UX-P09-RLK-007": 3,
     "UX-P06-LRU-002": 2,
-    "UX-P06-GPU-002": 1
+    "UX-P06-GPU-002": 1,
+    "UX-P08-FLT-002": 0,
+    "UX-P08-HDR-001": 0,
+    "UX-P08-HDR-009": 0,
+    "UX-P08-MRG-001": 0,
+    "UX-P08-MRG-003": 0,
+    "UX-P08-MRG-004": 0,
+    "UX-P08-MRG-005": 0,
+    "UX-P08-MRG-006": 0,
+    "UX-P08-MRG-009": 0,
+    "UX-P08-MRG-010": 0,
+    "UX-P08-PAN-001": 0,
+    "UX-P08-PAN-002": 0,
+    "UX-P08-PAN-004": 0,
+    "UX-P08-ALG-002": 0
   },
   "default_quality_photo_count": 10
 }

@@ -796,6 +796,9 @@
     "Clear": "Մաքրել",
     "Opacity": "Անթափանցիկություն",
     "Quit": "Ելք",
-    "Search": "Որոնել"
+    "Search": "Որոնել",
+    "Aligning originals…": "Բնօրինակների հավասարեցում…",
+    "Merging frames…": "Կադրերի միավորում…",
+    "Writing Float DNG…": "Float DNG-ի պահպանում…"
   }
 }

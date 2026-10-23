@@ -18,6 +18,11 @@
 #include <QVariantMap>
 #include <array>
 
+#ifdef LUMA_UX_MERGE_PROBE
+namespace ux {
+class MergeJobProbe;
+}
+#endif
 #ifdef LUMA_UX_MEMORY_PRESSURE_PROBE
 namespace ux {
 class MemoryPressureProbe;
@@ -30,6 +35,9 @@ class MetalPreviewProbe;
 #endif
 class EditorController final : public QObject {
     Q_OBJECT
+#ifdef LUMA_UX_MERGE_PROBE
+    friend class ux::MergeJobProbe;
+#endif
 #ifdef LUMA_UX_MEMORY_PRESSURE_PROBE
     friend class ux::MemoryPressureProbe;
 #endif

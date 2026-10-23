@@ -796,6 +796,9 @@
     "Clear": "Limpiar",
     "Opacity": "Opacidad",
     "Quit": "Salir",
-    "Search": "Buscar"
+    "Search": "Buscar",
+    "Aligning originals…": "Alineando originales…",
+    "Merging frames…": "Combinando imágenes…",
+    "Writing Float DNG…": "Escribiendo Float DNG…"
   }
 }

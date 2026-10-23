@@ -796,6 +796,9 @@
     "Clear": "Clear",
     "Opacity": "Opacity",
     "Quit": "Quit",
-    "Search": "Search"
+    "Search": "Search",
+    "Aligning originals…": "Aligning originals…",
+    "Merging frames…": "Merging frames…",
+    "Writing Float DNG…": "Writing Float DNG…"
   }
 }

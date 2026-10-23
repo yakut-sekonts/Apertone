@@ -1,8 +1,15 @@
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/MergeService.h"
 #include <QPointer>
+#include <atomic>
 #include <cmath>
 
+namespace {
+struct MergeProgress {
+    std::atomic<double> value{0};
+    std::atomic<bool> queued{false};
+};
+} // namespace
 void EditorController::mergeHDRPhotos(const QStringList &ids, double deghost) {
     if (!std::isfinite(deghost) || deghost < 0 || deghost > 100)
         return;
@@ -52,14 +59,19 @@ void EditorController::runMerge(const QString &operation,
         aiJob_ = aiJobs_.submit(
             luma::JobPriority::background, [self, revision, task](const luma::JobContext &context) {
                 try {
+                    const auto progress = std::make_shared<MergeProgress>();
                     const auto created =
-                        (*task)(context.stopToken(), [self, revision](double value) {
-                            if (self)
+                        (*task)(context.stopToken(), [self, revision, progress](double value) {
+                            progress->value.store(value);
+                            // Per-row callbacks must not enqueue thousands of full
+                            // QML state refreshes ahead of Cancel and GUI heartbeats.
+                            if (self && !progress->queued.exchange(true))
                                 QMetaObject::invokeMethod(
                                     self,
-                                    [self, revision, value] {
+                                    [self, revision, progress] {
+                                        progress->queued.store(false);
                                         if (self && self->aiRevision_ == revision) {
-                                            self->aiProgress_ = value;
+                                            self->aiProgress_ = progress->value.load();
                                             emit self->stateChanged();
                                         }
                                     },

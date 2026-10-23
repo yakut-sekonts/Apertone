@@ -5,6 +5,40 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### HDR/Panorama creation, cancellation and Float DNG — 2026-10-23
+
+[Evidence](qualification/2026-10-23/merge-workflows.json) adds fourteen official
+adapters, eleven blocking. The new block passes **36/36 offscreen workflow runs,
+6/6 offscreen refusal/recovery runs and 14/14 Cocoa/Metal DPR2 runs**. Full build,
+13 affected CTest entries, formatting and affected blocking clang-tidy pass;
+nonblocking warnings remain. Original hashes, catalog integrity, source/build
+provenance and QML warnings are checked. Tests observe the actual merge worker's
+termination, not just the cleared busy flag.
+
+Three reproduced defects are corrected: cancellation while journal staging is
+blocked no longer installs a hidden result; per-row progress no longer floods
+the GUI queue; panorama alignment verifies correspondence and considers large
+translations instead of accepting a wrong but finite Vision homography. The
+overlap/correlation check applies only to panoramas, because differently clipped
+HDR brackets do not meet that photometric assumption. A retained intermediate
+run documents that rejected HDR experiment. Current phase labels cover all eight
+languages. Expected-error tests recover by opening an intact source; they do not
+erase the error through test-only setters.
+
+Owned fixtures contain a real three-exposure EXIF bracket and two overlapping
+PNG crops. An independent TIFF reader requires Float32 LinearRaw, finite pixels
+and HDR values above SDR white; decode and Develop must retain those values.
+Both panoramas match the known scene within the fixed .001 linear RGB budget,
+including the added area. Unrelated crops refuse cleanly. This does not qualify
+all photographic scenes, projections, deghosting, restart/crash recovery, large
+sequences or performance. Remaining unadapted applicable blocking IDs: **32**.
+
+Two earlier hosted checkpoints (`a056341`, `282f781`) each have **243 PASS,
+74 SKIPPED, 31 NOT_IMPLEMENTED, zero executed FAIL** in their blocking summaries,
+with verified archive hashes and intact source/originals. Their gates remain
+NOT_QUALIFIED for missing coverage; these artifacts do not qualify the new merge
+changes. BUG045 and the complete release gate remain open.
+
 ### Neutral CPU and actual Metal preview agreement — 2026-10-23
 
 [Evidence](qualification/2026-10-23/neutral-metal-preview.json) adds blocking

@@ -796,6 +796,9 @@
     "Clear": "Очистить",
     "Opacity": "Непрозрачность",
     "Quit": "Выйти",
-    "Search": "Поиск"
+    "Search": "Поиск",
+    "Aligning originals…": "Выравнивание оригиналов…",
+    "Merging frames…": "Объединение кадров…",
+    "Writing Float DNG…": "Запись Float DNG…"
   }
 }

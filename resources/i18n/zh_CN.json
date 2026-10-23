@@ -796,6 +796,9 @@
     "Clear": "清除",
     "Opacity": "不透明度",
     "Quit": "退出",
-    "Search": "搜索"
+    "Search": "搜索",
+    "Aligning originals…": "正在对齐原片…",
+    "Merging frames…": "正在合并图像…",
+    "Writing Float DNG…": "正在写入 Float DNG…"
   }
 }

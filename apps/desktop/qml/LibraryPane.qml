@@ -13,7 +13,7 @@ Rectangle {
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
     Dialog {
-        id: panoramaDialog
+        id: panoramaDialog; objectName: "merge.panorama"
         title: qsTranslate("Luma", "Panorama merge")
         modal: true; anchors.centerIn: parent
         width: Math.min(pane.width - 40, 460)
@@ -25,7 +25,7 @@ Rectangle {
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             ComboBox {
-                id: panoramaProjection
+                id: panoramaProjection; objectName: "merge.projection"
                 model: [qsTranslate("Luma", "Perspective"), qsTranslate("Luma", "Cylindrical"), qsTranslate("Luma", "Spherical")]
                 currentIndex: 1; Layout.fillWidth: true
                 Accessible.name: qsTranslate("Luma", "Projection")
@@ -38,6 +38,7 @@ Rectangle {
             }
             CheckBox { id: panoramaWarp; text: qsTranslate("Luma", "Boundary warp · stretch edges to reduce cropping"); Layout.fillWidth: true }
             Button {
+                objectName: "merge.panorama.create"
                 text: qsTranslate("Luma", "Create panorama")
                 enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy
                 Layout.fillWidth: true
@@ -46,7 +47,7 @@ Rectangle {
         }
     }
     Dialog {
-        id: hdrDialog
+        id: hdrDialog; objectName: "merge.hdr"
         title: qsTranslate("Luma", "HDR merge")
         modal: true; anchors.centerIn: parent
         width: Math.min(pane.width - 40, 440)
@@ -58,8 +59,9 @@ Rectangle {
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             Label { text: qsTranslate("Luma", "Deghosting") + " · " + Math.round(hdrDeghost.value) + "%" }
-            Slider { id: hdrDeghost; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Deghosting") }
+            Slider { id: hdrDeghost; objectName: "merge.deghost"; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Deghosting") }
             Button {
+                objectName: "merge.hdr.create"
                 text: qsTranslate("Luma", "Create HDR")
                 enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy
                 Layout.fillWidth: true
@@ -121,8 +123,8 @@ Rectangle {
                         id: photoActions
                         MenuItem { objectName: "library.photoMetadata"; text: qsTranslate("Luma", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
                         MenuItem { text: qsTranslate("Luma", "Compare Select / Candidate"); enabled: library.selectedCount === 2 && !library.working && !editor.busy; onTriggered: {editor.prepareCompare(library.selectedAssetIDs());compareDialog.open()} }
-                        MenuItem { text: qsTranslate("Luma", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
-                        MenuItem { text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
+                        MenuItem { objectName: "library.hdr"; text: qsTranslate("Luma", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
+                        MenuItem { objectName: "library.panorama"; text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
                     }
                 }
                 Label { text: qsTranslate("Luma", "COLLECTIONS"); font.pixelSize: 10; color: "#8290a1"; Layout.topMargin: 16 }
@@ -175,9 +177,15 @@ Rectangle {
             RowLayout {
                 visible: editor.aiBusy && (editor.aiOperation === "HDR merge" || editor.aiOperation === "Panorama merge")
                 Layout.fillWidth: true
-                Label { text: qsTranslate("Luma", editor.aiOperation) }
-                ProgressBar { value: editor.aiProgress; Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI() }
+                Label { objectName: "merge.operation"; text: qsTranslate("Luma", editor.aiOperation) }
+                Label {
+                    objectName: "merge.phase"
+                    text: editor.aiProgress < 0.25 ? qsTranslate("Luma", "Aligning originals…")
+                        : editor.aiProgress < 0.85 ? qsTranslate("Luma", "Merging frames…")
+                        : qsTranslate("Luma", "Writing Float DNG…")
+                }
+                ProgressBar { objectName: "merge.progress"; value: editor.aiProgress; Layout.fillWidth: true }
+                Button { objectName: "merge.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI() }
             }
             Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; visible: text.length > 0; color: "#98a3b3"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
             Label { text: qsTranslate("Luma", batch.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }

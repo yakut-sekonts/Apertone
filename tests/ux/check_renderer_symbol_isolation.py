@@ -48,7 +48,7 @@ def inspect_binary(argument):
                  or "holdLoadSuccess" in name or "observeLoadSuccessDelivery" in name
                  or "PreviewResult" in name or "PreviewOperation" in name
                  or "deferPreviewSuccess" in name or "observePreview" in name
-                 or "MetalPreviewProbe" in name]
+                 or "MetalPreviewProbe" in name or "MergeJobProbe" in name]
     if not original:
         raise RuntimeError(f"Original renderCPU definition is absent: {path}")
     return {
@@ -84,6 +84,8 @@ def main():
             raise RuntimeError("UX actual preview dispatch probe is absent")
         if not any("MetalPreviewProbe" in name for name in ux["test_observer_symbols"]):
             raise RuntimeError("UX actual Metal observation probe is absent")
+        if not any("MergeJobProbe" in name for name in ux["test_observer_symbols"]):
+            raise RuntimeError("UX actual merge handle probe is absent")
         if not ux["alternate_renderer_symbols"]:
             raise RuntimeError("UX alternate renderer definition is absent")
         if shipping["original_renderer_symbols"] != ux["original_renderer_symbols"]:

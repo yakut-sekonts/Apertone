@@ -796,6 +796,9 @@
     "Clear": "Cancella",
     "Opacity": "Opacità",
     "Quit": "Esci",
-    "Search": "Cerca"
+    "Search": "Cerca",
+    "Aligning originals…": "Allineamento degli originali…",
+    "Merging frames…": "Unione delle immagini…",
+    "Writing Float DNG…": "Scrittura del Float DNG…"
   }
 }

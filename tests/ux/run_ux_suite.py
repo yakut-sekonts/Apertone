@@ -20,6 +20,7 @@ from export_current_filename_fixtures import (OFFICIAL_CASE as CURRENT_FILENAME_
                                               official_fixture as current_filename_fixture)
 from metadata_display_fixtures import (OFFICIAL_CASE as METADATA_DISPLAY_CASE,
                                        official_fixture as metadata_display_fixture)
+from merge_fixtures import CASE_PROFILE_IDS as MERGE_PROFILE_IDS, official_fixture as merge_fixture
 import importlib.util
 import json
 import os
@@ -34,7 +35,7 @@ import sys
 import time
 import zlib
 
-CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
+CASE_PROFILE_IDS = MERGE_PROFILE_IDS | THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
 
 # These adapters have explicit actual-native render contracts. NATIVE below means
 # implemented adapter, not compatibility with every requested Qt backend.
@@ -84,6 +85,7 @@ NATIVE.update(('UX-P06-GPU-001', 'UX-P06-GPU-002'))
 NATIVE.update(('UX-P06-MEM-001', 'UX-P06-MEM-002'))
 NATIVE.update(('UX-P06-LRU-001', 'UX-P06-LRU-002'))
 NATIVE.add('UX-P09-BKP-001')
+NATIVE.update(MERGE_PROFILE_IDS)
 NATIVE.update(f'UX-P09-RLK-{i:03}' for i in (1, 2, 3, 4, 6, 7))
 NATIVE.update(('UX-P09-BKP-002', 'UX-P09-BKP-006', 'UX-P09-BKP-007'))
 NATIVE.update(('UX-P09-META-001', 'UX-P09-META-006', 'UX-P09-META-002', 'UX-P09-META-007', 'UX-P09-XMP-002',
@@ -733,7 +735,9 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         hash_profiles = [(fixture_folder, base_checksums)]
         for row in case_profile_rows:
             folder = run_root / 'case-fixtures' / row['id']
-            if row['id'] == WATERMARK_CASE:
+            if row['id'] in MERGE_PROFILE_IDS:
+                extra_checksums, profile = merge_fixture(folder, owned_root=run_root, case_id=row['id'])
+            elif row['id'] == WATERMARK_CASE:
                 extra_checksums, profile = watermark_fixture(folder, owned_root=run_root)
             elif row['id'] == CROP_DONE_CASE:
                 extra_checksums, profile = crop_done_fixture(folder, owned_root=run_root)

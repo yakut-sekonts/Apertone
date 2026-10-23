@@ -244,7 +244,8 @@ std::filesystem::path MergeService::panorama(const std::vector<std::string> &ids
         auto currentDisplay = registrationPreview(current, stop);
         const auto pair = macos::alignImages(
             {previousDisplay.width, previousDisplay.height, previousDisplay.rgba},
-            {currentDisplay.width, currentDisplay.height, currentDisplay.rgba}, stop);
+            {currentDisplay.width, currentDisplay.height, currentDisplay.rgba}, stop,
+            macos::AlignmentMode::panorama);
         placements[i] = placements[i - 1] * pair;
         gains[i] = std::clamp(gains[i - 1] + overlapExposure(previous, current, pair), -4.0, 4.0);
         previous = std::move(current);

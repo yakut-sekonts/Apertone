@@ -522,3 +522,46 @@ The defect remains open; no root cause is inferred from passing repeats.
 - RSS/VRAM, large navigation, physical disk pressure, concurrent application
   processes and external enlargement of an active provider's cache remain separate.
 - [Evidence](qualification/2026-10-23/thumbnail-cache-bound.json).
+
+## LUMA-BUG-060 — Cancel during derived journal staging installs a hidden result
+
+- Status: **bounded offscreen/native fix passes; hosted and crash recovery remain open**.
+- Reproduced by creating HDR through actual UI and holding the real owned SQLite
+  write before installation. Cancel cleared the UI, but after the worker finished
+  the catalog had four assets instead of three and a new `.dng` remained.
+- Recheck cancellation after `stageDerived`, discard the uninstalled journal and
+  let temporary-file cleanup run. Installation remains the commit point; a cancel
+  after installation must still retain/recover the published result.
+- MRG004/005 pass three offscreen repetitions each and one native each, waiting
+  for the actual JobHandle to terminate before checking file/journal/catalog absence.
+- Evidence and retained failure: [merge workflows](qualification/2026-10-23/merge-workflows.json).
+
+## LUMA-BUG-061 — Per-row merge progress floods the GUI event queue
+
+- Status: **bounded offscreen/native fix passes; large-job performance remains open**.
+- The first HDR cancellation run exceeded the existing five-second heartbeat
+  deadline. The retained thread sample shows the GUI reevaluating QML bindings
+  while the merge worker waits at the controlled storage boundary.
+- Progress updates now share their latest value and permit at most one pending
+  GUI dispatch per merge job, retaining the existing revision guard. The Library
+  also shows alignment, merging and Float DNG writing phases in eight languages.
+- Subsequent merge workflows and refusals pass 42 offscreen and 14 native runs.
+  No claim is made about unexecuted large-sequence latency or stress workloads.
+- Evidence: [merge workflows](qualification/2026-10-23/merge-workflows.json).
+
+## LUMA-BUG-062 — Panorama accepts incorrect finite registration
+
+- Status: **owned horizontal/vertical and no-overlap checks pass; broader photographs remain open**.
+- Known 64-pixel horizontal / 48-pixel vertical crops produced 256×197 / 256×192
+  output instead of the expected 320×192 / 256×240. Vision returned finite but
+  incorrect homographies. The original failure artifacts remain retained.
+- Panorama compares content correspondence for the Vision candidate and bounded
+  coarse-to-subpixel translations. Acceptance requires sufficient sampled overlap,
+  texture and correlation; unrelated crops are rejected before output publication.
+  HDR retains its original registration mode because clipped bracket regions are
+  unsuitable for this panorama photometric check.
+- Both geometries and independently reconstructed scene pixels pass three
+  offscreen repetitions and one native each. Maximum measured linear RGB error
+  is about .00012 under the fixed .001 budget. Two refusal/recovery adapters pass
+  six offscreen and two native checks with no partial output or catalog entry.
+- Evidence: [merge workflows](qualification/2026-10-23/merge-workflows.json).

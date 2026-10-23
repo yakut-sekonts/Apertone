@@ -59,6 +59,12 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
     const DerivedImageRecord record{target, checksum, image.width, image.height, getpid()};
     checkCancellation(stop);
     database.stageDerived(record);
+    // Staging can wait for catalog I/O. A cancellation received during that
+    // wait is still before installation and must not publish a hidden result.
+    if (stop.isCancelled()) {
+        database.discardDerived(target);
+        checkCancellation(stop);
+    }
     if (link(temporary.c_str(), target.c_str()) != 0) {
         database.discardDerived(target);
         throw std::runtime_error("Cannot install derived image: " +
