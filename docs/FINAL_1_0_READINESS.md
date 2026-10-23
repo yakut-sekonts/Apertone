@@ -45,6 +45,17 @@ release PASS is inferred.
 
 ### Native transient confirmation and zoom-oracle worker — 2026-10-23
 
+The subsequent [PhotoCard readiness control](qualification/2026-10-23/photocard-final-readiness.json)
+demonstrates that identical small interactive/final pixels do not prove final
+callback completion. The test now waits for the existing pending-histogram flag
+to clear before pinning its preview URL. A real held final result proves the old
+predicate insufficient and the new predicate rejects it; release delivers the
+same current callback exactly once and changes the URL without changing pixels.
+The full bounded caption workflow passes **3/3 offscreen** with unchanged
+document/history/catalog/source assertions. No product code changed. This does
+not attribute or close the original aggregate BUG045 failure; native and hosted
+confirmation of this follow-up remain pending.
+
 [Evidence](qualification/2026-10-23/native-preview-zoom-worker.json) records
 **5/5 native PASS** on clean `bdea5bd`: SLD016/017, PRS017 and PRG007/008,
 Cocoa/Metal, Retina DPR2, with no QML warnings or catalog/original-integrity

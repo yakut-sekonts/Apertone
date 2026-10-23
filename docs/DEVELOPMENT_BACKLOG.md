@@ -250,6 +250,14 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 - Subsequent diagnostic runs pass 10/10 and 20/20, including a run alongside
   clang-tidy. This does not close the failure. CI now retains the field-level
   failure evidence if it occurs again; native and independent CI retests remain.
+- A separate [deterministic control](qualification/2026-10-23/photocard-final-readiness.json)
+  establishes an insufficient test-readiness predicate: small interactive and
+  final images can have identical pixels while the real final callback is still
+  pending. The helper now waits for that completion before pinning the preview
+  URL. The complete two-image/eight-language workflow passes 3/3 with the actual
+  final delivery retained/released once. This is a harness fix; it does not
+  identify the missing field from the historical aggregate failure, which stays
+  open. All document/history/catalog/source assertions remain unchanged.
 
 Evidence for BUG-042–045, all original failures, source/binary hashes and exact
 scope: [functional release fixes](qualification/2026-10-23/functional-release-fixes.json).

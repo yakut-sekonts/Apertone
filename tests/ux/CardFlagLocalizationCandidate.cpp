@@ -1,4 +1,5 @@
 #include "apps/shared/PresetStore.h"
+#include "tests/ux/PreviewResultProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QCryptographicHash>
@@ -490,17 +491,21 @@ void naturalSave(Context &c, const std::string &id, const Document &expected) {
     require(c.editor.error().isEmpty() && c.editor.currentSettings() == expected,
             "Card localization autosave changed the expected complete document");
 }
+bool previewPixelsReady(Context &c, const QImage &pixels) {
+    auto *image = c.driver->item("develop.preview");
+    return !c.editor.busy() && image->isVisible() && image->property("status").toInt() == 1 &&
+           image->property("source").toUrl().toString() == c.editor.previewUrl() &&
+           c.provider->requestImage({}, nullptr, {}) == pixels;
+}
+bool previewSettled(Context &c, const QImage &pixels) {
+    // Small originals can have identical interactive/final pixels. EndEdit's
+    // actual final delivery must settle before pinning an immutable preview URL.
+    return !c.editor.histogramPending() && previewPixelsReady(c, pixels);
+}
 void preview(Context &c, const Document &expected, const QString &path) {
     const auto pixels = fixtureReference(c, expected, path);
-    c.driver->wait(
-        [&] {
-            auto *image = c.driver->item("develop.preview");
-            return !c.editor.busy() && image->isVisible() &&
-                   image->property("status").toInt() == 1 &&
-                   image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                   c.provider->requestImage({}, nullptr, {}) == pixels;
-        },
-        "Card localization actual current Ready Develop preview");
+    c.driver->wait([&] { return previewSettled(c, pixels); },
+                   "Card localization actual final Ready Develop preview");
     require(c.editor.currentSettings() == expected, "Preview changed the complete seed document");
 }
 } // namespace
@@ -540,15 +545,57 @@ bool cardFlagLocalizationCandidate(Context &c, const QString &id) {
                 !c.editor.canRedo(),
             "Card localization seed opened another asset or inherited history");
     c.reveal("develop.exposureSlider");
-    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {1., .5}, 4);
     Document edited = neutral;
     edited.exposure = 5;
+    const auto positivePixels = fixtureReference(c, edited, source);
+    {
+        PreviewResultGate final(c.editor, 2560);
+        d.press("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"));
+        d.move("develop.exposureSlider", {1., .5});
+        d.wait(
+            [&] {
+                return c.editor.currentSettings() == edited &&
+                       previewPixelsReady(c, positivePixels);
+            },
+            "Actual interactive seed preview before pointer release");
+        const auto interactiveURL = c.editor.previewUrl();
+        d.release("develop.exposureSlider", {1., .5});
+        d.wait(
+            [&] {
+                const auto state = final.snapshot();
+                return state.held && state.held->job->state.load() == luma::JobState::completed;
+            },
+            "Actual identical-pixel final completion retained");
+        const auto held = final.snapshot();
+        require(held.held && held.held->assetID == expected[0].id &&
+                    held.pixels == positivePixels && !held.hookFailed && !held.released &&
+                    held.deliveries == 0 && previewPixelsReady(c, positivePixels) &&
+                    c.editor.previewUrl() == interactiveURL && c.editor.histogramPending() &&
+                    !previewSettled(c, positivePixels),
+                "Preview readiness accepted identical interactive pixels with a pending final");
+        final.release();
+        d.wait(
+            [&] { return final.snapshot().deliveries == 1 && previewSettled(c, positivePixels); },
+            "Original final callback accepted before pinning preview baseline");
+        const auto delivered = final.snapshot();
+        require(delivered.held && delivered.delivered &&
+                    delivered.held->sameAs(*delivered.delivered) && delivered.rejections == 0 &&
+                    !delivered.hookFailed && !delivered.deliveryBeforeRelease &&
+                    c.editor.previewUrl() != interactiveURL,
+                "Final readiness control did not deliver the exact current result once");
+        d.log({{"action", "card_flags_final_readiness_control"},
+               {"interactive_url", interactiveURL},
+               {"final_url", c.editor.previewUrl()},
+               {"identical_pixels", true},
+               {"pending_final_rejected", true},
+               {"deliveries", int(delivered.deliveries)},
+               {"rejections", int(delivered.rejections)}});
+    }
     require(!d.object("develop.exposureSlider")->property("pressed").toBool() &&
                 c.editor.currentSettings() == edited && c.editor.canUndo() && !c.editor.canRedo(),
             "Real seed drag did not release with exactly the expected isolated Exposure edit");
     naturalSave(c, expected[0].id, edited);
     preview(c, edited, source);
-    const auto positivePixels = fixtureReference(c, edited, source);
     require(positivePixels != fixtureReference(c, neutral, source),
             "Card localization typed edit has no positive pixel effect");
     // Pin these BEFORE any Rating/Flag UI; a metadata-operation defect must not
