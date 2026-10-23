@@ -678,6 +678,55 @@ void maintenanceAfterCancelledImportTests(const std::filesystem::path &root,
                  "file/folder relink and close passed\n";
 }
 
+void invalidXmpTextTests(const std::filesystem::path &root, const std::filesystem::path &fixture) {
+    const auto folder = root / "invalid-xmp-originals";
+    std::filesystem::create_directory(folder);
+    const auto source = folder / "source.dng";
+    std::filesystem::copy_file(fixture, source);
+    const auto hash = luma::macos::sha256File(source);
+    const auto path = root / "invalid-xmp.sqlite";
+    luma::Catalog catalog(path);
+    const auto asset = catalog.addAndSelect(source, hash, luma::RawDecoder().inspect(source));
+    catalog.saveExposure(asset.id, 1.25);
+    const auto edits = catalog.assetSnapshot(asset.id).value();
+    const luma::MetadataService service(path);
+    const auto sidecar = luma::MetadataService::sidecarPath(source);
+    for (const bool existing : {false, true}) {
+        if (existing) {
+            const auto before = catalog.metadataSnapshot(asset.id);
+            auto valid = before.values;
+            valid.title = "Valid Unicode 夜景";
+            service.save(asset.id, before.revision, valid);
+            const auto published = service.writeSidecar(asset.id, {});
+            require(std::filesystem::is_regular_file(published) &&
+                        std::filesystem::equivalent(published, sidecar),
+                    "Valid metadata did not create the sidecar positive control.");
+        }
+        const auto oldHash = existing ? luma::macos::sha256File(sidecar) : std::string{};
+        const auto before = catalog.metadataSnapshot(asset.id);
+        auto invalid = before.values;
+        invalid.title = "\xef\xbf\xbe";
+        service.save(asset.id, before.revision, invalid);
+        const auto pending = catalog.metadataSnapshot(asset.id);
+        throws([&] { service.writeSidecar(asset.id, {}); });
+        const auto after = catalog.metadataSnapshot(asset.id);
+        const auto currentEdits = catalog.assetSnapshot(asset.id).value();
+        require(after.values == pending.values && after.revision == pending.revision &&
+                    after.writtenRevision == pending.writtenRevision &&
+                    after.sidecarHash == pending.sidecarHash &&
+                    currentEdits.asset.edits == edits.asset.edits &&
+                    currentEdits.revision == edits.revision &&
+                    luma::macos::sha256File(source) == hash &&
+                    (existing ? luma::macos::sha256File(sidecar) == oldHash
+                              : !std::filesystem::exists(sidecar)),
+                "Rejected XML text changed sidecar, acknowledgement, original or edits.");
+        for (const auto &entry : std::filesystem::directory_iterator(folder))
+            require(entry.path() == source || (existing && entry.path() == sidecar),
+                    "Rejected XMP text left an unexpected temporary file.");
+    }
+    catalog.verify();
+}
+
 } // namespace
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -690,6 +739,7 @@ int main(int argc, char **argv) {
         if (scaleContract) {
             modelTests(root, true);
         } else {
+            invalidXmpTextTests(root, argv[1]);
             maintenanceAfterCancelledImportTests(root, argv[1]);
             catalogTests(root, argv[1]);
             importTests(root, argv[1]);

@@ -12,11 +12,11 @@ confirms two ImageIO compatibility defects: rejected legal XML prologs/leading
 whitespace, and non-default language substitution. XML-based merging preserves
 foreign properties/languages; validated document-element input and declaration-free
 output restore compatibility. The affected hosted unit + Library integration
-pass **2/2**, with identical production/unit sources to the main worktree.
+pass **2/2**, with production/unit sources matching main commit `9f55a9a`.
 Full local build and CTest pass **62 / one private Nikon SKIP**; the six affected
 metadata/XMP UI scenarios have **18 offscreen PASS** across two reports. An
 accidentally selected unadapted META001 remains explicitly SKIPPED. Fresh native confirmation passes **6/6 Cocoa/Metal DPR2** without QML warnings
-or integrity failures. The new hosted UX run remains pending; this is not full CI PASS.
+or integrity failures. The isolated hosted UX run also passes **18/18**. This is not full CI PASS.
 
 [Retained CI/UI evidence](qualification/2026-10-23/ci-b404ad0-followup.json)
 records all b404ad0 UX failures. Library scroll now checks synchronized rendered
@@ -25,8 +25,22 @@ in-handler movement; it passes **6/6 offscreen and 2/2 Cocoa/Metal DPR2**. Photo
 is armed after the edited interactive image, and passive OS pressure observations
 are retained. The latest **10/10 offscreen and 1/1 native PASS** do not close BUG-045: a prior local failure
 changed only preview URL, with identical pixels and preserved document/history.
-The cause remains open. Full hosted clang-tidy is still running on b404ad0; no
-new main-branch push interrupts that valuable scan.
+The cause remains open. Hosted scroll and PhotoCard retests pass **6/6 and 3/3**.
+Full hosted clang-tidy is still running on b404ad0; qualification now queues the
+latest new commit without cancelling that running scan. Other branches retain
+their previous cancellation policy; release gates and deadlines are unchanged.
+
+### Generated XMP validation — 2026-10-23
+
+[Evidence](qualification/2026-10-23/xmp-generated-xml-validation.json) records a
+separate reproduced edge case: valid UTF-8 U+FFFE/U+FFFF produced invalid XML in
+new sidecars. Generated packets are now parsed before returning bytes for file
+publication. Actual MetadataService checks retain the old sidecar or absence of
+one, acknowledgement, catalog draft, original and edits after failure; valid
+Unicode publication is the positive control. Full application build, **3 affected
+CTest checks and 12 offscreen UX repetitions PASS**, as do format and affected
+blocking tidy. Earlier native/hosted portability passes precede this final
+validation change and are not claimed as retests of it.
 
 ### Preview cache budget and explicit clear — 2026-10-23
 

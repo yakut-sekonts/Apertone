@@ -240,11 +240,13 @@ void replaceProperty(NSArray<NSXMLElement *> *descriptions, NSXMLElement *update
 }
 std::vector<std::uint8_t> mergeXMP(const std::string &updates,
                                    std::span<const std::uint8_t> existing) {
+    // Valid UTF-8 can still contain scalars forbidden by XML 1.0. Validate the
+    // generated packet before returning bytes for a new sidecar as well.
+    auto *source = xmlDocument(
+        std::span(reinterpret_cast<const std::uint8_t *>(updates.data()), updates.size()));
     if (existing.empty())
         return {updates.begin(), updates.end()};
     auto *destination = xmlDocument(existing);
-    auto *source = xmlDocument(
-        std::span(reinterpret_cast<const std::uint8_t *>(updates.data()), updates.size()));
     auto *targets = descriptions(destination);
     // Edit only supported expanded names. Preserve every other XML subtree,
     // including foreign language variants that ImageIO 15 changes during parsing.

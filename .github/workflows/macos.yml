@@ -8,7 +8,9 @@ permissions:
   contents: read
 concurrency:
   group: macos-${{ github.ref }}
-  cancel-in-progress: true
+  # Preserve the long qualification scan; only the latest pending run waits.
+  # Regular development branches still cancel superseded runs immediately.
+  cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'codex/1.0-qualification' }}
 jobs:
   build-test:
     # The dedicated implementation branch accumulates unqualified 1.0 work.

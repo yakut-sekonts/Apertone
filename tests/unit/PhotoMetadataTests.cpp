@@ -206,6 +206,18 @@ int main(int argc, char **argv) {
         const auto written = luma::macos::writeDescriptiveXMP(values, {});
         require(luma::macos::readDescriptiveMetadata(source, written) == values,
                 "Written XMP lists cannot be read back exactly.");
+        for (const auto *noncharacter : {"\xef\xbf\xbe", "\xef\xbf\xbf"}) {
+            auto invalid = values;
+            invalid.title = noncharacter;
+            invalid.validate(); // Valid UTF-8, but XML 1.0 cannot encode this scalar.
+            bool rejected = false;
+            try {
+                (void)luma::macos::writeDescriptiveXMP(invalid, {});
+            } catch (const std::exception &) {
+                rejected = true;
+            }
+            require(rejected, "New XMP accepted an XML-forbidden Unicode scalar.");
+        }
         preservesUneditedProperties(source, values);
         alternatePacketForms(source);
         for (const auto &property : {"creator", "subject"}) {

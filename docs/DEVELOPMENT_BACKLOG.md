@@ -447,7 +447,7 @@ supplemental sequence, while retaining the complete later evidence archive.
 
 ## LUMA-BUG-056 — macOS 15 XMP XML and language interoperability
 
-- Status: **fixed in source; affected hosted unit/integration and native UX PASS; full CI pending**.
+- Status: **fixed in source; affected hosted unit/integration + UX and native UX PASS; full CI pending**.
 - Hosted ImageIO 15 rejects legal leading whitespace/BOM and XML declarations.
   Its language-alternative parser also replaces a non-default language with
   x-default; writing a parsed packet therefore loses another application's text.
@@ -470,6 +470,20 @@ remain unchanged. Passive pressure observation and per-condition diagnostics are
 added; ten subsequent runs pass with normal pressure throughout. No cause is
 inferred from those passes. The held-final fixture is now armed after the edited
 interactive result, so it cannot capture an unrelated initial-load refinement.
-One native Cocoa/Metal DPR2 repeat also passes. The defect remains open pending
-hosted diagnosis; no root cause is inferred from passing repeats.
+One native Cocoa/Metal DPR2 repeat and three hosted macOS 15 repeats also pass.
+The defect remains open; no root cause is inferred from passing repeats.
 [Evidence](qualification/2026-10-23/ci-b404ad0-followup.json).
+
+## LUMA-BUG-057 — New sidecar can contain XML-forbidden Unicode
+
+- Status: **fixed; local unit/integration and affected offscreen checks PASS**.
+- Valid UTF-8 U+FFFE/U+FFFF was accepted by metadata validation and emitted into
+  a new XMP packet without XML validation. An independent parser rejects those
+  bytes; the regression fails before the fix.
+- Validate generated XML for both fresh and existing sidecars before any file
+  publication. On rejection, catalog draft and acknowledgement, source and
+  Develop state, prior sidecar and directory contents remain unchanged.
+- A real MetadataService regression covers no-existing-file and preserved-file
+  paths, with a valid Unicode publication control. Three affected CTest checks
+  and 12 offscreen XMP repetitions pass. Full build/format/affected tidy pass.
+- [Evidence](qualification/2026-10-23/xmp-generated-xml-validation.json).

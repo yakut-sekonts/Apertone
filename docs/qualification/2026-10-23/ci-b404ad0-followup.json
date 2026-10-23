@@ -1676,8 +1676,427 @@
       "release_gate": "NOT_QUALIFIED"
     },
     "hosted_retest": {
-      "status": "PENDING",
-      "branch": "codex/ci-unit-diagnostic"
+      "run": "https://github.com/yakut-sekonts/Luma/actions/runs/39969483149",
+      "commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+      "job_id": 120468027272,
+      "status": "PASS",
+      "artifact_id": 12509186820,
+      "archive": {
+        "path": ".tools/ci-f0b737a-ux.zip",
+        "sha256": "1ff604bf58f65c8aabe69ca0504f662dd4a51ff4eec72f8bdd1aaa6f8a90987c",
+        "bytes": 53250
+      },
+      "scope": "Two unit/integration tests and 27 affected UX repetitions on macOS 15; not full CI or release qualification.",
+      "report": {
+        "file": {
+          "path": ".tools/ci-f0b737a-ux/ux-library-scroll-report/UX_REPORT.json",
+          "sha256": "1b745a77058d7892f9eb71c4812b9182b89b162fb54ebc6a171e7552aa6b663d",
+          "bytes": 13871
+        },
+        "hardware": {
+          "chip": "Apple M1 (Virtual)",
+          "model": "VirtualMac2,1",
+          "ram_bytes": "7516192768",
+          "macos": "15.7.9",
+          "qt": "6.10.3",
+          "commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+          "worktree_dirty": false,
+          "source_tree_sha256": "a34051cea9240f5024edfd8bcd68bb3af0c826f1050ec189e5a6e658e10bf087",
+          "test_executable_sha256": "67677f3b81c85ecca594240439335a212d9a6f4935a8a4b609dd87ace6c40222",
+          "native_bundle_info": {
+            "status": "PASS",
+            "bundle_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app",
+            "info_plist_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app/Contents/Info.plist",
+            "info_plist_sha256": "b810d7e2e286fa8ea73bad661b79ae4b141650543f374c5fc07e244be9066510",
+            "bundle_identifier": "app.luma.ux-tests",
+            "bundle_executable": "luma_ux_tests",
+            "bundle_name": "LumaUXTests",
+            "bundle_display_name": "LumaUXTests",
+            "package_type": "APPL",
+            "cli_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests",
+            "canonical_executable": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app/Contents/MacOS/luma_ux_tests",
+            "executable_sha256": "67677f3b81c85ecca594240439335a212d9a6f4935a8a4b609dd87ace6c40222"
+          },
+          "source_snapshot_point": "suite_end",
+          "build_directory": "/Users/runner/work/Luma/Luma/build",
+          "hosted_ci": true,
+          "performance_mode": "MEASURE_ONLY"
+        },
+        "build_provenance": {
+          "status": "PASS",
+          "path": "/Users/runner/work/Luma/Luma/build/ux-build-provenance.json",
+          "source_commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+          "reason": ""
+        },
+        "source_consistency": "PASS",
+        "summary": {
+          "PASS": 6
+        },
+        "original_hashes": "PASS",
+        "results": [
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 5025,
+            "frame_intervals": 104,
+            "frame_max_ms": 219,
+            "frame_p50_ms": 26,
+            "frame_p95_ms": 114,
+            "frame_p99_ms": 161,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-LIBRARY-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 11.414542,
+            "main_loop_stall_max_ms": 112,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.71875,
+            "rss_last_mb": 213.203125,
+            "rss_minutes": [
+              {
+                "maximum_mb": 213.203125,
+                "mean_mb": 175.0641447368421,
+                "minimum_mb": 104.71875,
+                "minute": 0,
+                "samples": 19
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 213.203125,
+            "rss_samples": 19,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 2,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-LIBRARY-SELECTION-SCROLL/repeat-1",
+            "child_pid": 16663,
+            "wall_duration_ms": 5390,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 5173,
+            "frame_intervals": 99,
+            "frame_max_ms": 211,
+            "frame_p50_ms": 22,
+            "frame_p95_ms": 169,
+            "frame_p99_ms": 211,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-LIBRARY-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 87.791083,
+            "main_loop_stall_max_ms": 171,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.34375,
+            "rss_last_mb": 214.25,
+            "rss_minutes": [
+              {
+                "maximum_mb": 214.25,
+                "mean_mb": 175.67598684210526,
+                "minimum_mb": 104.34375,
+                "minute": 0,
+                "samples": 19
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 214.25,
+            "rss_samples": 19,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 7,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-LIBRARY-SELECTION-SCROLL/repeat-2",
+            "child_pid": 16961,
+            "wall_duration_ms": 5389,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 4603,
+            "frame_intervals": 92,
+            "frame_max_ms": 218,
+            "frame_p50_ms": 28,
+            "frame_p95_ms": 138,
+            "frame_p99_ms": 218,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-LIBRARY-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 12.547625,
+            "main_loop_stall_max_ms": 160,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.15625,
+            "rss_last_mb": 214.59375,
+            "rss_minutes": [
+              {
+                "maximum_mb": 214.59375,
+                "mean_mb": 174.75434027777777,
+                "minimum_mb": 104.15625,
+                "minute": 0,
+                "samples": 18
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 214.59375,
+            "rss_samples": 18,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 5,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Library deep-scroll anchor survives selection, opening/return and filename filters across metadata pages.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-LIBRARY-SELECTION-SCROLL/repeat-3",
+            "child_pid": 17428,
+            "wall_duration_ms": 4874,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 4043,
+            "frame_intervals": 61,
+            "frame_max_ms": 215,
+            "frame_p50_ms": 49,
+            "frame_p95_ms": 158,
+            "frame_p99_ms": 215,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-FILMSTRIP-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 90.659541,
+            "main_loop_stall_max_ms": 156,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.375,
+            "rss_last_mb": 220.578125,
+            "rss_minutes": [
+              {
+                "maximum_mb": 220.578125,
+                "mean_mb": 168.965625,
+                "minimum_mb": 104.375,
+                "minute": 0,
+                "samples": 15
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 220.578125,
+            "rss_samples": 15,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 5,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Develop filmstrip retains horizontal anchor and offset after clicks and photo loads; Right-key reveal still works.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-FILMSTRIP-SELECTION-SCROLL/repeat-1",
+            "child_pid": 17559,
+            "wall_duration_ms": 4358,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 3636,
+            "frame_intervals": 66,
+            "frame_max_ms": 165,
+            "frame_p50_ms": 34,
+            "frame_p95_ms": 125,
+            "frame_p99_ms": 165,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-FILMSTRIP-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 69.404,
+            "main_loop_stall_max_ms": 134,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.453125,
+            "rss_last_mb": 221.3125,
+            "rss_minutes": [
+              {
+                "maximum_mb": 221.3125,
+                "mean_mb": 180.8689903846154,
+                "minimum_mb": 104.453125,
+                "minute": 0,
+                "samples": 13
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 221.3125,
+            "rss_samples": 13,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 4,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Develop filmstrip retains horizontal anchor and offset after clicks and photo loads; Right-key reveal still works.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-FILMSTRIP-SELECTION-SCROLL/repeat-2",
+            "child_pid": 17649,
+            "wall_duration_ms": 3889,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 3513,
+            "frame_intervals": 62,
+            "frame_max_ms": 163,
+            "frame_p50_ms": 35,
+            "frame_p95_ms": 127,
+            "frame_p99_ms": 163,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-FILMSTRIP-SELECTION-SCROLL",
+            "input_dispatch_p95_ms": 64.826417,
+            "main_loop_stall_max_ms": 145,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.625,
+            "rss_last_mb": 221.90625,
+            "rss_minutes": [
+              {
+                "maximum_mb": 221.90625,
+                "mean_mb": 175.22235576923077,
+                "minimum_mb": 104.625,
+                "minute": 0,
+                "samples": 13
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 221.90625,
+            "rss_samples": 13,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 3,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 840,
+              "width": 1320
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P1",
+            "scenario": "Develop filmstrip retains horizontal anchor and offset after clicks and photo loads; Right-key reveal still works.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143524Z-16434/CANDIDATE-FILMSTRIP-SELECTION-SCROLL/repeat-3",
+            "child_pid": 17758,
+            "wall_duration_ms": 3715,
+            "original_integrity": "PASS"
+          }
+        ],
+        "release_gate": "NOT_QUALIFIED"
+      }
     }
   },
   "photocard": {
@@ -2568,7 +2987,7 @@
     "observed_pressure_values": [
       0
     ],
-    "cause": "The later URL-only mismatch remains unexplained. OS pressure was not observed in the ten passing diagnostic repeats and is not asserted as cause. Gate ordering removes an unrelated initial-refinement capture opportunity, not proof of the original hosted failure cause.",
+    "cause": "The later URL-only mismatch remains unexplained. OS pressure was not observed in the ten passing diagnostic repeats and is not asserted as cause. Gate ordering removes an unrelated initial-refinement capture opportunity, not proof of the original hosted failure cause. Three hosted and one native follow-up repeats also pass; the historical URL-only mismatch remains open.",
     "native": {
       "file": {
         "path": "build-verify/ux-final-card-pressure-native/UX_REPORT.json",
@@ -2680,8 +3099,247 @@
       "release_gate": "NOT_QUALIFIED"
     },
     "hosted_retest": {
-      "status": "PENDING",
-      "branch": "codex/ci-unit-diagnostic"
+      "run": "https://github.com/yakut-sekonts/Luma/actions/runs/39969483149",
+      "commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+      "job_id": 120468027272,
+      "status": "PASS",
+      "artifact_id": 12509186820,
+      "archive": {
+        "path": ".tools/ci-f0b737a-ux.zip",
+        "sha256": "1ff604bf58f65c8aabe69ca0504f662dd4a51ff4eec72f8bdd1aaa6f8a90987c",
+        "bytes": 53250
+      },
+      "scope": "Two unit/integration tests and 27 affected UX repetitions on macOS 15; not full CI or release qualification.",
+      "report": {
+        "file": {
+          "path": ".tools/ci-f0b737a-ux/ux-card-flags-report/UX_REPORT.json",
+          "sha256": "30e451bd92ef9146d6999440062ca6d33818e6085b563fa7912c32a90c0b8275",
+          "bytes": 8669
+        },
+        "hardware": {
+          "chip": "Apple M1 (Virtual)",
+          "model": "VirtualMac2,1",
+          "ram_bytes": "7516192768",
+          "macos": "15.7.9",
+          "qt": "6.10.3",
+          "commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+          "worktree_dirty": false,
+          "source_tree_sha256": "a34051cea9240f5024edfd8bcd68bb3af0c826f1050ec189e5a6e658e10bf087",
+          "test_executable_sha256": "67677f3b81c85ecca594240439335a212d9a6f4935a8a4b609dd87ace6c40222",
+          "native_bundle_info": {
+            "status": "PASS",
+            "bundle_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app",
+            "info_plist_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app/Contents/Info.plist",
+            "info_plist_sha256": "b810d7e2e286fa8ea73bad661b79ae4b141650543f374c5fc07e244be9066510",
+            "bundle_identifier": "app.luma.ux-tests",
+            "bundle_executable": "luma_ux_tests",
+            "bundle_name": "LumaUXTests",
+            "bundle_display_name": "LumaUXTests",
+            "package_type": "APPL",
+            "cli_path": "/Users/runner/work/Luma/Luma/build/luma_ux_tests",
+            "canonical_executable": "/Users/runner/work/Luma/Luma/build/luma_ux_tests.app/Contents/MacOS/luma_ux_tests",
+            "executable_sha256": "67677f3b81c85ecca594240439335a212d9a6f4935a8a4b609dd87ace6c40222"
+          },
+          "source_snapshot_point": "suite_end",
+          "build_directory": "/Users/runner/work/Luma/Luma/build",
+          "hosted_ci": true,
+          "performance_mode": "MEASURE_ONLY"
+        },
+        "build_provenance": {
+          "status": "PASS",
+          "path": "/Users/runner/work/Luma/Luma/build/ux-build-provenance.json",
+          "source_commit": "f0b737a956e71dae154cbe006b87d77e4c274058",
+          "reason": ""
+        },
+        "source_consistency": "PASS",
+        "summary": {
+          "PASS": 3
+        },
+        "original_hashes": "PASS",
+        "results": [
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 9720,
+            "frame_intervals": 168,
+            "frame_max_ms": 343,
+            "frame_p50_ms": 51,
+            "frame_p95_ms": 109,
+            "frame_p99_ms": 254,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION",
+            "input_dispatch_p95_ms": 54,
+            "main_loop_stall_max_ms": 258,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.265625,
+            "rss_last_mb": 212.1875,
+            "rss_minutes": [
+              {
+                "maximum_mb": 212.1875,
+                "mean_mb": 184.87660256410257,
+                "minimum_mb": 104.265625,
+                "minute": 0,
+                "samples": 39
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 212.1875,
+            "rss_samples": 39,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 5,
+            "stall_over_250_ms": 1,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 640,
+              "width": 1000
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P2",
+            "scenario": "Two real PNG cards, actual metadata Flag controls and Settings language choice: exact English/Russian and eight-locale Pick/Reject captions, typed documents/history/durable flags/current thumbnails/source guards. Not full VIS007/VIS008/LOC coverage.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143558Z-17778/CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION/repeat-1",
+            "child_pid": 17793,
+            "wall_duration_ms": 10013,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 9231,
+            "frame_intervals": 166,
+            "frame_max_ms": 234,
+            "frame_p50_ms": 47,
+            "frame_p95_ms": 104,
+            "frame_p99_ms": 209,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION",
+            "input_dispatch_p95_ms": 27,
+            "main_loop_stall_max_ms": 103,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.421875,
+            "rss_last_mb": 210.71875,
+            "rss_minutes": [
+              {
+                "maximum_mb": 210.71875,
+                "mean_mb": 181.31891025641025,
+                "minimum_mb": 104.421875,
+                "minute": 0,
+                "samples": 39
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 210.71875,
+            "rss_samples": 39,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 1,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 640,
+              "width": 1000
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P2",
+            "scenario": "Two real PNG cards, actual metadata Flag controls and Settings language choice: exact English/Russian and eight-locale Pick/Reject captions, typed documents/history/durable flags/current thumbnails/source guards. Not full VIS007/VIS008/LOC coverage.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143558Z-17778/CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION/repeat-2",
+            "child_pid": 17995,
+            "wall_duration_ms": 9471,
+            "original_integrity": "PASS"
+          },
+          {
+            "application_version": "0.9.0",
+            "device_pixel_ratio": 1,
+            "display_geometry": {
+              "height": 800,
+              "width": 800
+            },
+            "duration_ms": 9695,
+            "frame_intervals": 166,
+            "frame_max_ms": 261,
+            "frame_p50_ms": 54,
+            "frame_p95_ms": 117,
+            "frame_p99_ms": 192,
+            "graphics_api": "software",
+            "hard_hang": false,
+            "id": "CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION",
+            "input_dispatch_p95_ms": 37,
+            "main_loop_stall_max_ms": 120,
+            "message": "",
+            "platform": "offscreen",
+            "qt_runtime": "6.10.3",
+            "quantile_resolution_ms": 1,
+            "quick_backend": "software",
+            "rss_first_mb": 104.5625,
+            "rss_last_mb": 209.296875,
+            "rss_minutes": [
+              {
+                "maximum_mb": 209.296875,
+                "mean_mb": 182.03671875,
+                "minimum_mb": 104.5625,
+                "minute": 0,
+                "samples": 40
+              }
+            ],
+            "rss_minutes_limit": 1440,
+            "rss_peak_mb": 209.296875,
+            "rss_samples": 40,
+            "stall_over_1000_ms": 0,
+            "stall_over_100_ms": 1,
+            "stall_over_250_ms": 0,
+            "status": "PASS",
+            "warnings": [],
+            "window_size": {
+              "height": 640,
+              "width": 1000
+            },
+            "window_state": "visible",
+            "child_returncode": 0,
+            "child_reported_status": "PASS",
+            "intentional_kill_requested": false,
+            "catalog_integrity": "PASS",
+            "scope": "CURRENT",
+            "mode": "REGRESSION",
+            "severity_if_failed": "P2",
+            "scenario": "Two real PNG cards, actual metadata Flag controls and Settings language choice: exact English/Russian and eight-locale Pick/Reject captions, typed documents/history/durable flags/current thumbnails/source guards. Not full VIS007/VIS008/LOC coverage.",
+            "artifacts": "/Users/runner/work/Luma/Luma/build/ux-artifacts/20261023T143558Z-17778/CANDIDATE-PHOTOCARD-FLAG-LOCALIZATION/repeat-3",
+            "child_pid": 18198,
+            "wall_duration_ms": 9901,
+            "original_integrity": "PASS"
+          }
+        ],
+        "release_gate": "NOT_QUALIFIED"
+      }
     },
     "retained_failed_fields": {
       "count": true,
