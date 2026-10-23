@@ -546,3 +546,11 @@ picker fixtures; these tests do not qualify native chooser navigation.
 Final results: 42 offscreen and 14 Cocoa/Metal DPR2 PASS. Original failures,
 fixture corrections, intermediate HDR rejection and retained limitations are in
 [`merge-workflows.json`](../../docs/qualification/2026-10-23/merge-workflows.json).
+
+PAN012/FLT001 additionally run as distinct prepare/verify processes. A successful
+merge is edited, saved and closed through the UI. The next process verifies the
+complete document, exact original/Float DNG hashes, decoded HDR range, independent
+preview and continued edit/Undo behavior. Six offscreen and two Cocoa/Metal DPR2
+paired runs pass, with all individual stage results retained in
+[`merge-restart.json`](../../docs/qualification/2026-10-23/merge-restart.json).
+These adapters do not imply crash/kill recovery coverage.

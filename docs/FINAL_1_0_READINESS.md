@@ -5,6 +5,22 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Derived Float DNG across clean process restart — 2026-10-23
+
+[Evidence](qualification/2026-10-23/merge-restart.json) adds PAN012 and FLT001:
+**6/6 offscreen and 2/2 Cocoa/Metal DPR2 paired-process runs PASS**. Every outcome
+contains distinct prepare/verify process IDs. Actual merge, negative exposure,
+save and clean UI quit precede verification of exact source/derived file hashes,
+Float32 representation, decoded HDR range, identity, catalog membership, complete
+saved edit document and independent CPU preview. A fresh Contrast edit and Undo
+work after restart; session-local history does not cross processes. All stages
+retain catalog integrity and have no QML warnings. Four affected CTest entries,
+format and affected blocking tidy pass; nonblocking warnings remain.
+
+Production code is unchanged by this follow-up. This covers clean restart, not
+kill/crash or interrupted derived registration. Remaining unadapted applicable
+blocking IDs decrease to **30**; the complete release gate remains open.
+
 ### HDR/Panorama creation, cancellation and Float DNG — 2026-10-23
 
 [Evidence](qualification/2026-10-23/merge-workflows.json) adds fourteen official

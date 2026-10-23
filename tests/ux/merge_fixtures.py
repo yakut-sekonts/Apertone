@@ -10,6 +10,7 @@ CASE_PROFILE_IDS = {
     *(f'UX-P08-MRG-{i:03}' for i in (1, 3, 4, 5, 6, 9, 10)),
     'UX-P08-HDR-001', 'UX-P08-HDR-009', 'UX-P08-PAN-001', 'UX-P08-PAN-002',
     'UX-P08-FLT-002', 'UX-P08-PAN-004', 'UX-P08-ALG-002',
+    'UX-P08-PAN-012', 'UX-P08-FLT-001',
 }
 ROOT = Path(__file__).resolve().parents[2]
 

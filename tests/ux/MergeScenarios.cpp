@@ -6,6 +6,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QtEndian>
 #include <algorithm>
 #include <bit>
@@ -348,6 +349,95 @@ bool mergeWorkflowScenario(Context &c, const QString &id) {
                 "Derived Undo or file preservation failed");
     }
     unchanged(c, sources);
+    return true;
+}
+bool mergeRestartScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P08-PAN-012" && id != "UX-P08-FLT-001")
+        return false;
+    auto &d = *c.driver;
+    if (stage == "prepare") {
+        require(
+            mergeWorkflowScenario(c, id == "UX-P08-PAN-012" ? "UX-P08-PAN-001" : "UX-P08-HDR-001"),
+            "Merge restart requires a complete successful creation workflow");
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.3, .5});
+        c.saved();
+        const auto document = c.editor.currentSettings();
+        require(document.exposure < -1,
+                "Restart fixture needs a range-revealing negative exposure");
+        luma::Catalog catalog(c.catalogFile.toStdString());
+        const auto active = catalog.activeAsset();
+        require(active.has_value(), "Derived restart asset is missing");
+        luma::Catalog expected((c.stateRoot + "/expected.sqlite").toStdString());
+        const auto stored = expected.addAndSelect(active->path, active->checksum, active->metadata);
+        expected.saveEdits(stored.id, document);
+        QJsonArray sources;
+        for (const auto &sourceID : catalog.libraryIDs({})) {
+            const auto source = catalog.assetByID(sourceID);
+            require(source.has_value(), "Restart source oracle disappeared");
+            sources.append(QJsonObject{{"id", QString::fromStdString(sourceID)},
+                                       {"path", QString::fromStdString(source->path.string())},
+                                       {"checksum", QString::fromStdString(source->checksum)}});
+        }
+        writeJson(
+            c.stateRoot + "/expected-merge.json",
+            {{"id", c.editor.photoID()}, {"path", c.editor.sourcePath()}, {"sources", sources}});
+        d.quitShortcut();
+        d.wait([&] { return !c.window->isVisible() && !c.editor.saving() && !c.editor.busy(); },
+               "Derived session closed before fresh process restart");
+        c.checkData();
+        return true;
+    }
+    require(stage == "verify", "Invalid merge restart stage");
+    QFile file(c.stateRoot + "/expected-merge.json");
+    require(file.open(QIODevice::ReadOnly), "Merge restart oracle is missing");
+    const auto expected = QJsonDocument::fromJson(file.readAll()).object();
+    const auto saved =
+        luma::Catalog((c.stateRoot + "/expected.sqlite").toStdString()).activeAsset();
+    require(saved.has_value(), "Complete expected derived edit document is missing");
+    c.editor.restore();
+    c.loaded();
+    c.saved();
+    require(c.editor.photoID() == expected["id"].toString() &&
+                c.editor.sourcePath() == expected["path"].toString() &&
+                c.editor.currentSettings() == saved->edits && !c.editor.canUndo() &&
+                !c.editor.canRedo(),
+            "Restart lost derived identity/edits or restored session-local Undo");
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    const auto sources = expected["sources"].toArray();
+    require(catalog.libraryCount() == sources.size() && catalog.pendingDerived().empty(),
+            "Restart duplicated a derived result or left its registration pending");
+    for (const auto &value : sources) {
+        const auto source = value.toObject();
+        const auto current = catalog.assetByID(source["id"].toString().toStdString());
+        require(current && QString::fromStdString(current->path.string()) == source["path"] &&
+                    QString::fromStdString(current->checksum) == source["checksum"] &&
+                    luma::macos::sha256File(current->path) == current->checksum,
+                "Restart changed an original or converted a derived Float DNG");
+    }
+    const FloatDng stored(saved->path);
+    const auto decoded = luma::PhotoDecoder().decode(saved->path);
+    if (id == "UX-P08-FLT-001")
+        require(stored.maximum > 1.1 &&
+                    *std::max_element(decoded.image.rgb.begin(), decoded.image.rgb.end()) > 1.1F,
+                "Fresh process clipped the stored/decoded HDR dynamic range");
+    const auto reference = fixtureReference(c, saved->edits, c.editor.sourcePath());
+    d.wait(
+        [&] {
+            return previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), reference,
+                                      c.editor.metalPreview());
+        },
+        "Fresh process preview shows the complete saved Float DNG document");
+    c.reveal("develop.contrastSlider");
+    d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.75, .5});
+    c.saved();
+    require(c.editor.currentSettings().contrast > 1 && c.editor.canUndo(),
+            "Restored derived asset is not editable");
+    d.click("main.undoButton");
+    c.saved();
+    require(c.editor.currentSettings() == saved->edits && c.editor.canRedo() &&
+                luma::macos::sha256File(saved->path) == saved->checksum,
+            "Post-restart Undo changed the saved derived document or file");
     return true;
 }
 } // namespace ux
