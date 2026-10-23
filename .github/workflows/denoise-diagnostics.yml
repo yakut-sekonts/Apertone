@@ -37,17 +37,24 @@ jobs:
         run: |
           .tools/venv/bin/python - <<'PY'
           from pathlib import Path
+          import json
           import subprocess
           root = Path.cwd()
           evidence = root / 'build/denoise-debugger'
           evidence.mkdir(parents=True, exist_ok=True)
+          report = json.loads((root / 'build/ux-denoise-diagnostics/UX_REPORT.json').read_text())
+          fixtures = next(Path(profile['directory'])
+                          for profile in report['fixture_profile']['case_profiles']
+                          if profile['case_id'] == 'UX-P07-DNS-001')
+          if not fixtures.is_relative_to(root / 'build/ux-artifacts') or not (fixtures / 'Frame02.dng').is_file():
+              raise RuntimeError('Missing owned RAW fixture for the actual Denoise reproduction')
           command = ['xcrun', 'lldb', '--batch',
                      '-o', 'settings set target.disable-aslr false',
                      '-o', 'run', '-o', 'thread backtrace all', '-o', 'image list',
                      '-k', 'thread backtrace all', '-k', 'image list',
                      '--', str(root / 'build/luma_ux_tests.app/Contents/MacOS/luma_ux_tests'),
                      '--case', 'UX-P07-DNS-001', '--root', str(evidence / 'case'),
-                     '--fixtures', str(root / 'build/ux-artifacts/public-fixtures'),
+                     '--fixtures', str(fixtures),
                      '--qml', str(root / 'apps/desktop/qml')]
           with (evidence / 'lldb.log').open('w') as output:
               try:
