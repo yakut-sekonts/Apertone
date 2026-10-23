@@ -15,6 +15,13 @@ struct PreviewAnalysisOptions {
 // Display-referred sRGB bins from processed, scene-linear sRGB before monitor
 // conversion or diagnostic overlays. Coverage weights exclude transparent areas.
 struct ImageHistogram {
+    struct PreparedSample {
+        std::array<std::uint8_t, 4> bins{};
+        float coverage = 0;
+        std::uint8_t clipping = 0;
+    };
+    static PreparedSample prepare(const std::array<float, 3> &rgb, float coverage);
+    void add(const PreparedSample &sample);
     std::array<std::array<double, 256>, 4> bins{}; // R, G, B, encoded linear luminance
     double weight = 0, shadows = 0, highlights = 0;
     std::uint32_t samples = 0;

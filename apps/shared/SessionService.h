@@ -17,6 +17,8 @@ struct PhotoSession {
     double previewScale = 1;
     std::shared_ptr<const FloatImage> interactivePreview;
     double interactiveScale = 1;
+    std::shared_ptr<const FloatImage> quickPreview;
+    double quickScale = 1;
 };
 class SessionService {
   public:
@@ -49,6 +51,8 @@ class SessionService {
         PhotoMetadata metadata;
         RawColorCalibration calibration;
         double standardScale, interactiveScale;
+        std::shared_ptr<const FloatImage> quick;
+        double quickScale;
     };
     std::filesystem::path catalogPath_;
     std::shared_ptr<ByteLruCache<std::string, PreviewSource>> previews_ =

@@ -1,4 +1,5 @@
 #include "apps/shared/SessionService.h"
+#include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include <QCoreApplication>
 #include <QImage>
@@ -46,13 +47,15 @@ void run(const std::filesystem::path &root) {
     const auto first = service.open(aPath);
     require(first.preview->width == 1200 && first.preview->height == 800 &&
                 first.interactivePreview->width == 1024 && first.interactivePreview->height < 800 &&
-                first.previewScale == 1 && first.interactiveScale < 1,
+                first.previewScale == 1 && first.interactiveScale < 1 && first.quickPreview &&
+                first.quickPreview->width == 512 && first.quickScale < first.interactiveScale,
             "Session did not produce distinct standard and interaction resolutions.");
     const auto cost = service.previewCacheStatistics().usedBytes;
     require(cost > 0 && service.previewCacheStatistics().entries == 1,
             "Actual decoded preview was not retained.");
     const auto hit = service.open(aPath);
-    require(hit.preview == first.preview && hit.interactivePreview == first.interactivePreview,
+    require(hit.preview == first.preview && hit.interactivePreview == first.interactivePreview &&
+                hit.quickPreview == first.quickPreview,
             "Same checksum did not reuse decoded preview storage.");
     auto edits = first.asset.edits;
     edits.exposure = 1.25;
@@ -68,6 +71,15 @@ void run(const std::filesystem::path &root) {
                 service.fullResolution(restored->asset) == full,
             "Full-resolution source cache failed its dimensions/identity contract.");
 
+    require(samePixels(*first.quickPreview, luma::standardPreview(full->image, 512)),
+            "Quick preview must be generated directly from the decoded source, including alpha.");
+    const auto bytes = [](const auto &image) {
+        return (image->rgb.capacity() + image->alpha.capacity()) * sizeof(float);
+    };
+    require(cost ==
+                bytes(first.preview) + bytes(first.interactivePreview) + bytes(first.quickPreview),
+            "Decoded cache budget must include all three preview allocations.");
+
     service.setCacheBudget(cost * 3); // Public split gives previews exactly one entry's cost.
     service.open(bPath);
     require(service.previewCacheStatistics().entries == 1 &&
@@ -76,6 +88,8 @@ void run(const std::filesystem::path &root) {
     const auto regenerated = service.open(aPath);
     require(regenerated.preview != first.preview &&
                 regenerated.interactivePreview != first.interactivePreview &&
+                regenerated.quickPreview != first.quickPreview &&
+                samePixels(*regenerated.quickPreview, *first.quickPreview) &&
                 samePixels(*regenerated.preview, *first.preview) &&
                 samePixels(*regenerated.interactivePreview, *first.interactivePreview) &&
                 regenerated.asset.id == first.asset.id && regenerated.asset.edits == edits,
@@ -89,6 +103,8 @@ void run(const std::filesystem::path &root) {
                 service.previewCacheStatistics().entries == 0 &&
                 service.sourceCacheStatistics().entries == 0 &&
                 uncached.preview != regenerated.preview && fullUncached != full &&
+                uncached.quickPreview != regenerated.quickPreview &&
+                samePixels(*uncached.quickPreview, *first.quickPreview) &&
                 samePixels(*uncached.preview, *first.preview) &&
                 samePixels(fullUncached->image, full->image) && uncached.asset.edits == edits,
             "Zero cache budget lost active data or retained optional decoded storage.");

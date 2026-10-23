@@ -27,6 +27,6 @@ DisplayImage renderCPU(const FloatImage &input, EditDocument edits, int orientat
                        DetailDiagnostic diagnostic = DetailDiagnostic::none, double detailScale = 1,
                        PhotoMetadata metadata = {}, MaskOverlay overlay = {},
                        DevelopAccelerator *accelerator = nullptr,
-                       PreviewAnalysisOptions analysis = {});
+                       PreviewAnalysisOptions analysis = {}, unsigned maximumWorkers = 4);
 float applyExposure(float linearValue, double ev);
 } // namespace luma

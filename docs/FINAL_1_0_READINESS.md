@@ -5,6 +5,36 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Progressive feedback and hosted Core ML stack — 2026-10-24
+
+[Evidence](qualification/2026-10-24/progressive-preview-denoise.json): real native
+PRG001 passes **3/3**, ten held Clarity inputs each, p95 **37.613 / 30.449 / 42.001 ms**
+under the unchanged 50 ms budget. Direct-source 512 feedback refines to 1024 and
+2560; independent pixel, committed document and Undo checks pass. Row-parallel
+rendering preserves deterministic histogram accumulation. Revision-keyed QML
+parameter caching removes repeated map construction during the input callback.
+A strict baseline schema/adapter validates raw samples and comparable hardware;
+its candidate baseline does not qualify other hardware or release performance.
+
+Full build and **17 affected CTest checks PASS**. Offscreen regression is
+**68 PASS / 22 FAIL / 4 SKIPPED**. LRU001's uniform-entry assumption was corrected
+for actual transient/final byte costs; follow-up LRU/Denoise is **4/4 offscreen**.
+Native follow-up is **3 PASS / 6 FAIL**: GPU002, LRU001 and DNS001 pass; four zoom
+cases encounter actual memory warning, and passive DNS002/008 logs confirm OS
+normal-to-warning cancellation. The monitor and acceptance budgets remain intact.
+These failures are not converted to PASS and memory/load qualification stays open.
+
+macOS 15 LLDB identifies Core ML BNNS stack overflow on the default worker stack.
+A synchronous joined 8 MiB inference worker fixes that crash, with ownership,
+exception and stack-page tests. Subsequent hosted watchdog failures remain open;
+a separate debugger run passes but does not satisfy the supervised gate. GPU002
+now waits for the actual settled render/refine/histogram state before comparing
+CPU/Metal counters; local checks pass, hosted confirmation is pending.
+
+The last two phase 0.6–0.9 blocking adapters (PRG001/PERF001) exist. This is coverage,
+not completion: phase 1.0, failed regressions, load/stress/soak, image/model quality,
+hardware, artifacts and actual upgrade remain unqualified. No 1.0 publication.
+
 ### Persistence checkpoints and owned staging cleanup — 2026-10-23
 
 [Evidence](qualification/2026-10-23/persistence-kill-recovery.json): **24/24 offscreen

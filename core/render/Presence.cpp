@@ -33,11 +33,15 @@ std::vector<float> blur(const std::vector<float> &values, const FloatImage &imag
             }
         }
     }
-    for (int x = 0; x < w; ++x) {
+    // Traverse contiguous rows while retaining each column's original summation
+    // order. The former column walk repeatedly evicted neighboring cache lines.
+    std::vector<double> sums(static_cast<std::size_t>(w)), alphas(static_cast<std::size_t>(w));
+    for (int y = -radius; y < h; ++y) {
         checkCancellation(stop);
-        double sum = 0, alpha = 0;
-        for (int y = -radius; y < h; ++y) {
-            const int entering = y + radius, leaving = y - radius - 1;
+        const int entering = y + radius, leaving = y - radius - 1;
+        for (int x = 0; x < w; ++x) {
+            auto &sum = sums[static_cast<std::size_t>(x)];
+            auto &alpha = alphas[static_cast<std::size_t>(x)];
             if (entering < h) {
                 const auto i = static_cast<std::size_t>(entering) * w + x;
                 sum += horizontal[i];
@@ -96,8 +100,9 @@ std::array<float, 3> PresencePass::pixel(std::array<float, 3> color, int x, int 
             delta += texture_ * .5 * std::clamp(l - fine_[i], -2.0, 2.0);
         if (!coarse_.empty())
             delta += clarity_ * .7 * std::clamp(l - coarse_[i], -2.0, 2.0);
+        const double gain = std::exp2(delta);
         for (auto &c : color)
-            c = static_cast<float>(c * std::exp2(delta));
+            c = static_cast<float>(c * gain);
     }
     if (dehaze_ > 0) {
         const double dark = std::clamp(

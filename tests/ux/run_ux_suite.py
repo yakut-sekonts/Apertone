@@ -88,6 +88,7 @@ NATIVE.update(('UX-P06-GPU-001', 'UX-P06-GPU-002'))
 NATIVE.update(('UX-P06-MEM-001', 'UX-P06-MEM-002'))
 NATIVE.update(('UX-P06-LRU-001', 'UX-P06-LRU-002'))
 NATIVE.add('UX-P09-BKP-001')
+NATIVE.add('UX-P06-PRG-001')
 NATIVE.update(MERGE_PROFILE_IDS)
 NATIVE.update(AI_PROFILE_IDS)
 NATIVE.update(f'UX-P07-REM-{i:03}' for i in (1, 2, 3))
@@ -172,6 +173,7 @@ NATIVE.add(WATERMARK_CASE)
 NATIVE.add(CROP_DONE_CASE)
 NATIVE.add(CURRENT_FILENAME_CASE)
 NATIVE.add(PARTIAL_RENDER_CASE)
+NATIVE.add('UX-P09-PERF-001')  # Executable Python schema adapter; no native UI claim.
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,
@@ -406,9 +408,10 @@ def execute(row, directory, arguments, fixture_folder):
                     if current != observed:
                         observed, last_beat = current, time.monotonic()
                 if time.monotonic() - last_beat > 2 and diagnostic is None and Path('/usr/bin/sample').exists():
-                    diagnostic = subprocess.Popen(['/usr/bin/sample', str(process.pid), '1', '10',
-                                                   '-file', str(directory / 'thread-sample.txt')],
-                                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    with (directory / 'thread-sample.log').open('w') as sample_log:
+                        diagnostic = subprocess.Popen(['/usr/bin/sample', str(process.pid), '1', '10',
+                                                       '-file', str(directory / 'thread-sample.txt')],
+                                                      stdout=sample_log, stderr=subprocess.STDOUT)
                 if time.monotonic() - last_beat > 5:
                     reason = 'P0 hard hang: no main-loop heartbeat for >5s'
                 if time.monotonic() - started > deadline_seconds:
@@ -426,6 +429,9 @@ def execute(row, directory, arguments, fixture_folder):
                 except subprocess.TimeoutExpired:
                     diagnostic.terminate()
                     diagnostic.wait(timeout=2)
+                atomic_json(directory / 'thread-sample-status.json',
+                            {'returncode': diagnostic.returncode,
+                             'sample_available': (directory / 'thread-sample.txt').exists()})
     result_path = directory / 'result.json'
     child_result = json.loads(result_path.read_text()) if result_path.exists() else None
     if child_result is not None:
@@ -479,6 +485,9 @@ def execute(row, directory, arguments, fixture_folder):
 
 
 def execute_scenario(row, directory, arguments, fixture_folder):
+    if row['id'] == 'UX-P09-PERF-001':
+        from performance_baseline import execute_schema_case
+        return execute_schema_case(row, directory)
     variants = ISOLATED_VARIANTS.get(row['id'])
     if row['id'] not in RESTART and not variants:
         return execute(row, directory, arguments, fixture_folder)

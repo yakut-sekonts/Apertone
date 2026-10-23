@@ -11,16 +11,19 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QNativeGestureEvent>
 #include <QPointingDevice>
+#include <QQuickItemGrabResult>
 #include <QSignalSpy>
 #include <QTest>
 #include <QWheelEvent>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <future>
@@ -111,7 +114,8 @@ QImage reference(Context &c, const luma::DecodedImage &decoded, const luma::Edit
                    {"worker_thread", true}});
     return result;
 }
-void ready(Context &c, const QImage &pixels, const QString &previous = {}) {
+bool agrees(const QImage &a, const QImage &b, int rgbBudget);
+void ready(Context &c, const QImage &pixels, const QString &previous = {}, int rgbBudget = 0) {
     try {
         c.driver->wait(
             [&] {
@@ -120,11 +124,12 @@ void ready(Context &c, const QImage &pixels, const QString &previous = {}) {
                        c.editor.previewUrl() != previous && image->isVisible() &&
                        image->property("status").toInt() == 1 &&
                        image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                       c.provider->requestImage({}, nullptr, {}) == pixels;
+                       agrees(c.provider->requestImage({}, nullptr, {}), pixels, rgbBudget);
             },
-            "Zoom Ready image equals independent full/reduced CPU reference");
+            "Zoom Ready image agrees with independent full/reduced CPU reference");
     } catch (...) {
-        recordPreviewDifference(c, pixels, "Zoom exact CPU reference");
+        recordPreviewDifference(
+            c, pixels, QString("Zoom CPU reference, RGB8 limit %1, exact alpha").arg(rgbBudget));
         throw;
     }
     c.driver->frame();
@@ -201,18 +206,21 @@ struct ChartSource {
     QString path;
     QByteArray hash, secondHash;
 };
-ChartSource openChart(Context &c, bool pair = false, QSize size = {3072, 2048}) {
+ChartSource openChart(Context &c, bool pair = false, QSize size = {3072, 2048},
+                      bool cpuOnly = true) {
     auto &d = *c.driver;
-    // This contract isolates scaling and full-resolution decode from GPU arithmetic.
-    d.click("settingsButton");
-    d.wait([&] { return d.object("preferencesPanel")->property("opened").toBool(); },
-           "Zoom CPU preference opened");
-    require(c.editor.metalPreview(), "Fresh zoom fixture must use the default Metal preference");
-    d.click("settings.metalPreview");
-    d.key(Qt::Key_Escape);
-    d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
-           "Zoom preferences closed");
-    require(!c.editor.metalPreview(), "Zoom CPU preference was not applied");
+    require(c.editor.metalPreview(), "Fresh chart fixture must use the default Metal preference");
+    if (cpuOnly) {
+        // This contract isolates scaling and full-resolution decode from GPU arithmetic.
+        d.click("settingsButton");
+        d.wait([&] { return d.object("preferencesPanel")->property("opened").toBool(); },
+               "Zoom CPU preference opened");
+        d.click("settings.metalPreview");
+        d.key(Qt::Key_Escape);
+        d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
+               "Zoom preferences closed");
+        require(!c.editor.metalPreview(), "Zoom CPU preference was not applied");
+    }
     const auto path = chart(c, pair, size);
     const auto hash = sourceHash(path);
     const auto secondHash =
@@ -374,12 +382,28 @@ bool previewCacheBudgetScenario(Context &c, const QString &id) {
     ready(c, pixels);
     const auto entryBytes =
         static_cast<std::size_t>(pixels.sizeInBytes()) + sizeof(RenderedPreview);
+    const auto quickPixels = reference(c, decoded, document, 512);
+    const auto quickEntryBytes =
+        static_cast<std::size_t>(quickPixels.sizeInBytes()) + sizeof(RenderedPreview);
+    require(quickEntryBytes < entryBytes, "Cache fixture needs distinct transient/final sizes");
+    // This 800x600 fixture has exactly two possible image sizes: 512x384
+    // transient feedback and 800x600 interaction/final frames. Infer their
+    // counts from independently computed costs, including RenderedPreview.
+    const auto entryCounts = [&](const luma::CacheStatistics &cache) {
+        require(cache.entries > 0 && cache.usedBytes <= cache.entries * entryBytes &&
+                    cache.usedBytes >= cache.entries * quickEntryBytes,
+                "Rendered cache byte count is outside the actual fixture entry costs");
+        const auto savedBytes = cache.entries * entryBytes - cache.usedBytes;
+        require(savedBytes % (entryBytes - quickEntryBytes) == 0,
+                "Rendered cache bytes do not match whole transient/final entries");
+        const auto quick = savedBytes / (entryBytes - quickEntryBytes);
+        return std::pair{quick, cache.entries - quick};
+    };
     const auto warm = c.editor.cacheStatistics();
+    const auto [warmQuick, warmFinal] = entryCounts(warm[2]);
     constexpr std::size_t mib = 1024 * 1024;
-    require(
-        warm[2].usedBytes > 16 * mib && warm[2].budgetBytes == 64 * mib &&
-            warm[2].entries * entryBytes == warm[2].usedBytes,
-        "Cache fixture did not populate distinct uniformly-sized rendered entries beyond 16 MiB");
+    require(warm[2].usedBytes > 16 * mib && warm[2].budgetBytes == 64 * mib && warmFinal >= 9,
+            "Cache fixture did not retain nine complete renders and exceed the new 16 MiB budget");
     QSignalSpy saves(&c.editor, &EditorController::editsSaved);
     require(saves.isValid(), "Cannot observe unexpected saves while changing the cache budget");
     const auto url = c.editor.previewUrl();
@@ -390,9 +414,10 @@ bool previewCacheBudgetScenario(Context &c, const QString &id) {
     d.key(Qt::Key_Return);
     d.wait([&] { return c.editor.previewCacheMiB() == 64; }, "Actual Settings committed 64 MiB");
     const auto reduced = c.editor.cacheStatistics();
+    const auto [reducedQuick, reducedFinal] = entryCounts(reduced[2]);
     require(reduced[0].budgetBytes == 16 * mib && reduced[1].budgetBytes == 32 * mib &&
                 reduced[2].budgetBytes == 16 * mib && reduced[2].entries < warm[2].entries &&
-                reduced[2].entries > 0 && reduced[2].entries * entryBytes == reduced[2].usedBytes,
+                reduced[2].usedBytes < warm[2].usedBytes && reducedFinal > 0,
             "Configured cache split or rendered-entry eviction differs from its byte budget");
     for (const auto &cache : reduced)
         require(cache.usedBytes <= cache.budgetBytes,
@@ -438,6 +463,11 @@ bool previewCacheBudgetScenario(Context &c, const QString &id) {
          {"reduced_rendered_bytes", qint64(reduced[2].usedBytes)},
          {"reduced_rendered_entries", qint64(reduced[2].entries)},
          {"entry_bytes", qint64(entryBytes)},
+         {"quick_entry_bytes", qint64(quickEntryBytes)},
+         {"warm_quick_entries", qint64(warmQuick)},
+         {"warm_final_entries", qint64(warmFinal)},
+         {"reduced_quick_entries", qint64(reducedQuick)},
+         {"reduced_final_entries", qint64(reducedFinal)},
          {"configured_mib", c.editor.previewCacheMiB()},
          {"scope", "actual cache-owned references and UI controls; no RSS/stress qualification"}});
     require(c.warnings.isEmpty(), "Cache budget workflow produced QML warnings");
@@ -602,6 +632,193 @@ bool zoomScenario(Context &c, const QString &id) {
     require(c.warnings.isEmpty(), "Zoom produced QML warnings: " + c.warnings.join('\n'));
     return true;
 }
+bool progressiveFeedbackScenario(Context &c, const QString &id) {
+    if (id != "UX-P06-PRG-001")
+        return false;
+    require(QGuiApplication::platformName() == "cocoa" &&
+                qEnvironmentVariable("GITHUB_ACTIONS") != "true",
+            "Progressive feedback latency requires the physical Mac's native Cocoa renderer");
+    auto &d = *c.driver;
+    const auto source = openChart(c, false, {3072, 2048}, false);
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    const auto initial = c.editor.currentSettings();
+    ready(c, reference(c, decoded, initial, 2560), {}, 1);
+    const QString slider = "develop.presence.claritySlider";
+    c.reveal(slider);
+    std::vector<double> elapsed;
+    QJsonArray samples;
+    for (int index = 0; index < 10; ++index) {
+        const auto before = c.editor.currentSettings();
+        const auto previous = c.editor.previewUrl();
+        const QPointF fraction{.575 + index * .02, .5};
+        const auto point = d.point(slider, fraction);
+        d.press(slider, d.sliderThumb(slider));
+        require(d.object(slider)->property("pressed").toBool() &&
+                    c.editor.currentSettings() == before,
+                "Feedback sample must start from an accepted, unchanged held pointer");
+        struct Presentation {
+            std::chrono::steady_clock::time_point start;
+            std::atomic<int> readyWidth{0}, synchronizedWidth{0}, presentedWidth{0};
+            std::atomic<std::int64_t> elapsed{0};
+        };
+        const auto presentation = std::make_shared<Presentation>();
+        QObject frameObserver;
+        QObject::connect(
+            c.window, &QQuickWindow::afterSynchronizing, &frameObserver,
+            [presentation] {
+                presentation->synchronizedWidth.store(presentation->readyWidth.load());
+            },
+            Qt::DirectConnection);
+        QObject::connect(
+            c.window, &QQuickWindow::frameSwapped, &frameObserver,
+            [presentation] {
+                const int width = presentation->synchronizedWidth.load();
+                if (!width || presentation->elapsed.load() != 0)
+                    return;
+                const auto elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                         std::chrono::steady_clock::now() - presentation->start)
+                                         .count();
+                presentation->presentedWidth.store(width);
+                presentation->elapsed.store(elapsed);
+            },
+            Qt::DirectConnection);
+        const auto elapsedMilliseconds = [&] {
+            return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() -
+                                                             presentation->start)
+                .count();
+        };
+        double imagePublished = -1;
+        QEventLoop deliveryLoop;
+        QTimer observation;
+        observation.setTimerType(Qt::PreciseTimer);
+        observation.setInterval(1);
+        QImage quickPixels, interactionPixels;
+        // afterAnimating runs on the GUI thread before scene synchronization.
+        // Observe the current Ready Image here so timer scheduling cannot miss
+        // its first eligible frame. Render-thread callbacks read atomics only.
+        QObject::connect(c.window, &QQuickWindow::afterAnimating, &frameObserver, [&] {
+            auto *preview = d.item("develop.preview");
+            const auto pixels = c.provider->requestImage({}, nullptr, {});
+            const bool current =
+                c.editor.previewUrl() != previous && !c.editor.busy() && preview->isVisible() &&
+                preview->property("status").toInt() == 1 &&
+                preview->property("source").toUrl().toString() == c.editor.previewUrl() &&
+                (pixels.width() == 512 || pixels.width() == 1024);
+            if (current) {
+                if (imagePublished < 0)
+                    imagePublished = elapsedMilliseconds();
+                (pixels.width() == 512 ? quickPixels : interactionPixels) = pixels;
+            }
+            presentation->readyWidth.store(current ? pixels.width() : 0);
+        });
+        QObject::connect(&observation, &QTimer::timeout, &observation, [&] {
+            if (presentation->elapsed.load() > 0)
+                deliveryLoop.quit();
+        });
+        presentation->start = std::chrono::steady_clock::now();
+        observation.start();
+        QTest::mouseMove(c.window, point, 0);
+        const double inputReturned = elapsedMilliseconds();
+        const auto document = c.editor.currentSettings();
+        auto expected = before;
+        expected.creative.setParameter("presence.clarity",
+                                       document.creative.parameter("presence.clarity"));
+        require(document == expected && document != before &&
+                    document.creative.parameter("presence.clarity") > 0 &&
+                    c.editor.parameters().value("presence.clarity").toDouble() ==
+                        document.creative.parameter("presence.clarity"),
+                "Heavy feedback input must change only positive Clarity");
+        try {
+            // A native event loop keeps presentation callbacks running continuously;
+            // QTest's 10 ms sleep/poll loop would add artificial frame latency.
+            QTimer deadline;
+            deadline.setSingleShot(true);
+            QObject::connect(&deadline, &QTimer::timeout, &deliveryLoop, &QEventLoop::quit);
+            deadline.start(10000);
+            if (presentation->elapsed.load() == 0)
+                deliveryLoop.exec();
+            observation.stop();
+            QObject::disconnect(c.window, nullptr, &frameObserver, nullptr);
+            const double milliseconds = presentation->elapsed.load() / 1000000.;
+            require(milliseconds > 0, "Current interaction frame was not queued for presentation");
+            // Readback verifies actual Image pixels after timing the synchronized
+            // window frame. A separate offscreen grab must not define UI latency.
+            const auto displayed = readyItemGrab(c, *d.item("develop.preview"),
+                                                 "Presented interaction Image readback completed");
+            const double readbackCompleted = elapsedMilliseconds();
+            elapsed.push_back(milliseconds);
+            require(!displayed->image().isNull() && d.object(slider)->property("pressed").toBool(),
+                    "Heavy interaction did not render while the actual pointer remained held");
+            // Preserve the actual observed frame before the refinement can replace it.
+            const int presentedWidth = presentation->presentedWidth.load();
+            const auto feedbackPixels = presentedWidth == 512 ? quickPixels : interactionPixels;
+            const auto interactive = reference(c, decoded, document, presentedWidth);
+            require(agrees(feedbackPixels, interactive, 1),
+                    "Heavy interaction preview differs from independent CPU pixels");
+            if (index == 0 || index == 9)
+                require(displayed->image().save(c.root +
+                                                QString("/heavy-interaction-%1.png").arg(index)),
+                        "Cannot retain measured interaction pixels");
+            samples.append(QJsonObject{
+                {"sample", index + 1},
+                {"clarity", document.creative.parameter("presence.clarity")},
+                {"input_to_frame_queued_ms", milliseconds},
+                {"input_to_image_readback_ms", readbackCompleted},
+                {"input_returned_ms", inputReturned},
+                {"image_published_ms", imagePublished},
+                {"post_presentation_readback_ms", readbackCompleted - milliseconds},
+                {"first_feedback_width", presentedWidth},
+                {"held_refinement_width", 1024},
+                {"metal_preference", c.editor.metalPreview()},
+                {"memory_pressure", static_cast<int>(MemoryPressureProbe::current(c.editor))}});
+        } catch (...) {
+            observation.stop();
+            d.release(slider, fraction);
+            throw;
+        }
+        // A held pointer must still refine to the established 1024 image before release.
+        ready(c, reference(c, decoded, document, 1024), {}, 1);
+        const auto interactiveURL = c.editor.previewUrl();
+        d.release(slider, fraction);
+        c.saved();
+        ready(c, reference(c, decoded, document, 2560), interactiveURL, 1);
+        require(savedSnapshot(c).asset.edits == document && c.editor.canUndo() &&
+                    !c.editor.canRedo(),
+                "Heavy final-quality render lost its complete saved gesture");
+        d.log({{"action", "heavy_progressive_feedback"},
+               {"sample", index + 1},
+               {"input_to_frame_queued_ms", elapsed.back()},
+               {"final_width", 2560}});
+    }
+    std::sort(elapsed.begin(), elapsed.end());
+    const auto p95 = elapsed[static_cast<std::size_t>(std::ceil(.95 * elapsed.size())) - 1];
+    writeJson(c.root + "/measurements.json",
+              {{"schema", 1},
+               {"case", id},
+               {"samples", samples},
+               {"p95_ms", p95},
+               {"budget_ms", 50},
+               {"backend", "default Metal preference"},
+               {"frame_queued_callback_timing", true},
+               {"completion_poll_interval_ms", 1},
+               {"readiness_observation", "GUI afterAnimating before scene synchronization"},
+               {"rgb8_cpu_agreement_limit", 1},
+               {"alpha_agreement_limit", 0},
+               {"fixture_width", 3072},
+               {"fixture_height", 2048},
+               {"readback_included_in_latency", false},
+               {"readback_verified_after_presentation", true},
+               {"frame_requires_current_image_synchronization", true},
+               {"display_scanout_measured", false},
+               {"independent_oracle_in_timing", false},
+               {"cold_unique_edit_revisions", true}});
+    require(sourceHash(source.path) == source.hash && c.library.count() == 1,
+            "Heavy progressive feedback changed original bytes or membership");
+    require(p95 <= 50,
+            "Heavy interaction preview exceeds the 50 ms post-performance-phase feedback budget");
+    return true;
+}
+
 bool progressiveExportScenario(Context &c, const QString &id) {
     if (id != "UX-P06-PRG-002")
         return false;

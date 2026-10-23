@@ -29,7 +29,7 @@ Item {
             ctx.restore()
         }
     }
-    Connections { target: editor; function onStateChanged() { canvas.requestPaint() } }
+    Connections { target: editor; function onPreviewChanged() { canvas.requestPaint() } }
     Repeater {
         model: 4
         Item {

@@ -32,6 +32,12 @@ class MetalPreviewProbe final : public luma::DevelopAccelerator {
         editor.accelerator_ = probe;
         return probe;
     }
+    static bool renderSettled(const EditorController &editor) {
+        require(QThread::currentThread() == editor.thread(),
+                "Render state must be read on GUI thread");
+        return !editor.refineTimer_.isActive() && !editor.histogramPending_ &&
+               editor.renderJob_.state() == luma::JobState::completed;
+    }
     Snapshot snapshot() const {
         std::lock_guard lock(mutex_);
         return state_;
@@ -137,6 +143,7 @@ void neutralBackendAgreement(Context &c) {
                 [&] {
                     auto *image = d.item("develop.preview");
                     return !c.editor.busy() && c.editor.error().isEmpty() &&
+                           MetalPreviewProbe::renderSettled(c.editor) &&
                            c.editor.previewUrl() != previous && image->isVisible() &&
                            image->property("status").toInt() == 1 &&
                            image->property("source").toUrl().toString() == c.editor.previewUrl() &&

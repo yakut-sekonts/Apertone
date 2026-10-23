@@ -20,20 +20,21 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     const auto checksum = macos::sha256File(path, stop);
     // Only decoded pixels are cached. Selection and saved edits always come
     // from the current catalog transaction, including on a cache hit.
-    const auto key = checksum + "|decode-v1|preview-2560-1024";
+    const auto key = checksum + "|decode-v1|preview-2560-1024-512";
     const auto generation = previews_->generation();
     auto cached = previews_->get(key);
     if (!cached) {
         auto decoded = PhotoDecoder().decode(path, stop, progress);
         auto preview = std::make_shared<FloatImage>(standardPreview(decoded.image, 2560, stop));
         auto interactive = std::make_shared<FloatImage>(standardPreview(decoded.image, 1024, stop));
+        auto quick = std::make_shared<FloatImage>(standardPreview(decoded.image, 512, stop));
         const auto scale = [&](const FloatImage &image) {
             return std::min(static_cast<double>(image.width) / decoded.image.width,
                             static_cast<double>(image.height) / decoded.image.height);
         };
         cached = std::make_shared<PreviewSource>(
             PreviewSource{preview, interactive, decoded.metadata, decoded.calibration,
-                          scale(*preview), scale(*interactive)});
+                          scale(*preview), scale(*interactive), quick, scale(*quick)});
     }
     checkCancellation(stop);
     if (originalSize != std::filesystem::file_size(path) ||
@@ -47,13 +48,15 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     auto asset = catalog.addAndSelect(path, checksum, metadata);
     const auto bytes =
         (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
-         cached->interactive->rgb.capacity() + cached->interactive->alpha.capacity()) *
+         cached->interactive->rgb.capacity() + cached->interactive->alpha.capacity() +
+         cached->quick->rgb.capacity() + cached->quick->alpha.capacity()) *
         sizeof(float);
     previews_->put(key, cached, bytes, generation);
     if (progress)
         progress(1);
     return {std::move(asset),      cached->standard,    cached->calibration,
-            cached->standardScale, cached->interactive, cached->interactiveScale};
+            cached->standardScale, cached->interactive, cached->interactiveScale,
+            cached->quick,         cached->quickScale};
 }
 std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRecord &asset,
                                                                    CancellationToken stop) const {

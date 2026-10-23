@@ -80,20 +80,24 @@ std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
         rgb[c] = (m[c * 3] * camera[0] + m[c * 3 + 1] * camera[1] + m[c * 3 + 2] * camera[2]) *
                  exposureGain_;
     const double luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-    if (luminance > 1e-8) {
+    const double contrast = amount(edits_, Correction::contrast, edits_.contrast);
+    const double shadows = amount(edits_, Correction::shadows, edits_.shadows);
+    const double highlights = amount(edits_, Correction::highlights, edits_.highlights);
+    const double blacks = amount(edits_, Correction::blacks, edits_.blacks);
+    const double whites = amount(edits_, Correction::whites, edits_.whites);
+    // Neutral tone has an exact gain of one. In particular, spatial Presence
+    // alone must not evaluate logarithms/exponentials twice per source pixel.
+    if (luminance > 1e-8 &&
+        (contrast != 0 || shadows != 0 || highlights != 0 || blacks != 0 || whites != 0)) {
         // Smooth log-domain luminance remapping preserves chromatic ratios and HDR.
         const double l = std::log2(luminance / 0.18);
         const double shadowWeight = 1 / (1 + std::exp2(l / 2));
         const double highlightWeight = 1 - shadowWeight;
         const double blackWeight = shadowWeight * shadowWeight;
         const double whiteWeight = highlightWeight * highlightWeight;
-        const double contrast = amount(edits_, Correction::contrast, edits_.contrast);
-        const double delta =
-            contrast * 0.5 * std::tanh(l / 2) +
-            amount(edits_, Correction::shadows, edits_.shadows) * shadowWeight * 2 +
-            amount(edits_, Correction::highlights, edits_.highlights) * highlightWeight * 2 +
-            amount(edits_, Correction::blacks, edits_.blacks) * blackWeight +
-            amount(edits_, Correction::whites, edits_.whites) * whiteWeight;
+        const double delta = contrast * 0.5 * std::tanh(l / 2) + shadows * shadowWeight * 2 +
+                             highlights * highlightWeight * 2 + blacks * blackWeight +
+                             whites * whiteWeight;
         const auto gain = static_cast<float>(std::exp2(delta));
         for (auto &value : rgb)
             value *= gain;

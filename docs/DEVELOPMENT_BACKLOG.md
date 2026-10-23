@@ -672,3 +672,24 @@ nine affected CTest entries, strengthened staging unit and mandatory static chec
 pass. No power-loss/external-volume qualification is inferred. Five new blocking
 adapters cover catalog, backup, relink, batch and derived registration kills;
 two applicable blocking IDs from phases 0.6–0.9 remain unadapted.
+
+### LUMA-BUG-071 — Heavy interaction preview misses the 50 ms feedback budget
+
+The retained native heavy-Clarity runs exceeded 50 ms. Direct-source 512 feedback,
+parallel rows, neutral tone fast path, local blur access and revision-keyed QML
+parameter maps now pass 30 native inputs in three repetitions. Full 1024 held and
+2560 final output retains the existing independent pixel oracle. The strict
+performance baseline is a hardware-specific candidate, not whole-release approval.
+See [evidence](qualification/2026-10-24/progressive-preview-denoise.json), including
+all failed intermediate measurements and the 68/22/4 regression outcome.
+
+### LUMA-BUG-072 — Hosted Core ML Denoise worker stack overflow / watchdog
+
+macOS 15 LLDB captured SIGBUS in __chkstk_darwin -> BNNSGraphContextExecute_v2
+from CoreMLDenoise on a default JobManager thread. Inference now uses a synchronous
+joined 8 MiB stack without enlarging all pools; stack/exception/ownership tests
+pass. The next hosted run no longer reports SIGBUS but fails its unchanged 5 s
+GUI heartbeat watchdog. Keep this open until the supervised hosted workflow passes.
+A separate LLDB PASS is diagnostic evidence only. Actual local memory warnings
+also cancel Denoise and disable full zoom; retain these failures and OS event logs.
+No forced-normal monitor or relaxed timing/numeric budget is used to hide them.

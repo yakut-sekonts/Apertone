@@ -105,7 +105,7 @@ Item {
             ctx.restore()
         }
     }
-    Connections { target: editor; function onStateChanged() { if(gesture.adjusting&&!editor.localGestureActive){gesture.adjusting=false;gesture.proxyDrag=false}overlay.refreshBrush() } }
+    Connections { target: editor; function onPreviewChanged() { if(gesture.adjusting&&!editor.localGestureActive){gesture.adjusting=false;gesture.proxyDrag=false}overlay.refreshBrush() } }
     MouseArea {
         id: gesture
         objectName: "localMaskGestureArea"

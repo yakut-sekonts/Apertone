@@ -52,6 +52,9 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
 EditorController::EditorController(std::filesystem::path catalog, PreviewProvider *provider,
                                    QObject *parent)
     : QObject(parent), catalog_(std::move(catalog)), service_(catalog_), provider_(provider) {
+    // General document/mode transitions also invalidate preview availability.
+    // A completed render only invalidates preview bindings, not every edit panel.
+    connect(this, &EditorController::stateChanged, this, &EditorController::previewChanged);
     saveTimer_.setSingleShot(true);
     saveTimer_.setInterval(180);
     connect(&saveTimer_, &QTimer::timeout, this, &EditorController::flushSave);
@@ -468,6 +471,9 @@ bool EditorController::editable() const {
     return session_ && !busy() && !closing_ && !editingLocked_;
 }
 QVariantMap EditorController::parameters() const {
+    const auto revision = std::array{historyGeneration_, history_.revision(), editRevision_};
+    if (parametersCache_ && parametersCacheRevision_ == revision)
+        return *parametersCache_;
     QVariantMap values;
     for (const auto *name : {"exposure",
                              "temperature",
@@ -510,6 +516,8 @@ QVariantMap EditorController::parameters() const {
                       history_.current().parameter(p.name));
     for (auto name : luma::transformParameters)
         values.insert(QString::fromUtf8(name), history_.current().parameter(name));
+    parametersCache_ = values;
+    parametersCacheRevision_ = revision;
     return values;
 }
 QVariantMap EditorController::correctionStates() const {
@@ -548,6 +556,8 @@ void EditorController::endEdit() {
     emit stateChanged();
 }
 void EditorController::editsChanged(bool renderPreview) {
+    // Invalidate before cancellation signals can cause synchronous QML reads.
+    parametersCache_.reset();
     cancelCreative();
     cancelWhiteBalance();
     cancelAI();
@@ -560,9 +570,11 @@ void EditorController::editsChanged(bool renderPreview) {
     saveTimer_.start();
     status_ = QStringLiteral("Saving edit…");
     refreshDetailDiagnostic();
-    emit stateChanged();
+    // Dispatch from the updated document before synchronous QML bindings run.
+    // Result delivery remains queued on the GUI thread after this signal returns.
     if (renderPreview)
         render();
+    emit stateChanged();
 }
 void EditorController::setParameter(const QString &name, double value) {
     clearPreviewSettings();
@@ -749,85 +761,108 @@ void EditorController::render(bool fullQuality) {
                                  : std::shared_ptr<luma::DevelopAccelerator>{};
     const auto key = renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
                                     static_cast<bool>(accelerator), clipping, pointRange);
+    const auto quickImage = session_->quickPreview;
+    const double quickScale = session_->quickScale;
+    const bool quickInteraction = interactive && history_.gestureActive() && quickImage &&
+                                  std::max(image->width, image->height) > 512;
+    const auto quickKey = quickInteraction
+                              ? renderCacheKey(asset, edits, 512, profile, diagnostic, overlay,
+                                               static_cast<bool>(accelerator), clipping, pointRange)
+                              : std::string{};
     const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
          metadata, overlay, asset, service, fullResolution, cache, generation, key, accelerator,
-         interactive, clipping, pointRange
+         interactive, clipping, pointRange, quickInteraction, quickKey, quickImage, quickScale
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
          ,
          resolution
 #endif
     ](const luma::JobContext &context) {
             try {
-                auto cached = cache->get(key);
-                if (!cached) {
-                    const auto decoded = fullResolution
-                                             ? service.fullResolution(asset, context.stopToken())
-                                             : std::shared_ptr<const luma::DecodedImage>{};
-                    auto pixels = luma::renderCPU(
-                        decoded ? decoded->image : *image, edits, orientation, profile,
-                        context.stopToken(), decoded ? decoded->calibration : calibration,
-                        diagnostic, decoded ? 1 : detailScale, metadata, overlay, accelerator.get(),
-                        {true, clipping, pointRange});
-                    QImage output(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
-                                  QImage::Format_RGBA8888);
-                    auto owned = output.copy();
-                    if (owned.isNull())
-                        throw std::runtime_error("Cannot allocate the photo preview.");
-                    cached = std::make_shared<RenderedPreview>(
-                        RenderedPreview{std::move(owned), std::move(pixels.histogram)});
+                // The first transient frame gives immediate visual feedback. The
+                // same job then refines to the established interaction resolution;
+                // a new gesture value cancels both stages through its normal token.
+                for (int stage = 0; stage < (quickInteraction ? 2 : 1); ++stage) {
                     luma::checkCancellation(context.stopToken());
-                    cache->put(key, cached,
-                               static_cast<std::size_t>(cached->image.sizeInBytes()) +
-                                   sizeof(RenderedPreview),
-                               generation);
-                }
-                luma::checkCancellation(context.stopToken());
-                if (self) {
+                    const bool quick = quickInteraction && stage == 0;
+                    const auto &stageKey = quick ? quickKey : key;
+                    auto cached = cache->get(stageKey);
+                    if (!cached) {
+                        const auto decoded =
+                            fullResolution ? service.fullResolution(asset, context.stopToken())
+                                           : std::shared_ptr<const luma::DecodedImage>{};
+                        auto pixels = luma::renderCPU(
+                            decoded ? decoded->image
+                            : quick ? *quickImage
+                                    : *image,
+                            edits, orientation, profile, context.stopToken(),
+                            decoded ? decoded->calibration : calibration, diagnostic,
+                            decoded ? 1
+                            : quick ? quickScale
+                                    : detailScale,
+                            metadata, overlay, accelerator.get(), {!quick, clipping, pointRange});
+                        QImage output(pixels.rgba.data(), pixels.width, pixels.height,
+                                      pixels.width * 4, QImage::Format_RGBA8888);
+                        auto owned = output.copy();
+                        if (owned.isNull())
+                            throw std::runtime_error("Cannot allocate the photo preview.");
+                        cached = std::make_shared<RenderedPreview>(
+                            RenderedPreview{std::move(owned), std::move(pixels.histogram)});
+                        luma::checkCancellation(context.stopToken());
+                        cache->put(stageKey, cached,
+                                   static_cast<std::size_t>(cached->image.sizeInBytes()) +
+                                       sizeof(RenderedPreview),
+                                   generation);
+                    }
+                    luma::checkCancellation(context.stopToken());
+                    if (self) {
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
-                    const ux::PreviewOperation uxSuccess{self.data(), revision, resolution,
-                                                         asset.id, context.data};
+                        const ux::PreviewOperation uxSuccess{self.data(), revision,
+                                                             quick ? 512 : resolution, asset.id,
+                                                             context.data};
 #endif
-                    auto publish = [self, revision, cached, interactive
+                        auto publish = [self, revision, cached, interactive, quick
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
-                                    ,
-                                    uxSuccess
+                                        ,
+                                        uxSuccess
 #endif
-                    ] {
+                        ] {
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
-                        ux::observePreviewDelivery(uxSuccess);
+                            ux::observePreviewDelivery(uxSuccess);
 #endif
-                        if (!self || self->renderRevision_ != revision) {
+                            if (!self || self->renderRevision_ != revision) {
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
-                            ux::observePreviewRejection(uxSuccess,
-                                                        self ? self->renderRevision_ : 0);
+                                ux::observePreviewRejection(uxSuccess,
+                                                            self ? self->renderRevision_ : 0);
 #endif
-                            return;
-                        }
-                        self->provider_->update(cached->image);
-                        ++self->imageRevision_;
-                        self->previewReady_ = true;
-                        self->cropCanvasReady_ = self->cropMode_;
-                        self->guidedCanvasReady_ = self->guidedMode_;
-                        self->localCanvasReady_ = self->localMode_;
-                        self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
-                        self->pointColorCanvasReady_ = self->pointColorPicking_;
-                        self->publishHistogram(cached->histogram);
-                        if (interactive && !self->history_.gestureActive())
-                            self->refineTimer_.start();
-                        emit self->stateChanged();
-                    };
+                                return;
+                            }
+                            self->provider_->update(cached->image);
+                            ++self->imageRevision_;
+                            self->previewReady_ = true;
+                            self->cropCanvasReady_ = self->cropMode_;
+                            self->guidedCanvasReady_ = self->guidedMode_;
+                            self->localCanvasReady_ = self->localMode_;
+                            self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
+                            self->pointColorCanvasReady_ = self->pointColorPicking_;
+                            if (!quick)
+                                self->publishHistogram(cached->histogram);
+                            if (!quick && interactive && !self->history_.gestureActive())
+                                self->refineTimer_.start();
+                            emit self->previewChanged();
+                        };
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
-                    if (ux::deferPreviewSuccess(uxSuccess, cached->image, [self, publish] {
-                            if (self)
-                                QMetaObject::invokeMethod(self, publish, Qt::QueuedConnection);
-                        }))
-                        return;
+                        if (ux::deferPreviewSuccess(uxSuccess, cached->image, [self, publish] {
+                                if (self)
+                                    QMetaObject::invokeMethod(self, publish, Qt::QueuedConnection);
+                            }))
+                            continue;
 #endif
-                    QMetaObject::invokeMethod(self, std::move(publish), Qt::QueuedConnection);
+                        QMetaObject::invokeMethod(self, std::move(publish), Qt::QueuedConnection);
+                    }
                 }
             } catch (const std::exception &error) {
                 if (context.stopToken().isCancelled()) {

@@ -58,7 +58,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantMap localState READ localState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localHandles READ localHandles NOTIFY stateChanged)
     Q_PROPERTY(bool localMode READ localMode WRITE setLocalMode NOTIFY stateChanged)
-    Q_PROPERTY(bool localCanvasReady READ localCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool localCanvasReady READ localCanvasReady NOTIFY previewChanged)
     Q_PROPERTY(bool localOverlay READ localOverlay WRITE setLocalOverlay NOTIFY stateChanged)
     Q_PROPERTY(QString localOverlayColor READ localOverlayColor WRITE setLocalOverlayColor NOTIFY
                    stateChanged)
@@ -68,12 +68,12 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantList transformGuides READ transformGuides NOTIFY stateChanged)
     Q_PROPERTY(int transformGuideLayout READ transformGuideLayout NOTIFY stateChanged)
     Q_PROPERTY(bool guidedMode READ guidedMode WRITE setGuidedMode NOTIFY stateChanged)
-    Q_PROPERTY(bool guidedCanvasReady READ guidedCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool guidedCanvasReady READ guidedCanvasReady NOTIFY previewChanged)
     Q_PROPERTY(bool transformAutoBusy READ transformAutoBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap lensState READ lensState NOTIFY stateChanged)
     Q_PROPERTY(QVariantList lensOptions READ lensOptions NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap cropState READ cropState NOTIFY stateChanged)
-    Q_PROPERTY(bool cropCanvasReady READ cropCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool cropCanvasReady READ cropCanvasReady NOTIFY previewChanged)
     Q_PROPERTY(bool cropMode READ cropMode WRITE setCropMode NOTIFY stateChanged)
     Q_PROPERTY(QString cropOverlay READ cropOverlay WRITE setCropOverlay NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
@@ -93,11 +93,11 @@ class EditorController final : public QObject {
                    stateChanged)
     Q_PROPERTY(
         bool pointColorRange READ pointColorRange WRITE setPointColorRange NOTIFY stateChanged)
-    Q_PROPERTY(bool pointColorCanvasReady READ pointColorCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool pointColorCanvasReady READ pointColorCanvasReady NOTIFY previewChanged)
     Q_PROPERTY(bool whiteBalanceBusy READ whiteBalanceBusy NOTIFY stateChanged)
     Q_PROPERTY(bool whiteBalancePicking READ whiteBalancePicking WRITE setWhiteBalancePicking NOTIFY
                    stateChanged)
-    Q_PROPERTY(bool whiteBalanceCanvasReady READ whiteBalanceCanvasReady NOTIFY stateChanged)
+    Q_PROPERTY(bool whiteBalanceCanvasReady READ whiteBalanceCanvasReady NOTIFY previewChanged)
     Q_PROPERTY(QString whiteBalanceMessage READ whiteBalanceMessage NOTIFY stateChanged)
     Q_PROPERTY(bool canUndo READ canUndo NOTIFY stateChanged)
     Q_PROPERTY(bool canRedo READ canRedo NOTIFY stateChanged)
@@ -119,7 +119,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString dimensions READ dimensions NOTIFY stateChanged)
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
-    Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY stateChanged)
+    Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY previewChanged)
     Q_PROPERTY(bool oneToOne READ oneToOne WRITE setOneToOne NOTIFY stateChanged)
     Q_PROPERTY(QString zoomMode READ zoomMode WRITE setZoomMode NOTIFY stateChanged)
     Q_PROPERTY(double zoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY stateChanged)
@@ -544,11 +544,14 @@ class EditorController final : public QObject {
     void progressChanged();
     void histogramChanged();
     void stateChanged();
+    void previewChanged();
     void photoLoaded(const QString &id);
     void editsSaved(const QString &id);
     void closeReady();
 
   private:
+    mutable std::optional<QVariantMap> parametersCache_;
+    mutable std::array<std::uint64_t, 3> parametersCacheRevision_{};
     enum class VersionAction { list, create, restore, rename, remove };
     QVariantList processingVersions_;
     bool versionsBusy_ = false;

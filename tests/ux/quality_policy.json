@@ -337,7 +337,8 @@
     "UX-P09-FLT-003",
     "UX-P09-FLT-004",
     "UX-P09-FLT-005",
-    "UX-P09-FLT-006"
+    "UX-P09-FLT-006",
+    "UX-P09-PERF-001"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -795,6 +796,10 @@
     "UX-P09-CAT-011": {
       "reason": "Populates 500000 metadata rows, opens them in a fresh process and traverses nine grid regions. Run in the final catalog/load campaign.",
       "source": "tests/ux/LibraryScaleScenarios.cpp:metadataFixture,catalogScaleRestartScenario"
+    },
+    "UX-P06-PRG-001": {
+      "reason": "Native physical-Mac latency qualification: ten distinct heavy Clarity edits, current Image synchronized into a queued window frame, post-timing pixel readback and final render, fixed 50 ms p95 budget. Requires an idle host without builds/analysis.",
+      "source": "tests/ux/ZoomScenarios.cpp:progressiveFeedbackScenario"
     }
   },
   "fixture_photo_overrides": {
@@ -870,7 +875,9 @@
     "UX-P09-FLT-003": 1,
     "UX-P09-FLT-004": 1,
     "UX-P09-FLT-005": 4,
-    "UX-P09-FLT-006": 0
+    "UX-P09-FLT-006": 0,
+    "UX-P06-PRG-001": 0,
+    "UX-P09-PERF-001": 0
   },
   "default_quality_photo_count": 10
 }
