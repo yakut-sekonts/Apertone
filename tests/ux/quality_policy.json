@@ -167,6 +167,8 @@
     "UX-NAV-009",
     "UX-NAV-010",
     "UX-P06-GPU-001",
+    "UX-P06-MEM-001",
+    "UX-P06-MEM-002",
     "UX-P06-PRG-002",
     "UX-P06-PRG-004",
     "UX-P06-PRG-007",
@@ -722,6 +724,8 @@
     }
   },
   "fixture_photo_overrides": {
+    "UX-P06-MEM-001": 1,
+    "UX-P06-MEM-002": 1,
     "UX-IMP-009": 20,
     "UX-MAC-007": 2,
     "UX-MAC-008": 2,

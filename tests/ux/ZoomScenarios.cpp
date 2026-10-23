@@ -2,6 +2,7 @@
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
 #include "tests/ux/LoadProbe.h"
+#include "tests/ux/MemoryPressureProbe.h"
 #include "tests/ux/PreviewResultProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
@@ -12,6 +13,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QJsonArray>
 #include <QNativeGestureEvent>
 #include <QPointingDevice>
 #include <QSignalSpy>
@@ -345,6 +347,99 @@ void transientHistory(Context &c, const luma::EditDocument &document, const QIma
 }
 
 } // namespace
+bool memoryPressureScenario(Context &c, const QString &id) {
+    if (id != "UX-P06-MEM-001" && id != "UX-P06-MEM-002")
+        return false;
+    auto &d = *c.driver;
+    MemoryPressureProbe::useControlledNotifications(c.editor);
+    d.log({{"action", "memory_pressure_controlled_notifications"},
+           {"os_monitor_stopped", true},
+           {"scope", "owned UX controller only; no OS pressure or RSS qualification"}});
+    const auto source = openChart(c);
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+    c.saved();
+    const auto document = c.editor.currentSettings();
+    const auto before = savedSnapshot(c);
+    const auto selection = c.library.selectionIDs();
+    const auto fit = reference(c, decoded, document, 2560);
+    const auto full = reference(c, decoded, document, 0);
+    ready(c, fit);
+    d.log({{"action", "memory_pressure_initial_state"},
+           {"pressure", int(MemoryPressureProbe::current(c.editor))},
+           {"controller_zoom_available", c.editor.zoomAvailable()},
+           {"actual_pixels_enabled", d.item("develop.actualPixels")->isEnabled()},
+           {"has_photo", c.editor.hasPhoto()},
+           {"busy", c.editor.busy()},
+           {"zoom_mode", c.editor.zoomMode()}});
+    d.click("develop.actualPixels");
+    ready(c, full);
+    d.wait([&] { return !c.editor.histogramPending(); }, "Full preview settled before pressure");
+    const auto warm = c.editor.cacheStatistics();
+    require(warm[0].entries > 0 && warm[1].entries > 0 && warm[2].entries > 0,
+            "Pressure fixture must populate decoded, source and rendered caches");
+    require(c.editor.oneToOne() && c.editor.canUndo() && !c.editor.canRedo(),
+            "Pressure fixture needs full resolution and one committed edit");
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    const auto pressure = id == "UX-P06-MEM-001" ? luma::macos::MemoryPressure::warning
+                                                 : luma::macos::MemoryPressure::critical;
+    MemoryPressureProbe::deliver(c.editor, pressure);
+    ready(c, fit);
+    d.wait([&] { return !c.editor.histogramPending(); }, "Pressure Fit preview settled");
+    fitGeometry(c);
+    require(!c.editor.zoomAvailable() && !d.item("develop.actualPixels")->isEnabled() &&
+                !d.item("develop.fill")->isEnabled() && !d.item("develop.zoomPercent")->isEnabled(),
+            "Pressure did not disable full-resolution UI controls");
+    QJsonArray caches;
+    const auto reclaimed = c.editor.cacheStatistics();
+    for (std::size_t i = 0; i < reclaimed.size(); ++i) {
+        require(reclaimed[i].entries == 0 && reclaimed[i].usedBytes == 0 &&
+                    reclaimed[i].budgetBytes == 0,
+                "Pressure retained reclaimable cache references or a nonzero budget");
+        caches.append(QJsonObject{{"warm_bytes", qint64(warm[i].usedBytes)},
+                                  {"warm_entries", qint64(warm[i].entries)},
+                                  {"reclaimed_bytes", qint64(reclaimed[i].usedBytes)},
+                                  {"reclaimed_entries", qint64(reclaimed[i].entries)}});
+    }
+    sameSaved(c, before);
+    require(c.editor.currentSettings() == document &&
+                c.editor.photoID().toStdString() == before.asset.id &&
+                c.library.selectionIDs() == selection && c.editor.canUndo() &&
+                !c.editor.canRedo() && saves.isEmpty() && sourceHash(source.path) == source.hash,
+            "Memory warning damaged the document, history, catalog or original");
+    const auto recoveredUrl = c.editor.previewUrl();
+    QSignalSpy changes(&c.editor, &EditorController::stateChanged);
+    MemoryPressureProbe::deliver(c.editor, luma::macos::MemoryPressure::normal);
+    d.frame();
+    const auto restored = c.editor.cacheStatistics();
+    for (std::size_t i = 0; i < restored.size(); ++i)
+        require(restored[i].budgetBytes == warm[i].budgetBytes,
+                "Normal pressure did not restore the configured cache budget");
+    d.log({{"action", "memory_pressure_recovery"},
+           {"pressure", id == "UX-P06-MEM-001" ? "warning" : "critical"},
+           {"caches", caches},
+           {"state_notifications", changes.count()},
+           {"controller_zoom_available", c.editor.zoomAvailable()},
+           {"actual_pixels_enabled", d.item("develop.actualPixels")->isEnabled()},
+           {"scope", "injected GUI handler boundary; no OS/RSS qualification"}});
+    require(c.editor.zoomAvailable() && !changes.isEmpty() &&
+                d.item("develop.actualPixels")->isEnabled() &&
+                d.item("develop.fill")->isEnabled() && d.item("develop.zoomPercent")->isEnabled(),
+            "Normal memory recovery left zoom UI disabled after the controller recovered");
+    require(c.editor.previewUrl() == recoveredUrl &&
+                c.provider->requestImage({}, nullptr, {}) == fit,
+            "Normal pressure unnecessarily replaced the valid Fit preview");
+    d.click("develop.actualPixels");
+    ready(c, full);
+    require(c.editor.oneToOne(), "Recovered 100% control did not restore full-resolution view");
+    sameSaved(c, before);
+    require(c.editor.currentSettings() == document && c.library.selectionIDs() == selection &&
+                c.editor.canUndo() && !c.editor.canRedo() && saves.isEmpty() &&
+                sourceHash(source.path) == source.hash && c.warnings.isEmpty(),
+            "Pressure recovery changed edits, history, original or QML validity");
+    return true;
+}
 bool zoomScenario(Context &c, const QString &id) {
     if (id != "UX-P06-ZOM-001" && id != "UX-P06-ZOM-002")
         return false;

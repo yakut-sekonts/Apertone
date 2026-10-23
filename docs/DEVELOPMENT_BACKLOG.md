@@ -327,8 +327,9 @@ This does not close BUG-045 or full release qualification; see
   reverted. Exact/full pixel, history/catalog and watchdog checks remain intact.
 - [Evidence](qualification/2026-10-23/viewer-scale-and-input.json): 51/51 bounded
   offscreen regressions, full application build, 9 affected CTest checks and
-  runner/policy tests pass. Native confirmation is pending a fresh quiet interval;
-  synthetic gesture events do not qualify physical trackpad behavior.
+  runner/policy tests pass. All four input adapters now also pass the fresh
+  Cocoa/Metal Retina interval; synthetic gesture events do not qualify physical
+  trackpad behavior. See [native follow-up](qualification/2026-10-23/ci-memory-pressure-recovery.json).
 - PRV011 and ZOM006–009 overlay mapping at arbitrary zoom remain unqualified;
   tools still operate in Fit. These and other Viewer requirements need separate
   qualification before closing this gap. No 1.0 release gate is waived.
@@ -353,7 +354,7 @@ DPR2, with intact originals/catalog and no warnings; see
 
 ## LUMA-QA-051 — Full CPU test oracle blocks GUI watchdog
 
-- Status: **test oracle moved off GUI; 24 offscreen regressions PASS; hosted retest pending**.
+- Status: **test oracle moved off GUI; 24 offscreen regressions and hosted ZOM001 3/3 PASS**.
 - Hosted bdea5bd CI records 203 PASS / 1 FAIL. ZOM001 repeat 1 is killed after
   over five seconds without a main-loop heartbeat. Its sample contains one LCMS
   frame; passing sibling samples show test `reference -> renderCPU ->
@@ -367,3 +368,34 @@ DPR2, with intact originals/catalog and no warnings; see
   adversarial watchdog control still kills a fake hung process despite PASS.
   This is a harness correction, not a production rendering performance claim.
 - Evidence: [native and worker follow-up](qualification/2026-10-23/native-preview-zoom-worker.json).
+
+The replacement hosted `21b39ac` run has 204 executed UX repetitions PASS,
+including ZOM001 3/3. Its job remains red because applicable coverage is incomplete;
+see [CI evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json).
+
+## LUMA-BUG-052 — Zoom remains disabled after memory pressure recovers
+
+- Status: **fixed; 6 offscreen and 2 native pressure repetitions PASS**.
+- Warning/critical correctly reset full-resolution zoom and release cache-owned
+  references. On normal recovery, `zoomAvailable` became true but the controller
+  emitted no `stateChanged`; Fill/100%/percentage controls stayed disabled.
+- Both prescribed pre-fix transitions reproduce controller=true/button=false
+  and zero notifications. Notify both pressure directions without rerendering
+  the valid Fit preview. Actual recovered 100% clicks render the exact full image.
+- Tests retain document/revision/history/selection/original checks, verify three
+  reclaimed cache budgets and restore the configured budgets. Injection replaces
+  OS notifications only for an empty owned UX controller; no production hook is
+  exposed to QML. Real OS pressure, RSS, stress and AI cancellation remain open.
+- Evidence: [CI and memory recovery](qualification/2026-10-23/ci-memory-pressure-recovery.json).
+
+## LUMA-QA-053 — Incomplete blocking coverage suppresses independent CI evidence
+
+- Status: **workflow corrected; hosted confirmation pending**.
+- Hosted `21b39ac` executes all 204 implemented bounded blocking repetitions
+  successfully. Its 58 missing adapters correctly fail the coverage gate, but
+  default step conditions then skip every supplemental regression and static check.
+- Independent checks now require successful build prerequisites and a noncancelled
+  run. Failures still fail the job; no acceptance criteria or publication gate
+  is relaxed. The two new memory adapters reduce that missing-adapter set by two,
+  but this does not qualify the remaining phase or full-release scope.
+- Evidence: [CI and memory recovery](qualification/2026-10-23/ci-memory-pressure-recovery.json).

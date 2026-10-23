@@ -270,8 +270,10 @@ void EditorController::handleMemoryPressure(luma::macos::MemoryPressure pressure
         // preview. Existing source pixels and unsaved edits remain available.
         resetPreviewZoom();
         render();
-        emit stateChanged();
     }
+    // Recovery changes zoomAvailable even though the valid Fit preview does
+    // not need another render. Notify its QML bindings in both directions.
+    emit stateChanged();
 }
 
 void EditorController::setWindow(QQuickWindow *window) {

@@ -18,8 +18,16 @@
 #include <QVariantMap>
 #include <array>
 
+#ifdef LUMA_UX_MEMORY_PRESSURE_PROBE
+namespace ux {
+class MemoryPressureProbe;
+}
+#endif
 class EditorController final : public QObject {
     Q_OBJECT
+#ifdef LUMA_UX_MEMORY_PRESSURE_PROBE
+    friend class ux::MemoryPressureProbe;
+#endif
     Q_PROPERTY(QVariantMap comparison READ comparison NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)
     Q_PROPERTY(bool localSampling READ localSampling NOTIFY stateChanged)

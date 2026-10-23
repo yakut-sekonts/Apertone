@@ -1,5 +1,13 @@
 # Native UX regression
 
+P06-MEM-001/002 exercise warning/critical and normal recovery through the real
+EditorController GUI handler. The UX-only friend probe stops and drains OS
+notifications on an empty owned controller so host events cannot interleave with
+the prescribed sequence. Actual UI zoom, full/Fit CPU pixels, three reclaimable
+cache budgets, document/history/catalog and original hashes are checked. This
+is controlled application recovery, not OS event delivery, RSS or stress
+qualification. The same scenarios run on offscreen/software and Cocoa/Metal.
+
 This separate Qt Test executable loads production Main.qml and the real controllers.
 It sends real clicks, drags, keys and ordinary wheel events. A native file-panel
 selection may be prepared as a fixture boundary; this does not qualify the native

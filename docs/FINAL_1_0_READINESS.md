@@ -5,6 +5,45 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Hosted CI and memory recovery — 2026-10-23
+
+[Verified evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json)
+records hosted `21b39ac` CI: full build, model numerical/source/photographic
+checks and unit/integration pass (**61 PASS / 1 private Nikon SKIP**). All
+**204 executed blocking UX repetitions pass**, including ZOM001 3/3 after the
+async CPU-oracle correction. The stage correctly exits INCOMPLETE: 58 applicable
+blocking adapters were absent and 29 load scenarios were deferred. This is an
+incomplete qualification, not an executed-case failure or an overall CI PASS.
+
+The workflow now runs independent UX and static checks after any earlier
+failure, provided their build prerequisite succeeded and the run was not
+cancelled. No UX `continue-on-error` or acceptance waiver is added. Every failed
+step still fails the job. The job ceiling is 180 minutes to allow the model,
+regression and full static sequence to finish; per-case limits are unchanged.
+
+The next two adapters expose a real recovery defect: normal pressure restores
+the controller's zoom availability and cache budgets but did not notify QML.
+Both warning and critical controls reproduce an enabled controller with disabled
+buttons and zero state notifications. The fix notifies on recovery without a
+new render. Identical post-fix checks pass **6/6 offscreen**; three reclaimable
+cache budgets/entries reach zero under pressure and restore correctly. Pixels,
+document, catalog revision, history, selection and original hashes remain intact.
+
+These are bounded injected-handler checks. Their owned UX controller stops and
+drains OS notifications before prescribing the transitions. Initial attempts
+with live OS notifications are retained: genuine host warning disabled zoom
+before the intended test. This does not qualify physical memory stress, RSS,
+OS delivery, or AI/retouch cancellation.
+
+The fresh approved quiet interval passes **6/6 native** on Cocoa/Metal Qt scene,
+Retina DPR2: PRV012, ZOM003/004/012 and MEM001/002, with exact CPU photo references,
+no QML warnings and intact original/catalog checks. Mac was released. Pinch uses
+Qt native-gesture delivery, not a physical trackpad. Full application build,
+5 affected CTest checks, 40 runner and 11 policy tests, whole-tree formatting
+and affected blocking clang-tidy pass. A previous full tidy scan was invalidated
+by concurrent source edits and stopped; its log is retained, not counted PASS.
+Full hosted static analysis and the remaining release scope still need evidence.
+
 ### Viewer scale and input — 2026-10-23
 
 [Evidence](qualification/2026-10-23/viewer-scale-and-input.json) records the
@@ -35,13 +74,12 @@ remain. PRV012 enters qualification through an explicit implemented-target phase
 mapping; its original TARGET specification is unchanged. CI/release require all
 four new input adapters, three repetitions each, with retained evidence.
 
-Fresh native confirmation is requested but not yet completed. Synthetic Qt
-native-gesture delivery is not physical trackpad qualification. PRV011 and
+Fresh native confirmation of all four input adapters now passes in the follow-up
+above. Synthetic Qt native-gesture delivery is not physical trackpad qualification. PRV011 and
 ZOM006–009 overlay mapping at arbitrary zoom remain open; tools still use Fit.
-GAP049 is therefore not closed. Hosted CI on `21b39ac` has passed model
-preparation/numerics/source quality, full build, photographic Denoise/Sky and
-unit/integration. Its blocking UX stage is still running. No overall CI or 1.0
-release PASS is inferred.
+GAP049 is therefore not closed. Hosted CI on `21b39ac` finishes with 204 executed
+UX repetitions PASS but an INCOMPLETE coverage gate, as detailed above. No overall
+CI or 1.0 release PASS is inferred.
 
 ### Native transient confirmation and zoom-oracle worker — 2026-10-23
 
@@ -81,8 +119,8 @@ pass **24/24 offscreen repetitions** without warnings or integrity failures.
 The adversarial runner control still kills a hung process despite its forged PASS.
 Formatting and affected blocking tidy checks pass; nonblocking warnings remain.
 
-Native confirmation above precedes this worker-only harness change. A replacement
-hosted CI run is still required; this is not an overall release PASS. GAP049,
+Native confirmation above precedes this worker-only harness change. The replacement
+hosted run now passes ZOM001 3/3; this is not an overall release PASS. GAP049,
 BUG045 and all other unqualified scopes remain open. No 1.0 publication.
 
 ### Transient preview ordering and preset pixel oracle — 2026-10-23
