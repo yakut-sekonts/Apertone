@@ -579,3 +579,21 @@ The defect remains open; no root cause is inferred from passing repeats.
   Cocoa/Metal DPR2 runs. Full build, eight CTest checks and mandatory static checks
   pass. Photographic breadth and performance remain separate.
 - [Evidence](qualification/2026-10-23/hdr-options-alignment.json).
+
+## LUMA-GAP-064 — Editing tools force Fit instead of supporting zoom/pan
+
+- Status: **implemented; four Cocoa/Metal scenarios and 12 Fit regressions pass;
+  local repetitions under memory pressure and hosted confirmation remain open**.
+- Four new baseline adapters reproduce the unavailable zoom controls. Crop,
+  Guided Transform, Local Adjustments and targeted tone/HSL now retain zoom.
+  The viewport measures the exact rendered tool canvas; stable tool renders use
+  full source pixels. Flickable/TapHandler do not steal editing gestures.
+- Only the visible intersection receives a Canvas backing store; 1600% checks
+  cover active and inactive overlays. Pointer mapping, real scene handles,
+  stored geometry, independent targeted sampling, Undo/Redo and source hashes
+  are checked. Full build, 11 CTest and mandatory static checks pass.
+- Large offscreen series: three Crop PASS, nine retained FAIL; eight availability
+  failures explicitly record actual memory warning. All four native cases and
+  three isolated offscreen cases pass without suppressing OS notifications.
+  A further repeat was not started because the actual kernel warning persisted.
+- [Evidence](qualification/2026-10-23/zoom-tool-mapping.json).

@@ -1,4 +1,5 @@
 #include "apps/shared/PhotoDecoder.h"
+#include "core/render/AdvancedColor.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
 #include "tests/ux/LoadProbe.h"
@@ -1251,4 +1252,271 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
     return true;
 }
 
+} // namespace ux
+
+namespace ux {
+bool zoomToolsScenario(Context &c, const QString &id) {
+    const bool crop = id == "UX-P06-ZOM-006", guided = id == "UX-P06-ZOM-007",
+               brush = id == "UX-P06-ZOM-008", targeted = id == "UX-P06-ZOM-009";
+    if (!crop && !guided && !brush && !targeted)
+        return false;
+    auto &d = *c.driver;
+    QObject pressureObserver;
+    auto lastPressure = MemoryPressureProbe::current(c.editor);
+    QObject::connect(&c.editor, &EditorController::stateChanged, &pressureObserver, [&] {
+        const auto current = MemoryPressureProbe::current(c.editor);
+        if (current != lastPressure) {
+            d.log({{"action", "zoom_tool_actual_os_pressure"},
+                   {"before", int(lastPressure)},
+                   {"after", int(current)},
+                   {"zoom_mode", c.editor.zoomMode()}});
+            lastPressure = current;
+        }
+    });
+    const auto source = openChart(c, false, targeted ? QSize{2048, 1536} : QSize{3072, 2304});
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    auto waitTool = [&] {
+        d.wait(
+            [&] {
+                return !c.editor.histogramPending() && (!crop || c.editor.cropCanvasReady()) &&
+                       (!guided || c.editor.guidedCanvasReady()) &&
+                       (!brush || c.editor.localCanvasReady());
+            },
+            "Zoom tool canvas and final preview ready");
+        d.frame();
+    };
+    if (crop) {
+        c.reveal("cropTool");
+        d.click("cropTool");
+        waitTool();
+        // A small inset is an explicit fixture precondition. The measured drag
+        // below uses actual window input while this corner remains in view.
+        c.editor.setCropRect(.45, .45, .1, .1);
+        c.saved();
+        waitTool();
+    } else if (guided) {
+        c.reveal("transformGuided");
+        d.click("transformGuided");
+        waitTool();
+        c.reveal("transformGuideLayout");
+        d.choose("transformGuideLayout", 0);
+        d.dragBetween("transformGuidePoint0_0", {.5, .5}, "transformOverlay", {.45, .45});
+    } else if (brush) {
+        c.addMask(2);
+        waitTool();
+    }
+    const int count = targeted ? 4 : 2;
+    for (int pass = 0; pass < count; ++pass) {
+        const bool hsl = targeted && pass >= 2;
+        if (targeted && pass % 2 == 0) {
+            if (hsl) {
+                c.reveal("hsl.targetMode");
+                d.choose("hsl.targetMode", 1);
+            }
+            const QString tool = hsl ? "hsl.target" : "curves.target";
+            c.reveal(tool);
+            d.click(tool);
+            waitTool();
+        }
+        d.log({{"action", "zoom_tool_availability"},
+               {"pressure", int(MemoryPressureProbe::current(c.editor))},
+               {"busy", c.editor.busy()},
+               {"locked", c.editor.editingLocked()},
+               {"white_balance", c.editor.whiteBalancePicking()},
+               {"point_color", c.editor.pointColorPicking()},
+               {"retouch", c.editor.retouchMode()},
+               {"available", c.editor.zoomAvailable()}});
+        require(c.editor.zoomAvailable(), "Active editing tool disables required zoom/pan");
+        if (pass % 2 == 0)
+            d.click("develop.actualPixels");
+        else
+            percent(c, "137.5", 1.375);
+        waitTool();
+        const double scale = pass % 2 == 0 ? 1 : 1.375;
+        require(c.editor.zoomMode() == "manual" && c.editor.zoomFactor() == scale,
+                "Tool unexpectedly reset the requested zoom to Fit");
+        require(c.provider->requestImage({}, nullptr, {}).size() ==
+                    QSize(decoded.image.width, decoded.image.height),
+                "Zoom tool renders a reduced rather than full source canvas");
+        auto *view = d.item("develop.viewport"), *image = d.item("develop.preview");
+        const auto oldX = view->property("contentX").toDouble();
+        const auto oldY = view->property("contentY").toDouble();
+        wheelAt(c, {view->width() / 2, view->height() / 2}, {-43, -31}, {}, Qt::ScrollUpdate);
+        d.frame();
+        require(view->property("contentX").toDouble() > oldX &&
+                    view->property("contentY").toDouble() > oldY,
+                "Editing tool cannot pan in both axes");
+        const auto panX = view->property("contentX").toDouble(),
+                   panY = view->property("contentY").toDouble();
+        if (!targeted) {
+            auto *canvas = d.item(crop     ? "CropOverlay.canvas"
+                                  : guided ? "TransformOverlay.canvas"
+                                           : "LocalOverlay.canvas");
+            require(canvas->width() <= view->width() + 1 &&
+                        canvas->height() <= view->height() + 1 &&
+                        view->boundingRect()
+                            .adjusted(-1, -1, 1, 1)
+                            .contains(canvas->mapRectToItem(view, canvas->boundingRect())),
+                    "Active zoomed Canvas backing is not bounded to the visible viewport");
+        }
+        const auto before = c.editor.currentSettings();
+        const auto previous = c.editor.previewUrl();
+        auto actualPoint = [&](const QString &area, QPointF fraction) {
+            const auto scene = d.point(area, fraction);
+            const auto viewportPoint = view->mapFromScene(scene);
+            require(view->boundingRect().contains(viewportPoint),
+                    "Zoom tool input is outside viewport clipping");
+            const auto point = image->mapFromScene(scene);
+            return QPointF(
+                (point.x() - (image->width() - image->property("paintedWidth").toDouble()) / 2) /
+                    image->property("paintedWidth").toDouble(),
+                (point.y() - (image->height() - image->property("paintedHeight").toDouble()) / 2) /
+                    image->property("paintedHeight").toDouble());
+        };
+        if (crop) {
+            const auto start = actualPoint("cropDragArea", {.45, .45});
+            const auto end = actualPoint("cropDragArea", {.47, .46});
+            require(start.x() < end.x() && start.y() < end.y(), "Invalid crop pointer fixture");
+            d.drag("cropDragArea", {.45, .45}, {.47, .46});
+            c.saved();
+            waitTool();
+            const auto frame = c.editor.cropState();
+            d.log({{"action", "zoom_crop_coordinates"},
+                   {"actual", QJsonObject::fromVariantMap(frame)},
+                   {"expected_x", end.x()},
+                   {"expected_y", end.y()},
+                   {"scale", scale}});
+            require(std::abs(frame["x"].toDouble() - end.x()) < .001 &&
+                        std::abs(frame["y"].toDouble() - end.y()) < .001 &&
+                        std::abs(frame["x"].toDouble() + frame["width"].toDouble() - .55) < .001 &&
+                        std::abs(frame["y"].toDouble() + frame["height"].toDouble() - .55) < .001,
+                    "Zoomed crop corner does not match the actual source coordinate");
+        } else if (guided) {
+            const auto end = actualPoint("transformOverlay", {.50, .48});
+            d.dragBetween("transformGuidePoint0_0", {.5, .5}, "transformOverlay", {.50, .48});
+            const auto guide = c.editor.transformGuides().front().toMap();
+            require(std::abs(guide["x1"].toDouble() - end.x()) < 1e-6 &&
+                        std::abs(guide["y1"].toDouble() - end.y()) < 1e-6 &&
+                        c.editor.currentSettings() == before,
+                    "Zoomed guide coordinates differ or transient guide edited the document");
+            d.dragBetween("transformGuidePoint0_0", {.5, .5}, "transformOverlay", {.45, .45});
+        } else if (brush) {
+            const auto start = actualPoint("localMaskGestureArea", {.5, .5});
+            const auto end = actualPoint("localMaskGestureArea", {.53, .52});
+            d.drag("localMaskGestureArea", {.5, .5}, {.53, .52});
+            c.saved();
+            waitTool();
+            const auto after = c.editor.currentSettings();
+            require(after.localMasks.size() == 1 && after.localMasks[0].strokes.size() == 1,
+                    "Zoomed brush did not commit one stroke");
+            const auto &points = after.localMasks[0].strokes[0].points;
+            require(points.size() >= 2 && std::abs(points.front().x - start.x()) < 1e-6 &&
+                        std::abs(points.front().y - start.y()) < 1e-6 &&
+                        std::abs(points.back().x - end.x()) < 1e-6 &&
+                        std::abs(points.back().y - end.y()) < 1e-6,
+                    "Zoomed brush stored a different source-space path");
+        } else {
+            const auto start = actualPoint("develop.targetedArea", {.53, .47});
+            const auto end = actualPoint("develop.targetedArea", {.53, .43});
+            const double delta = start.y() - end.y();
+            const auto sampling = reference(c, decoded, before, 0, false);
+            const auto color = sampling.pixelColor(
+                std::min(int(start.x() * sampling.width()), sampling.width() - 1),
+                std::min(int(start.y() * sampling.height()), sampling.height() - 1));
+            d.drag("develop.targetedArea", {.53, .47}, {.53, .43});
+            c.saved();
+            waitTool();
+            const auto after = c.editor.currentSettings();
+            auto expected = before;
+            if (hsl) {
+                const auto weights = luma::hueWeights(
+                    luma::toHSL({color.redF(), color.greenF(), color.blueF()}).hue);
+                expected.hsl = after.hsl;
+                for (std::size_t i = 0; i < weights.size(); ++i)
+                    require(std::abs(after.hsl[i].saturation - before.hsl[i].saturation -
+                                     delta * 100 * weights[i]) < .2,
+                            "Zoomed HSL drag sampled the wrong source color or delta");
+            } else {
+                expected.curves[0] = after.curves[0];
+                const auto &points = after.curves[0].points;
+                const double tone =
+                    .2126 * color.redF() + .7152 * color.greenF() + .0722 * color.blueF();
+                require(points.size() == 3 && std::abs(points[1].x - tone) < .005 &&
+                            std::abs(points[1].y - points[1].x - delta) < 1e-6,
+                        "Zoomed tone drag sampled the wrong source tone or delta");
+            }
+            require(after != before && after == expected,
+                    "Zoomed targeted drag changed another group");
+        }
+        require(std::abs(view->property("contentX").toDouble() - panX) < 1e-6 &&
+                    std::abs(view->property("contentY").toDouble() - panY) < 1e-6,
+                "Editing gesture was stolen by viewport panning");
+        if (!guided) {
+            const auto after = c.editor.currentSettings();
+            require(after != before && c.editor.previewUrl() != previous,
+                    "Tool gesture did not update preview");
+            d.click("main.undoButton");
+            c.saved();
+            waitTool();
+            require(c.editor.currentSettings() == before,
+                    "Zoom tool gesture was not exactly one Undo");
+            d.click("main.redoButton");
+            c.saved();
+            waitTool();
+            require(c.editor.currentSettings() == after, "Zoom tool Redo lost edits");
+            d.click("main.undoButton");
+            c.saved();
+            waitTool();
+        }
+        d.log({{"action", "zoom_tool_mapping"},
+               {"scenario", id},
+               {"scale", scale},
+               {"hsl", hsl},
+               {"pan_x", panX},
+               {"pan_y", panY}});
+        if (crop || guided) {
+            const auto frame = c.editor.cropState();
+            const auto guide = c.editor.transformGuides();
+            const QPointF expected = crop ? QPointF(frame["x"].toDouble(), frame["y"].toDouble())
+                                          : QPointF(guide.front().toMap()["x1"].toDouble(),
+                                                    guide.front().toMap()["y1"].toDouble());
+            const auto point =
+                image->mapToScene({expected.x() * image->width(), expected.y() * image->height()}) *
+                c.window->devicePixelRatio();
+            const auto scene = c.window->grabWindow();
+            const QColor color(crop ? "#dfae77" : "#53d6e4");
+            bool found = false;
+            for (int y = -3; y <= 3; ++y)
+                for (int x = -3; x <= 3; ++x) {
+                    const QPoint p(qRound(point.x()) + x, qRound(point.y()) + y);
+                    if (!scene.rect().contains(p))
+                        continue;
+                    const auto pixel = scene.pixelColor(p);
+                    found |= std::abs(pixel.red() - color.red()) <= 8 &&
+                             std::abs(pixel.green() - color.green()) <= 8 &&
+                             std::abs(pixel.blue() - color.blue()) <= 8;
+                }
+            require(found,
+                    "Actual scene does not display the tool grip at its expected image coordinate");
+        }
+        d.screenshot(c.root + QString("/zoom-tool-%1.png").arg(pass));
+        d.click("develop.fit");
+        waitTool();
+    }
+    percent(c, "1600", 16);
+    waitTool();
+    auto *viewport = d.item("develop.viewport");
+    for (const auto *name :
+         {"CropOverlay.canvas", "TransformOverlay.canvas", "LocalOverlay.canvas"}) {
+        const auto *canvas = d.item(QString::fromLatin1(name));
+        require(canvas->width() <= viewport->width() + 1 &&
+                    canvas->height() <= viewport->height() + 1,
+                "1600% tool view creates an unbounded Canvas backing store");
+    }
+    d.screenshot(c.root + "/zoom-tool-1600.png");
+    d.click("develop.fit");
+    waitTool();
+    require(sourceHash(source.path) == source.hash, "Zoom tool changed original bytes");
+    return true;
+}
 } // namespace ux

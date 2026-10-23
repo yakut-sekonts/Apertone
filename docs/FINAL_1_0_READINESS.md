@@ -5,6 +5,37 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Editing tools at zoom/pan — 2026-10-23
+
+[Evidence](qualification/2026-10-23/zoom-tool-mapping.json) adds ZOM006–009.
+Crop, Guided Transform, Local Adjustments and targeted tone/HSL no longer force
+Fit. Render and viewport dimensions share the same prepared canvas document;
+zoomed tools render the full source. Tool drags retain pointer ownership, while
+wheel/pinch remain available. Canvas stores are clipped to the visible viewport
+and paint translated source coordinates; inactive stores also stay bounded.
+
+**4/4 Cocoa/Metal DPR2, 12/12 Fit regressions and 11/11 affected CTest PASS**.
+Full build, formatting and mandatory affected tidy pass; nonblocking warnings
+remain. Actual controls exercise 100%/137.5%, both pan axes, Crop corners, Guided
+endpoints, stored Brush path, independent tone/HSL sample and delta, one-unit
+Undo/Redo and source hashes. Actual scene pixels locate Crop/Guide handles.
+Canvas dimensions remain bounded at 1600%. The first three tools use full
+3072×2304 pixels; targeted sampling uses 2048×1536 to isolate mapping.
+
+Local repeated large-fixture checks are **incomplete**: three Crop repeats pass,
+then nine failures remain recorded. Eight explicitly observe real OS memory
+warning; one reset after an initial normal snapshot has no conclusive transition
+trace. Separate isolated runs pass the other three once after real kernel-normal
+preflight. The next planned cycle did not start because kernel warning persisted
+for 60 seconds. No pressure callback was suppressed and no normal state injected.
+A previous small-fixture run also preserves a clipped Crop-start harness error
+and three uninstrumented availability failures; after correcting the pointer
+fixture, all four small cases pass. No failed row is converted into a pass.
+
+Remaining applicable blocking IDs without adapters: **22**. Hosted confirmation,
+complete repetitions, memory/load qualification, BUG045 and the final release
+gate remain open. These results are not a performance or all-tool certification.
+
 ### HDR alignment/deghost controls and bounded transforms — 2026-10-23
 
 [Evidence](qualification/2026-10-23/hdr-options-alignment.json): **21/21 offscreen,

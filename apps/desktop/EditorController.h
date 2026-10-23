@@ -614,6 +614,7 @@ class EditorController final : public QObject {
     PreviewZoom zoomMode_ = PreviewZoom::fit;
     double zoomFactor_ = 1;
     bool zoomToolsCompatible() const;
+    luma::EditDocument previewDocument() const;
     void applyPreviewZoom(PreviewZoom mode, double factor);
     void resetPreviewZoom();
     bool metalPreview_ = true;

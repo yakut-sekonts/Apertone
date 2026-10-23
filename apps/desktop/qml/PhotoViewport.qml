@@ -16,17 +16,26 @@ Flickable {
     readonly property real imageItemWidth: pixelMode ? sourceWidth * effectiveZoom : width
     readonly property real imageItemHeight: pixelMode ? sourceHeight * effectiveZoom : height
 
+    readonly property bool toolActive: controller.cropMode || controller.guidedMode || controller.localMode || controller.targetedTool !== "none"
     property bool pendingPlacement: false
     property point pendingSource: Qt.point(0.5, 0.5)
     property point pendingPoint: Qt.point(0, 0)
     property real pendingZoom: 1
 
     clip: true
-    interactive: pixelMode && controller.zoomAvailable
+    interactive: pixelMode && controller.zoomAvailable && !toolActive
     contentWidth: Math.max(width, imageItemWidth)
     contentHeight: Math.max(height, imageItemHeight)
     boundsBehavior: Flickable.StopAtBounds
 
+    // Overlay items retain source-space geometry; only their Canvas backing
+    // stores cover the visible viewport, even at the maximum zoom factor.
+    function visibleBounds(itemX, itemY, itemWidth, itemHeight) {
+        const left = Math.max(0, contentX - itemX)
+        const top = Math.max(0, contentY - itemY)
+        return Qt.rect(left, top, Math.max(0, Math.min(itemWidth, contentX + width - itemX) - left),
+                       Math.max(0, Math.min(itemHeight, contentY + height - itemY) - top))
+    }
     function bounded(value, maximum) {
         return Math.max(0, Math.min(Math.max(0, maximum), value))
     }
@@ -89,6 +98,7 @@ Flickable {
         contentX = bounded(contentX + dx, contentWidth - width)
         contentY = bounded(contentY + dy, contentHeight - height)
     }
+    onSourceSizeChanged: schedulePlacement()
     onZoomModeChanged: schedulePlacement()
     onEffectiveZoomChanged: schedulePlacement()
     onWidthChanged: schedulePlacement()
@@ -134,7 +144,7 @@ Flickable {
     }
     TapHandler {
         parent: viewport
-        enabled: viewport.controller.zoomAvailable
+        enabled: viewport.controller.zoomAvailable && !viewport.toolActive
         acceptedButtons: Qt.LeftButton
         onDoubleTapped: (point, button) => {
             if (viewport.controller.oneToOne)

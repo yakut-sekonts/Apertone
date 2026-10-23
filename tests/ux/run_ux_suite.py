@@ -79,6 +79,7 @@ NATIVE.update(f'UX-MSK-{i:03}' for i in (1,2,3,4,6,7,9,10,11,13,14,15,16,17,19,2
 NATIVE.update(('UX-APP-006', 'UX-APP-007', 'UX-NAV-008', 'UX-NAV-009', 'UX-NAV-013', 'UX-KEY-002',
                'UX-SLD-007', 'UX-SLD-008', 'UX-SLD-019', 'UX-UND-001', 'UX-UND-002', 'UX-UND-003', 'UX-UND-004', 'UX-UND-005', 'UX-UND-010'))
 NATIVE.update(('UX-PRV-012', 'UX-P06-ZOM-003', 'UX-P06-ZOM-004', 'UX-P06-ZOM-012'))
+NATIVE.update(f'UX-P06-ZOM-{i:03}' for i in (6,7,8,9))
 NATIVE.add('UX-PRV-013')
 NATIVE.add('UX-PRV-006')
 NATIVE.update(('UX-P06-GPU-001', 'UX-P06-GPU-002'))

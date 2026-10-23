@@ -160,12 +160,26 @@ QString EditorController::previewUrl() const {
     return previewReady_ ? QStringLiteral("image://preview/current?v=%1").arg(imageRevision_)
                          : QString();
 }
+luma::EditDocument EditorController::previewDocument() const {
+    auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    if (cropMode_ && edits.enabled(luma::Correction::crop)) {
+        edits.crop.x = 0;
+        edits.crop.y = 0;
+        edits.crop.width = 1;
+        edits.crop.height = 1;
+        edits.crop.aspect = 0;
+    }
+    if (guidedMode_) {
+        edits.setEnabled(luma::Correction::transform, false);
+        edits.setEnabled(luma::Correction::crop, false);
+    }
+    return edits;
+}
 QSize EditorController::previewPixelSize() const {
     if (!session_)
         return {};
     const auto &metadata = session_->asset.metadata;
-    const auto edits =
-        original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
+    const auto edits = previewDocument();
     try {
         const luma::CropGeometry geometry(metadata.width, metadata.height, metadata.orientation,
                                           edits);
@@ -177,9 +191,7 @@ QSize EditorController::previewPixelSize() const {
     }
 }
 bool EditorController::zoomToolsCompatible() const {
-    return !cropMode_ && !guidedMode_ && !localMode_ && !whiteBalancePicking_ &&
-           !pointColorPicking_ && retouchMode_ == QStringLiteral("off") &&
-           targetedTool_ == QStringLiteral("none");
+    return !whiteBalancePicking_ && !pointColorPicking_ && retouchMode_ == QStringLiteral("off");
 }
 bool EditorController::zoomAvailable() const {
     return editable() && zoomToolsCompatible() && pressure_ == luma::macos::MemoryPressure::normal;
@@ -716,22 +728,11 @@ void EditorController::render(bool fullQuality) {
                              !pointColorPicking_ && !cropMode_ && !guidedMode_ && !localMode_ &&
                              retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
-    const bool fullResolution = fullQuality && zoomMode() != QStringLiteral("fit");
+    const bool fullResolution = !interactive && zoomMode() != QStringLiteral("fit");
     const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
-    auto edits = original_ ? luma::EditDocument{} : presetPreview_.value_or(history_.current());
-    if (cropMode_ && edits.enabled(luma::Correction::crop)) {
-        edits.crop.x = 0;
-        edits.crop.y = 0;
-        edits.crop.width = 1;
-        edits.crop.height = 1;
-        edits.crop.aspect = 0;
-    }
-    if (guidedMode_) {
-        edits.setEnabled(luma::Correction::transform, false);
-        edits.setEnabled(luma::Correction::crop, false);
-    }
+    const auto edits = previewDocument();
     const auto calibration = session_->calibration;
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;

@@ -387,27 +387,26 @@ ApplicationWindow {
                             height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
                         }
                         LocalOverlay {
-                            photoWidth: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
-                            photoHeight: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
+                            photoWidth: editor.localMode || !previewViewport.pixelMode ? previewImage.paintedWidth : 0
+                            photoHeight: editor.localMode || !previewViewport.pixelMode ? previewImage.paintedHeight : 0
                             width: Math.max(84, photoWidth); height: Math.max(84, photoHeight)
-                            x: (previewImage.width-width)/2
-                            y: (previewImage.height-height)/2
+                            x: previewImage.x + (previewImage.width-width)/2
+                            y: previewImage.y + (previewImage.height-height)/2
+                            paintBounds: previewViewport.visibleBounds(x,y,width,height)
                         }
                         TransformOverlay {
-                            x: (previewImage.width-previewImage.paintedWidth)/2
-                            y: (previewImage.height-previewImage.paintedHeight)/2
-                            // These tools currently operate in Fit. Do not allocate
-                            // hidden Canvas backing images at magnified dimensions.
-                            width: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
-                            height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
+                            x: previewImage.x + (previewImage.width-previewImage.paintedWidth)/2
+                            y: previewImage.y + (previewImage.height-previewImage.paintedHeight)/2
+                            width: editor.guidedMode || !previewViewport.pixelMode ? previewImage.paintedWidth : 0
+                            height: editor.guidedMode || !previewViewport.pixelMode ? previewImage.paintedHeight : 0
+                            paintBounds: previewViewport.visibleBounds(x,y,width,height)
                         }
                         CropOverlay {
-                            x: (previewImage.width-previewImage.paintedWidth)/2
-                            y: (previewImage.height-previewImage.paintedHeight)/2
-                            // These tools currently operate in Fit. Do not allocate
-                            // hidden Canvas backing images at magnified dimensions.
-                            width: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
-                            height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
+                            x: previewImage.x + (previewImage.width-previewImage.paintedWidth)/2
+                            y: previewImage.y + (previewImage.height-previewImage.paintedHeight)/2
+                            width: editor.cropMode || !previewViewport.pixelMode ? previewImage.paintedWidth : 0
+                            height: editor.cropMode || !previewViewport.pixelMode ? previewImage.paintedHeight : 0
+                            paintBounds: previewViewport.visibleBounds(x,y,width,height)
                         }
                         }
                         ColumnLayout {
