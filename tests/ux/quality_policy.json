@@ -312,7 +312,11 @@
     "UX-P08-PAN-004",
     "UX-P08-ALG-002",
     "UX-P08-PAN-012",
-    "UX-P08-FLT-001"
+    "UX-P08-FLT-001",
+    "UX-P08-HDR-006",
+    "UX-P08-HDR-007",
+    "UX-P08-DGH-001",
+    "UX-P08-ALG-001"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -808,7 +812,11 @@
     "UX-P08-PAN-004": 0,
     "UX-P08-ALG-002": 0,
     "UX-P08-PAN-012": 0,
-    "UX-P08-FLT-001": 0
+    "UX-P08-FLT-001": 0,
+    "UX-P08-HDR-006": 0,
+    "UX-P08-HDR-007": 0,
+    "UX-P08-DGH-001": 0,
+    "UX-P08-ALG-001": 0
   },
   "default_quality_photo_count": 10
 }

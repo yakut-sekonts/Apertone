@@ -82,7 +82,7 @@ FloatImage mergeHDR(const MergeFrame &reference, std::size_t frameCount,
         if (std::abs(differenceEV) > 16)
             throw std::runtime_error("HDR exposure range exceeds 16 stops.");
         const double gain = std::exp2(differenceEV);
-        const auto lookup = frame.toReference.inverse();
+        const auto lookup = options.alignFrames ? frame.toReference.inverse() : Homography{};
         for (int y = 0; y < base.height; ++y) {
             checkCancellation(stop);
             for (int x = 0; x < base.width; ++x) {

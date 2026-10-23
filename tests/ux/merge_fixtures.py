@@ -11,6 +11,7 @@ CASE_PROFILE_IDS = {
     'UX-P08-HDR-001', 'UX-P08-HDR-009', 'UX-P08-PAN-001', 'UX-P08-PAN-002',
     'UX-P08-FLT-002', 'UX-P08-PAN-004', 'UX-P08-ALG-002',
     'UX-P08-PAN-012', 'UX-P08-FLT-001',
+    'UX-P08-HDR-006', 'UX-P08-HDR-007', 'UX-P08-DGH-001', 'UX-P08-ALG-001',
 }
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -45,7 +46,7 @@ def official_fixture(folder, *, owned_root, case_id):
     if folder.resolve() != folder or folder.exists() or folder.is_symlink():
         raise ValueError('Merge profile requires a fresh directory without aliases')
     folder.mkdir(parents=True)
-    panorama = case_id.startswith('UX-P08-PAN-') or case_id == 'UX-P08-ALG-002'
+    panorama = case_id.startswith(('UX-P08-PAN-', 'UX-P08-ALG-'))
     rejected = case_id in ('UX-P08-PAN-004', 'UX-P08-ALG-002')
     offset = (4096, 8192) if rejected else (0, 48) if case_id == 'UX-P08-PAN-002' else (64, 0)
     if panorama:
@@ -56,9 +57,15 @@ def official_fixture(folder, *, owned_root, case_id):
         generator = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(generator)
         for i, (gain, shutter) in enumerate(((.25, (1, 500)), (1, (1, 125)), (4, (4, 125)))):
-            def sample(x, y, gain=gain):
+            def sample(x, y, gain=gain, frame=i):
                 # The rightmost highlight exceeds SDR white at the middle exposure.
+                if case_id == 'UX-P08-HDR-006':
+                    x += (-6, 0, 6)[frame]
                 scene = texture(x, y) + (1.2 if x > 210 and 48 < y < 144 else 0)
+                if case_id in ('UX-P08-HDR-007', 'UX-P08-DGH-001'):
+                    left = (48, 112, 176)[frame]
+                    if left <= x < left + 32 and 56 <= y < 96:
+                        scene = .78
                 return min(.99, scene * gain)
             generator.create_dng(folder / f'Frame{i + 1:02}.dng', width=256, height=192,
                                  sample=sample, exif_ifd=True, shutter=shutter)

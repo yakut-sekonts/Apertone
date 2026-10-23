@@ -5,6 +5,25 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### HDR alignment/deghost controls and bounded transforms — 2026-10-23
+
+[Evidence](qualification/2026-10-23/hdr-options-alignment.json): **21/21 offscreen,
+7/7 Cocoa/Metal DPR2 and eight affected CTest entries PASS**. Full build, format
+and affected blocking tidy pass; nonblocking warnings remain. Four new blocking
+adapters cover HDR006/007, DGH001 and ALG001. Default-on Align frames now has a
+real localized checkbox and passes through service/core; output provenance records
+both options. On/off jobs preserve originals and source edits, create distinct
+Float DNGs, and match independent preview pixels.
+
+Known shifts reduce MSE from .002533 to .000731; moving-object deghosting reduces
+it from .038294 to .000189. All repeats use the unchanged maximum .6 error ratio.
+Actual platform registration maps a 121-point grid within one pixel of the known
+translation, with finite coefficients and inverse round-trip. Its real UI panorama
+consumer also meets the prior .001 scene-pixel budget. Cancel, default HDR and
+clean Float DNG restart regressions pass. These bounded fixtures do not qualify
+all photographic scenes, large jobs or performance. Remaining applicable blocking
+IDs without adapters: **26**. BUG045 and the complete release gate remain open.
+
 ### Derived Float DNG across clean process restart — 2026-10-23
 
 [Evidence](qualification/2026-10-23/merge-restart.json) adds PAN012 and FLT001:

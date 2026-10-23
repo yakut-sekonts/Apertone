@@ -370,7 +370,8 @@ class EditorController final : public QObject {
     QString aiOperation() const {
         return aiOperation_;
     }
-    Q_INVOKABLE void mergeHDRPhotos(const QStringList &ids, double deghost = 50);
+    Q_INVOKABLE void mergeHDRPhotos(const QStringList &ids, double deghost = 50,
+                                    bool alignFrames = true);
     Q_INVOKABLE void mergePanoramaPhotos(const QStringList &ids, int projection, double fieldOfView,
                                          bool boundaryWarp = false);
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);

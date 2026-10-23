@@ -565,3 +565,17 @@ The defect remains open; no root cause is inferred from passing repeats.
   is about .00012 under the fixed .001 budget. Two refusal/recovery adapters pass
   six offscreen and two native checks with no partial output or catalog entry.
 - Evidence: [merge workflows](qualification/2026-10-23/merge-workflows.json).
+
+## LUMA-GAP-063 — HDR alignment cannot be disabled through the dialog
+
+- Status: **implemented; bounded offscreen/native and affected CTest PASS**.
+- HDR always aligned frames despite the specified option. Add default-on Align
+  frames in all eight languages, pass the choice through controller/service/core,
+  and retain alignment/deghost options in the derived XMP provenance.
+- Real shifted and moving-object Bayer brackets exercise actual controls and
+  jobs. Independent Float32 pixels establish measurable option differences and
+  lower reference error; originals/source documents remain unchanged.
+- Four new blocking adapters and three regressions pass 21 offscreen and seven
+  Cocoa/Metal DPR2 runs. Full build, eight CTest checks and mandatory static checks
+  pass. Photographic breadth and performance remain separate.
+- [Evidence](qualification/2026-10-23/hdr-options-alignment.json).

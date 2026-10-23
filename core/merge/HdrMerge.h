@@ -14,6 +14,7 @@ struct MergeFrame {
 };
 struct HdrOptions {
     double deghost = .5; // 0 = off, 1 = most conservative.
+    bool alignFrames = true;
 };
 // Loads one additional full-resolution frame at a time. The caller owns source
 // identity checking; alignment is estimated on bounded previews before this call.

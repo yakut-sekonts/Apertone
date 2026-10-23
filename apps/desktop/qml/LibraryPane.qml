@@ -59,13 +59,18 @@ Rectangle {
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             Label { text: qsTranslate("Luma", "Deghosting") + " · " + Math.round(hdrDeghost.value) + "%" }
+            CheckBox {
+                id: hdrAlignment; objectName: "merge.alignment"
+                text: qsTranslate("Luma", "Align frames"); checked: true
+                Layout.fillWidth: true
+            }
             Slider { id: hdrDeghost; objectName: "merge.deghost"; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Deghosting") }
             Button {
                 objectName: "merge.hdr.create"
                 text: qsTranslate("Luma", "Create HDR")
                 enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy
                 Layout.fillWidth: true
-                onClicked: { editor.mergeHDRPhotos(library.selectedAssetIDs(), hdrDeghost.value); hdrDialog.close() }
+                onClicked: { editor.mergeHDRPhotos(library.selectedAssetIDs(), hdrDeghost.value, hdrAlignment.checked); hdrDialog.close() }
             }
         }
     }

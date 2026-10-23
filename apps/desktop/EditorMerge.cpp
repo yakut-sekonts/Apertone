@@ -10,15 +10,16 @@ struct MergeProgress {
     std::atomic<bool> queued{false};
 };
 } // namespace
-void EditorController::mergeHDRPhotos(const QStringList &ids, double deghost) {
+void EditorController::mergeHDRPhotos(const QStringList &ids, double deghost, bool alignFrames) {
     if (!std::isfinite(deghost) || deghost < 0 || deghost > 100)
         return;
     std::vector<std::string> sources;
     for (const auto &id : ids)
         sources.push_back(id.toStdString());
     runMerge(QStringLiteral("HDR merge"),
-             [catalog = catalog_, sources, deghost](auto stop, const auto &progress) {
-                 return luma::MergeService(catalog).hdr(sources, {deghost / 100}, stop, progress);
+             [catalog = catalog_, sources, deghost, alignFrames](auto stop, const auto &progress) {
+                 return luma::MergeService(catalog).hdr(sources, {deghost / 100, alignFrames}, stop,
+                                                        progress);
              });
 }
 

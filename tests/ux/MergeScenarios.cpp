@@ -1,6 +1,7 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/export/LinearOutput.h"
 #include "platform/macos/FileHasher.h"
+#include "platform/macos/ImageAlignment.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QDir>
@@ -156,14 +157,54 @@ bool mergeWorkflowScenario(Context &c, const QString &id) {
     const QStringList supported{
         "UX-P08-MRG-001", "UX-P08-MRG-003", "UX-P08-MRG-004", "UX-P08-MRG-005", "UX-P08-MRG-006",
         "UX-P08-MRG-009", "UX-P08-MRG-010", "UX-P08-HDR-001", "UX-P08-HDR-009", "UX-P08-PAN-001",
-        "UX-P08-PAN-002", "UX-P08-FLT-002", "UX-P08-PAN-004", "UX-P08-ALG-002"};
+        "UX-P08-PAN-002", "UX-P08-FLT-002", "UX-P08-PAN-004", "UX-P08-ALG-002", "UX-P08-ALG-001"};
     if (!supported.contains(id))
         return false;
     const bool reject = id == "UX-P08-PAN-004" || id == "UX-P08-ALG-002";
-    const bool panorama = id.startsWith("UX-P08-PAN-") || reject;
+    const bool panorama = id.startsWith("UX-P08-PAN-") || id == "UX-P08-ALG-001" || reject;
     const bool cancel = id == "UX-P08-MRG-004" || id == "UX-P08-MRG-005";
     auto &d = *c.driver;
     const auto sources = importSources(c, panorama);
+    if (id == "UX-P08-ALG-001") {
+        // Exercise the actual platform API separately, then verify its real UI
+        // consumer below. These observations do not replace the merge worker.
+        QImage reference(c.fixture + "/Frame01.png"), floating(c.fixture + "/Frame02.png");
+        reference = reference.convertToFormat(QImage::Format_RGBA8888);
+        floating = floating.convertToFormat(QImage::Format_RGBA8888);
+        require(!reference.isNull() && !floating.isNull(), "Missing alignment ground truth");
+        const auto transform = luma::macos::alignImages(
+            {reference.width(),
+             reference.height(),
+             {reference.constBits(), static_cast<std::size_t>(reference.sizeInBytes())}},
+            {floating.width(),
+             floating.height(),
+             {floating.constBits(), static_cast<std::size_t>(floating.sizeInBytes())}},
+            {}, luma::macos::AlignmentMode::panorama);
+        QJsonArray coefficients;
+        for (const auto value : transform.values) {
+            require(std::isfinite(value) && std::abs(value) <= 1e6,
+                    "Non-finite or excessive alignment coefficient");
+            coefficients.append(value);
+        }
+        const auto inverse = transform.inverse();
+        double maximumError = 0;
+        for (int y = 0; y <= 10; ++y)
+            for (int x = 0; x <= 10; ++x) {
+                const double u = x / 10., v = y / 10.;
+                const auto point = transform.point(u, v);
+                const auto restored = inverse.point(point[0], point[1]);
+                require(std::isfinite(point[0]) && std::isfinite(point[1]) &&
+                            std::abs(restored[0] - u) < 1e-9 && std::abs(restored[1] - v) < 1e-9,
+                        "Alignment grid is non-finite or non-invertible");
+                maximumError = std::max({maximumError, std::abs(point[0] - u - .25) * 256,
+                                         std::abs(point[1] - v) * 192});
+            }
+        d.log({{"action", "platform_alignment_bounds"},
+               {"coefficients", coefficients},
+               {"maximum_ground_truth_pixel_error", maximumError},
+               {"pixel_budget", 1.0}});
+        require(maximumError <= 1, "Alignment exceeds one pixel of the known translation");
+    }
     d.click("library.photoActions");
     d.click(panorama ? "library.panorama" : "library.hdr");
     const QString dialog = panorama ? "merge.panorama" : "merge.hdr";
@@ -349,6 +390,112 @@ bool mergeWorkflowScenario(Context &c, const QString &id) {
                 "Derived Undo or file preservation failed");
     }
     unchanged(c, sources);
+    return true;
+}
+bool mergeOptionsScenario(Context &c, const QString &id) {
+    if (id != "UX-P08-HDR-006" && id != "UX-P08-HDR-007" && id != "UX-P08-DGH-001")
+        return false;
+    const bool alignment = id == "UX-P08-HDR-006";
+    auto &d = *c.driver;
+    const auto sources = importSources(c, false);
+    const auto middle = std::find_if(sources.begin(), sources.end(), [](const auto &source) {
+        return source.path.filename() == "Frame02.dng";
+    });
+    require(middle != sources.end(), "Missing reference exposure ground truth");
+    luma::EditDocument neutral;
+    neutral.enabledCorrections = 0;
+    const auto reference =
+        luma::renderLinearOutput(luma::PhotoDecoder().decode(middle->path), neutral);
+    std::vector<std::vector<float>> pixels;
+    for (int pass = 0; pass < 2; ++pass) {
+        if (pass) {
+            d.click("main.libraryButton");
+            idle(c);
+            d.click("library.clearSelection");
+            for (std::size_t i = 0; i < sources.size(); ++i)
+                d.click("library.card." + QString::fromStdString(sources[i].id),
+                        i ? Qt::ControlModifier : Qt::NoModifier);
+            idle(c);
+        }
+        require(c.library.selectedCount() == 3, "HDR option run lost original multi-selection");
+        d.click("library.photoActions");
+        d.click("library.hdr");
+        d.wait([&] { return d.object("merge.hdr")->property("opened").toBool(); },
+               "HDR options dialog opened");
+        const bool enabled = alignment && pass == 1;
+        if (d.object("merge.alignment")->property("checked").toBool() != enabled)
+            d.click("merge.alignment");
+        d.drag("merge.deghost", d.sliderThumb("merge.deghost"),
+               {alignment || pass == 0 ? 0. : 1., .5});
+        const double strength = alignment || pass == 0 ? 0 : 100;
+        require(d.object("merge.alignment")->property("checked").toBool() == enabled &&
+                    d.object("merge.deghost")->property("value").toDouble() == strength,
+                "Actual HDR controls did not retain the requested options");
+        const auto previous = c.editor.photoID();
+        d.click("merge.hdr.create");
+        const auto job = MergeJobProbe::job(c.editor);
+        d.wait([&] { return !c.editor.aiBusy(); }, "HDR options worker completed", 60000);
+        require(c.editor.error().isEmpty(), c.editor.error());
+        d.wait(
+            [&] {
+                return c.editor.photoID() != previous && job.state() != luma::JobState::running;
+            },
+            "HDR option result became the active derived asset");
+        c.loaded();
+        c.saved();
+        idle(c);
+        luma::Catalog catalog(c.catalogFile.toStdString());
+        const auto result = catalog.activeAsset();
+        require(result && catalog.libraryCount() == 4 + pass && catalog.pendingDerived().empty(),
+                "HDR option run did not publish exactly one distinct result");
+        const FloatDng output(result->path);
+        require(
+            output.width == reference.width && output.height == reference.height &&
+                output.bytes.contains("luma:AlignFrames=\"" + QByteArray::number(enabled) + "\"") &&
+                output.bytes.contains("luma:Deghost=\"" + QByteArray::number(strength / 100) +
+                                      "\""),
+            "HDR output geometry/provenance differs from the chosen options");
+        const auto expected = fixtureReference(c);
+        d.wait(
+            [&] {
+                return previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), expected,
+                                          c.editor.metalPreview());
+            },
+            "HDR option result preview matches its actual Float DNG");
+        pixels.push_back(output.pixels);
+        unchanged(c, sources);
+    }
+    std::array<double, 2> errors{};
+    double difference = 0;
+    std::size_t samples = 0;
+    for (int y = 20; y < 172; ++y)
+        for (int x = 20; x < 200; ++x) {
+            if (!alignment &&
+                !(y >= 62 && y < 90 && ((x >= 52 && x < 76) || (x >= 116 && x < 140))))
+                continue;
+            const auto offset = static_cast<std::size_t>(y) * reference.width + x;
+            for (int channel = 0; channel < 3; ++channel) {
+                const double expected = reference.rgba[offset * 4 + channel];
+                for (int pass = 0; pass < 2; ++pass) {
+                    const double error = pixels[pass][offset * 3 + channel] - expected;
+                    errors[pass] += error * error;
+                }
+                const double delta =
+                    pixels[0][offset * 3 + channel] - pixels[1][offset * 3 + channel];
+                difference += delta * delta;
+                ++samples;
+            }
+        }
+    for (auto &error : errors)
+        error /= samples;
+    difference /= samples;
+    d.log({{"action", alignment ? "hdr_alignment_ground_truth" : "hdr_motion_ground_truth"},
+           {"disabled_mse", errors[0]},
+           {"enabled_mse", errors[1]},
+           {"option_difference_mse", difference},
+           {"maximum_error_ratio", .6}});
+    require(errors[0] > 1e-6 && difference > 1e-6 && errors[1] < errors[0] * .6,
+            "HDR option did not improve the known shifted/moving-object scene");
     return true;
 }
 bool mergeRestartScenario(Context &c, const QString &id, const QString &stage) {

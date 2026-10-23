@@ -799,6 +799,7 @@
     "Search": "搜索",
     "Aligning originals…": "正在对齐原片…",
     "Merging frames…": "正在合并图像…",
-    "Writing Float DNG…": "正在写入 Float DNG…"
+    "Writing Float DNG…": "正在写入 Float DNG…",
+    "Align frames": "对齐图像"
   }
 }

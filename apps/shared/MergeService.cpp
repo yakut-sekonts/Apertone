@@ -168,7 +168,7 @@ std::filesystem::path MergeService::hdr(const std::vector<std::string> &ids, Hdr
         EditDocument neutral;
         neutral.enabledCorrections = 0;
         previews.push_back(renderCPU(image, neutral, 0, {}, stop));
-        if (i) {
+        if (i && options.alignFrames) {
             const auto &reference = previews.front(), &floating = previews.back();
             sources[i].alignment =
                 macos::alignImages({reference.width, reference.height, reference.rgba},
@@ -201,10 +201,13 @@ std::filesystem::path MergeService::hdr(const std::vector<std::string> &ids, Hdr
     }
     std::vector<float>().swap(merged.rgb);
     std::ostringstream metadata;
+    metadata.imbue(std::locale::classic());
     metadata << "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF "
                 "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
                 "<rdf:Description rdf:about=\"\" xmlns:luma=\"https://luma.photo/ns/1.0/\" "
-                "luma:Operation=\"HDR\">"
+                "luma:Operation=\"HDR\" luma:AlignFrames=\""
+             << options.alignFrames << "\" luma:Deghost=\"" << options.deghost
+             << "\">"
                 "<luma:Sources><rdf:Seq>";
     for (const auto &source : sources)
         metadata << "<rdf:li>" << xmlText(source.asset.id + ":" + source.asset.checksum)
