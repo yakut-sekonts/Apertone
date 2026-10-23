@@ -153,6 +153,123 @@ void unchanged(Context &c, const std::vector<luma::AssetRecord> &sources) {
     }
 }
 } // namespace
+bool denoiseWorkflowScenario(Context &c, const QString &id) {
+    if (id != "UX-P07-DNS-001" && id != "UX-P07-DNS-002")
+        return false;
+    const bool cancel = id == "UX-P07-DNS-002";
+    auto &d = *c.driver;
+    auto sources = importSources(c, false);
+    const auto source = std::find_if(sources.begin(), sources.end(), [](const auto &asset) {
+        return asset.path.filename() == "Frame02.dng";
+    });
+    require(source != sources.end(), "Missing owned RAW for denoise");
+    d.doubleClick("library.card." + QString::fromStdString(source->id));
+    c.loaded();
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.65, .5});
+    c.saved();
+    source->edits = c.editor.currentSettings();
+    require(source->edits.exposure > 1 && c.editor.canUndo(),
+            "Denoise fixture requires a committed edited source");
+    require(c.editor.denoiseModelBundled(), "AI Denoise must use the actual bundled model");
+    c.reveal("denoise.create");
+    WriteHold hold(c.storageFault);
+    d.click("denoise.create");
+    const auto job = MergeJobProbe::job(c.editor);
+    d.wait([&] { return c.storageFault.writeBlocked() || !c.editor.aiBusy(); },
+           "Actual CoreML denoise reached durable staging", 60000);
+    require(c.storageFault.writeBlocked(), "Denoise failed before staging: " + c.editor.error());
+    c.reveal("denoise.cancel");
+    d.frame();
+    require(c.editor.aiBusy() && c.editor.aiOperation() == "AI Denoise" &&
+                d.item("denoise.progress")->isVisible() && d.item("denoise.cancel")->isEnabled() &&
+                !d.item("denoise.create")->isEnabled() &&
+                d.object("denoise.progress")->property("value").toDouble() >= .85 &&
+                d.object("denoise.progress")->property("value").toDouble() <= 1 &&
+                c.editor.currentSettings() == source->edits,
+            "AI Denoise processing/progress/Cancel or source state is incorrect");
+    d.screenshot(c.root + "/denoise-processing.png");
+    if (cancel)
+        d.click("denoise.cancel");
+    hold.release();
+    d.wait(
+        [&] {
+            return job.state() != luma::JobState::queued && job.state() != luma::JobState::running;
+        },
+        "Actual denoise worker terminated");
+    if (cancel) {
+        d.frame();
+        luma::Catalog catalog(c.catalogFile.toStdString());
+        const auto files = QDir(c.catalogFile + ".luma-derived")
+                               .entryList(QDir::Files | QDir::Hidden | QDir::NoDotAndDotDot);
+        require(!c.editor.aiBusy() && c.editor.error().isEmpty() &&
+                    c.editor.photoID().toStdString() == source->id &&
+                    c.editor.currentSettings() == source->edits && c.editor.canUndo() &&
+                    catalog.libraryCount() == 3 && catalog.pendingDerived().empty() &&
+                    files.empty(),
+                "Denoise Cancel changed committed source or left partial output");
+        d.log({{"action", "denoise_cancel_before_install"},
+               {"catalog_count", 3},
+               {"files", QJsonArray::fromStringList(files)}});
+    } else {
+        d.wait([&] { return !c.editor.aiBusy() && c.editor.photoID().toStdString() != source->id; },
+               "Denoised DNG became the selected asset");
+        c.loaded();
+        c.saved();
+        idle(c);
+        luma::Catalog catalog(c.catalogFile.toStdString());
+        const auto result = catalog.activeAsset();
+        require(result && catalog.libraryCount() == 4 && c.library.count() == 4 &&
+                    catalog.pendingDerived().empty() &&
+                    c.editor.currentSettings() == luma::EditDocument{},
+                "Denoise did not publish exactly one unedited result");
+        const FloatDng output(result->path);
+        require(output.width == 256 && output.height == 192 &&
+                    output.bytes.contains("luma:Operation=\"AI Denoise\"") &&
+                    output.bytes.contains(QByteArray::fromStdString(source->id)) &&
+                    output.bytes.contains(QByteArray::fromStdString(source->checksum)) &&
+                    output.bytes.contains("luma:Amount=\"100\"") &&
+                    output.bytes.contains("luma:Provider="),
+                "Denoised Float DNG lost dimensions or provenance");
+        luma::EditDocument neutral;
+        neutral.enabledCorrections = 0;
+        const auto input =
+            luma::renderLinearOutput(luma::PhotoDecoder().decode(source->path), neutral);
+        double difference = 0;
+        for (std::size_t i = 0; i < output.pixels.size(); ++i) {
+            const double delta = output.pixels[i] - input.rgba[i / 3 * 4 + i % 3];
+            difference += delta * delta;
+        }
+        difference /= output.pixels.size();
+        d.log({{"action", "actual_bundled_denoise_output"},
+               {"linear_mse_from_input", difference},
+               {"width", output.width},
+               {"height", output.height},
+               {"model", c.editor.denoiseModelName()},
+               {"image_quality_qualification", false}});
+        require(difference > 1e-8, "Denoise output is an unchanged input copy");
+        const auto before = c.editor.currentSettings();
+        c.reveal("develop.contrastSlider");
+        d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.75, .5});
+        c.saved();
+        require(c.editor.currentSettings().contrast > 1 && c.editor.canUndo(),
+                "Denoised Float DNG cannot be edited");
+        const auto expected = fixtureReference(c);
+        d.wait(
+            [&] {
+                return previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), expected,
+                                          c.editor.metalPreview());
+            },
+            "Denoised Develop preview matches independent CPU output");
+        d.click("main.undoButton");
+        c.saved();
+        require(c.editor.currentSettings() == before && c.editor.canRedo() &&
+                    luma::macos::sha256File(result->path) == result->checksum,
+                "Denoised Undo changed its initial document or file");
+    }
+    unchanged(c, sources);
+    return true;
+}
 bool mergeWorkflowScenario(Context &c, const QString &id) {
     const QStringList supported{
         "UX-P08-MRG-001", "UX-P08-MRG-003", "UX-P08-MRG-004", "UX-P08-MRG-005", "UX-P08-MRG-006",
@@ -499,13 +616,15 @@ bool mergeOptionsScenario(Context &c, const QString &id) {
     return true;
 }
 bool mergeRestartScenario(Context &c, const QString &id, const QString &stage) {
-    if (id != "UX-P08-PAN-012" && id != "UX-P08-FLT-001")
+    if (id != "UX-P08-PAN-012" && id != "UX-P08-FLT-001" && id != "UX-P07-DNS-008")
         return false;
     auto &d = *c.driver;
     if (stage == "prepare") {
-        require(
-            mergeWorkflowScenario(c, id == "UX-P08-PAN-012" ? "UX-P08-PAN-001" : "UX-P08-HDR-001"),
-            "Merge restart requires a complete successful creation workflow");
+        require(id == "UX-P07-DNS-008"
+                    ? denoiseWorkflowScenario(c, "UX-P07-DNS-001")
+                    : mergeWorkflowScenario(c, id == "UX-P08-PAN-012" ? "UX-P08-PAN-001"
+                                                                      : "UX-P08-HDR-001"),
+                "Merge restart requires a complete successful creation workflow");
         c.reveal("develop.exposureSlider");
         d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.3, .5});
         c.saved();

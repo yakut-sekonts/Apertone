@@ -31,7 +31,7 @@ ColumnLayout {
     DevelopSlider { objectName: "noisecolorDetail"; parameter: "noise.colorDetail"; label: qsTranslate("Luma", "Detail"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noisecolorSmoothness"; parameter: "noise.colorSmoothness"; label: qsTranslate("Luma", "Smoothness"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     Label { text: qsTranslate("Luma", "Option + drag shows diagnostics. Radius uses original-image pixels."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: "#858c97" }
-    Label { text: qsTranslate("Luma", "AI Denoise"); Layout.fillWidth: true }
+    Label { objectName: "denoise.heading"; text: qsTranslate("Luma", "AI Denoise"); Layout.fillWidth: true }
     Label {
         text: editor.denoiseModelConfigured
             ? qsTranslate("Luma", "Creates a new unedited Linear DNG from the RAW. Processing stays on this Mac.")
@@ -40,17 +40,19 @@ ColumnLayout {
     }
     Slider {
         id: denoiseAmount
+        objectName: "denoise.amount"
         from: 1; to: 100; value: 100
         enabled: !editor.aiBusy
         Layout.fillWidth: true
         Accessible.name: qsTranslate("Luma", "AI Denoise amount")
     }
     Button {
+        objectName: "denoise.create"
         text: qsTranslate("Luma", "Create denoised DNG") + " · " + Math.round(denoiseAmount.value) + "%"
         enabled: editor.denoiseModelConfigured && editor.hasPhoto && !editor.busy && !editor.aiBusy && !editor.editingLocked
         Layout.fillWidth: true
         onClicked: editor.denoisePhoto(denoiseAmount.value)
     }
-    ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; value: editor.aiProgress; Layout.fillWidth: true }
-    Button { visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
+    ProgressBar { objectName: "denoise.progress"; visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; value: editor.aiProgress; Layout.fillWidth: true }
+    Button { objectName: "denoise.cancel"; visible: editor.aiBusy && editor.aiOperation === "AI Denoise"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
 }

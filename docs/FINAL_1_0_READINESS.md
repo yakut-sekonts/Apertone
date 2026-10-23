@@ -5,6 +5,24 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Bundled AI Denoise workflow — 2026-10-23
+
+[Evidence](qualification/2026-10-23/denoise-ui-workflow.json): **9/9 repeated
+offscreen + 3/3 Cocoa/Metal DPR2 PASS**, plus the first 3/3 offscreen run.
+Full build, six affected CTest entries, format and mandatory affected tidy pass;
+nonblocking warnings remain. DNS001/002/008 use the actual bundled CoreML model,
+visible processing/progress/Cancel and real storage-boundary cancellation after
+inference. Cancel preserves committed source edits/history and leaves no partial
+DNG, journal or catalog result. Success creates exactly one unedited Float32 DNG
+with provenance; Develop preview matches independent CPU pixels and Undo works.
+A separate fresh process retains exact hashes, identity and the full saved edit
+document. Native processing screenshots were inspected.
+
+No inference path is substituted or pressure callback suppressed. This 256×192
+workflow fixture does not qualify photographic quality, latency, large inputs
+or crash recovery. Remaining applicable blocking IDs without adapters: **19**;
+complete release qualification remains open.
+
 ### Editing tools at zoom/pan — 2026-10-23
 
 [Evidence](qualification/2026-10-23/zoom-tool-mapping.json) adds ZOM006–009.

@@ -7,6 +7,7 @@ import struct
 import zlib
 
 CASE_PROFILE_IDS = {
+    'UX-P07-DNS-001', 'UX-P07-DNS-002', 'UX-P07-DNS-008',
     *(f'UX-P08-MRG-{i:03}' for i in (1, 3, 4, 5, 6, 9, 10)),
     'UX-P08-HDR-001', 'UX-P08-HDR-009', 'UX-P08-PAN-001', 'UX-P08-PAN-002',
     'UX-P08-FLT-002', 'UX-P08-PAN-004', 'UX-P08-ALG-002',

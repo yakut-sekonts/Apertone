@@ -597,3 +597,13 @@ The defect remains open; no root cause is inferred from passing repeats.
   three isolated offscreen cases pass without suppressing OS notifications.
   A further repeat was not started because the actual kernel warning persisted.
 - [Evidence](qualification/2026-10-23/zoom-tool-mapping.json).
+
+### LUMA-GAP-065 — Bundled AI Denoise UI and clean restart
+
+Implemented DNS001/002/008 adapters. Actual bundled CoreML inference, visible
+processing, Cancel before derived installation, source preservation, Float32
+publication, edits/Undo and fresh-process persistence pass 9 repeated offscreen
+and 3 Cocoa/Metal DPR2 runs. Full build and six affected CTest entries pass.
+Evidence: `qualification/2026-10-23/denoise-ui-workflow.json`. This closes these
+bounded local workflows only; model photographs, load, other cancellation
+boundaries and full hosted/release qualification remain separate.
