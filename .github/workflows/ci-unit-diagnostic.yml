@@ -18,12 +18,25 @@ jobs:
           python-version: '3.12'
       - name: Verify supported architecture
         run: test "$(uname -m)" = arm64
+      - name: Inspect ImageIO behavior before application build
+        run: |
+          mkdir -p .tools
+          xcrun clang++ -std=c++20 -fobjc-arc -I. platform/macos/PhotoMetadataIO.mm core/metadata/DescriptiveMetadata.cpp tests/diagnostics/XmpProbe.mm -framework Foundation -framework ImageIO -framework CoreFoundation -o .tools/xmp-probe
+          .tools/xmp-probe tests/assets/images/quadrants.webp > .tools/xmp-probe.log 2>&1
+          cat .tools/xmp-probe.log
+      - name: Preserve ImageIO diagnostics immediately
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: imageio-diagnostic
+          path: .tools/xmp-probe.log
+          include-hidden-files: true
       - name: Install fixed toolchain and Qt
         run: ./scripts/bootstrap.sh
       - name: Configure
         run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
       - name: Build affected unit and integration targets
-        run: .tools/venv/bin/cmake --build build --parallel 3 --target luma_photo_metadata_tests luma_library_tests luma_cli
+        run: .tools/venv/bin/cmake --build build --parallel 3 --target luma_photo_metadata_tests luma_library_tests luma_cli Luma
       - name: Reproduce XMP and Library tests
         run: .tools/venv/bin/ctest --test-dir build --output-on-failure -R '^(native-xmp-metadata-lists|library-import-restart)$'
       - name: Preserve diagnostics
