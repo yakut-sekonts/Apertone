@@ -1,9 +1,11 @@
 #include "platform/macos/CoreMLDenoise.h"
 #include "core/image/Bayer.h"
+#include "platform/macos/InferenceStack.h"
 #import <CoreML/CoreML.h>
 #include <algorithm>
 #include <cmath>
 #include <mutex>
+#include <optional>
 
 namespace luma::macos {
 namespace {
@@ -95,6 +97,15 @@ class CoreMLDenoise final : public ai::IDenoiseProvider {
     FloatImage denoise(const FloatImage &linear, double amount, CancellationToken stop,
                        const ai::Progress &progress) override {
         std::lock_guard lock(mutex_);
+        std::optional<FloatImage> result;
+        withInferenceStack(
+            [&] { result.emplace(denoiseWithStack(linear, amount, stop, progress)); });
+        return std::move(*result);
+    }
+
+  private:
+    FloatImage denoiseWithStack(const FloatImage &linear, double amount, CancellationToken stop,
+                                const ai::Progress &progress) {
         linear.validateCoverage();
         if (!std::isfinite(amount) || amount < 0 || amount > 1)
             throw std::runtime_error("Invalid AI denoise amount.");

@@ -24,6 +24,11 @@ jobs:
           .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
           .tools/venv/bin/cmake --build build --target luma_ux_bundled_models --parallel 3
           .tools/venv/bin/python tests/ux/build_ux.py --build build
+      - name: Verify inference stack and synchronous ownership
+        run: |
+          xcrun clang++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I . tests/unit/InferenceStackTests.cpp -o build/inference-stack-tests
+          build/inference-stack-tests
+      # Retest the macOS 15 BNNS stack-overflow fix through the original UI path.
       - name: Reproduce Denoise through the production UI
         id: reproduce
         continue-on-error: true
