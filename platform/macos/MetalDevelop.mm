@@ -12,9 +12,11 @@ class MetalDevelop final : public DevelopAccelerator {
   public:
     std::vector<float> develop(const FloatImage &input, const DevelopPipeline &pipeline,
                                CancellationToken stop) override {
-        const auto parameters = pipeline.gpuParameters();
         input.validateCoverage();
         checkCancellation(stop);
+        if (!pipeline.gpuCompatible())
+            return {};
+        const auto parameters = pipeline.gpuParameters();
         // One instance owns one queue; bounded chunks allow cancellation between
         // command buffers and cap staging buffers independently of RAW size.
         std::lock_guard lock(mutex_);

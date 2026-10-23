@@ -72,6 +72,19 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
     metrics.attach(*window);
     editor.setWindow(window);
     driver = std::make_unique<Driver>(*window, metrics, root + "/actions.jsonl");
+    QObject::connect(&library, &QAbstractItemModel::modelReset, window,
+                     [model = &library, path = root + "/model-resets.jsonl"] {
+                         QFile log(path);
+                         require(log.open(QIODevice::WriteOnly | QIODevice::Append),
+                                 "Cannot preserve model reset evidence");
+                         const auto bytes = QJsonDocument(QJsonObject{{"status", model->status()},
+                                                                      {"loading", model->loading()},
+                                                                      {"count", model->count()}})
+                                                .toJson(QJsonDocument::Compact) +
+                                            '\n';
+                         require(log.write(bytes) == bytes.size(),
+                                 "Cannot write model reset evidence");
+                     });
     window->requestActivate();
     driver->wait([&] { return window->isActive(); }, "native window active", 5000);
     driver->wait([&] { return !library.working() && !library.loading() && window->isVisible(); },

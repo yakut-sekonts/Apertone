@@ -111,10 +111,12 @@ DiscoveryResult discover(const std::vector<std::filesystem::path> &roots, bool r
 }
 class Descriptor {
   public:
-    explicit Descriptor(int value) : value(value) {
-        if (value < 0)
-            throw std::runtime_error("Import file access failed: " +
-                                     std::string(std::strerror(errno)));
+    Descriptor(int value, const std::filesystem::path &path) : value(value) {
+        if (value < 0) {
+            const auto error = errno;
+            throw std::runtime_error("Import file access failed: " + path.string() + ": " +
+                                     std::string(std::strerror(error)));
+        }
     }
     ~Descriptor() {
         close(value);
@@ -146,8 +148,9 @@ class CopyCleanup {
 };
 void copyAndInstall(const std::filesystem::path &source, CopyCleanup &copy,
                     CancellationToken stop) {
-    Descriptor input(open(source.c_str(), O_RDONLY));
-    Descriptor output(open(copy.temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600));
+    Descriptor input(open(source.c_str(), O_RDONLY), source);
+    Descriptor output(open(copy.temporary.c_str(), O_WRONLY | O_CREAT | O_EXCL, 0600),
+                      copy.temporary);
     copy.temporaryOwned = true;
     std::vector<char> buffer(1024 * 1024);
     while (true) {
@@ -186,7 +189,8 @@ void copyAndInstall(const std::filesystem::path &source, CopyCleanup &copy,
     if (unlink(copy.temporary.c_str()) != 0)
         throw std::runtime_error("Cannot remove imported Copy temporary.");
     copy.temporaryOwned = false;
-    Descriptor directory(open(copy.target.parent_path().c_str(), O_RDONLY));
+    Descriptor directory(open(copy.target.parent_path().c_str(), O_RDONLY),
+                         copy.target.parent_path());
     if (fsync(directory.value) != 0)
         throw std::runtime_error("Cannot sync Copy directory.");
 }
@@ -258,7 +262,7 @@ void verified(const std::filesystem::path &path, const ImportJournalItem &item,
         throw std::runtime_error("Import file is missing or changed; files preserved.");
 }
 void syncParent(const std::filesystem::path &path) {
-    Descriptor directory(open(path.parent_path().c_str(), O_RDONLY));
+    Descriptor directory(open(path.parent_path().c_str(), O_RDONLY), path.parent_path());
     if (fsync(directory.value) != 0)
         throw std::runtime_error("Cannot sync Move source directory.");
 }
@@ -435,9 +439,11 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
             item.target = source;
             item.checksum = checksum;
             item.size = static_cast<std::int64_t>(size);
-            const auto relative =
-                importRelativePath(source, metadata.captureTimestamp, item.index, options);
-            chooseImportPaths(item, relative, options);
+            if (options.mode != ImportMode::add || !options.backupDestination.empty()) {
+                const auto relative =
+                    importRelativePath(source, metadata.captureTimestamp, item.index, options);
+                chooseImportPaths(item, relative, options);
+            }
             if (options.mode == ImportMode::move) {
                 if (catalog.referencesSource(source))
                     throw std::runtime_error(

@@ -207,6 +207,10 @@ jobs:
             build/ux-artifacts/20*/**/lib005-*.json
             build/ux-artifacts/20*/**/msk023-*.png
             build/ux-artifacts/20*/**/app.log
+            build/ux-artifacts/20*/**/model-resets.jsonl
+            build/ux-artifacts/20*/**/preview-pixel-difference.json
+            build/ux-artifacts/20*/**/expected-preview.png
+            build/ux-artifacts/20*/**/actual-preview.png
             build/ux-artifacts/20*/**/command.json
             build/ux-artifacts/20*/**/failure.png
             build/ux-artifacts/20*/**/thread-sample.txt

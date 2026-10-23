@@ -22,6 +22,8 @@ QImage fixtureReference(Context &context,
 QImage fixtureReference(Context &context, const luma::EditDocument &document,
                         const QString &sourcePath,
                         luma::DetailDiagnostic diagnostic = luma::DetailDiagnostic::none);
+// Failure evidence only; never changes pixel acceptance or retries the scenario.
+void recordPreviewDifference(Context &context, const QImage &expected, const QString &reason);
 // Exact saved-document JPEG cache plus actual Image-node scene readback.
 // The URL generation is an invalidation counter, not the asset edit revision.
 void thumbnailCardPixels(Context &context, QQuickItem *card, const luma::AssetSnapshot &saved);

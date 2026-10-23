@@ -134,7 +134,54 @@ Dense boundary accuracy, RAW and broader scene coverage, crop/orientation mappin
 CPU fallback, actual accelerator placement and resource limits remain open. The
 full 1.0 gate remains **NOT QUALIFIED**.
 
-### Completed baseline and current blockers
+### Bounded functional fixes and GitHub distribution — 2026-10-23
+
+[Retained evidence](qualification/2026-10-23/functional-release-fixes.json)
+records the original local functional baseline (**240 PASS / 16 FAIL / 188
+SKIPPED / 326 NOT_IMPLEMENTED**), both intermediate failing retests and **48/48
+passing repetitions** of those sixteen scenarios after fixes. These are local
+offscreen/software results, despite the backend selector recording
+`hosted_ci: true`; no new native-window interval is included.
+
+Add without a backup now accepts legal existing long filenames. Generated
+Copy/Move/backup names retain their validation, and file-open errors identify the
+actual failed path. Directory notifications refresh only cached Missing roles
+asynchronously: they no longer reset the Library, destroy delegates or move its
+viewport. A real file removal/restoration test checks both role changes, zero
+resets, selection, documents and source integrity. Import, Library and new Metal
+unit tests pass 3/3; the shipping QML smoke test and probe-symbol isolation pass.
+
+The Metal HSL calculation now avoids cancellation near black/white. Seven actual
+Metal cases meet the unchanged linear error budget and final one-step RGBA8
+budget, with exact alpha. Combined curves/HSL on HDR still exceeds that budget
+and is explicitly routed to the unchanged CPU implementation; two fallback
+cases preserve exact CPU pixels. This is a correctness/performance tradeoff,
+not a claim that the combined Metal path is numerically fixed. Original failed
+numeric experiments and unchanged exact UX pixel assertions are retained.
+
+UX fixtures now use the current retouch-aware cache identity, destination layout
+and twelve preset groups. Cancellation holds the actual successful load result;
+export waits on an actual pending WAL write; crop input acquires the real corner
+grip. Per-field/card, model-reset and failed pixel evidence remains enabled.
+Affected static analysis completed with nonblocking warnings; formatting and
+workflow parsing pass. The 100k Library contract passed separately, but was run
+alongside UX and supplies only functional bounds, not performance acceptance.
+
+[Hosted CI on 1bcec07](https://github.com/yakut-sekonts/Luma/actions/runs/39774239377)
+passes model and application/unit stages, blocking UX, keyboard/scroll/dialog
+and gradient-handle regressions. PhotoCard localization fails 3/3 on the obsolete
+cache identity; subsequent stages are skipped. After that correction a local
+run reports 2 PASS / 1 FAIL at a separate aggregate state invariant. Failure-only
+diagnostics were added; subsequent runs pass 10/10 and 20/20 without reproducing
+it. This intermittent observation remains open; those passes do not explain it.
+
+The owner defines the final release as GitHub open-source publication. Packaging
+and publisher tests accept truthful ad-hoc, non-notarized 1.0 artifacts while
+requiring Sparkle signatures, bundled models and verified asset identities.
+Developer ID/notarization are optional. Full QA, installation and update
+qualification remain mandatory; stable distribution is still 0.5.1.
+
+### Initial qualification baseline — 2026-10-21
 
 [Machine-readable baseline](qualification/2026-10-21/baseline.json) records the
 source commit, per-case outcomes and hashes of retained local logs.

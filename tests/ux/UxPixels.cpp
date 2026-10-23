@@ -7,7 +7,41 @@
 #include <QQuickItem>
 #include <QQuickItemGrabResult>
 #include <QSignalSpy>
+#include <algorithm>
+#include <cmath>
 namespace ux {
+void recordPreviewDifference(Context &context, const QImage &expected, const QString &reason) {
+    const auto actual = context.provider->requestImage({}, nullptr, {});
+    require(expected.save(context.root + "/expected-preview.png") &&
+                actual.save(context.root + "/actual-preview.png"),
+            "Cannot preserve failed preview pixel evidence");
+    QJsonObject evidence{{"reason", reason},
+                         {"actual_width", actual.width()},
+                         {"actual_height", actual.height()},
+                         {"expected_width", expected.width()},
+                         {"expected_height", expected.height()},
+                         {"asset_id", context.editor.photoID()},
+                         {"source", context.editor.sourcePath()},
+                         {"preview_url", context.editor.previewUrl()}};
+    if (!expected.isNull() && actual.size() == expected.size()) {
+        const auto a = actual.convertToFormat(QImage::Format_RGBA8888);
+        const auto b = expected.convertToFormat(QImage::Format_RGBA8888);
+        qint64 differences = 0, total = 0;
+        int maximum = 0;
+        for (int y = 0; y < a.height(); ++y)
+            for (int x = 0; x < a.width() * 4; ++x) {
+                const int difference =
+                    std::abs(int(a.constScanLine(y)[x]) - int(b.constScanLine(y)[x]));
+                differences += difference != 0;
+                total += difference;
+                maximum = std::max(maximum, difference);
+            }
+        evidence.insert("different_channels", differences);
+        evidence.insert("maximum_channel_difference", maximum);
+        evidence.insert("mean_channel_difference", double(total) / (a.width() * a.height() * 4.));
+    }
+    writeJson(context.root + "/preview-pixel-difference.json", evidence);
+}
 QSharedPointer<QQuickItemGrabResult> readyItemGrab(Context &context, QQuickItem &item,
                                                    const QString &reason, int timeout) {
     require(context.unfinishedItemGrab.isNull(),

@@ -14,7 +14,9 @@ class DevelopPipeline {
     // curve endpoint slopes[8], four 4097-sample PCHIP tables.
     std::vector<float> gpuParameters() const;
     bool gpuCompatible() const {
-        return !creativeColorActive_;
+        // Combined curve/HSL HDR remapping amplifies FP32 rounding beyond the
+        // qualified error budget. Preserve the double-precision CPU reference.
+        return !creativeColorActive_ && !(curvesActive_ && hslActive_);
     }
 
   private:

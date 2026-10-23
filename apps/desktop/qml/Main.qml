@@ -261,6 +261,7 @@ ApplicationWindow {
                         Button {
                             objectName: "develop.actualPixels"
                             text: "100%"
+                            Accessible.name: qsTranslate("Luma", "Zoom") + " 100%"
                             checkable: true; checked: previewViewport.pixelMode
                             enabled: editor.hasPhoto && !editor.busy && !editor.cropMode &&
                                      !editor.guidedMode && !editor.localMode &&

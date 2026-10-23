@@ -207,9 +207,8 @@ luma::ImportJournal publishedCheckpoint(Context &c, const QString &destination, 
     const auto &first = journal.items.front();
     require(journal.destination == std::filesystem::canonical(destination.toStdString()) &&
                 first.index == 0 && first.state == "staged" &&
-                first.target.parent_path().parent_path() ==
-                    journal.destination / ("Luma-" + journal.id) &&
-                first.target.parent_path().filename() == "0" &&
+                first.target == journal.destination / first.source.filename() &&
+                first.temporary == journal.destination / (".luma-copy-" + journal.id + "-0.tmp") &&
                 !QFileInfo::exists(QString::fromStdString(first.temporary.string())) &&
                 std::filesystem::is_regular_file(first.target) &&
                 std::filesystem::hard_link_count(first.target) == 1 &&
@@ -391,26 +390,21 @@ bool importExtraScenario(Context &c, const QString &id) {
             copiedRows(c, 2);
             report(c, {secondSource});
         } else {
-            const auto sessionDirectory = QString::fromStdString(
-                journal.items.front().target.parent_path().parent_path().string());
             DirectoryModes modes;
-            // The published index-0 file already has one link. Deny new per-file
-            // directories at the existing destination/session parents.
+            // The first file is already published. Deny creation of subsequent
+            // files at the actual destination, without changing its parent.
             modes.change(destination, 0555);
-            modes.change(sessionDirectory, 0555);
             deniedCreate(destination);
-            deniedCreate(sessionDirectory);
-            d.log({{"action", "copy_destination_parents_read_only"},
+            d.log({{"action", "copy_destination_read_only"},
                    {"session", sessionID},
                    {"destination", destination},
-                   {"session_directory", sessionDirectory},
                    {"boundary", "first_commit_held"}});
             c.storageFault.holdWrites(false);
             settled(c);
             modes.restore();
             terminal(c, sessionID, "completed", 3, 1, 0, 2, 0);
             copiedRows(c, 1);
-            require(c.library.importReport().contains(sessionDirectory),
+            require(c.library.importReport().contains(destination),
                     "Copy report omitted the denied destination path");
             report(c, {secondSource, thirdSource});
         }

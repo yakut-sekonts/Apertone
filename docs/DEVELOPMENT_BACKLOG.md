@@ -207,3 +207,49 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 - This does not qualify real sensor noise, full-size RAW, every texture, Sky,
   fallback device placement, resource/load behavior or signed installation.
   See [the follow-up evidence](qualification/2026-10-21/denoise-photographic-followup.json).
+
+## LUMA-BUG-042 — Add rejects valid existing long filenames
+
+- Status: **bounded reproductions fixed and retested; native retest open**.
+- Add without backup incorrectly applied the generated-destination length rule
+  to existing source names, rejecting legal long filenames used by VIS001/003.
+  It now uses the source path directly. Copy/Move and backup destinations retain
+  their length validation. ASCII/UTF-8 boundary unit cases preserve source hashes
+  and reopened catalog paths; affected UX scenarios pass three repetitions.
+- File descriptor errors now preserve errno and identify the actual failed path;
+  the read-only import destination case passes three repetitions.
+
+## LUMA-BUG-043 — Source directory events reset the Library viewport
+
+- Status: **actual watcher reset fixed; bounded unit/offscreen retests pass**.
+- Passive model-reset traces isolate delayed source-directory notifications as
+  another reset cause after selection/editing. The old reload emptied and rebuilt
+  the model, destroying cards and moving the current viewport (related BUG-035).
+- A cancellable background check updates only changed Missing roles on cached
+  pages, with revision/closing guards. Directory events do not change catalog
+  membership or auto-import external edits. Real removal/restoration verifies
+  both role changes and zero resets; four affected UX races pass 3/3 each.
+
+## LUMA-BUG-044 — Metal HSL precision near black and after HDR curves
+
+- Status: **near-black calculation fixed; unsupported combined path uses CPU**.
+- The independent native oracle reproduced a near-black saturation error and
+  excessive Curve/HSL HDR rounding. Stable black/white formulas fix the first.
+  Combined Curve/HSL remains outside the fixed FP32 budget and explicitly falls
+  back to the unchanged CPU reference, including direct accelerator calls.
+- Seven actual Metal cases and two exact fallback cases pass. Numerical limits,
+  alpha preservation and exact preset/removable-source UX pixel checks were not
+  relaxed. The fallback may reduce preview speed; full load testing remains open.
+
+## LUMA-BUG-045 — Intermittent PhotoCard localization state invariant
+
+- Status: **open; per-field diagnostics added, cause not yet established**.
+- After correcting the obsolete cache-key fixture, one of three local runs
+  failed the full editor/history/selection/preview invariant. The original
+  aggregate failure is retained; it does not identify which field differed.
+- Subsequent diagnostic runs pass 10/10 and 20/20, including a run alongside
+  clang-tidy. This does not close the failure. CI now retains the field-level
+  failure evidence if it occurs again; native and independent CI retests remain.
+
+Evidence for BUG-042–045, all original failures, source/binary hashes and exact
+scope: [functional release fixes](qualification/2026-10-23/functional-release-fixes.json).

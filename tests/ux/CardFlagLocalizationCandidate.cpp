@@ -425,6 +425,45 @@ struct Baseline {
 void invariant(Context &c, const Baseline &baseline) {
     const luma::Catalog catalog(c.catalogFile.toStdString());
     const auto actual = catalog.libraryPage({}, 0, 2);
+    const QJsonObject observations{
+        {"window", c.window->size() == QSize(1000, 640)},
+        {"library_mode", c.window->property("libraryMode").toBool()},
+        {"photo", c.editor.photoID() == baseline.photo},
+        {"source", c.editor.sourcePath() == baseline.source},
+        {"document", c.editor.currentSettings() == baseline.current},
+        {"undo", c.editor.canUndo()},
+        {"redo_empty", !c.editor.canRedo()},
+        {"editor_idle", !c.editor.busy()},
+        {"save_idle", !c.editor.saving()},
+        {"editor_error_empty", c.editor.error().isEmpty()},
+        {"guided_off", !c.editor.guidedMode()},
+        {"crop_off", !c.editor.cropMode()},
+        {"local_off", !c.editor.localMode()},
+        {"local_gesture_off", !c.editor.localGestureActive()},
+        {"original_off", !c.editor.original()},
+        {"editing_unlocked", !c.editor.editingLocked()},
+        {"preset_preview_off", !c.editor.presetPreview()},
+        {"preview_url", c.editor.previewUrl() == baseline.preview},
+        {"preview_pixels", c.provider->requestImage({}, nullptr, {}) == baseline.pixels},
+        {"library_idle", !c.library.working()},
+        {"library_loaded", !c.library.loading()},
+        {"selection_idle", !c.library.selecting()},
+        {"count", c.library.count() == 2},
+        {"library_error_empty", c.library.error().isEmpty()},
+        {"members", catalog.libraryIDs({}) == baseline.members},
+        {"selection", c.library.selectionIDs() == baseline.selected},
+        {"rows", actual.size() == 2 && sameRow(actual[0], baseline.rows[0]) &&
+                     sameRow(actual[1], baseline.rows[1])}};
+    for (auto field = observations.begin(); field != observations.end(); ++field)
+        if (!field.value().toBool()) {
+            writeJson(c.root + "/card-flags-invariant-failure.json",
+                      {{"checks", observations},
+                       {"preview_url_before", baseline.preview},
+                       {"preview_url_after", c.editor.previewUrl()},
+                       {"expected_document", fullDocument(baseline.current)},
+                       {"actual_document", fullDocument(c.editor.currentSettings())}});
+            break;
+        }
     require(c.window->size() == QSize(1000, 640) && c.window->property("libraryMode").toBool() &&
                 c.editor.photoID() == baseline.photo && c.editor.sourcePath() == baseline.source &&
                 c.editor.currentSettings() == baseline.current && c.editor.canUndo() &&

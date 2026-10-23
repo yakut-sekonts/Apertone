@@ -410,6 +410,54 @@ void firstPageOnResetTests(const std::filesystem::path &root) {
     db.verify();
 }
 
+void sourceAvailabilityTests(const std::filesystem::path &root,
+                             const std::filesystem::path &fixture) {
+    const auto folder = root / "watched-originals";
+    std::filesystem::create_directory(folder);
+    const auto source = folder / "source.dng";
+    const auto held = root / "temporarily-removed.dng";
+    std::filesystem::copy_file(fixture, source);
+    const auto path = root / "source-watch.sqlite";
+    luma::Catalog catalog(path);
+    const auto original = catalog.addAndSelect(source, luma::macos::sha256File(source),
+                                               luma::RawDecoder().inspect(source));
+    LibraryModel model(path);
+    wait([&] {
+        return !model.working() && !model.loading() && model.count() == 1 &&
+               model.data(model.index(0), LibraryModel::AssetID).toString() ==
+                   QString::fromStdString(original.id);
+    });
+    model.select(0);
+    model.photoOpened(QString::fromStdString(original.id));
+    require(!model.data(model.index(0), LibraryModel::Missing).toBool(),
+            "Existing watched source is incorrectly marked missing.");
+    int resets = 0, notifications = 0;
+    bool unexpectedRoles = false;
+    QObject::connect(&model, &QAbstractItemModel::modelReset, &model, [&] { ++resets; });
+    QObject::connect(
+        &model, &QAbstractItemModel::dataChanged, &model,
+        [&](const QModelIndex &first, const QModelIndex &last, const QList<int> &roles) {
+            ++notifications;
+            unexpectedRoles = unexpectedRoles || first.row() != 0 || last.row() != 0 ||
+                              roles != QList<int>{LibraryModel::Missing};
+        });
+    std::filesystem::rename(source, held);
+    wait([&] { return model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    require(resets == 0 && notifications == 1 && !unexpectedRoles && model.count() == 1 &&
+                model.selectedCount() == 1 &&
+                model.data(model.index(0), LibraryModel::Active).toBool(),
+            "Actual source removal reset the model or changed selection/metadata.");
+    std::filesystem::rename(held, source);
+    wait([&] { return !model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    require(resets == 0 && notifications == 2 && !unexpectedRoles && model.count() == 1 &&
+                model.selectedCount() == 1 &&
+                model.data(model.index(0), LibraryModel::AssetID).toString() ==
+                    QString::fromStdString(original.id) &&
+                catalog.assetByID(original.id)->edits == original.edits &&
+                luma::macos::sha256File(source) == original.checksum,
+            "Actual source restoration changed identity, original bytes or edits.");
+}
+
 void modelTests(const std::filesystem::path &root, bool scaleContract) {
     const int rowCount = scaleContract ? 100000 : 256;
     const auto path = root / (scaleContract ? "large.sqlite" : "bounded-model.sqlite");
@@ -499,6 +547,7 @@ int main(int argc, char **argv) {
             viewportTests(root);
             firstPageOnResetTests(root);
             modelTests(root, false);
+            sourceAvailabilityTests(root, argv[1]);
         }
         std::filesystem::remove_all(root);
         std::cout << (scaleContract ? "Library 100k scale contract passed\n"

@@ -1,5 +1,6 @@
 #include "apps/shared/LibraryService.h"
 #include "platform/macos/FileHasher.h"
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -60,6 +61,56 @@ void optionsAndNaming() {
         options.naming = name;
         rejects([&] { options.validate(); });
     }
+}
+void addExistingLongNames(const std::filesystem::path &fixture) {
+    Temporary temporary;
+    std::string unicodeName;
+    for (int index = 0; index < 124; ++index)
+        unicodeName += "ф";
+    const std::vector<std::string> names{std::string(250, 'a') + ".webp", unicodeName + ".webp"};
+    const auto checksum = luma::macos::sha256File(fixture);
+    const auto catalogPath = temporary.root / "catalog.sqlite";
+    luma::LibraryService service(catalogPath);
+    luma::ImportOptions options;
+    options.skipDuplicates = false;
+    for (const auto &name : names) {
+        const auto source = temporary.root / name;
+        std::filesystem::copy_file(fixture, source);
+        const auto added = service.import({source}, options);
+        require(added.added == 1 && added.failed == 0,
+                "Add rejected a legal existing filename above the generated-name limit.");
+        require(luma::macos::sha256File(source) == checksum,
+                "Add changed the existing original bytes.");
+    }
+    {
+        const luma::Catalog catalog(catalogPath);
+        require(catalog.libraryCount() == static_cast<std::int64_t>(names.size()),
+                "Add lost a long-name source.");
+        for (const auto &id : catalog.libraryIDs({})) {
+            const auto asset = catalog.assetByID(id).value();
+            require(asset.path.parent_path() == std::filesystem::canonical(temporary.root) &&
+                        std::find(names.begin(), names.end(), asset.path.filename().string()) !=
+                            names.end() &&
+                        asset.checksum == checksum,
+                    "Reopened catalog changed a long source name, location or checksum.");
+        }
+    }
+    options.destination = temporary.root / "copies";
+    std::filesystem::create_directory(options.destination);
+    options.backupDestination = temporary.root / "backup";
+    std::filesystem::create_directory(options.backupDestination);
+    const auto source = temporary.root / names.front();
+    for (const auto mode :
+         {luma::ImportMode::add, luma::ImportMode::copy, luma::ImportMode::move}) {
+        options.mode = mode;
+        const auto rejected = service.import({source}, options);
+        require(rejected.added == 0 && rejected.failed == 1 &&
+                    std::filesystem::is_empty(options.destination) &&
+                    std::filesystem::is_empty(options.backupDestination) &&
+                    luma::macos::sha256File(source) == checksum,
+                "Generated Copy/Move/backup names bypassed validation or changed the original.");
+    }
+    require(service.recover().empty(), "Long-name imports left an unfinished journal.");
 }
 void copyMoveAndBackup(const std::filesystem::path &fixture) {
     Temporary temporary;
@@ -128,6 +179,7 @@ int main(int argc, char **argv) {
     try {
         require(argc == 2, "Expected a raster fixture path.");
         optionsAndNaming();
+        addExistingLongNames(argv[1]);
         copyMoveAndBackup(argv[1]);
         std::cout << "Import options, Copy/Move, backups and metadata/develop snapshots passed.\n";
         return 0;

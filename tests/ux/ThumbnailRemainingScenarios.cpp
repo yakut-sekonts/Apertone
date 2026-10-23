@@ -53,9 +53,11 @@ QString cachePath(Context &c, const luma::AssetSnapshot &snapshot) {
     const auto &asset = snapshot.asset;
     const auto encoded =
         luma::encodePreset({"Thumbnail", {}, asset.edits, luma::allSettingsGroups});
-    const auto identity = QByteArray::fromStdString(asset.checksum) + "|" +
-                          QByteArray::number(snapshot.revision) + "|" + encoded + "|local-v2|" +
-                          QByteArray::fromStdString(luma::encodeLocalMasks(asset.edits.localMasks));
+    const auto identity =
+        QByteArray::fromStdString(asset.checksum) + "|" + QByteArray::number(snapshot.revision) +
+        "|" + encoded + "|local-v2|" +
+        QByteArray::fromStdString(luma::encodeLocalMasks(asset.edits.localMasks)) + "|retouch-v1|" +
+        QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     return c.catalogFile + ".luma-cache/thumbnails/" + QString::fromLatin1(fingerprint) +
            "-edited-v4.jpg";

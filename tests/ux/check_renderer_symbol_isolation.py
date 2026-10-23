@@ -32,7 +32,9 @@ def inspect_binary(argument):
     names = sorted({line.split()[-1] for line in completed.stdout.splitlines() if line.split()})
     original = [name for name in names if name.lstrip("_").startswith("ZN4luma9renderCPUE")]
     alternate = [name for name in names if "renderCPUWithUxRows" in name]
-    observers = [name for name in names if "CpuRowObserver" in name or "thumbnail_trace" in name]
+    observers = [name for name in names if "CpuRowObserver" in name or "thumbnail_trace" in name
+                 or "LoadProbe" in name or "LoadResultGate" in name
+                 or "holdLoadSuccess" in name or "observeLoadSuccessDelivery" in name]
     if not original:
         raise RuntimeError(f"Original renderCPU definition is absent: {path}")
     return {

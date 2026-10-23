@@ -1,4 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#ifdef LUMA_UX_LOAD_PROBE
+#include "tests/ux/LoadProbe.h"
+#endif
 #include "apps/desktop/BundledModels.h"
 #include "apps/shared/PresetStore.h"
 #include "core/image/Bayer.h"
@@ -335,10 +338,26 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
             auto result =
                 source ? std::optional<luma::PhotoSession>(service_.open(*source, stop, progress))
                        : service_.restore(stop, progress);
+#ifdef LUMA_UX_LOAD_PROBE
+            const ux::LoadOperation uxSuccess{
+                this, revision, result ? result->asset.id : std::string{},
+                result ? result->asset.path.string() : std::string{}, context.data};
+            if (result)
+                ux::holdLoadSuccess(uxSuccess);
+#endif
             if (self) {
                 QMetaObject::invokeMethod(
                     self,
-                    [self, revision, result = std::move(result)]() mutable {
+                    [self, revision, result = std::move(result)
+#ifdef LUMA_UX_LOAD_PROBE
+                                         ,
+                     uxSuccess
+#endif
+                ]() mutable {
+#ifdef LUMA_UX_LOAD_PROBE
+                        if (result)
+                            ux::observeLoadSuccessDelivery(uxSuccess);
+#endif
                         if (!self || self->loadRevision_ != revision) {
                             return;
                         }

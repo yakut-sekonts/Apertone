@@ -133,7 +133,12 @@ void ready(Context &c, const QImage &expected, const QString &reason) {
                preview->property("source").toUrl().toString() == c.editor.previewUrl() &&
                c.provider->requestImage({}, nullptr, {}) == expected;
     };
-    c.driver->wait(condition, reason);
+    try {
+        c.driver->wait(condition, reason);
+    } catch (...) {
+        recordPreviewDifference(c, expected, reason);
+        throw;
+    }
     c.driver->frame();
     require(condition(), "Preview changed after its accepted removable-source boundary");
 }

@@ -47,7 +47,9 @@ float3 applyHsl(float3 rgb, constant float *p) {
     float light = (high + low) * 0.5f;
     float hue = 0, saturation = 0;
     if (delta > 1e-12f) {
-        saturation = delta / max(1e-12f, 1 - abs(2 * light - 1));
+        // Avoid subtracting nearly equal values at black/white. In particular,
+        // HDR normalization makes high == 1, where this denominator equals delta.
+        saturation = delta / max(1e-12f, min(high + low, (1 - high) + (1 - low)));
         hue = high == rgb.r ? (rgb.g - rgb.b) / delta
             : high == rgb.g ? (rgb.b - rgb.r) / delta + 2
                             : (rgb.r - rgb.g) / delta + 4;
@@ -67,7 +69,7 @@ float3 applyHsl(float3 rgb, constant float *p) {
     saturation = clamp(saturation * (1 + adjustment.y * weight / 100), 0.0f, 1.0f);
     light += adjustment.z * weight * 0.005f * (adjustment.z >= 0 ? 1 - light : light);
     const float h = hue / 60;
-    const float c = (1 - abs(2 * light - 1)) * saturation;
+    const float c = (2 * min(light, 1 - light)) * saturation;
     const float x = c * (1 - abs(fmod(h, 2.0f) - 1));
     const float m = light - c * 0.5f;
     switch (min(uint(h), 5u)) {

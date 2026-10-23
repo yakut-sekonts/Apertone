@@ -225,8 +225,10 @@ class LibraryModel final : public QAbstractListModel {
     bool autoWriteXMP_ = false;
     QFileSystemWatcher sourceWatcher_;
     QTimer sourceWatchTimer_;
+    luma::JobHandle sourceAvailabilityJob_;
     void initializeMaintenance();
     void watchVisibleFolders();
+    void refreshSourceAvailability();
     void page(int number);
     void reload(bool clear);
     void selectionChanged();

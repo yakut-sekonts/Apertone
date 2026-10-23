@@ -57,8 +57,60 @@ void LibraryModel::initializeMaintenance() {
         // Changes are observed, never used to replace an original or import XMP automatically.
         status_ = QStringLiteral(
             "Source folder changed. Reload metadata explicitly to import external XMP changes.");
-        reload(false);
+        refreshSourceAvailability();
+        emit stateChanged();
     });
+}
+void LibraryModel::refreshSourceAvailability() {
+    sourceAvailabilityJob_.cancel();
+    const auto revision = revision_;
+    std::map<std::string, std::filesystem::path> sources;
+    for (const auto &[page, rows] : pages_) {
+        (void)page;
+        for (const auto &row : rows)
+            sources.emplace(row.id, row.path);
+    }
+    const QPointer<LibraryModel> self(this);
+    sourceAvailabilityJob_ = reads_.submit(
+        luma::JobPriority::background,
+        [self, revision, sources = std::move(sources)](const auto &context) {
+            const auto stop = context.stopToken();
+            std::map<std::string, bool> missing;
+            for (const auto &[id, path] : sources) {
+                if (stop.isCancelled())
+                    return;
+                std::error_code error;
+                const bool exists = std::filesystem::exists(path, error);
+                if (!error)
+                    missing.emplace(id, !exists);
+            }
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, revision, stop, missing = std::move(missing)] {
+                        if (!self || self->closing_ || stop.isCancelled())
+                            return;
+                        if (self->revision_ != revision) {
+                            self->sourceWatchTimer_.start();
+                            return;
+                        }
+                        // Directory notifications never change catalog membership.
+                        // Keep delegates, selection and viewport intact while
+                        // updating availability on the current cached pages only.
+                        for (auto &[page, rows] : self->pages_)
+                            for (std::size_t offset = 0; offset < rows.size(); ++offset) {
+                                auto &item = rows[offset];
+                                const auto found = missing.find(item.id);
+                                if (found == missing.end() || found->second == item.missing)
+                                    continue;
+                                item.missing = found->second;
+                                const auto row = page * pageSize + static_cast<int>(offset);
+                                emit self->dataChanged(self->index(row), self->index(row),
+                                                       {Missing});
+                            }
+                    },
+                    Qt::QueuedConnection);
+        });
 }
 void LibraryModel::watchVisibleFolders() {
     QSet<QString> wanted;
