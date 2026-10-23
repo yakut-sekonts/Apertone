@@ -300,6 +300,8 @@ This does not close BUG-045 or full release qualification; see
   pixels, document/revision, selection and original hashes remain unchanged.
   Related PRG002 export passes 3/3, including actual 1024 interaction preview,
   2560 final Fit preview, exact 3072×2048 sRGB PNG and single-gesture Undo/Redo.
-- Status: fixed, bounded offscreen confirmation complete; native Retina pending.
+- Status: fixed, bounded offscreen and Cocoa/Metal Retina DPR2 confirmation complete.
+  The approved native interval passed all three new scenarios on clean `6056dd2`,
+  with no QML warnings and intact original hashes/catalogs.
   Full pan/trackpad, external display and phase 0.6 QA remain open.
 - Evidence: [zoom/progressive follow-up](qualification/2026-10-23/zoom-progressive-followup.json).

@@ -16,7 +16,8 @@ The subsequent zoom/export follow-up fixes Fit-to-100% centering after content
 size bindings settle, with backing-pixel alignment. Three new official adapters
 pass 9/9 local offscreen runs on a 3072×2048 chart: pixel mapping, center-preserving
 round trips and full-resolution PNG export after a real interaction preview.
-Native Retina, pan/hardware, latency and memory-pressure gates remain open.
+A subsequent authorized native Cocoa/Metal Retina DPR2 run passes all three.
+Pan/physical-input, external-display, latency and memory-pressure gates remain open.
 
 ## Source changes
 

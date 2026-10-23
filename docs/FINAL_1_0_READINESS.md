@@ -364,8 +364,10 @@ original bytes and one-gesture Undo/Redo are preserved. No QML warnings occurred
 
 All targets, QML shipping smoke, test-probe isolation, 40 runner and 10 policy
 checks pass. Formatting and blocking tidy checks pass; optional-access warnings
-remain behind the test's throwing `require()` guard. Native Cocoa/Retina
-confirmation awaits a fresh approved quiet interval. These generated PNG checks
+remain behind the test's throwing `require()` guard. The subsequently approved
+two-minute interval passes **3/3** on actual Cocoa/Metal, Retina DPR2, using clean
+`6056dd2` with matching build/source provenance. No QML warnings, catalog or
+original-file integrity failures occurred. These generated PNG checks
 do not qualify RAW, physical input/panning, OS pressure, latency or GPU failures.
 The independent CPU oracle runs on the test GUI thread, so heartbeat stalls in
 these reports are not product performance measurements.
