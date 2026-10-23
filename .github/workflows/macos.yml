@@ -112,6 +112,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-EXP-028 --runs 3 --require-build-provenance --report build/ux-watermark-snapshot-report
       - name: Legal UTF-8 current export filename regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-VIS-003 --runs 3 --require-build-provenance --report build/ux-export-current-filename-report
+      - name: Preview revision ordering and photo-switch zoom
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P06-PRG-004 --case UX-P06-PRG-009 --case UX-P06-ZOM-002 --case UX-P06-ZOM-005 --runs 3 --require-build-provenance --report build/ux-preview-ordering-report
       - name: Auto Transform completion regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report
       - name: Upload UX evidence
@@ -127,6 +129,7 @@ jobs:
             build/ux-localized-dialog-report/
             build/ux-mask-handles-report/
             build/ux-auto-transform-report/
+            build/ux-preview-ordering-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
             build/ux-thumbnail-away-back-report/
@@ -166,6 +169,7 @@ jobs:
             build/ux-artifacts/20*/**/app.log
             build/ux-artifacts/20*/**/model-resets.jsonl
             build/ux-artifacts/20*/**/preview-pixel-difference.json
+            build/ux-artifacts/20*/**/zoom-*-sample.png
             build/ux-artifacts/20*/**/expected-preview.png
             build/ux-artifacts/20*/**/actual-preview.png
             build/ux-artifacts/20*/**/command.json

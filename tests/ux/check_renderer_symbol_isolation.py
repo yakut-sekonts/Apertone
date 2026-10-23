@@ -34,7 +34,9 @@ def inspect_binary(argument):
     alternate = [name for name in names if "renderCPUWithUxRows" in name]
     observers = [name for name in names if "CpuRowObserver" in name or "thumbnail_trace" in name
                  or "LoadProbe" in name or "LoadResultGate" in name
-                 or "holdLoadSuccess" in name or "observeLoadSuccessDelivery" in name]
+                 or "holdLoadSuccess" in name or "observeLoadSuccessDelivery" in name
+                 or "PreviewResult" in name or "PreviewOperation" in name
+                 or "deferPreviewSuccess" in name or "observePreview" in name]
     if not original:
         raise RuntimeError(f"Original renderCPU definition is absent: {path}")
     return {
@@ -64,6 +66,8 @@ def main():
             raise RuntimeError("Shipping and UX executables must be distinct files")
         if shipping["alternate_renderer_symbols"] or shipping["test_observer_symbols"]:
             raise RuntimeError("UX renderer or thumbnail observation symbols leaked into shipping")
+        if not any("deferPreviewSuccess" in name for name in ux["test_observer_symbols"]):
+            raise RuntimeError("UX actual preview dispatch probe is absent")
         if not ux["alternate_renderer_symbols"]:
             raise RuntimeError("UX alternate renderer definition is absent")
         if shipping["original_renderer_symbols"] != ux["original_renderer_symbols"]:

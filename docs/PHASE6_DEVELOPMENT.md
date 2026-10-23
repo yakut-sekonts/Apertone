@@ -19,6 +19,16 @@ round trips and full-resolution PNG export after a real interaction preview.
 A subsequent authorized native Cocoa/Metal Retina DPR2 run passes all three.
 Pan/physical-input, external-display, latency and memory-pressure gates remain open.
 
+
+The subsequent completion-ordering/photo-switch follow-up adds three adapters:
+9/9 offscreen repetitions and 3/3 authorized Cocoa/Metal Retina DPR2 cases pass.
+The actual obsolete render callback is rejected after a newer image and while
+the next photo load is pending. Entering 100%, panning and switching photos
+resets zoom/pan to Fit and preserves saved edits. The interception is UX-only
+and absent from shipping; image rendering is explicitly CPU, with the native
+Metal Qt scene. These regressions now run in CI/release workflows. Phase 0.6
+has seven official UX adapters of 58; this is not complete phase qualification.
+
 ## Source changes
 
 - `ByteLruCache` retains immutable values under a byte budget. Eviction releases

@@ -345,6 +345,33 @@ remain open. No new native UI session or release was performed.
 
 ## Source decisions and qualification requirements
 
+### Preview completion ordering and photo-switch zoom — 2026-10-23
+
+P06-PRG-004/009 and P06-ZOM-005 pass **9/9** local offscreen repetitions and
+**3/3** in the authorized two-minute Cocoa/Metal Retina DPR2 interval. The
+existing three zoom/export cases also pass again. No QML warnings, original-file
+or catalog integrity failures occurred. There is no new production behavior fix
+in this batch: the existing revision guard and photo-load reset policy pass.
+
+The UX-only probe retains the actual successful render dispatch after its final
+cancellation check, freeing the sole worker for a newer render. Its original GUI
+callback is later delivered and the existing revision guard rejects it exactly
+once. PRG004 exercises delivery after a newer final image. PRG009 additionally
+holds the next actual SessionService load and proves old-stage rejection while
+the editor is still busy, before the new photo's success callback. Image/URL,
+histogram, document, selection, saved revision and Undo/Redo remain correct.
+Zoom switching exercises actual 100% scene pixels and pointer pan, then verifies
+Fit and zero offsets on each filmstrip load while preserving saved edits.
+
+All targets, shipping QML/probe-isolation, formatting, 40 runner and 10 policy
+checks pass; blocking affected-file tidy passes with optional-access warnings.
+The new probe is absent from the shipping binary. CI and release workflows now
+run the preview-ordering and zoom-switch regressions and retain their evidence.
+These checks explicitly use CPU image rendering; native Metal identifies the Qt
+scene backend. They do not qualify GPU-command races, RAW, physical input,
+external displays, latency or memory pressure. The native interval has ended.
+[Evidence](qualification/2026-10-23/preview-ordering-zoom-switch-followup.json).
+
 ### Full-resolution zoom and progressive export — 2026-10-23
 
 New P06-ZOM-001/002 adapters reproduced **2/2 failures**: Fit to 100% left
@@ -409,7 +436,8 @@ The capability manifest now reflects source availability for 0.6–0.9. Missing
 adapters become explicit SKIPPED/unadapted qualification gaps rather than future
 NOT_IMPLEMENTED capabilities. No unexecuted case becomes PASS. That checkpoint
 had one official phase 0.6 adapter of 58; the zoom/export follow-up above adds
-three, for four total. Phases 0.7/0.8/0.9 still require adapters for
+three; the completion-ordering/photo-switch follow-up adds another three, for
+seven total. Phases 0.7/0.8/0.9 still require adapters for
 their 56/50/84 inventory cases, with applicability review for conditional tools.
 Existing unit/model reports remain separate evidence. Release qualification is
 still open, including load, hardware, installation and updater checks.

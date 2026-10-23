@@ -1,4 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+#include "tests/ux/PreviewResultProbe.h"
+#endif
 #ifdef LUMA_UX_LOAD_PROBE
 #include "tests/ux/LoadProbe.h"
 #endif
@@ -716,7 +719,12 @@ void EditorController::render(bool fullQuality) {
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
          metadata, overlay, asset, service, fullResolution, cache, generation, key, accelerator,
-         interactive, clipping, pointRange](const luma::JobContext &context) {
+         interactive, clipping, pointRange
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+         ,
+         resolution
+#endif
+    ](const luma::JobContext &context) {
             try {
                 auto cached = cache->get(key);
                 if (!cached) {
@@ -743,26 +751,47 @@ void EditorController::render(bool fullQuality) {
                 }
                 luma::checkCancellation(context.stopToken());
                 if (self) {
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, revision, cached, interactive] {
-                            if (!self || self->renderRevision_ != revision) {
-                                return;
-                            }
-                            self->provider_->update(cached->image);
-                            ++self->imageRevision_;
-                            self->previewReady_ = true;
-                            self->cropCanvasReady_ = self->cropMode_;
-                            self->guidedCanvasReady_ = self->guidedMode_;
-                            self->localCanvasReady_ = self->localMode_;
-                            self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
-                            self->pointColorCanvasReady_ = self->pointColorPicking_;
-                            self->publishHistogram(cached->histogram);
-                            if (interactive && !self->history_.gestureActive())
-                                self->refineTimer_.start();
-                            emit self->stateChanged();
-                        },
-                        Qt::QueuedConnection);
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+                    const ux::PreviewOperation uxSuccess{self.data(), revision, resolution,
+                                                         asset.id, context.data};
+#endif
+                    auto publish = [self, revision, cached, interactive
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+                                    ,
+                                    uxSuccess
+#endif
+                    ] {
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+                        ux::observePreviewDelivery(uxSuccess);
+#endif
+                        if (!self || self->renderRevision_ != revision) {
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+                            ux::observePreviewRejection(uxSuccess,
+                                                        self ? self->renderRevision_ : 0);
+#endif
+                            return;
+                        }
+                        self->provider_->update(cached->image);
+                        ++self->imageRevision_;
+                        self->previewReady_ = true;
+                        self->cropCanvasReady_ = self->cropMode_;
+                        self->guidedCanvasReady_ = self->guidedMode_;
+                        self->localCanvasReady_ = self->localMode_;
+                        self->whiteBalanceCanvasReady_ = self->whiteBalancePicking_;
+                        self->pointColorCanvasReady_ = self->pointColorPicking_;
+                        self->publishHistogram(cached->histogram);
+                        if (interactive && !self->history_.gestureActive())
+                            self->refineTimer_.start();
+                        emit self->stateChanged();
+                    };
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+                    if (ux::deferPreviewSuccess(uxSuccess, cached->image, [self, publish] {
+                            if (self)
+                                QMetaObject::invokeMethod(self, publish, Qt::QueuedConnection);
+                        }))
+                        return;
+#endif
+                    QMetaObject::invokeMethod(self, std::move(publish), Qt::QueuedConnection);
                 }
             } catch (const std::exception &error) {
                 if (context.stopToken().isCancelled()) {

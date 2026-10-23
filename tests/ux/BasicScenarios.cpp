@@ -45,6 +45,8 @@ bool thumbnailRemainingScenario(Context &, const QString &);
 bool retinaScenario(Context &, const QString &);
 bool previewBackendScenario(Context &, const QString &);
 bool zoomScenario(Context &, const QString &);
+bool zoomSwitchScenario(Context &, const QString &);
+bool progressiveRaceScenario(Context &, const QString &);
 bool progressiveExportScenario(Context &, const QString &);
 void basicScenario(Context &c, const QString &id) {
     auto &d = *c.driver;
@@ -53,7 +55,8 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (progressiveExportScenario(c, id) || zoomScenario(c, id) || previewBackendScenario(c, id) ||
+    if (progressiveRaceScenario(c, id) || zoomSwitchScenario(c, id) ||
+        progressiveExportScenario(c, id) || zoomScenario(c, id) || previewBackendScenario(c, id) ||
         libraryScrollCandidate(c, id) || maskHandleCropLossCandidate(c, id) ||
         keyboardActivationCandidate(c, id) || copyDestinationScenario(c, id, {}) ||
         removableDestinationScenario(c, id, {}) || removableSourceScenario(c, id) ||

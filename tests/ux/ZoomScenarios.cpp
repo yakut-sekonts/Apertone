@@ -1,6 +1,8 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/DisplayProfile.h"
+#include "tests/ux/LoadProbe.h"
+#include "tests/ux/PreviewResultProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QColorSpace>
@@ -23,7 +25,7 @@ QByteArray sourceHash(const QString &path) {
     require(hash.addData(&source), "Cannot hash complete zoom fixture");
     return hash.result().toHex();
 }
-QString chart(Context &c) {
+QString chart(Context &c, bool pair) {
     const auto directory = c.root + "/zoom-originals";
     require(QDir().mkpath(directory), "Cannot create zoom fixture directory");
     QImage image(3072, 2048, QImage::Format_RGBA8888);
@@ -41,6 +43,10 @@ QString chart(Context &c) {
     }
     const auto path = directory + "/Zoom.png";
     require(image.save(path), "Cannot save zoom chart");
+    if (pair) {
+        image.invertPixels(QImage::InvertRgb);
+        require(image.save(directory + "/Zoom2.png"), "Cannot save second zoom chart");
+    }
     return path;
 }
 QImage reference(Context &c, const luma::DecodedImage &decoded, const luma::EditDocument &document,
@@ -150,9 +156,9 @@ void mapping(Context &c, const QImage &expected) {
 }
 struct ChartSource {
     QString path;
-    QByteArray hash;
+    QByteArray hash, secondHash;
 };
-ChartSource openChart(Context &c) {
+ChartSource openChart(Context &c, bool pair = false) {
     auto &d = *c.driver;
     // This contract isolates scaling and full-resolution decode from GPU arithmetic.
     d.click("settingsButton");
@@ -164,19 +170,61 @@ ChartSource openChart(Context &c) {
     d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
            "Zoom preferences closed");
     require(!c.editor.metalPreview(), "Zoom CPU preference was not applied");
-    const auto path = chart(c);
+    const auto path = chart(c, pair);
     const auto hash = sourceHash(path);
+    const auto secondHash =
+        pair ? sourceHash(QFileInfo(path).absolutePath() + "/Zoom2.png") : QByteArray{};
     d.log({{"action", "zoom_own_original_created"},
            {"source", path},
-           {"sha256", QString::fromLatin1(hash)}});
+           {"sha256", QString::fromLatin1(hash)},
+           {"second_sha256", QString::fromLatin1(secondHash)}});
     const auto originalFixture = c.fixture;
     c.fixture = QFileInfo(path).absolutePath();
-    c.import(1);
+    c.import(pair ? 2 : 1);
     c.fixture = originalFixture;
     d.doubleClick(c.card(0));
     c.loaded();
-    return {path, hash};
+    require(c.editor.sourcePath() == path, "Zoom import did not open the first owned chart");
+    return {path, hash, secondHash};
 }
+void fitGeometry(Context &c) {
+    const auto *view = c.driver->item("develop.viewport");
+    require(!c.editor.oneToOne() && !view->property("pixelMode").toBool() &&
+                view->property("contentX").toDouble() == 0 &&
+                view->property("contentY").toDouble() == 0,
+            "Photo switch did not reset zoom and both pan offsets to Fit");
+}
+luma::AssetSnapshot savedSnapshot(Context &c) {
+    const auto result =
+        luma::Catalog(c.catalogFile.toStdString()).assetSnapshot(c.editor.photoID().toStdString());
+    require(result.has_value(), "Current chart has no catalog snapshot");
+    return *result;
+}
+void sameSaved(Context &c, const luma::AssetSnapshot &before) {
+    const auto after = luma::Catalog(c.catalogFile.toStdString()).assetSnapshot(before.asset.id);
+    require(after && after->revision == before.revision &&
+                after->asset.edits == before.asset.edits &&
+                after->asset.path == before.asset.path &&
+                after->asset.checksum == before.asset.checksum,
+            "Preview delivery/zoom changed saved document, revision or original identity");
+}
+void filmstrip(Context &c, int row, const QString &path, const luma::EditDocument &document,
+               const QImage &expected) {
+    QSignalSpy opens(&c.library, &LibraryModel::openRequested);
+    QSignalSpy loads(&c.editor, &EditorController::photoLoaded);
+    require(opens.isValid() && loads.isValid(), "Cannot observe photo switch");
+    c.driver->click(c.card(row, true));
+    c.driver->wait([&] { return loads.count() == 1 && !c.editor.busy(); },
+                   "Actual filmstrip photo switch");
+    ready(c, expected);
+    require(opens.count() == 1 && opens.at(0).at(0).toUrl().toLocalFile() == path &&
+                loads.at(0).at(0).toString() == c.editor.photoID() &&
+                c.editor.sourcePath() == path && c.editor.currentSettings() == document &&
+                !c.editor.canUndo() && !c.editor.canRedo(),
+            "Filmstrip switch lost asset identity/document or reset-history policy");
+    fitGeometry(c);
+}
+
 } // namespace
 bool zoomScenario(Context &c, const QString &id) {
     if (id != "UX-P06-ZOM-001" && id != "UX-P06-ZOM-002")
@@ -327,4 +375,208 @@ bool progressiveExportScenario(Context &c, const QString &id) {
             "Progressive export produced QML warnings: " + c.warnings.join('\n'));
     return true;
 }
+bool zoomSwitchScenario(Context &c, const QString &id) {
+    if (id != "UX-P06-ZOM-005")
+        return false;
+    auto &d = *c.driver;
+    const auto source = openChart(c, true);
+    const auto second = QFileInfo(source.path).absolutePath() + "/Zoom2.png";
+    const auto secondHash = source.secondHash;
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    const auto nextDecoded = luma::PhotoDecoder().decode(second.toStdString());
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+    c.saved();
+    const auto document = c.editor.currentSettings();
+    const auto before = savedSnapshot(c);
+    const auto fit = reference(c, decoded, document, 2560);
+    ready(c, fit);
+    d.click("develop.actualPixels");
+    ready(c, reference(c, decoded, document, 0));
+    mapping(c, reference(c, decoded, document, 0));
+    const auto *view = d.item("develop.viewport");
+    const auto x = view->property("contentX").toDouble();
+    const auto y = view->property("contentY").toDouble();
+    d.drag("develop.viewport", {.5, .5}, {.25, .25});
+    require(view->property("contentX").toDouble() != x &&
+                view->property("contentY").toDouble() != y,
+            "Zoom photo switch needs actual non-central pan input");
+    const luma::EditDocument neutral;
+    filmstrip(c, 1, second, neutral, reference(c, nextDecoded, neutral, 2560));
+    const auto nextSaved = savedSnapshot(c);
+    filmstrip(c, 0, source.path, document, fit);
+    sameSaved(c, before);
+    sameSaved(c, nextSaved);
+    require(sourceHash(source.path) == source.hash && sourceHash(second) == secondHash,
+            "Photo switch changed original bytes");
+    d.log({{"action", "zoom_switch_reset_fit"},
+           {"first_uuid", QString::fromStdString(before.asset.id)},
+           {"second_uuid", QString::fromStdString(nextSaved.asset.id)},
+           {"first_sha256", QString::fromLatin1(source.hash)},
+           {"second_sha256", QString::fromLatin1(secondHash)},
+           {"policy", "reset zoom/pan on each photo load; preserve saved edits; reset history"}});
+    require(c.warnings.isEmpty(), "Zoom switch produced QML warnings: " + c.warnings.join('\n'));
+    return true;
+}
+bool progressiveRaceScenario(Context &c, const QString &id) {
+    const bool switchAsset = id == "UX-P06-PRG-009";
+    if (!switchAsset && id != "UX-P06-PRG-004")
+        return false;
+    auto &d = *c.driver;
+    const auto source = openChart(c, switchAsset);
+    const auto second = QFileInfo(source.path).absolutePath() + "/Zoom2.png";
+    const auto secondHash = source.secondHash;
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    ready(c, reference(c, decoded, c.editor.currentSettings(), 2560));
+    c.reveal("develop.exposureSlider");
+    PreviewResultGate gate(c.editor, 2560);
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+    c.saved();
+    const auto obsolete = c.editor.currentSettings();
+    const auto oldExpected = reference(c, decoded, obsolete, 2560);
+    d.wait(
+        [&] {
+            const auto state = gate.snapshot();
+            return state.held && state.held->job->state.load() == luma::JobState::completed;
+        },
+        "Actual old final render finished while its success dispatch is retained");
+    const auto held = gate.snapshot();
+    require(!held.hookFailed && !held.released && held.deliveries == 0 &&
+                held.pixels == oldExpected &&
+                held.held->assetID == c.editor.photoID().toStdString(),
+            "Race gate did not retain the real old final result");
+    const auto firstSaved = savedSnapshot(c);
+    QImage newExpected;
+    if (switchAsset) {
+        const auto nextDecoded = luma::PhotoDecoder().decode(second.toStdString());
+        const luma::EditDocument neutral;
+        newExpected = reference(c, nextDecoded, neutral, 2560);
+        LoadResultGate loadGate(c.editor);
+        QSignalSpy opens(&c.library, &LibraryModel::openRequested);
+        QSignalSpy loads(&c.editor, &EditorController::photoLoaded);
+        require(opens.isValid() && loads.isValid(), "Cannot observe pending photo switch");
+        d.click(c.card(1, true));
+        d.wait([&] { return loadGate.snapshot().held.has_value(); },
+               "Next real session decoded, with load success still pending");
+        const auto pendingLoad = loadGate.snapshot();
+        require(
+            c.editor.busy() && c.editor.photoID().toStdString() == firstSaved.asset.id &&
+                pendingLoad.held->sourcePath == second.toStdString() &&
+                pendingLoad.deliveries == 0 && !pendingLoad.timedOut && !pendingLoad.hookFailed &&
+                opens.count() == 1 && opens.at(0).at(0).toUrl().toLocalFile() == second,
+            "Old completion must arrive after actual switch began and before new load delivery");
+        const auto pendingUrl = c.editor.previewUrl();
+        const auto pendingPixels = c.provider->requestImage({}, nullptr, {});
+        const auto pendingHistogram = c.editor.histogram();
+        QSignalSpy pendingChanges(&c.editor, &EditorController::stateChanged);
+        QSignalSpy pendingHistograms(&c.editor, &EditorController::histogramChanged);
+        gate.release();
+        d.wait([&] { return gate.snapshot().deliveries == 1; },
+               "Old render success delivered while new load is held");
+        d.frame();
+        require(gate.snapshot().rejections == 1 && c.editor.busy() && loads.isEmpty() &&
+                    c.editor.previewUrl() == pendingUrl &&
+                    c.provider->requestImage({}, nullptr, {}) == pendingPixels &&
+                    c.editor.histogram() == pendingHistogram &&
+                    c.editor.currentSettings() == obsolete && pendingChanges.isEmpty() &&
+                    pendingHistograms.isEmpty(),
+                "Photo switch failed to invalidate the old stage before the new photo loaded");
+        d.log({{"action", "progressive_rejected_during_photo_load"},
+               {"busy", c.editor.busy()},
+               {"new_load_deliveries", loads.count()},
+               {"old_render_rejections", int(gate.snapshot().rejections)}});
+        loadGate.release();
+        d.wait([&] { return loads.count() == 1 && !c.editor.busy(); },
+               "Retained new photo load completed");
+        ready(c, newExpected);
+        const auto loaded = loadGate.snapshot();
+        require(loaded.deliveries == 1 && loaded.successfulArrivals == 1 && loaded.lastDelivered &&
+                    loaded.held && loaded.held->sameAs(*loaded.lastDelivered) &&
+                    !loaded.hookFailed && !loaded.timedOut && !loaded.deliveryBeforeRelease &&
+                    loaded.mismatchedDeliveries == 0 && loaded.leftHold &&
+                    c.editor.sourcePath() == second && c.editor.currentSettings() == neutral &&
+                    c.editor.photoID() == loads.at(0).at(0).toString() && !c.editor.canUndo() &&
+                    !c.editor.canRedo(),
+                "New real photo load lost identity/document/history after old render rejection");
+        fitGeometry(c);
+    } else {
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.67, .5});
+        c.saved();
+        newExpected = reference(c, decoded, c.editor.currentSettings(), 2560);
+        ready(c, newExpected);
+    }
+    require(oldExpected != newExpected && held.held->job->cancellation.token().isCancelled(),
+            "New revision must differ and cancel the old render handle");
+    const auto document = c.editor.currentSettings();
+    const auto photo = c.editor.photoID();
+    const auto url = c.editor.previewUrl();
+    const auto selected = c.library.selectionIDs();
+    const auto histogram = c.editor.histogram();
+    const auto before = savedSnapshot(c);
+    const bool undo = c.editor.canUndo(), redo = c.editor.canRedo();
+    require(!c.editor.histogramPending(), "New final histogram is still pending");
+    QSignalSpy changes(&c.editor, &EditorController::stateChanged);
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    QSignalSpy histograms(&c.editor, &EditorController::histogramChanged);
+    require(changes.isValid() && saves.isValid() && histograms.isValid(),
+            "Cannot audit stale result delivery side effects");
+    gate.release();
+    d.wait([&] { return gate.snapshot().deliveries == 1; },
+           "Retained real success callback delivered");
+    d.frame();
+    const auto result = gate.snapshot();
+    require(result.held && result.delivered && result.held->sameAs(*result.delivered) &&
+                result.deliveries == 1 && result.rejections == 1 && result.released &&
+                result.rejectionRevision > result.held->revision && !result.deliveryBeforeRelease &&
+                !result.hookFailed,
+            "Original revision guard did not reject the exact delayed success once");
+    require(c.editor.previewUrl() == url &&
+                c.provider->requestImage({}, nullptr, {}) == newExpected &&
+                c.editor.histogram() == histogram && !c.editor.histogramPending() &&
+                c.editor.currentSettings() == document && c.editor.photoID() == photo &&
+                c.library.selectionIDs() == selected && c.editor.canUndo() == undo &&
+                c.editor.canRedo() == redo && changes.isEmpty() && saves.isEmpty() &&
+                histograms.isEmpty() && !c.editor.saving() && c.editor.error().isEmpty(),
+            "Late completion changed current image, histogram, document, selection or history");
+    sameSaved(c, before);
+    d.log({{"action", "progressive_stale_success_rejected"},
+           {"held_revision", QString::number(result.held->revision)},
+           {"current_revision", QString::number(result.rejectionRevision)},
+           {"held_uuid", QString::fromStdString(result.held->assetID)},
+           {"current_uuid", photo},
+           {"held_resolution", result.held->resolution},
+           {"release_order", switchAsset ? "during next load" : "after newer final preview"},
+           {"deliveries", int(result.deliveries)},
+           {"guard_rejections", int(result.rejections)},
+           {"old_handle_cancelled", result.held->job->cancellation.token().isCancelled()},
+           {"retained_result_equals_old_cpu", held.pixels == oldExpected},
+           {"current_result_equals_new_cpu",
+            c.provider->requestImage({}, nullptr, {}) == newExpected},
+           {"dispatch_boundary",
+            "actual render success after last cancellation check, before QueuedConnection"}});
+    if (switchAsset) {
+        sameSaved(c, firstSaved);
+        filmstrip(c, 0, source.path, obsolete, oldExpected);
+    } else {
+        d.click("main.undoButton");
+        ready(c, oldExpected);
+        require(c.editor.currentSettings() == obsolete && c.editor.canUndo() && c.editor.canRedo(),
+                "Late render completion corrupted the two-gesture Undo history");
+        d.click("main.redoButton");
+        ready(c, newExpected);
+        require(c.editor.currentSettings() == document && c.editor.canUndo() && !c.editor.canRedo(),
+                "Late render completion corrupted Redo history");
+        c.saved();
+    }
+    require(sourceHash(source.path) == source.hash &&
+                (!switchAsset || sourceHash(second) == secondHash),
+            "Progressive race changed original bytes");
+    d.log({{"action", "progressive_race_originals_preserved"},
+           {"first_sha256", QString::fromLatin1(source.hash)},
+           {"second_sha256", QString::fromLatin1(secondHash)}});
+    require(c.warnings.isEmpty(),
+            "Progressive race produced QML warnings: " + c.warnings.join('\n'));
+    return true;
+}
+
 } // namespace ux
