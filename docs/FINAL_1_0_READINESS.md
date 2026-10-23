@@ -5,16 +5,41 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Preview cache budget and explicit clear — 2026-10-23
+
+[Evidence](qualification/2026-10-23/preview-cache-budget.json) adds official
+UX-P06-LRU-001. Actual Settings reduces the configured budget from 256 to 64 MiB,
+evicts rendered cache entries to the production 16/32/16 MiB split, and clears
+all three caches. The active image remains exact; Undo/Redo reconstruct the
+expected CPU pixels and persist precisely two revisions. Document, selection,
+history and original hashes remain intact; no QML warnings occur.
+
+The adapter passes **3/3 offscreen**; existing 3072×2048 zoom and controlled
+memory-recovery cases pass **2/2** after the shared fixture gained an optional
+size. Affected blocking clang-tidy and 11 policy tests pass; nonblocking tidy
+warnings remain. Native confirmation is pending. This measures cache-owned
+references and bytes, not RSS, physical memory pressure or load qualification.
+The OS notification stream is deliberately isolated in this owned test controller.
+
 ### Independent hosted checks after a failed gate — 2026-10-23
 
 [Hosted evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json)
-captures `e5850c1`: build/model/unit stages PASS; the blocking UX step fails,
-and eight subsequent independent UX stages PASS. This confirms the CI condition
-correction, including executed PhotoCard and thumbnail regressions. The job is
-still running at this snapshot; exact blocking-case counts and full static
-results are not yet available. No full CI PASS or cause for the blocking result
-is inferred. Future runs upload the small blocking summary immediately before
-long supplemental checks; the complete archive remains unchanged.
+captures the final available `e5850c1` artifacts: **210 executed blocking UX
+repetitions PASS**, with 56 applicable blocking adapters absent. Twelve completed
+supplemental stages pass. The preview-ordering report also has 18 PASS, but its
+GitHub step was cancelled when `b404ad0` superseded the run. Viewer input, Auto
+Transform and full static analysis did not execute; no overall CI PASS is claimed.
+The artifact digest is verified and both the report and cancellation are retained.
+
+On `b404ad0`, the early blocking artifact has **219 PASS and 3 FAIL**: all three
+UX-P09-XMP-003 repeats fail while importing existing XMP on hosted macOS 15.
+Original/catalog integrity remains intact. Unit/integration and the separate
+Library-scroll stage also fail; their detailed final artifacts are not yet
+available at this snapshot. An isolated diagnostic workflow on the exact source
+commit runs XMP and Library tests without interrupting the main qualification.
+A full local CTest rerun still has 62 PASS / 1 private Nikon SKIP; this does not
+supersede the hosted failures. Subsequent CI now uploads CTest diagnostics before
+UX so failures can be examined immediately. Gate conditions remain unchanged.
 
 ### Catalog restore and destination protection — 2026-10-23
 

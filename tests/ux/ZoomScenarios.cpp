@@ -36,10 +36,10 @@ QByteArray sourceHash(const QString &path) {
     require(hash.addData(&source), "Cannot hash complete zoom fixture");
     return hash.result().toHex();
 }
-QString chart(Context &c, bool pair) {
+QString chart(Context &c, bool pair, QSize size = {3072, 2048}) {
     const auto directory = c.root + "/zoom-originals";
     require(QDir().mkpath(directory), "Cannot create zoom fixture directory");
-    QImage image(3072, 2048, QImage::Format_RGBA8888);
+    QImage image(size, QImage::Format_RGBA8888);
     require(!image.isNull(), "Cannot allocate bounded zoom chart");
     // Single-pixel detail in both axes, plus non-periodic coarse coordinates.
     // A 2560-wide preview stretched to 3072 cannot satisfy the scene oracle.
@@ -200,7 +200,7 @@ struct ChartSource {
     QString path;
     QByteArray hash, secondHash;
 };
-ChartSource openChart(Context &c, bool pair = false) {
+ChartSource openChart(Context &c, bool pair = false, QSize size = {3072, 2048}) {
     auto &d = *c.driver;
     // This contract isolates scaling and full-resolution decode from GPU arithmetic.
     d.click("settingsButton");
@@ -212,7 +212,7 @@ ChartSource openChart(Context &c, bool pair = false) {
     d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
            "Zoom preferences closed");
     require(!c.editor.metalPreview(), "Zoom CPU preference was not applied");
-    const auto path = chart(c, pair);
+    const auto path = chart(c, pair, size);
     const auto hash = sourceHash(path);
     const auto secondHash =
         pair ? sourceHash(QFileInfo(path).absolutePath() + "/Zoom2.png") : QByteArray{};
@@ -347,6 +347,101 @@ void transientHistory(Context &c, const luma::EditDocument &document, const QIma
 }
 
 } // namespace
+bool previewCacheBudgetScenario(Context &c, const QString &id) {
+    if (id != "UX-P06-LRU-001")
+        return false;
+    auto &d = *c.driver;
+    MemoryPressureProbe::useControlledNotifications(c.editor);
+    const auto source = openChart(c, false, {800, 600});
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    require(c.editor.previewCacheMiB() == 256, "Cache fixture needs the default 256 MiB budget");
+    luma::EditDocument penultimate;
+    for (int step = 1; step <= 9; ++step) {
+        penultimate = c.editor.currentSettings();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {step / 10., .5});
+        c.saved();
+        d.wait([&] { return !c.editor.busy() && !c.editor.histogramPending(); },
+               "Each distinct cache fixture render completed");
+        require(c.editor.currentSettings() != penultimate,
+                "Cache fixture repeated an unchanged edit");
+    }
+    const auto document = c.editor.currentSettings();
+    const auto before = savedSnapshot(c);
+    const auto selected = c.library.selectionIDs();
+    const auto pixels = reference(c, decoded, document, 2560);
+    ready(c, pixels);
+    const auto entryBytes =
+        static_cast<std::size_t>(pixels.sizeInBytes()) + sizeof(RenderedPreview);
+    const auto warm = c.editor.cacheStatistics();
+    constexpr std::size_t mib = 1024 * 1024;
+    require(
+        warm[2].usedBytes > 16 * mib && warm[2].budgetBytes == 64 * mib &&
+            warm[2].entries * entryBytes == warm[2].usedBytes,
+        "Cache fixture did not populate distinct uniformly-sized rendered entries beyond 16 MiB");
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    require(saves.isValid(), "Cannot observe unexpected saves while changing the cache budget");
+    const auto url = c.editor.previewUrl();
+    d.click("settingsButton");
+    d.wait([&] { return d.object("preferencesPanel")->property("opened").toBool(); },
+           "Cache preferences opened");
+    d.type("settings.previewCache", "64");
+    d.key(Qt::Key_Return);
+    d.wait([&] { return c.editor.previewCacheMiB() == 64; }, "Actual Settings committed 64 MiB");
+    const auto reduced = c.editor.cacheStatistics();
+    require(reduced[0].budgetBytes == 16 * mib && reduced[1].budgetBytes == 32 * mib &&
+                reduced[2].budgetBytes == 16 * mib && reduced[2].entries < warm[2].entries &&
+                reduced[2].entries > 0 && reduced[2].entries * entryBytes == reduced[2].usedBytes,
+            "Configured cache split or rendered-entry eviction differs from its byte budget");
+    for (const auto &cache : reduced)
+        require(cache.usedBytes <= cache.budgetBytes,
+                "A production preview cache retained more than its configured budget");
+    require(c.editor.previewUrl() == url && c.provider->requestImage({}, nullptr, {}) == pixels,
+            "Lowering the budget replaced or invalidated the active image");
+    d.click("settings.clearPreviewCache");
+    for (const auto &cache : c.editor.cacheStatistics())
+        require(cache.entries == 0 && cache.usedBytes == 0,
+                "Clear preview cache left optional cached data behind");
+    require(c.editor.previewUrl() == url && c.provider->requestImage({}, nullptr, {}) == pixels,
+            "Explicit cache clear invalidated the active image");
+    d.key(Qt::Key_Escape);
+    d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
+           "Cache preferences dismissed");
+    sameSaved(c, before);
+    require(c.editor.currentSettings() == document && c.library.selectionIDs() == selected &&
+                saves.isEmpty() && c.editor.canUndo() && !c.editor.canRedo(),
+            "Cache preferences changed document, selection or edit history");
+    d.click("main.undoButton");
+    ready(c, reference(c, decoded, penultimate, 2560));
+    c.saved();
+    require(c.editor.currentSettings() == penultimate && c.editor.canRedo(),
+            "Undo after eviction did not reconstruct the preceding document");
+    d.click("main.redoButton");
+    ready(c, pixels);
+    c.saved();
+    require(c.editor.currentSettings() == document && !c.editor.canRedo() &&
+                c.library.selectionIDs() == selected && sourceHash(source.path) == source.hash,
+            "Cache regeneration lost edits, selection or original integrity");
+    const auto durable = savedSnapshot(c);
+    require(durable.asset.id == before.asset.id && durable.asset.path == before.asset.path &&
+                durable.asset.checksum == before.asset.checksum &&
+                durable.asset.edits == document && durable.revision == before.revision + 2,
+            "Cache regeneration did not persist exactly the requested Undo and Redo");
+    for (const auto &cache : c.editor.cacheStatistics())
+        require(cache.usedBytes <= cache.budgetBytes,
+                "Regenerated previews exceeded their retained cache budget");
+    d.log(
+        {{"action", "preview_cache_budget_eviction"},
+         {"warm_rendered_bytes", qint64(warm[2].usedBytes)},
+         {"warm_rendered_entries", qint64(warm[2].entries)},
+         {"reduced_rendered_bytes", qint64(reduced[2].usedBytes)},
+         {"reduced_rendered_entries", qint64(reduced[2].entries)},
+         {"entry_bytes", qint64(entryBytes)},
+         {"configured_mib", c.editor.previewCacheMiB()},
+         {"scope", "actual cache-owned references and UI controls; no RSS/stress qualification"}});
+    require(c.warnings.isEmpty(), "Cache budget workflow produced QML warnings");
+    return true;
+}
 bool memoryPressureScenario(Context &c, const QString &id) {
     if (id != "UX-P06-MEM-001" && id != "UX-P06-MEM-002")
         return false;

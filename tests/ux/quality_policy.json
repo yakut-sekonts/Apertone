@@ -285,7 +285,8 @@
     "UX-P09-XMP-005",
     "UX-P09-BKP-002",
     "UX-P09-BKP-006",
-    "UX-P09-BKP-007"
+    "UX-P09-BKP-007",
+    "UX-P06-LRU-001"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -754,7 +755,8 @@
     "UX-P09-XMP-005": 1,
     "UX-P09-BKP-002": 1,
     "UX-P09-BKP-006": 1,
-    "UX-P09-BKP-007": 1
+    "UX-P09-BKP-007": 1,
+    "UX-P06-LRU-001": 1
   },
   "default_quality_photo_count": 10
 }

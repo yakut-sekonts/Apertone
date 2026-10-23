@@ -62,6 +62,7 @@ Dialog {
             Accessible.name: qsTranslate("Luma", "Preview cache (MiB)")
         }
         Button {
+            objectName: "settings.clearPreviewCache"
             text: qsTranslate("Luma", "Clear preview cache")
             onClicked: editor.clearPreviewCache()
         }
