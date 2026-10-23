@@ -46,6 +46,7 @@ bool retinaScenario(Context &, const QString &);
 bool previewBackendScenario(Context &, const QString &);
 bool zoomScenario(Context &, const QString &);
 bool memoryPressureScenario(Context &, const QString &);
+bool catalogMaintenanceScenario(Context &, const QString &);
 bool zoomInteractionScenario(Context &, const QString &);
 bool zoomSwitchScenario(Context &, const QString &);
 bool progressiveRaceScenario(Context &, const QString &);
@@ -58,24 +59,24 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (memoryPressureScenario(c, id) || progressiveTransientScenario(c, id) ||
-        progressiveRaceScenario(c, id) || zoomInteractionScenario(c, id) ||
-        zoomSwitchScenario(c, id) || progressiveExportScenario(c, id) || zoomScenario(c, id) ||
-        previewBackendScenario(c, id) || libraryScrollCandidate(c, id) ||
-        maskHandleCropLossCandidate(c, id) || keyboardActivationCandidate(c, id) ||
-        copyDestinationScenario(c, id, {}) || removableDestinationScenario(c, id, {}) ||
-        removableSourceScenario(c, id) || exportResizeScenario(c, id) || retinaScenario(c, id) ||
-        thumbnailRemainingScenario(c, id) || panelDetailStressScenario(c, id) ||
-        exportStressScenario(c, id) || exportSettingsScenario(c, id) ||
-        batchUpdateRemainingScenario(c, id) || libraryRemainingScenario(c, id) ||
-        visualRemainingScenario(c, id) || gestureRemainingScenario(c, id) ||
-        whiteBalanceScenario(c, id) || appExtraScenario(c, id) || exportExtraScenario(c, id) ||
-        importExtraScenario(c, id) || currentPerformanceScenario(c, id) ||
-        presetRemainingScenario(c, id) || historyStressScenario(c, id) ||
-        sliderExtraScenario(c, id) || previewExtraScenario(c, id) || recoveryExtraScenario(c, id) ||
-        presetExtraScenario(c, id) || navigationScenario(c, id) || transformExtraScenario(c, id) ||
-        filterExtraScenario(c, id) || keyboardScenario(c, id) || selectionScenario(c, id) ||
-        libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
+    if (catalogMaintenanceScenario(c, id) || memoryPressureScenario(c, id) ||
+        progressiveTransientScenario(c, id) || progressiveRaceScenario(c, id) ||
+        zoomInteractionScenario(c, id) || zoomSwitchScenario(c, id) ||
+        progressiveExportScenario(c, id) || zoomScenario(c, id) || previewBackendScenario(c, id) ||
+        libraryScrollCandidate(c, id) || maskHandleCropLossCandidate(c, id) ||
+        keyboardActivationCandidate(c, id) || copyDestinationScenario(c, id, {}) ||
+        removableDestinationScenario(c, id, {}) || removableSourceScenario(c, id) ||
+        exportResizeScenario(c, id) || retinaScenario(c, id) || thumbnailRemainingScenario(c, id) ||
+        panelDetailStressScenario(c, id) || exportStressScenario(c, id) ||
+        exportSettingsScenario(c, id) || batchUpdateRemainingScenario(c, id) ||
+        libraryRemainingScenario(c, id) || visualRemainingScenario(c, id) ||
+        gestureRemainingScenario(c, id) || whiteBalanceScenario(c, id) || appExtraScenario(c, id) ||
+        exportExtraScenario(c, id) || importExtraScenario(c, id) ||
+        currentPerformanceScenario(c, id) || presetRemainingScenario(c, id) ||
+        historyStressScenario(c, id) || sliderExtraScenario(c, id) || previewExtraScenario(c, id) ||
+        recoveryExtraScenario(c, id) || presetExtraScenario(c, id) || navigationScenario(c, id) ||
+        transformExtraScenario(c, id) || filterExtraScenario(c, id) || keyboardScenario(c, id) ||
+        selectionScenario(c, id) || libraryScaleScenario(c, id) || accessibilityScenario(c, id) ||
         localizationScenario(c, id) || advancedScenario(c, id) || presetScenario(c, id) ||
         asyncScenario(c, id))
         return;

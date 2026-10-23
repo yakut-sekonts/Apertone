@@ -165,7 +165,7 @@ void LibraryModel::setAutoWriteXMP(bool value) {
 void LibraryModel::backupNow() {
     const auto path = catalog_;
     const auto keep = backupKeep_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     const auto result = std::make_shared<std::filesystem::path>();
     mutate(
         [path, keep, stop, result](auto &) {
@@ -183,7 +183,7 @@ void LibraryModel::restoreCatalog(const QUrl &backup, const QUrl &destination) {
         return;
     const auto source = std::filesystem::path(backup.toLocalFile().toStdString());
     const auto target = std::filesystem::path(destination.toLocalFile().toStdString());
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     mutate([source, target, stop](auto &) { luma::Catalog::restoreBackupTo(source, target, stop); },
            [this, target] {
                status_ = LocalizedText(QStringLiteral("Catalog restored to a new file: %1"))
@@ -195,7 +195,7 @@ void LibraryModel::openCatalog(const QUrl &file, bool create) {
     if (!file.isLocalFile() || working())
         return;
     const auto target = std::filesystem::absolute(file.toLocalFile().toStdString());
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     mutate(
         [target, create, stop](auto &) {
             if (create) {
@@ -284,7 +284,7 @@ void LibraryModel::importDescriptiveMetadata() {
     const auto id = descriptiveMetadata_.value("id").toString();
     const auto revision = descriptiveMetadata_.value("revision").toString().toLongLong();
     const auto path = catalog_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     mutate(
         [path, id, revision, stop](auto &) {
             luma::MetadataService(path).importFromOriginal(id.toStdString(), revision, stop);
@@ -299,7 +299,7 @@ void LibraryModel::writeMetadataSidecar() {
         return;
     const auto id = descriptiveMetadata_.value("id").toString();
     const auto path = catalog_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     mutate([path, id,
             stop](auto &) { luma::MetadataService(path).writeSidecar(id.toStdString(), stop); },
            [this, id] {
@@ -309,7 +309,7 @@ void LibraryModel::writeMetadataSidecar() {
 }
 void LibraryModel::syncSidecars() {
     const auto path = catalog_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     mutate([path, stop](auto &) { luma::MetadataService(path).writePendingSidecars(stop); });
 }
 void LibraryModel::locateOriginal(const QUrl &file) {
@@ -317,7 +317,7 @@ void LibraryModel::locateOriginal(const QUrl &file) {
         return;
     const auto id = descriptiveMetadata_.value("id").toString();
     const auto path = catalog_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     const auto source = std::filesystem::path(file.toLocalFile().toStdString());
     mutate([path, id, source,
             stop](auto &) { luma::RelinkService(path).locate(id.toStdString(), source, stop); },
@@ -334,7 +334,7 @@ void LibraryModel::locateFolder(const QUrl &folder, bool nearby) {
             .parent_path();
     const auto destination = std::filesystem::path(folder.toLocalFile().toStdString());
     const auto path = catalog_;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     const auto id = descriptiveMetadata_.value("id").toString();
     const auto result = std::make_shared<luma::RelinkSummary>();
     mutate(

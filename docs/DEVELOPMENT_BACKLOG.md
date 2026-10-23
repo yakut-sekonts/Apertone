@@ -399,3 +399,23 @@ see [CI evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json).
   is relaxed. The two new memory adapters reduce that missing-adapter set by two,
   but this does not qualify the remaining phase or full-release scope.
 - Evidence: [CI and memory recovery](qualification/2026-10-23/ci-memory-pressure-recovery.json).
+
+## LUMA-BUG-054 — Cancel Import disables later catalog maintenance
+
+- Status: **fixed; LibraryModel integration and bounded manual-backup UX PASS**.
+- `cancelImport()` cancelled a token later reused by backup/restore, XMP and
+  relink. Backup worked before Cancel Import and then failed with
+  `Operation cancelled.` until another import reset the source or Luma restarted.
+- Separate import and maintenance cancellation lifetimes. Request Close and
+  destruction still cancel both; finishing/cancelling import does not stop later
+  maintenance. Existing transaction, atomic-file and original protections remain.
+- Regression checks backup/restore, explicit/pending/automatic XMP, readback,
+  file/folder relink, saved edits/revisions/identity/metadata/collections/hashes,
+  and deterministic cancellation of pending maintenance during close.
+- UX-P09-BKP-001 enters the official blocking inventory: **3/3 offscreen and
+  1/1 Cocoa/Metal DPR2**, actual Settings/Back up now clicks, readable snapshots,
+  previous copies preserved, no document/history/original mutation or QML warning.
+  Other maintenance UX, crash/ENOSPC and scale scopes remain unqualified.
+- Full build, 7 affected CTest checks, runner/policy tests, formatting and
+  affected blocking clang-tidy pass. Full hosted CI remains pending.
+- Evidence: [import cancellation and maintenance](qualification/2026-10-23/import-cancel-maintenance.json).

@@ -202,6 +202,8 @@ class LibraryModel final : public QAbstractListModel {
     QString semanticError_;
     QVariantList semanticResults_;
     luma::CancellationSource importCancellation_;
+    // Import cancellation must not cancel later backup, metadata or relink work.
+    luma::CancellationSource maintenanceCancellation_;
     luma::JobHandle countJob_, selectionJob_;
     std::map<int, luma::JobHandle> pageJobs_;
     std::map<int, std::vector<luma::LibraryItem>> pages_;

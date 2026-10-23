@@ -5,6 +5,34 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Cancel Import and catalog maintenance — 2026-10-23
+
+[Evidence](qualification/2026-10-23/import-cancel-maintenance.json) records a
+confirmed production defect: Cancel Import left its cancellation token set, and
+later backup/restore, XMP and relink operations reused that token. Actual
+LibraryModel reproduction passes backup before cancellation and then fails with
+`Operation cancelled.`. An otherwise identical no-cancel control passes.
+
+Maintenance now has a separate token, cancelled by Request Close/destruction.
+The integration regression verifies backup/restore, explicit/pending/automatic
+XMP, metadata readback, file/folder relink and preserved identity, edits,
+revision, metadata, collection membership and original hash. A deterministic
+close-before-worker control confirms that shutdown still cancels maintenance
+without publishing a snapshot or accepting new work.
+
+New blocking UX-P09-BKP-001 passes **3/3 offscreen and 1/1 Cocoa/Metal DPR2**.
+Actual Settings and Back up now clicks create readable snapshots with current
+saved edits and retain previous good copies. Live document, selection, history
+and originals stay unchanged; no QML warnings or integrity failures occur.
+This bounded case does not qualify restore dialogs, retention rotation,
+disk-full/crash recovery or load. The native interval is complete; Mac is free.
+
+Complete application build, **7/7 affected CTest checks**, **40 runner tests**,
+**11 policy tests**, formatting and affected blocking clang-tidy pass. The
+duplicate local full-tree tidy scan was deliberately stopped before source
+edits and remains INCOMPLETE; its log is retained. Full hosted CI/static and
+all other outstanding release requirements remain open. No 1.0 publication.
+
 ### Hosted CI and memory recovery — 2026-10-23
 
 [Verified evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json)

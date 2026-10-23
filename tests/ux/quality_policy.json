@@ -275,7 +275,8 @@
     "UX-UPD-006",
     "UX-VIS-001",
     "UX-VIS-002",
-    "UX-VIS-003"
+    "UX-VIS-003",
+    "UX-P09-BKP-001"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -734,7 +735,8 @@
     "UX-PRV-012": 1,
     "UX-P06-ZOM-003": 1,
     "UX-P06-ZOM-004": 1,
-    "UX-P06-ZOM-012": 1
+    "UX-P06-ZOM-012": 1,
+    "UX-P09-BKP-001": 1
   },
   "default_quality_photo_count": 10
 }

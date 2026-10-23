@@ -49,7 +49,7 @@ Dialog {
             Accessible.name: qsTranslate("Luma", "Interface language")
         }
         Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Button { text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
+        Button { objectName: "settings.catalogMaintenance"; text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
         Button { text: qsTranslate("Luma", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
         Label { text: qsTranslate("Luma", "Preview cache (MiB)"); Layout.fillWidth: true }
         SpinBox {

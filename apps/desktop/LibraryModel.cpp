@@ -37,7 +37,7 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     connect(&filterTimer_, &QTimer::timeout, this, [this] { reload(true); });
     const QPointer<LibraryModel> self(this);
     const auto path = catalog_;
-    const auto recoveryStop = importCancellation_.token();
+    const auto recoveryStop = maintenanceCancellation_.token();
     const bool clearSemantic = !semanticEnabled_;
     const auto backupPolicy = static_cast<luma::BackupSchedule>(backupSchedule_);
     const int backupKeep = backupKeep_;
@@ -89,6 +89,7 @@ LibraryModel::~LibraryModel() {
     semanticJob_.cancel();
     semanticJobs_.shutdown();
     importCancellation_.cancel();
+    maintenanceCancellation_.cancel();
     imports_.shutdown();
     writes_.shutdown();
     reads_.shutdown();
@@ -429,7 +430,7 @@ void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
     const auto operation = std::make_shared<std::function<void(luma::Catalog &)>>(std::move(work));
     const auto refresh = std::make_shared<std::function<bool()>>(std::move(updateView));
     const bool writeXMP = autoWriteXMP_ && syncXMP;
-    const auto stop = importCancellation_.token();
+    const auto stop = maintenanceCancellation_.token();
     writes_.submit(luma::JobPriority::background,
                    [self, path, operation, refresh, writeXMP, stop](const auto &) {
                        QString error;
@@ -639,6 +640,7 @@ bool LibraryModel::requestClose() {
     filterTimer_.stop();
     sourceWatchTimer_.stop();
     cancelImport();
+    maintenanceCancellation_.cancel();
     cancelSemantic();
     return !importing_ && !writing_ && !semanticBusy_;
 }

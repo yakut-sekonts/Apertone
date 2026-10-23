@@ -1,4 +1,5 @@
 #include "apps/desktop/LibraryModel.h"
+#include "apps/shared/MetadataService.h"
 #include "core/catalog/Identity.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
@@ -9,6 +10,7 @@
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <set>
 #include <sqlite3.h>
 #include <unistd.h>
 
@@ -530,6 +532,152 @@ void modelTests(const std::filesystem::path &root, bool scaleContract) {
                                 : "256 metadata rows: two page boundaries, selection/filter/cache "
                                   "notifications passed; scale deferred\n");
 }
+void maintenanceAfterCancelledImportTests(const std::filesystem::path &root,
+                                          const std::filesystem::path &fixture) {
+    const auto folder = root / "maintenance-originals";
+    std::filesystem::create_directory(folder);
+    const auto source = folder / "source.dng";
+    std::filesystem::copy_file(fixture, source);
+    const auto hash = luma::macos::sha256File(source);
+    const auto catalogFolder = root / "maintenance-catalog";
+    std::filesystem::create_directory(catalogFolder);
+    const auto path = catalogFolder / "catalog.sqlite";
+    luma::Catalog catalog(path);
+    const auto asset = catalog.addAndSelect(source, hash, luma::RawDecoder().inspect(source));
+    catalog.saveExposure(asset.id, 1.25);
+    catalog.setRating({asset.id}, 4);
+    const auto collection = catalog.createCollection("Keep after cancellation");
+    catalog.collectionMembership(collection, {asset.id}, true);
+    const auto document = catalog.assetSnapshot(asset.id)->asset.edits;
+    const auto revision = catalog.assetSnapshot(asset.id)->revision;
+    const auto id = QString::fromStdString(asset.id);
+    LibraryModel model(path);
+    auto settled = [&] { wait([&] { return !model.working() && !model.loading(); }); };
+    auto metadata = [&] {
+        model.loadMetadata(id);
+        wait([&] { return model.descriptiveMetadata().value("id").toString() == id; });
+        require(model.error().isEmpty(), "Maintenance metadata read failed.");
+    };
+    settled();
+    require(model.error().isEmpty(), "Maintenance startup failed.");
+    model.setBackupSchedule(0);
+    const auto backups = std::filesystem::path(model.backupFolder().toLocalFile().toStdString());
+    auto backupFiles = [&] {
+        std::set<std::filesystem::path> files;
+        for (const auto &entry : std::filesystem::directory_iterator(backups))
+            if (entry.path().extension() == ".sqlite3")
+                files.insert(entry.path());
+        return files;
+    };
+    auto backup = [&] {
+        const auto before = backupFiles();
+        model.backupNow();
+        settled();
+        require(model.error().isEmpty(), "Cancelled import poisoned manual backup.");
+        auto after = backupFiles();
+        for (const auto &file : before)
+            after.erase(file);
+        require(after.size() == 1, "Manual backup did not create exactly one snapshot.");
+        luma::Catalog::verifyBackup(*after.begin());
+        return *after.begin();
+    };
+    const auto first = backup();
+    require(luma::Catalog(first).assetSnapshot(asset.id)->asset.edits == document,
+            "Baseline backup lost saved edits.");
+    model.importFiles({QUrl::fromLocalFile(QString::fromStdString(source.string()))}, false, {},
+                      true, true);
+    require(model.importing(), "Cancellation fixture did not start a real import.");
+    model.cancelImport();
+    settled();
+    require(!model.importing() && model.error().isEmpty(), "Import cancellation did not settle.");
+    const auto second = backup();
+    const auto restored = root / "restored-after-cancel.sqlite";
+    model.restoreCatalog(QUrl::fromLocalFile(QString::fromStdString(second.string())),
+                         QUrl::fromLocalFile(QString::fromStdString(restored.string())));
+    settled();
+    require(model.error().isEmpty(), "Cancelled import poisoned backup restore.");
+    luma::Catalog::verifyBackup(restored);
+    const auto restoredAsset = luma::Catalog(restored).assetSnapshot(asset.id);
+    require(restoredAsset && restoredAsset->asset.edits == document &&
+                restoredAsset->revision == revision &&
+                luma::Catalog(restored).libraryPage({}, 0, 1).front().rating == 4,
+            "Restore after import cancellation lost edits/revision/metadata.");
+    metadata();
+    model.writeMetadataSidecar();
+    settled();
+    require(model.error().isEmpty() &&
+                std::filesystem::is_regular_file(luma::MetadataService::sidecarPath(source)),
+            "Cancelled import poisoned explicit XMP write.");
+    model.setAutoWriteXMP(true);
+    settled();
+    require(model.error().isEmpty(), "Cancelled import poisoned pending sidecar sync.");
+    wait([&] { return model.data(model.index(0), LibraryModel::AssetID).toString() == id; });
+    model.select(0);
+    require(model.selectionIDs() == std::vector<std::string>{asset.id},
+            "Metadata fixture did not select the original identity.");
+    model.rate(5);
+    settled();
+    const auto written = luma::MetadataService(path).read(asset.id);
+    require(model.error().isEmpty() && written.values.rating == 5 &&
+                written.writtenRevision == written.revision,
+            "Cancelled import poisoned automatic XMP after metadata commit.");
+    metadata();
+    model.importDescriptiveMetadata();
+    settled();
+    require(model.error().isEmpty() &&
+                luma::MetadataService(path).read(asset.id).values.rating == 5,
+            "Cancelled import poisoned XMP readback.");
+    const auto movedFolder = root / "located-originals";
+    std::filesystem::create_directory(movedFolder);
+    const auto moved = movedFolder / source.filename();
+    std::filesystem::rename(source, moved);
+    metadata();
+    model.locateOriginal(QUrl::fromLocalFile(QString::fromStdString(moved.string())));
+    settled();
+    require(model.error().isEmpty() &&
+                catalog.fileRecord(asset.id)->path == std::filesystem::canonical(moved),
+            "Cancelled import poisoned Locate Original.");
+    const auto movedAgainFolder = root / "located-again-originals";
+    std::filesystem::create_directory(movedAgainFolder);
+    const auto movedAgain = movedAgainFolder / source.filename();
+    std::filesystem::rename(moved, movedAgain);
+    metadata();
+    model.locateFolder(QUrl::fromLocalFile(QString::fromStdString(movedAgainFolder.string())),
+                       false);
+    settled();
+    require(model.error().isEmpty() &&
+                catalog.fileRecord(asset.id)->path == std::filesystem::canonical(movedAgain),
+            "Cancelled import poisoned Locate Folder.");
+    const auto final = catalog.assetSnapshot(asset.id);
+    require(final && final->asset.edits == document && final->revision == revision &&
+                catalog.libraryCount() == 1 && catalog.collections().front().count == 1 &&
+                luma::MetadataService(path).read(asset.id).values.rating == 5 &&
+                luma::macos::sha256File(movedAgain) == hash,
+            "Maintenance after cancellation changed original, edits, identity or organization.");
+    catalog.verify();
+    const auto beforeClose = backupFiles();
+    bool closeRequested = false, closeWasImmediate = true, closed = false;
+    QObject::connect(&model, &LibraryModel::closeReady, &model, [&] { closed = true; });
+    QObject::connect(&model, &LibraryModel::stateChanged, &model, [&] {
+        if (!closeRequested && model.working()) {
+            closeRequested = true;
+            closeWasImmediate = model.requestClose();
+        }
+    });
+    // Request Close at the operation's busy notification, before the worker can
+    // start. This exercises cancellation deterministically without timed sleeps.
+    model.backupNow();
+    require(closeRequested && !closeWasImmediate, "Close bypassed pending maintenance work.");
+    wait([&] { return closed; });
+    require(model.error() == QStringLiteral("Operation cancelled.") && backupFiles() == beforeClose,
+            "Close did not cancel queued maintenance without creating a snapshot.");
+    model.backupNow();
+    QCoreApplication::processEvents();
+    require(backupFiles() == beforeClose, "Closing model accepted new maintenance work.");
+    std::cout << "After cancelled import: backup/restore, explicit/automatic XMP, readback, "
+                 "file/folder relink and close passed\n";
+}
+
 } // namespace
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
@@ -542,6 +690,7 @@ int main(int argc, char **argv) {
         if (scaleContract) {
             modelTests(root, true);
         } else {
+            maintenanceAfterCancelledImportTests(root, argv[1]);
             catalogTests(root, argv[1]);
             importTests(root, argv[1]);
             viewportTests(root);
