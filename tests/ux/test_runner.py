@@ -383,6 +383,30 @@ class GateTests(unittest.TestCase):
                 if status == 'FAIL':
                     self.assertIn('P0 ', result['message'])
 
+    def test_restored_data_audit_overrides_a_child_pass(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            state = root / 'state'
+            (state / 'restored').mkdir(parents=True)
+            restored = state / 'restored/catalog.sqlite'
+            database = sqlite3.connect(restored)
+            database.execute('CREATE TABLE fixture (id INTEGER PRIMARY KEY)')
+            database.close()
+            child = root / 'luma_ux_tests'
+            child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\n(r/"result.json").write_text(json.dumps({"id":"UX-P10-DAT-005","status":"PASS"}))\n')
+            child.chmod(0o755)
+            with patch.object(runner, 'audit_restored_workflow', side_effect=ValueError('orphan mask')) as audit:
+                result = runner.execute(
+                    {'id': 'UX-P10-DAT-005', 'scope': '1.0', 'mode': 'BLOCKING',
+                     'severity': 'P0', 'scenario': 'Mocked restored data audit'},
+                    root / 'result', argparse.Namespace(build=root, timeout=10,
+                                                        stage='verify', state_root=state), root)
+            self.assertEqual(result['status'], 'FAIL')
+            self.assertIn('P0 restored data invariant: orphan mask', result['message'])
+            self.assertEqual(audit.call_args.args[:4], (restored, state, root, root / 'result'))
+            self.assertEqual(audit.call_args.args[4], result['child_pid'])
+            self.assertTrue((root / 'result/catalog-copy.sqlite').is_file())
+
     def test_watchdog_overrides_a_forged_pass(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

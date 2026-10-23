@@ -196,7 +196,8 @@ int main(int argc, char **argv) {
             ux::prepareThumbnailCorruption(root, parser.value("state-root"));
         const bool updaterProbe = id == "UX-UPD-005" || id == "UX-UPD-006";
         auto stateRoot = parser.value("state-root");
-        if (id == "UX-P10-DAY-010" && parser.value("stage") == "verify") {
+        if ((id == "UX-P10-DAY-010" || id == "UX-P10-DAT-005") &&
+            parser.value("stage") == "verify") {
             // Open the new file produced by the actual Restore handler; never copy
             // it over the original live catalog or silently create an empty one.
             stateRoot += "/restored";

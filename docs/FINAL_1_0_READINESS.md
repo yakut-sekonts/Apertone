@@ -5,6 +5,30 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Post-exit data invariants after restored daily work — 2026-10-24
+
+[Evidence](qualification/2026-10-24/restored-data-invariants.json): DAT005 restores
+through the real backup workflow, validates complete persisted documents, then
+closes the app and drains workers. The independent supervisor requires final
+context/application destruction and audits the actual restored copy read-only:
+22 tables, 158 numeric values, foreign keys, every original hash, owned backups,
+import/derived journals and temporary/derived files. Any invariant failure overrides
+a child PASS. Retained versions are supported by the validator but absent from
+this fixture; no version-history coverage is inferred.
+
+Initial DAT005 passes 1/1 offscreen. Final DAT005 plus DAY010 regression passes
+**6/6 offscreen + 6/6 Cocoa/Metal**. Build, 20 affected CTest checks, 15 new negative
+and read-only audit tests, 47 runner tests, 12 policy tests, format and both affected
+mandatory tidy units pass. Fixture-only SQLite connection warnings were fixed
+with explicit closing before the final runs. **21 blocking / 306 total** applicable
+IDs remain unadapted. Other golden/chaos/migration and install/update gates stay open.
+
+[Old full push CI](qualification/2026-10-24/historical-ci-40022592049.json) on 8c4ab32
+completed with the same 351 PASS / 12 FAIL / 34 SKIPPED / 31 NOT_IMPLEMENTED split;
+three GPU002 failures and nine Denoise SIGBUS crashes predate their fixes. Full tidy
+passed. The artifact SHA-256 was verified. Current 7d66d83 full CI has passed
+photographic Denoise/runtime checks and is still running blocking UX.
+
 ### Standalone bundle and current format verification — 2026-10-24
 
 [Evidence](qualification/2026-10-24/standalone-current-bundle.json): the current 0.9.0

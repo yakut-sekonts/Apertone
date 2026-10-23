@@ -7,6 +7,7 @@
 #include <QColorSpace>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <algorithm>
@@ -43,7 +44,7 @@ void closeMaintenance(Context &c) {
 }
 } // namespace
 bool catalogMaintenanceScenario(Context &c, const QString &id) {
-    const bool daily = id == "UX-P10-DAY-010";
+    const bool daily = id == "UX-P10-DAY-010" || id == "UX-P10-DAT-005";
     const bool restore = id == "UX-P09-BKP-002" || daily;
     const bool corrupt = id == "UX-P09-BKP-006";
     const bool active = id == "UX-P09-BKP-007";
@@ -244,7 +245,7 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
     return true;
 }
 bool backupDailyRestartScenario(Context &c, const QString &id, const QString &stage) {
-    if (id != "UX-P10-DAY-010")
+    if (id != "UX-P10-DAY-010" && id != "UX-P10-DAT-005")
         return false;
     auto &d = *c.driver;
     if (stage == "prepare") {
@@ -321,6 +322,25 @@ bool backupDailyRestartScenario(Context &c, const QString &id, const QString &st
                 luma::macos::sha256File(backupPath) ==
                     expected["backup_sha256"].toString().toStdString(),
             "Continued restored-project work changed its original catalog, backup or original");
+    if (id == "UX-P10-DAT-005") {
+        QJsonArray assets;
+        int versions = 0;
+        for (const auto &assetID : restored.libraryIDs({})) {
+            restored.assetSnapshot(assetID).value().asset.edits.validate();
+            for (const auto &version : restored.editVersions(assetID)) {
+                restored.editVersion(assetID, version.id, version.revision).validate();
+                ++versions;
+            }
+            assets.append(QString::fromStdString(assetID));
+        }
+        writeJson(c.root + "/serialized-audit.json", {{"status", "PASS"},
+                                                      {"pid", QCoreApplication::applicationPid()},
+                                                      {"asset_ids", assets},
+                                                      {"versions_validated", versions}});
+        d.quitShortcut();
+        d.wait([&] { return !c.window->isVisible() && c.editor.readyForUpdate(); },
+               "Restored data audit clean shutdown and worker drain");
+    }
     d.log({{"action", "backup_restore_continue_work"},
            {"catalog", c.catalogFile},
            {"prepare_pid", expected["prepare_pid"]},

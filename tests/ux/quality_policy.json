@@ -347,7 +347,8 @@
     "UX-VIS-001",
     "UX-VIS-002",
     "UX-VIS-003",
-    "UX-P10-DAY-003"
+    "UX-P10-DAY-003",
+    "UX-P10-DAT-005"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -888,7 +889,8 @@
     "UX-P09-FLT-006": 0,
     "UX-P06-PRG-001": 0,
     "UX-P09-PERF-001": 0,
-    "UX-P10-DAY-003": 100
+    "UX-P10-DAY-003": 100,
+    "UX-P10-DAT-005": 1
   },
   "default_quality_photo_count": 10
 }

@@ -8,6 +8,7 @@ from collections import Counter
 from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
+from catalog_invariants import audit_restored_workflow
 from native_bundle_provenance import native_bundle_info, launch_executable
 from quality_policy import quality_skip_reason, quality_fixture_count
 from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
@@ -117,7 +118,7 @@ RESTART.update(('UX-P09-XMP-012', 'UX-P09-FLT-002'))
 CRASH_IDS = {f'UX-P09-FLT-{i:03}' for i in (1, 3, 4, 5, 6)}
 RESTART.update(CRASH_IDS)
 KILL.update(CRASH_IDS)
-RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-010', 'UX-P10-DAY-013'))
+RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-010', 'UX-P10-DAY-013', 'UX-P10-DAT-005'))
 KILL.add('UX-P10-DAY-007')
 NATIVE.add('UX-P09-XMP-001')
 NATIVE.update(RESTART)
@@ -479,7 +480,7 @@ def execute(row, directory, arguments, fixture_folder):
                 pass  # Retain the numeric code if the platform has no signal name.
         result.update(status='FAIL', message=reason or result.get('message') or exit_message)
     catalog = state_root / 'catalog.sqlite'
-    restored_daily = row['id'] == 'UX-P10-DAY-010' and getattr(arguments, 'stage', None) == 'verify'
+    restored_daily = row['id'] in ('UX-P10-DAY-010', 'UX-P10-DAT-005') and getattr(arguments, 'stage', None) == 'verify'
     if restored_daily:
         catalog = state_root / 'restored' / 'catalog.sqlite'
         if not catalog.is_file() or catalog.is_symlink():
@@ -493,6 +494,13 @@ def execute(row, directory, arguments, fixture_folder):
             result['catalog_integrity'] = 'PASS'
         except (sqlite3.Error, AssertionError) as error:
             result.update(status='FAIL', message=f'P0 catalog integrity: {error}')
+    if row['id'] == 'UX-P10-DAT-005' and restored_daily and result['status'] == 'PASS':
+        try:
+            audit = audit_restored_workflow(catalog, state_root, fixture_folder, directory, process.pid)
+            atomic_json(directory / 'data-invariants.json', audit)
+            result['data_invariants'] = audit
+        except (OSError, ValueError, sqlite3.Error, KeyError, TypeError) as error:
+            result.update(status='FAIL', message=f'P0 restored data invariant: {error}')
     if result['status'] == 'FAIL' and catalog.exists():
         try:
             with closing(sqlite3.connect(f'file:{catalog}?mode=ro', uri=True)) as source:
