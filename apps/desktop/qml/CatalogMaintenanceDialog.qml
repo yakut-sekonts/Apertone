@@ -66,7 +66,8 @@ Dialog {
         CheckBox { text: qsTranslate("Luma", "Automatically write metadata to XMP sidecar"); checked: library.autoWriteXMP; enabled: !library.working; onToggled: library.autoWriteXMP = checked; Layout.fillWidth: true }
         Button { text: qsTranslate("Luma", "Write pending XMP sidecars"); enabled: !library.working; onClicked: library.syncSidecars(); Layout.fillWidth: true }
         BusyIndicator { running: library.working; visible: running; Layout.alignment: Qt.AlignHCenter }
-        Label { objectName: "catalog.status"; text: library.status; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+        Label { objectName: "catalog.status"; text: library.maintenanceStatus || library.status; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+        Label { objectName: "catalog.notice"; text: library.maintenanceStatus && library.status !== library.maintenanceStatus ? library.status : ""; visible: text.length > 0; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
         Label { objectName: "catalog.error"; text: qsTranslate("Luma", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }
     }

@@ -189,8 +189,9 @@ void LibraryModel::backupNow() {
                 *luma::BackupService(path).run(luma::BackupSchedule::manual, keep, true, stop);
         },
         [this, result] {
-            status_ = LocalizedText(QStringLiteral("Catalog backup saved: %1"))
-                          .arg(QString::fromStdString(result->string()));
+            maintenanceStatus_ = LocalizedText(QStringLiteral("Catalog backup saved: %1"))
+                                     .arg(QString::fromStdString(result->string()));
+            status_ = maintenanceStatus_;
             return true;
         });
 }
@@ -202,8 +203,10 @@ void LibraryModel::restoreCatalog(const QUrl &backup, const QUrl &destination) {
     const auto stop = maintenanceCancellation_.token();
     mutate([source, target, stop](auto &) { luma::Catalog::restoreBackupTo(source, target, stop); },
            [this, target] {
-               status_ = LocalizedText(QStringLiteral("Catalog restored to a new file: %1"))
-                             .arg(QString::fromStdString(target.string()));
+               maintenanceStatus_ =
+                   LocalizedText(QStringLiteral("Catalog restored to a new file: %1"))
+                       .arg(QString::fromStdString(target.string()));
+               status_ = maintenanceStatus_;
                return true;
            });
 }

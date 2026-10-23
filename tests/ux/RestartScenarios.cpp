@@ -13,6 +13,7 @@ bool xmpAtomicScenario(Context &, const QString &, const QString &);
 bool catalogCommitCrashScenario(Context &, const QString &, const QString &);
 bool metadataBatchCrashScenario(Context &, const QString &, const QString &);
 bool backupCrashScenario(Context &, const QString &, const QString &);
+bool backupDailyRestartScenario(Context &, const QString &, const QString &);
 bool relinkCrashScenario(Context &, const QString &, const QString &);
 bool mergeCrashScenario(Context &, const QString &, const QString &);
 bool localeRestartScenario(Context &, const QString &, const QString &);
@@ -34,9 +35,10 @@ void quit(Context &c) {
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
     if (catalogCommitCrashScenario(c, id, stage) || metadataBatchCrashScenario(c, id, stage) ||
-        backupCrashScenario(c, id, stage) || relinkCrashScenario(c, id, stage) ||
-        mergeCrashScenario(c, id, stage) || xmpAtomicScenario(c, id, stage) ||
-        catalogScaleRestartScenario(c, id, stage) || mergeRestartScenario(c, id, stage))
+        backupCrashScenario(c, id, stage) || backupDailyRestartScenario(c, id, stage) ||
+        relinkCrashScenario(c, id, stage) || mergeCrashScenario(c, id, stage) ||
+        xmpAtomicScenario(c, id, stage) || catalogScaleRestartScenario(c, id, stage) ||
+        mergeRestartScenario(c, id, stage))
         return;
     if (exportSettingsRestartScenario(c, id, stage) || whiteBalanceRestartScenario(c, id, stage) ||
         appMissingSourceRestartScenario(c, id, stage) ||

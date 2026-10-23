@@ -1,5 +1,6 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/export/LinearOutput.h"
+#include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/ImageAlignment.h"
 #include "tests/ux/CrashScenarios.h"
@@ -7,6 +8,7 @@
 #include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
+#include <QColorSpace>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
@@ -544,6 +546,85 @@ bool mergeWorkflowScenario(Context &c, const QString &id) {
                 "Derived Undo or file preservation failed");
     }
     unchanged(c, sources);
+    return true;
+}
+bool mergeDailyScenario(Context &c, const QString &variant) {
+    require(variant == "hdr" || variant == "panorama", "Unknown daily merge variant");
+    require(mergeWorkflowScenario(c, variant == "hdr" ? "UX-P08-HDR-001" : "UX-P08-PAN-001"),
+            "Daily workflow requires a real completed merge");
+    auto &d = *c.driver;
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    const auto result = catalog.activeAsset();
+    require(result.has_value(), "Daily merge has no active derived result");
+    std::vector<luma::AssetRecord> originals;
+    for (const auto &photo : catalog.libraryIDs({}))
+        if (photo != result->id)
+            originals.push_back(catalog.assetByID(photo).value());
+    require(originals.size() == (variant == "hdr" ? 3 : 2), "Daily merge lost its source set");
+    const QString derivedCard = "library.card." + QString::fromStdString(result->id);
+    d.click("main.libraryButton");
+    idle(c);
+    d.wait([&] { return d.find(derivedCard) != nullptr; }, "Derived PhotoCard populated");
+    d.click(derivedCard);
+    require(c.library.selectionIDs() == std::vector<std::string>{result->id},
+            "Derived card is not independently selectable in Library");
+    d.doubleClick(derivedCard);
+    c.loaded();
+    require(!c.window->property("libraryMode").toBool() &&
+                c.editor.photoID().toStdString() == result->id,
+            "Derived card did not open its own Develop document");
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.3, .5});
+    c.saved();
+    const auto edited = c.editor.currentSettings();
+    const auto committed = catalog.assetSnapshot(result->id);
+    require(committed && committed->asset.edits == edited && edited.exposure < -1,
+            "Daily derived edit did not commit the complete document");
+    const auto decoded = luma::PhotoDecoder().decode(result->path);
+    const auto reference =
+        luma::renderCPU(decoded.image, edited, decoded.metadata.orientation, {}, {},
+                        decoded.calibration, luma::DetailDiagnostic::none, 1, decoded.metadata);
+    const QImage output(c.exportPNG("Daily-" + variant));
+    const auto pixels = output.convertToFormat(QImage::Format_RGBA8888);
+    require(!pixels.isNull() && pixels.size() == QSize(reference.width, reference.height) &&
+                output.colorSpace() == QColorSpace(QColorSpace::SRgb),
+            "Derived export lost full resolution or sRGB profile");
+    for (int y = 0; y < pixels.height(); ++y)
+        require(std::equal(pixels.constScanLine(y), pixels.constScanLine(y) + pixels.width() * 4,
+                           reference.rgba.data() + y * reference.width * 4),
+                "Derived export differs from the independent full-source CPU document");
+    d.wait([&] { return !d.object("exportPanel")->property("visible").toBool(); },
+           "Starting the actual export dismissed its settings panel");
+    d.click("main.libraryButton");
+    idle(c);
+    const QString sourceCard = "library.card." + QString::fromStdString(originals.front().id);
+    d.wait([&] { return d.find(sourceCard) != nullptr; }, "Original PhotoCard populated");
+    d.doubleClick(sourceCard);
+    c.loaded();
+    require(c.editor.photoID().toStdString() == originals.front().id &&
+                c.editor.currentSettings() == originals.front().edits,
+            "Derived editing crossed into an original's document");
+    d.click("main.libraryButton");
+    idle(c);
+    d.wait([&] { return d.find(derivedCard) != nullptr; }, "Derived PhotoCard repopulated");
+    d.doubleClick(derivedCard);
+    c.loaded();
+    c.saved();
+    const auto returned = catalog.assetSnapshot(result->id);
+    require(returned && c.editor.photoID().toStdString() == result->id &&
+                c.editor.currentSettings() == edited && returned->revision == committed->revision &&
+                catalog.pendingDerived().empty() &&
+                catalog.libraryCount() == static_cast<qint64>(originals.size() + 1) &&
+                luma::macos::sha256File(result->path) == result->checksum,
+            "Library round trip lost the derived document or duplicated/mutated its file");
+    unchanged(c, originals);
+    d.log({{"action", "derived_daily_library_edit_export"},
+           {"variant", variant},
+           {"result", QString::fromStdString(result->id)},
+           {"export_width", reference.width},
+           {"export_height", reference.height},
+           {"export_cpu_pixels_exact", true},
+           {"derived_sha256", QString::fromStdString(result->checksum)}});
     return true;
 }
 bool mergeOptionsScenario(Context &c, const QString &id) {

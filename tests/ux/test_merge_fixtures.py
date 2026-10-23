@@ -69,6 +69,22 @@ class MergeFixtureTests(unittest.TestCase):
                              extra_flags=('--through', '0.9'))
         self.assertEqual((mixed['code'], mixed['base_calls'], len(mixed['calls'])), (0, 1, 2))
 
+    def test_daily_merge_supplies_both_previously_verified_source_sets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            daily = root / 'case-fixtures/UX-P10-DAY-011'
+            hashes, profile = merge.official_fixture(daily, owned_root=root, case_id=daily.name)
+            self.assertEqual((len(hashes), profile['original_checksum_count']), (5, 5))
+            self.assertEqual(profile['workflow_variants'], ['hdr', 'panorama'])
+            for identifier in ('UX-P08-HDR-001', 'UX-P08-PAN-001'):
+                folder = root / 'case-fixtures' / identifier
+                controls, _ = merge.official_fixture(folder, owned_root=root, case_id=identifier)
+                for path, checksum in controls.items():
+                    self.assertEqual(hashes[str(daily / Path(path).name)], checksum)
+        outcome = self.run_cli(['UX-P10-DAY-011'], quality=True,
+                               extra_flags=('--through', '1.0'))
+        self.assertEqual((outcome['code'], outcome['base_calls'], len(outcome['calls'])), (0, 0, 1))
+
 
 if __name__ == '__main__':
     unittest.main()

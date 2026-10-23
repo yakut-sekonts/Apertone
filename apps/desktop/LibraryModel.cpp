@@ -424,6 +424,7 @@ void LibraryModel::mutate(std::function<void(luma::Catalog &)> work,
         return;
     writing_ = true;
     error_.clear();
+    maintenanceStatus_ = {};
     emit stateChanged();
     const auto path = catalog_;
     const QPointer<LibraryModel> self(this);

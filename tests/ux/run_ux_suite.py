@@ -117,7 +117,7 @@ RESTART.update(('UX-P09-XMP-012', 'UX-P09-FLT-002'))
 CRASH_IDS = {f'UX-P09-FLT-{i:03}' for i in (1, 3, 4, 5, 6)}
 RESTART.update(CRASH_IDS)
 KILL.update(CRASH_IDS)
-RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-013'))
+RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-010', 'UX-P10-DAY-013'))
 KILL.add('UX-P10-DAY-007')
 NATIVE.add('UX-P09-XMP-001')
 NATIVE.update(RESTART)
@@ -194,6 +194,7 @@ CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UN
 
 
 ISOLATED_VARIANTS = {
+    'UX-P10-DAY-011': ('hdr', 'panorama'),
     'UX-UPD-003': ('import', 'export', 'batch'),
     'UX-MAC-008': ('copy', 'export'),
 }
@@ -468,6 +469,12 @@ def execute(row, directory, arguments, fixture_folder):
                 pass  # Retain the numeric code if the platform has no signal name.
         result.update(status='FAIL', message=reason or result.get('message') or exit_message)
     catalog = state_root / 'catalog.sqlite'
+    restored_daily = row['id'] == 'UX-P10-DAY-010' and getattr(arguments, 'stage', None) == 'verify'
+    if restored_daily:
+        catalog = state_root / 'restored' / 'catalog.sqlite'
+        if not catalog.is_file() or catalog.is_symlink():
+            result.update(status='FAIL', message='P0 restored catalog missing or aliased after process exit')
+    result['catalog_audit_path'] = str(catalog)
     if catalog.exists():
         try:
             with closing(sqlite3.connect(f'file:{catalog}?mode=ro', uri=True)) as database:

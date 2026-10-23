@@ -700,3 +700,14 @@ passes 9/9 DNS001/002/008 with the original five-second watchdog. Joined inferen
 stack, parameter-map caching and coalesced DNG progress fix the reproduced failure.
 Artifact 12534337423 SHA-256 is recorded in release-foundations.json. Full branch
 CI and broader pressure/quality qualification remain separate gates.
+
+### LUMA-BUG-073 — Backup destination overwritten by folder notification
+
+Fixed and retested, 2026-10-24. A watched-directory change could overwrite the
+completed manual-backup destination in Catalog and backups. Separate maintenance
+result state now preserves that path and shows later generic notices below it.
+Explicit catalog mutations clear the old result. Regression generates a real
+watched-directory event and requires both visible messages. Backup regression:
+12/12 offscreen + 12/12 native; final combined daily workflow 9/9 native. Initial
+10 PASS / 2 FAIL retained in daily-backup-merge.json. Full CTest: 69 PASS / private
+NEF SKIP. DAY010/011 coverage does not qualify native pickers or golden photographs.

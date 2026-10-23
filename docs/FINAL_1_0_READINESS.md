@@ -5,6 +5,28 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Backup status and daily recovery/merge workflows — 2026-10-24
+
+[Evidence](qualification/2026-10-24/daily-backup-merge.json): a real watched-directory
+notification could replace the successful backup destination. Backup/restore results
+now persist separately, with background notices visible below. The retained initial
+series has 10 PASS / 2 FAIL; corrected backup cases pass 12/12 offscreen and 12/12
+Cocoa/Metal, including actual watcher events.
+
+DAY010 verifies restoration to a new file, fresh-process exact global/local edits,
+continued editing/Undo/Redo and full PNG pixels. The supervisor audits the opened
+restored database after child exit. DAY011 exercises both actual HDR and Panorama,
+derived-photo Library/Edit/Export and source preservation. An initial adapter-only
+export-close assumption caused three parent failures; corrected series passes 3/3
+offscreen, each with both variants. Final combined BKP002/DAY010/DAY011 is 9/9 native.
+Full build, full CTest (69 PASS / private NEF SKIP), format and mandatory affected
+tidy pass. Visual inspection confirms backup destination plus notice and the derived
+Panorama export. Graph navigation reports four self-loops, no dangling/duplicate edges.
+
+There remain 26 blocking / 311 total applicable IDs without adapters. Native chooser
+navigation, golden photographs and the remaining release gates are not covered by
+these owned fixtures. No 1.0 release has been published.
+
 ### Hosted Denoise confirmation and release foundations — 2026-10-24
 
 [Evidence](qualification/2026-10-24/release-foundations.json): supervised hosted

@@ -354,6 +354,35 @@ class GateTests(unittest.TestCase):
                 with self.assertRaises(sqlite3.ProgrammingError):
                     connection.cursor()
 
+    def test_daily_restore_audits_the_opened_copy_after_child_exit(self):
+        for restored_kind, status in [('valid', 'PASS'), ('corrupt', 'FAIL'), ('missing', 'FAIL')]:
+            with self.subTest(restored_kind=restored_kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                state = root / 'state'
+                (state / 'restored').mkdir(parents=True)
+                connection = sqlite3.connect(state / 'catalog.sqlite')
+                connection.execute('CREATE TABLE original (id INTEGER PRIMARY KEY)')
+                connection.close()
+                restored = state / 'restored/catalog.sqlite'
+                if restored_kind == 'valid':
+                    connection = sqlite3.connect(restored)
+                    connection.execute('CREATE TABLE restored (id INTEGER PRIMARY KEY)')
+                    connection.close()
+                elif restored_kind == 'corrupt':
+                    restored.write_bytes(b'Corrupted restored copy, valid original remains')
+                child = root / 'luma_ux_tests'
+                child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\n(r/"result.json").write_text(json.dumps({"id":"UX-P10-DAY-010","status":"PASS"}))\n')
+                child.chmod(0o755)
+                result = runner.execute(
+                    {'id': 'UX-P10-DAY-010', 'scope': '1.0', 'mode': 'BLOCKING',
+                     'severity': 'P0', 'scenario': 'Mocked restored process audit'},
+                    root / 'result', argparse.Namespace(build=root, timeout=10,
+                                                        stage='verify', state_root=state), root)
+                self.assertEqual(result['status'], status)
+                self.assertEqual(result['catalog_audit_path'], str(restored))
+                if status == 'FAIL':
+                    self.assertIn('P0 ', result['message'])
+
     def test_watchdog_overrides_a_forged_pass(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -613,6 +642,10 @@ failed_variant=''' + repr(failed_variant) + '''
 
     def test_mac008_requires_both_variants_in_distinct_processes_without_shared_state(self):
         self._fake_isolated_variant_children('UX-MAC-008', ('copy', 'export'))
+
+    def test_daily_merge_requires_hdr_and_panorama_in_distinct_processes(self):
+        self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'))
+        self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'), 'panorama')
 
     def _mac008_failure_aggregation(self, failed_variant, expected_variants):
         with tempfile.TemporaryDirectory() as directory:

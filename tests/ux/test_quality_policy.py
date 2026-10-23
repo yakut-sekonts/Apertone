@@ -101,7 +101,7 @@ class QualityPolicyTests(unittest.TestCase):
 
     def test_partial_release_workflows_do_not_admit_the_whole_phase(self):
         self.assertNotIn('1.0', runner.MANIFEST['completed_phases'])
-        for identifier in ('UX-P10-DAY-007', 'UX-P10-DAY-013'):
+        for identifier in ('UX-P10-DAY-007', 'UX-P10-DAY-010', 'UX-P10-DAY-013'):
             self.assertTrue(runner.capability_implemented('1.0', identifier))
             self.assertFalse(runner.in_scope('1.0', '0.9', identifier))
             row = next(row for row in runner.INVENTORY if row['id'] == identifier)

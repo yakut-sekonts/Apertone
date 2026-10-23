@@ -7,6 +7,7 @@ import struct
 import zlib
 
 CASE_PROFILE_IDS = {
+    'UX-P10-DAY-011',
     'UX-P09-FLT-006',
     'UX-P07-DNS-001', 'UX-P07-DNS-002', 'UX-P07-DNS-008',
     *(f'UX-P08-MRG-{i:03}' for i in (1, 3, 4, 5, 6, 9, 10)),
@@ -48,6 +49,7 @@ def official_fixture(folder, *, owned_root, case_id):
     if folder.resolve() != folder or folder.exists() or folder.is_symlink():
         raise ValueError('Merge profile requires a fresh directory without aliases')
     folder.mkdir(parents=True)
+    daily = case_id == 'UX-P10-DAY-011'
     panorama = case_id.startswith(('UX-P08-PAN-', 'UX-P08-ALG-'))
     rejected = case_id in ('UX-P08-PAN-004', 'UX-P08-ALG-002')
     offset = (4096, 8192) if rejected else (0, 48) if case_id == 'UX-P08-PAN-002' else (64, 0)
@@ -71,12 +73,16 @@ def official_fixture(folder, *, owned_root, case_id):
                 return min(.99, scene * gain)
             generator.create_dng(folder / f'Frame{i + 1:02}.dng', width=256, height=192,
                                  sample=sample, exif_ifd=True, shutter=shutter)
+    if daily:
+        png(folder / 'Frame01.png', 0, 0)
+        png(folder / 'Frame02.png', 64, 0)
     files = sorted(folder.iterdir())
     return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}, {
         'case_id': case_id, 'name': 'merge-owned-bracket-overlap-v1', 'directory': str(folder),
-        'public_photo_count': len(files) if panorama else 0,
+        'public_photo_count': 2 if daily else len(files) if panorama else 0,
         'original_checksum_count': len(files), 'width': 256, 'height': 192,
-        'large_24mp_generated': False, 'panorama': panorama,
+        'large_24mp_generated': False, 'panorama': None if daily else panorama,
+        'workflow_variants': ['hdr', 'panorama'] if daily else ['panorama' if panorama else 'hdr'],
         'offset': list(offset) if panorama else None, 'expected_alignment_rejection': rejected,
         'shutter_seconds': None if panorama else [1 / 500, 1 / 125, 4 / 125],
     }

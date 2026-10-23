@@ -40,6 +40,8 @@
   "implemented_scenarios": [
     "UX-P10-A11Y-002",
     "UX-P10-DAY-007",
+    "UX-P10-DAY-010",
+    "UX-P10-DAY-011",
     "UX-P10-DAY-013"
   ]
 }

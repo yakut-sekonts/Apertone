@@ -1,10 +1,15 @@
+#include "apps/shared/PhotoDecoder.h"
+#include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "tests/ux/CrashScenarios.h"
 #include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
+#include <QColorSpace>
 #include <QDir>
 #include <QFile>
 #include <QSignalSpy>
+#include <QTemporaryFile>
+#include <algorithm>
 #include <map>
 
 namespace ux {
@@ -38,7 +43,8 @@ void closeMaintenance(Context &c) {
 }
 } // namespace
 bool catalogMaintenanceScenario(Context &c, const QString &id) {
-    const bool restore = id == "UX-P09-BKP-002";
+    const bool daily = id == "UX-P10-DAY-010";
+    const bool restore = id == "UX-P09-BKP-002" || daily;
     const bool corrupt = id == "UX-P09-BKP-006";
     const bool active = id == "UX-P09-BKP-007";
     if (id != "UX-P09-BKP-001" && !restore && !corrupt && !active)
@@ -52,6 +58,18 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
     c.saved();
     require(c.editor.currentSettings().exposure == 5 && c.editor.canUndo() && !c.editor.canRedo(),
             "Backup fixture needs a saved real UI edit and one Undo entry");
+    if (daily) {
+        c.addMask(2);
+        d.drag("localMaskGestureArea", {.2, .3}, {.8, .7});
+        d.wait([&] { return c.editor.localCanvasReady(); }, "Backup brush rendered");
+        c.reveal("local_exposure");
+        d.drag("local_exposure", d.sliderThumb("local_exposure"), {.6, .5});
+        c.saved();
+        const auto document = c.editor.currentSettings();
+        require(document.localMasks.size() == 1 && !document.localMasks[0].strokes.empty() &&
+                    document.localMasks[0].adjustments[0] > 0,
+                "Daily backup requires committed local geometry and adjustments");
+    }
     const auto photo = c.editor.photoID().toStdString();
     luma::Catalog catalog(c.catalogFile.toStdString());
     auto expected = catalog.assetSnapshot(photo);
@@ -90,9 +108,30 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
                     copied->revision == expected->revision && snapshot.libraryIDs({}) == members &&
                     snapshot.activeAsset() && snapshot.activeAsset()->id == photo,
                 "Readable backup lost the current photo identity, saved edits or selection");
-        require(c.library.status().contains(QString::fromStdString(path.string())) &&
+        require(c.library.maintenanceStatus().contains(QString::fromStdString(path.string())) &&
+                    d.object("catalog.status")->property("text").toString() ==
+                        c.library.maintenanceStatus() &&
                     d.object("catalog.backupNow")->property("enabled").toBool(),
                 "Completed backup did not show its destination or re-enable its control");
+        // A real source-directory event must not replace a completed operation's
+        // destination. The extra file is owned, non-image and removed by RAII.
+        QSignalSpy notifications(&c.library, &LibraryModel::stateChanged);
+        QTemporaryFile notice(c.fixture + "/.backup-notice-XXXXXX");
+        require(notifications.isValid() && notice.open(), "Cannot create source notice fixture");
+        notice.close();
+        d.wait(
+            [&] {
+                return !notifications.empty() &&
+                       c.library.status().startsWith("Source folder changed.");
+            },
+            "Actual source watcher notification delivered after backup");
+        require(d.object("catalog.status")->property("text").toString() ==
+                        c.library.maintenanceStatus() &&
+                    c.library.maintenanceStatus().contains(QString::fromStdString(path.string())) &&
+                    d.object("catalog.notice")->property("visible").toBool() &&
+                    d.object("catalog.notice")->property("text").toString() == c.library.status(),
+                "Background folder notice replaced the backup result or disappeared");
+        d.screenshot(c.root + "/backup-result-" + QString::number(repetition + 1) + ".png");
         d.log({{"action", "manual_catalog_backup"},
                {"repetition", repetition + 1},
                {"snapshot", QString::fromStdString(path.string())},
@@ -125,7 +164,12 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
             damaged.close();
         }
         const auto sourceHash = luma::macos::sha256File(source);
-        const auto destination = active ? c.catalogFile : c.root + "/restored-catalog.sqlite3";
+        if (daily)
+            require(QDir().mkpath(c.stateRoot + "/restored"),
+                    "Cannot create owned restored-catalog folder");
+        const auto destination = active  ? c.catalogFile
+                                 : daily ? c.stateRoot + "/restored/catalog.sqlite"
+                                         : c.root + "/restored-catalog.sqlite3";
         auto *dialog = d.object("catalog.restoreDestination");
         require(!dialog->property("visible").toBool() &&
                     dialog->property("title").toString() == "Restore to a new catalog file" &&
@@ -145,7 +189,8 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
                "Restore worker completed");
         if (restore) {
             require(
-                c.library.error().isEmpty() && c.library.status().contains(destination) &&
+                c.library.error().isEmpty() &&
+                    c.library.maintenanceStatus().contains(destination) &&
                     d.object("catalog.status")->property("text").toString().contains(destination),
                 "Restore did not report its successful new destination");
             luma::Catalog::verifyBackup(destination.toStdString());
@@ -159,6 +204,15 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
                     copied->revision == backedUp->revision && restored.libraryIDs({}) == members &&
                     restored.activeAsset() && restored.activeAsset()->id == photo,
                 "Restored catalog did not reproduce the selected snapshot's edits and identity");
+            if (daily) {
+                writeJson(c.stateRoot + "/restored/restore-expected.json",
+                          {{"prepare_pid", QCoreApplication::applicationPid()},
+                           {"backup", QString::fromStdString(source.string())},
+                           {"backup_sha256", QString::fromStdString(sourceHash)},
+                           {"original_live_catalog", c.catalogFile},
+                           {"live_revision", qint64(expected->revision)},
+                           {"live_exposure", expected->asset.edits.exposure}});
+            }
         } else {
             require(!c.library.error().isEmpty() &&
                         d.object("catalog.error")->property("visible").toBool() &&
@@ -187,6 +241,94 @@ bool catalogMaintenanceScenario(Context &c, const QString &id) {
                 luma::macos::sha256File(expected->asset.path) == originalHash,
             "Manual backup changed originals, saved/live edits, selection or history");
     require(c.warnings.isEmpty(), "Manual backup produced QML warnings: " + c.warnings.join('\n'));
+    return true;
+}
+bool backupDailyRestartScenario(Context &c, const QString &id, const QString &stage) {
+    if (id != "UX-P10-DAY-010")
+        return false;
+    auto &d = *c.driver;
+    if (stage == "prepare") {
+        require(catalogMaintenanceScenario(c, id), "Daily backup preparation unavailable");
+        d.quitShortcut();
+        d.wait([&] { return !c.window->isVisible() && !c.editor.saving(); },
+               "Original catalog closed before opening its restored copy");
+        c.checkData();
+        return true;
+    }
+    require(stage == "verify", "Invalid restored daily-work stage");
+    const auto expected = crashExpectation(c, "restore-expected.json");
+    const auto backupPath = expected["backup"].toString().toStdString();
+    require(luma::macos::sha256File(backupPath) ==
+                expected["backup_sha256"].toString().toStdString(),
+            "Opening restored catalog changed its backup source");
+    luma::Catalog::verifyBackup(c.catalogFile.toStdString());
+    luma::Catalog backup(backupPath, luma::CatalogOpenMode::existingOnly);
+    luma::Catalog restored(c.catalogFile.toStdString(), luma::CatalogOpenMode::existingOnly);
+    const auto original = backup.activeAsset();
+    require(original.has_value(), "Backup has no active photo");
+    const auto before = backup.assetSnapshot(original->id).value();
+    const auto after = restored.assetSnapshot(original->id);
+    require(after && restored.libraryIDs({}) == backup.libraryIDs({}) && restored.activeAsset() &&
+                restored.activeAsset()->id == original->id && after->revision == before.revision &&
+                after->asset.edits == before.asset.edits &&
+                after->asset.path == before.asset.path &&
+                after->asset.checksum == before.asset.checksum,
+            "Restored startup changed membership, active identity, revision or full document");
+    c.editor.restore();
+    c.loaded();
+    c.saved();
+    require(c.editor.photoID().toStdString() == original->id &&
+                c.editor.currentSettings() == before.asset.edits && !c.editor.canUndo() &&
+                !c.editor.canRedo(),
+            "Fresh process did not load the exact backup document with empty session history");
+    c.reveal("develop.contrastSlider");
+    d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});
+    c.saved();
+    const auto edited = c.editor.currentSettings();
+    require(edited != before.asset.edits && edited.contrast > 1 && c.editor.canUndo(),
+            "Restored project rejected a new real edit");
+    d.click("main.undoButton");
+    c.saved();
+    require(c.editor.currentSettings() == before.asset.edits,
+            "Restored-project Undo lost original backup geometry/adjustments");
+    d.click("main.redoButton");
+    c.saved();
+    const auto committed = restored.assetSnapshot(original->id);
+    require(committed && committed->revision > before.revision &&
+                committed->asset.edits == edited && c.editor.currentSettings() == edited,
+            "Restored-project Redo did not commit the exact new document");
+    const auto decoded = luma::PhotoDecoder().decode(before.asset.path);
+    // Export targets sRGB, not the Cocoa display profile used by preview oracles.
+    const auto reference =
+        luma::renderCPU(decoded.image, edited, decoded.metadata.orientation, {}, {},
+                        decoded.calibration, luma::DetailDiagnostic::none, 1, decoded.metadata);
+    const QImage output(c.exportPNG("Restored-project"));
+    const auto pixels = output.convertToFormat(QImage::Format_RGBA8888);
+    require(!pixels.isNull() && pixels.size() == QSize(reference.width, reference.height) &&
+                output.colorSpace() == QColorSpace(QColorSpace::SRgb),
+            "Restored-project export has wrong dimensions or color space");
+    for (int y = 0; y < pixels.height(); ++y)
+        require(std::equal(pixels.constScanLine(y), pixels.constScanLine(y) + pixels.width() * 4,
+                           reference.rgba.data() + y * reference.width * 4),
+                "Restored-project export differs from the independent CPU document");
+    luma::Catalog live(expected["original_live_catalog"].toString().toStdString(),
+                       luma::CatalogOpenMode::existingOnly);
+    const auto unaffected = live.assetSnapshot(original->id);
+    require(unaffected && unaffected->revision == expected["live_revision"].toInteger() &&
+                unaffected->asset.edits.exposure == expected["live_exposure"].toDouble() &&
+                unaffected->asset.edits != edited &&
+                luma::macos::sha256File(before.asset.path) == before.asset.checksum &&
+                luma::macos::sha256File(backupPath) ==
+                    expected["backup_sha256"].toString().toStdString(),
+            "Continued restored-project work changed its original catalog, backup or original");
+    d.log({{"action", "backup_restore_continue_work"},
+           {"catalog", c.catalogFile},
+           {"prepare_pid", expected["prepare_pid"]},
+           {"verify_pid", QCoreApplication::applicationPid()},
+           {"exact_document", true},
+           {"export_cpu_pixels_exact", true},
+           {"native_picker_navigation", false}});
+    c.checkData();
     return true;
 }
 bool backupCrashScenario(Context &c, const QString &id, const QString &stage) {

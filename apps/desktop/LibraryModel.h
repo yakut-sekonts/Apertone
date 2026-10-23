@@ -22,6 +22,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(bool loading READ loading NOTIFY stateChanged)
     Q_PROPERTY(double progress READ progress NOTIFY stateChanged)
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
+    Q_PROPERTY(QString maintenanceStatus READ maintenanceStatus NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
@@ -113,6 +114,9 @@ class LibraryModel final : public QAbstractListModel {
     }
     QString status() const {
         return status_.text();
+    }
+    QString maintenanceStatus() const {
+        return maintenanceStatus_.text();
     }
     QString error() const {
         return error_;
@@ -220,6 +224,7 @@ class LibraryModel final : public QAbstractListModel {
          selecting_ = false;
     double progress_ = 0;
     LocalizedText status_ = QStringLiteral("Opening catalog…");
+    LocalizedText maintenanceStatus_;
     QString error_, importReport_;
     QVariantMap descriptiveMetadata_;
     std::uint64_t metadataRevision_ = 0;

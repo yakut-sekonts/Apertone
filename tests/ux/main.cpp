@@ -25,6 +25,7 @@ bool maskHandleTransparentCandidate(Context &, const QString &);
 bool minimizeExportCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
+bool mergeDailyScenario(Context &, const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
 void prepareMissingStartupSource(const QString &, const QString &);
 } // namespace ux
@@ -99,6 +100,13 @@ int main(int argc, char **argv) {
                 !parser.isSet("seed") && !parser.isSet("actions") && !parser.isSet("replay"),
                 "seed/actions/replay are supported only by UND-017; refusing ignored flags");
         }
+        if (id == "UX-P10-DAY-011") {
+            ux::require(
+                parser.values("variant").size() == 1 &&
+                    (parser.value("variant") == "hdr" || parser.value("variant") == "panorama") &&
+                    !parser.isSet("stage") && !parser.isSet("state-root"),
+                "Daily derived workflow requires one HDR/Panorama variant without shared state");
+        }
         if (id == "UX-MAC-008") {
             ux::require(
                 parser.values("variant").size() == 1 &&
@@ -166,9 +174,21 @@ int main(int argc, char **argv) {
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
             ux::prepareThumbnailCorruption(root, parser.value("state-root"));
         const bool updaterProbe = id == "UX-UPD-005" || id == "UX-UPD-006";
+        auto stateRoot = parser.value("state-root");
+        if (id == "UX-P10-DAY-010" && parser.value("stage") == "verify") {
+            // Open the new file produced by the actual Restore handler; never copy
+            // it over the original live catalog or silently create an empty one.
+            stateRoot += "/restored";
+            const QFileInfo restored(stateRoot + "/catalog.sqlite");
+            ux::require(restored.isFile() && !restored.isSymLink(),
+                        "Daily restore did not produce a regular catalog file");
+        }
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
-                                                parser.value("state-root"), updaterProbe);
-        if (chaos)
+                                                stateRoot, updaterProbe);
+        if (id == "UX-P10-DAY-011")
+            ux::require(ux::mergeDailyScenario(*context, parser.value("variant")),
+                        "Daily derived workflow unavailable");
+        else if (chaos)
             ux::runHistoryChaos(*context, *chaos);
         else if (id == "CANDIDATE-APP016-MINIMIZED-EXPORT")
             ux::require(ux::minimizeExportCandidate(*context, id),
