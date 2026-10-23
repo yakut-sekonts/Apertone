@@ -5,6 +5,17 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Independent hosted checks after a failed gate — 2026-10-23
+
+[Hosted evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json)
+captures `e5850c1`: build/model/unit stages PASS; the blocking UX step fails,
+and eight subsequent independent UX stages PASS. This confirms the CI condition
+correction, including executed PhotoCard and thumbnail regressions. The job is
+still running at this snapshot; exact blocking-case counts and full static
+results are not yet available. No full CI PASS or cause for the blocking result
+is inferred. Future runs upload the small blocking summary immediately before
+long supplemental checks; the complete archive remains unchanged.
+
 ### Catalog restore and destination protection — 2026-10-23
 
 [Evidence](qualification/2026-10-23/catalog-restore.json) adds BKP002/006/007 to

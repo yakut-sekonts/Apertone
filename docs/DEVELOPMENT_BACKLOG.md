@@ -390,7 +390,7 @@ see [CI evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json).
 
 ## LUMA-QA-053 — Incomplete blocking coverage suppresses independent CI evidence
 
-- Status: **workflow corrected; hosted confirmation pending**.
+- Status: **workflow corrected; independent hosted UX execution confirmed**.
 - Hosted `21b39ac` executes all 204 implemented bounded blocking repetitions
   successfully. Its 58 missing adapters correctly fail the coverage gate, but
   default step conditions then skip every supplemental regression and static check.
@@ -399,6 +399,13 @@ see [CI evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json).
   is relaxed. The two new memory adapters reduce that missing-adapter set by two,
   but this does not qualify the remaining phase or full-release scope.
 - Evidence: [CI and memory recovery](qualification/2026-10-23/ci-memory-pressure-recovery.json).
+
+Hosted `e5850c1` confirms eight subsequent UX steps PASS after the blocking
+step fails, including PhotoCard localization and thumbnail response/away-back.
+The job is still in progress at the recorded snapshot; full logs and exact
+blocking-case counts are not yet available. This is not a full CI/static PASS.
+New workflows upload the small blocking summary immediately, before the longer
+supplemental sequence, while retaining the complete later evidence archive.
 
 ## LUMA-BUG-054 — Cancel Import disables later catalog maintenance
 
