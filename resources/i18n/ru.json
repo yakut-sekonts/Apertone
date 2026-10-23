@@ -168,6 +168,7 @@
     "Export folder": "Папка экспорта",
     "Exporting photo…": "Экспорт фотографии…",
     "Exposure": "Экспозиция",
+    "FILL": "ЗАПОЛНИТЬ",
     "FIT": "ВПИСАТЬ",
     "Filename · {filename}, {sequence}, {date}": "Имя файла · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "Файлы с совпадающими именами будут заменены.",

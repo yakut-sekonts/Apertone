@@ -306,17 +306,24 @@ This does not close BUG-045 or full release qualification; see
   Full pan/trackpad, external display and phase 0.6 QA remain open.
 - Evidence: [zoom/progressive follow-up](qualification/2026-10-23/zoom-progressive-followup.json).
 
-## LUMA-GAP-049 — Viewer zoom modes and input remain incomplete
+## LUMA-GAP-049 — Viewer zoom modes and input qualification
 
-- Status: **open implementation gap**, confirmed by source audit on 2026-10-23.
+- Status: **modes/input implemented; complete Viewer qualification still open**.
 - Requirements §16 explicitly requires Fill, 2:1, arbitrary zoom, mouse-wheel
-  zoom, pinch zoom and double-click 1:1/Fit. Main.qml currently has only Fit and
-  100% controls backed by EditorController's boolean oneToOne, with panning.
-  No Viewer wheel/pinch/double-click scale handler exists in the inspected source.
-- These behaviors must be implemented and qualified before claiming complete
-  Viewer scope. UX-PRV-011/012 and P06-ZOM-003/012 stay unqualified; test inventory
-  labels alone do not establish source completion. Existing Fit/100% passes do
-  not close this gap. Other Viewer requirements require their own audit.
+  zoom, pinch zoom and double-click 1:1/Fit. The initial audit found only Fit/100%
+  and pan. The follow-up adds Fill, manual 1–1600%, scene-anchored wheel/pinch,
+  smooth pan and double-click Fit/100%, preserving rendered pixels and edits.
+- New input tests exposed scrolled-content anchor errors and two watchdog exits
+  at 1600%. Scene-coordinate conversion and bounded inactive tool Canvas sizes
+  fix the reproductions. Smoothing changes did not fix the failure and were
+  reverted. Exact/full pixel, history/catalog and watchdog checks remain intact.
+- [Evidence](qualification/2026-10-23/viewer-scale-and-input.json): 51/51 bounded
+  offscreen regressions, full application build, 9 affected CTest checks and
+  runner/policy tests pass. Native confirmation is pending a fresh quiet interval;
+  synthetic gesture events do not qualify physical trackpad behavior.
+- PRV011 and ZOM006–009 overlay mapping at arbitrary zoom remain unqualified;
+  tools still operate in Fit. These and other Viewer requirements need separate
+  qualification before closing this gap. No 1.0 release gate is waived.
 
 ## LUMA-QA-050 — Preset pixel oracle predates the Metal rounding budget
 

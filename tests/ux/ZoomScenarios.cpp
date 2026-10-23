@@ -12,11 +12,16 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QNativeGestureEvent>
+#include <QPointingDevice>
 #include <QSignalSpy>
+#include <QTest>
+#include <QWheelEvent>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <future>
+#include <limits>
 #include <optional>
 #include <thread>
 
@@ -809,6 +814,250 @@ bool progressiveTransientScenario(Context &c, const QString &id) {
            {"view_modes_created_history_entries", false}});
     require(c.warnings.isEmpty(),
             "Transient preview produced QML warnings: " + c.warnings.join('\n'));
+    return true;
+}
+
+} // namespace ux
+
+namespace ux {
+
+namespace {
+QPointF normalizedSource(Context &c, QPointF point) {
+    auto *view = c.driver->item("develop.viewport");
+    auto *image = c.driver->item("develop.preview");
+    const auto local = image->mapFromItem(view, point);
+    const auto width = image->property("paintedWidth").toDouble();
+    const auto height = image->property("paintedHeight").toDouble();
+    require(width > 0 && height > 0, "Zoom source has no painted geometry");
+    return {(local.x() - (image->width() - width) / 2) / width,
+            (local.y() - (image->height() - height) / 2) / height};
+}
+void anchored(Context &c, QPointF point, QPointF before, double sourcePixelBudget = 0) {
+    const auto after = normalizedSource(c, point);
+    c.driver->log({{"action", "zoom_pointer_anchor"},
+                   {"before_x", before.x()},
+                   {"before_y", before.y()},
+                   {"after_x", after.x()},
+                   {"after_y", after.y()},
+                   {"source_pixel_budget", sourcePixelBudget}});
+    const auto size = c.editor.previewPixelSize();
+    require(std::abs(before.x() - after.x()) * size.width() <= sourcePixelBudget + 1e-6 &&
+                std::abs(before.y() - after.y()) * size.height() <= sourcePixelBudget + 1e-6,
+            "Zoom moved the source coordinate beneath the pointer");
+}
+void wheelAt(Context &c, QPointF point, QPoint pixels, QPoint angle,
+             Qt::ScrollPhase phase = Qt::NoScrollPhase) {
+    auto *view = c.driver->item("develop.viewport");
+    const auto scene = view->mapToScene(point);
+    QWheelEvent event(scene, c.window->mapToGlobal(scene.toPoint()), pixels, angle, Qt::NoButton,
+                      Qt::NoModifier, phase, false);
+    c.driver->log({{"action", "viewport_wheel_event"},
+                   {"pixel_x", pixels.x()},
+                   {"pixel_y", pixels.y()},
+                   {"angle_x", angle.x()},
+                   {"angle_y", angle.y()},
+                   {"phase", int(phase)}});
+    QCoreApplication::sendEvent(c.window, &event);
+}
+void scaleIs(Context &c, double scale) {
+    c.driver->wait(
+        [&] {
+            return c.editor.zoomMode() == "manual" &&
+                   std::abs(c.editor.zoomFactor() - scale) < 1e-9;
+        },
+        "Actual zoom factor from UI input");
+    c.driver->frame();
+    auto *image = c.driver->item("develop.preview");
+    const auto source = c.editor.previewPixelSize();
+    const auto dpr = c.window->devicePixelRatio();
+    require(std::abs(image->width() * dpr / source.width() - scale) < 1e-9 &&
+                std::abs(image->height() * dpr / source.height() - scale) < 1e-9,
+            "Manual zoom factor differs from actual scene geometry");
+}
+void percent(Context &c, const QString &text, double scale) {
+    c.driver->type("develop.zoomPercent", text);
+    c.driver->key(Qt::Key_Return);
+    scaleIs(c, scale);
+}
+} // namespace
+bool zoomInteractionScenario(Context &c, const QString &id) {
+    if (id != "UX-P06-ZOM-003" && id != "UX-P06-ZOM-004" && id != "UX-P06-ZOM-012" &&
+        id != "UX-PRV-012")
+        return false;
+    auto &d = *c.driver;
+    const auto source = openChart(c);
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    const auto document = c.editor.currentSettings();
+    const auto fit = reference(c, decoded, document, 2560);
+    const auto full = reference(c, decoded, document, 0);
+    ready(c, fit);
+    const auto saved = savedSnapshot(c);
+    const auto selection = c.library.selectionIDs();
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    auto *view = d.item("develop.viewport");
+    const QPointF point(view->width() * .43, view->height() * .57);
+    if (id == "UX-PRV-012") {
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            d.doubleClick("develop.viewport");
+            ready(c, full);
+            mapping(c, full);
+            d.doubleClick("develop.viewport");
+            ready(c, fit);
+            fitGeometry(c);
+        }
+        percent(c, "200", 2);
+        ready(c, full);
+        const auto scenePoint = view->mapToScene(point).toPoint();
+        const auto localPoint = view->mapFromScene(scenePoint);
+        const auto before = normalizedSource(c, localPoint);
+        QTest::mouseDClick(c.window, Qt::LeftButton, Qt::NoModifier, scenePoint);
+        scaleIs(c, 1);
+        // The input point is exact; 1:1 snaps to the nearest backing pixel.
+        anchored(c, localPoint, before, .5);
+    } else if (id == "UX-P06-ZOM-003") {
+        const auto beforeFit = normalizedSource(c, point);
+        const auto fitScale = view->property("effectiveZoom").toDouble();
+        wheelAt(c, point, {}, {0, 360});
+        scaleIs(c, fitScale * 2);
+        ready(c, full);
+        // The 2560 x 1707 Fit raster rounds the aspect ratio by less than
+        // half a full-resolution pixel; full-to-full anchors below remain exact.
+        anchored(c, point, beforeFit, .5);
+        const auto url = c.editor.previewUrl();
+        const auto beforeBurst = normalizedSource(c, point);
+        const auto old = c.editor.zoomFactor();
+        // Deliberately no event-loop/layout wait between these actual events.
+        for (int i = 0; i < 3; ++i)
+            wheelAt(c, point, {}, {0, 120});
+        scaleIs(c, old * 2);
+        anchored(c, point, beforeBurst);
+        percent(c, "200", 2);
+        percent(c, "137.5", 1.375);
+        percent(c, "1", .01);
+        require(view->property("contentX").toDouble() == 0 &&
+                    view->property("contentY").toDouble() == 0,
+                "Small image retained an invalid pan offset");
+        percent(c, "1600", 16);
+        for (const auto *name : {"cropOverlay", "transformOverlay", "localPhotoOverlay"}) {
+            const auto *overlay = d.item(QString::fromLatin1(name));
+            require(!overlay->isVisible() && overlay->width() <= 84 && overlay->height() <= 84,
+                    "Inactive tool Canvas grew to the magnified image dimensions");
+        }
+        d.screenshot(c.root + "/zoom-1600-scene.png");
+        for (double invalid : {-1., 0., .009, 16.001, std::numeric_limits<double>::infinity(),
+                               std::numeric_limits<double>::quiet_NaN()})
+            c.editor.setZoomFactor(invalid);
+        c.editor.setZoomMode("unknown");
+        scaleIs(c, 16);
+        d.type("develop.zoomPercent", "0");
+        d.key(Qt::Key_Escape);
+        scaleIs(c, 16);
+        d.click("develop.fill");
+        d.frame();
+        const auto scale = std::max(view->width() * c.window->devicePixelRatio() / full.width(),
+                                    view->height() * c.window->devicePixelRatio() / full.height());
+        require(c.editor.zoomMode() == "fill" &&
+                    std::abs(view->property("effectiveZoom").toDouble() - scale) < 1e-9,
+                "Fill does not cover both canvas dimensions");
+        d.click("develop.actualPixels");
+        mapping(c, full);
+        require(c.editor.previewUrl() == url && c.provider->requestImage({}, nullptr, {}) == full,
+                "Viewport-only scale changes started a redundant render or changed pixels");
+        d.resize({1000, 640});
+        for (int language = 0; language < 8; ++language) {
+            d.click("settingsButton");
+            d.wait([&] { return d.object("preferencesPanel")->property("opened").toBool(); },
+                   "Zoom localization preferences opened");
+            d.choose("languageChoice", language);
+            d.key(Qt::Key_Escape);
+            d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
+                   "Zoom localization preferences closed");
+            d.frame();
+            const auto *pane = d.item("develop.canvasPane");
+            QRectF previous;
+            for (const auto *name :
+                 {"develop.fit", "develop.fill", "develop.zoomPercent", "develop.actualPixels"}) {
+                const auto *control = d.item(QString::fromLatin1(name));
+                const auto rectangle = control->mapRectToItem(pane, control->boundingRect());
+                require(control->isVisible() && control->isEnabled() &&
+                            pane->boundingRect().contains(rectangle) &&
+                            (previous.isEmpty() || !previous.intersects(rectangle)),
+                        "Localized zoom controls overlap or leave minimum-width canvas");
+                previous = rectangle;
+            }
+            d.log({{"action", "zoom_minimum_window_locale"},
+                   {"locale", c.localization->language()},
+                   {"window_width", c.window->width()},
+                   {"window_height", c.window->height()}});
+        }
+    } else {
+        percent(c, "200", 2);
+        ready(c, full);
+        const auto url = c.editor.previewUrl();
+        if (id == "UX-P06-ZOM-004") {
+            wheelAt(c, point, {100000, 100000}, {}, Qt::ScrollUpdate);
+            d.frame();
+            require(view->property("contentX").toDouble() == 0 &&
+                        view->property("contentY").toDouble() == 0,
+                    "Pan escaped upper/left bounds");
+            wheelAt(c, point, {-100000, 0}, {}, Qt::ScrollUpdate);
+            d.frame();
+            require(std::abs(view->property("contentX").toDouble() -
+                             (view->property("contentWidth").toDouble() - view->width())) < 1e-6 &&
+                        view->property("contentY").toDouble() == 0,
+                    "Pure horizontal pan failed or changed vertical position");
+            wheelAt(c, point, {0, -100000}, {}, Qt::ScrollMomentum);
+            d.frame();
+            require(std::abs(view->property("contentY").toDouble() -
+                             (view->property("contentHeight").toDouble() - view->height())) < 1e-6,
+                    "Momentum pan escaped lower bound");
+            percent(c, "1", .01);
+            wheelAt(c, point, {-100000, -100000}, {}, Qt::ScrollUpdate);
+            d.frame();
+            require(view->property("contentX").toDouble() == 0 &&
+                        view->property("contentY").toDouble() == 0,
+                    "Pan moved an image smaller than the canvas");
+        } else {
+            QPointingDevice pad(
+                "Luma UX synthetic touchpad", 9137, QInputDevice::DeviceType::TouchPad,
+                QPointingDevice::PointerType::Finger,
+                QInputDevice::Capability::Position | QInputDevice::Capability::PixelScroll, 2, 0);
+            const auto scene = view->mapToScene(point);
+            const auto before = normalizedSource(c, point);
+            const auto gesture = [&](Qt::NativeGestureType type, double value) {
+                QNativeGestureEvent event(type, &pad, 2, scene, scene,
+                                          c.window->mapToGlobal(scene.toPoint()), value, {});
+                QCoreApplication::sendEvent(c.window, &event);
+            };
+            gesture(Qt::BeginNativeGesture, 0);
+            gesture(Qt::ZoomNativeGesture, .25);
+            gesture(Qt::ZoomNativeGesture, .2);
+            gesture(Qt::EndNativeGesture, 0);
+            scaleIs(c, 3);
+            anchored(c, point, before);
+            const double x = view->property("contentX").toDouble();
+            const double y = view->property("contentY").toDouble();
+            wheelAt(c, point, {-41, -29}, {}, Qt::ScrollUpdate);
+            d.frame();
+            require(view->property("contentX").toDouble() == x + 41 &&
+                        view->property("contentY").toDouble() == y + 29 &&
+                        c.editor.zoomFactor() == 3,
+                    "Smooth scroll did not pan independently of pinch zoom");
+            d.log({{"action", "native_gesture_contract"},
+                   {"scope",
+                    "synthetic Qt native-gesture delivery; physical trackpad not measured"}});
+        }
+        require(c.editor.previewUrl() == url && c.provider->requestImage({}, nullptr, {}) == full,
+                "Pan/pinch changed full-resolution pixels or launched another render");
+    }
+    sameSaved(c, saved);
+    require(sourceHash(source.path) == source.hash && c.editor.currentSettings() == document &&
+                !c.editor.canUndo() && !c.editor.canRedo() && saves.isEmpty() &&
+                selection == c.library.selectionIDs(),
+            "Zoom input changed original, saved edits, selection or history");
+    require(c.warnings.isEmpty(), "Zoom input produced QML warnings: " + c.warnings.join('\n'));
+    d.log({{"action", "zoom_input_contract"},
+           {"scope", "Actual Qt input and scene geometry; tool-overlay mapping remains separate"}});
     return true;
 }
 

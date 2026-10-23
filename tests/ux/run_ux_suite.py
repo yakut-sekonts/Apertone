@@ -75,6 +75,7 @@ NATIVE.update(f'UX-MSK-{i:03}' for i in (1,2,3,4,6,7,9,10,11,13,14,15,16,17,19,2
 
 NATIVE.update(('UX-APP-006', 'UX-APP-007', 'UX-NAV-008', 'UX-NAV-009', 'UX-NAV-013', 'UX-KEY-002',
                'UX-SLD-007', 'UX-SLD-008', 'UX-SLD-019', 'UX-UND-001', 'UX-UND-002', 'UX-UND-003', 'UX-UND-004', 'UX-UND-005', 'UX-UND-010'))
+NATIVE.update(('UX-PRV-012', 'UX-P06-ZOM-003', 'UX-P06-ZOM-004', 'UX-P06-ZOM-012'))
 NATIVE.add('UX-PRV-013')
 NATIVE.add('UX-PRV-006')
 NATIVE.add('UX-P06-GPU-001')
@@ -217,7 +218,16 @@ def merge_fixture_hashes(profiles):
     return merged
 
 
-def in_scope(scope, through):
+def implemented_scope(scope, identifier=None):
+    # A named, source-implemented TARGET can enter qualification without
+    # changing the original specification or admitting other future targets.
+    if scope == 'TARGET':
+        return MANIFEST.get('implemented_targets', {}).get(identifier, scope)
+    return scope
+
+
+def in_scope(scope, through, identifier=None):
+    scope = implemented_scope(scope, identifier)
     if scope in ('ALL', 'CURRENT'):
         return True
     if scope == 'TARGET':
@@ -489,9 +499,9 @@ def repetitions_for(row, arguments):
 
 
 def phase_selected(row, phase):
-    if phase is None or row['scope'] in ('ALL', phase):
+    if phase is None or implemented_scope(row['scope'], row.get('id')) in ('ALL', phase):
         return True
-    return row['mode'] == 'BLOCKING' and in_scope(row['scope'], phase)
+    return row['mode'] == 'BLOCKING' and in_scope(row['scope'], phase, row.get('id'))
 
 
 def row_selected(row, arguments):
@@ -520,7 +530,7 @@ def qualification_requested(arguments):
 
 def qualify(results, inventory, through, requested):
     required = {r['id'] for r in inventory if r['mode'] == 'BLOCKING'
-                and in_scope(r['scope'], through)}
+                and in_scope(r['scope'], through, r['id'])}
     missing = []
     for identifier in required:
         attempts = [r for r in results if r['id'] == identifier]
@@ -530,15 +540,15 @@ def qualify(results, inventory, through, requested):
            r.get('severity_if_failed', r.get('severity', 'P0')) in ('P0', 'P1') for r in results):
         return 'FAIL', sorted(missing)
     if any(r['status'] == 'SKIPPED' and r.get('skip_reason') == 'unsupported_backend'
-           and in_scope(r.get('scope', 'CURRENT'), through) for r in results):
+           and in_scope(r.get('scope', 'CURRENT'), through, r['id']) for r in results):
         return 'NOT_QUALIFIED', sorted(missing)
     if not requested:
         return 'NOT_QUALIFIED', sorted(missing)
     observed = {row['id'] for row in results}
-    if any(row['id'] not in observed for row in inventory if in_scope(row['scope'], through)):
+    if any(row['id'] not in observed for row in inventory if in_scope(row['scope'], through, row['id'])):
         return 'FAIL', sorted(missing)
     if any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') == 'unadapted'
-           and in_scope(r.get('scope', 'CURRENT'), through) for r in results):
+           and in_scope(r.get('scope', 'CURRENT'), through, r['id']) for r in results):
         return 'FAIL', sorted(missing)
     return ('FAIL' if missing else 'PASS'), sorted(missing)
 
@@ -674,8 +684,8 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         parser.error('--runs and --timeout must be positive')
     selected_rows = [row for row in selected_inventory if row_selected(row, args)]
     fixture_rows = [row for row in selected_rows
-                    if row['id'] in selected_executable and in_scope(row['scope'], args.through)
-                    and (row['scope'] in ('ALL', 'CURRENT') or row['scope'] in MANIFEST['completed_phases'])
+                    if row['id'] in selected_executable and in_scope(row['scope'], args.through, row['id'])
+                    and implemented_scope(row['scope'], row['id']) in ('ALL', 'CURRENT', *MANIFEST['completed_phases'])
                     and not (args.quality_only and quality_skip_reason(row))
                     and not (domain == 'specification' and unsupported_backend_requirement(row['id']))]
     case_profile_rows = [row for row in fixture_rows
@@ -752,8 +762,8 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
         for row in selected_rows:
             identifier, scope, mode = row['id'], row['scope'], row['mode']
             repetitions = repetitions_for(row, args)
-            applicable = in_scope(scope, args.through)
-            capable = scope in ('ALL', 'CURRENT') or scope in MANIFEST['completed_phases']
+            applicable = in_scope(scope, args.through, identifier)
+            capable = implemented_scope(scope, identifier) in ('ALL', 'CURRENT', *MANIFEST['completed_phases'])
             if not applicable or not capable or identifier == 'UX-MSK-005':
                 results.append({**row, 'status': 'NOT_IMPLEMENTED', 'notes': ['Capability absent; future phase/conditional tool']})
                 continue
@@ -835,7 +845,7 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                          for r in results) or not any(r.get('child_pid') for r in results)
         summary['unadapted_applicable'] = sorted({r['id'] for r in results if r['status'] == 'SKIPPED'
                                                 and r.get('skip_reason', 'unadapted') == 'unadapted'
-                                                and in_scope(r.get('scope', 'CURRENT'), args.through)})
+                                                and in_scope(r.get('scope', 'CURRENT'), args.through, r['id'])})
         if not source_stable or args.require_build_provenance and provenance['status'] != 'PASS':
             incomplete = True
             summary['release_gate'] = 'FAIL' if args.release_qualification else 'NOT_QUALIFIED'

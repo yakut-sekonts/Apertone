@@ -250,61 +250,67 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 24; spacing: 18
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
-                        Item { Layout.fillWidth: true }
+                        Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Button {
                             objectName: "develop.fit"
                             text: qsTranslate("Luma", "FIT")
-                            checkable: true; checked: !editor.oneToOne
+                            checkable: true; checked: editor.zoomMode === "fit"
                             enabled: editor.hasPhoto && !editor.busy
-                            onClicked: editor.oneToOne = false
+                            onClicked: editor.zoomMode = "fit"
                         }
+                        Button {
+                            objectName: "develop.fill"
+                            text: qsTranslate("Luma", "FILL")
+                            checkable: true; checked: editor.zoomMode === "fill"
+                            enabled: editor.zoomAvailable
+                            onClicked: editor.zoomMode = "fill"
+                        }
+                        TextField {
+                            id: zoomPercent
+                            objectName: "develop.zoomPercent"
+                            Layout.preferredWidth: 64; Layout.minimumWidth: 64
+                            enabled: editor.zoomAvailable
+                            horizontalAlignment: Text.AlignRight
+                            Accessible.name: qsTranslate("Luma", "Zoom") + " %"
+                            property bool modified: false
+                            validator: DoubleValidator { bottom: editor.minimumZoomFactor * 100; top: editor.maximumZoomFactor * 100; decimals: 2; notation: DoubleValidator.StandardNotation; locale: "C" }
+                            Binding {
+                                target: zoomPercent; property: "text"
+                                value: Number((previewViewport.effectiveZoom * 100).toFixed(2)).toString()
+                                when: !zoomPercent.activeFocus
+                            }
+                            function commitZoom() {
+                                if (modified && acceptableInput) previewViewport.requestScale(Number(text) / 100)
+                                modified = false
+                            }
+                            onTextEdited: modified = true
+                            onAccepted: { commitZoom(); previewViewport.forceActiveFocus() }
+                            onEditingFinished: commitZoom()
+                            Keys.onEscapePressed: { modified = false; previewViewport.forceActiveFocus() }
+                        }
+                        Label { text: "%" }
                         Button {
                             objectName: "develop.actualPixels"
                             text: "100%"
                             Accessible.name: qsTranslate("Luma", "Zoom") + " 100%"
-                            checkable: true; checked: previewViewport.pixelMode
-                            enabled: editor.hasPhoto && !editor.busy && !editor.cropMode &&
-                                     !editor.guidedMode && !editor.localMode &&
-                                     editor.targetedTool === "none" && !editor.whiteBalancePicking && !editor.pointColorPicking
+                            checkable: true; checked: editor.oneToOne
+                            enabled: editor.zoomAvailable
                             onClicked: editor.oneToOne = true
                         }
                     }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
                         Layout.minimumWidth: 84; Layout.minimumHeight: 84
-                        Flickable {
+                        PhotoViewport {
                             id: previewViewport
                             objectName: "develop.viewport"
+                            controller: editor
                             anchors.fill: parent
-                            clip: true
-                            property bool pixelMode: editor.oneToOne && !editor.cropMode &&
-                                                     !editor.guidedMode && !editor.localMode &&
-                                                     editor.targetedTool === "none" && !editor.whiteBalancePicking && !editor.pointColorPicking
-                            contentWidth: pixelMode ? Math.max(width, editor.previewPixelSize.width / Screen.devicePixelRatio) : width
-                            contentHeight: pixelMode ? Math.max(height, editor.previewPixelSize.height / Screen.devicePixelRatio) : height
-                            interactive: pixelMode
-                            boundsBehavior: Flickable.StopAtBounds
-                            function centerPixelPreview() {
-                                if (!pixelMode) return
-                                const dpr = Screen.devicePixelRatio
-                                contentX = Math.max(0, Math.round((contentWidth - width) * dpr / 2) / dpr)
-                                contentY = Math.max(0, Math.round((contentHeight - height) * dpr / 2) / dpr)
-                            }
-                            onPixelModeChanged: {
-                                cancelFlick()
-                                // The content-size bindings must settle before Flickable
-                                // accepts the new offset. Snap to backing pixels at 100%.
-                                if (pixelMode) Qt.callLater(centerPixelPreview)
-                                else { contentX = 0; contentY = 0 }
-                            }
-                            ScrollBar.horizontal: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
-                            ScrollBar.vertical: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
                         Image {
                             id: previewImage
                             objectName: "develop.preview"
-                            width: previewViewport.pixelMode ? editor.previewPixelSize.width / Screen.devicePixelRatio : previewViewport.contentWidth
-                            height: previewViewport.pixelMode ? editor.previewPixelSize.height / Screen.devicePixelRatio : previewViewport.contentHeight
+                            width: previewViewport.imageItemWidth
+                            height: previewViewport.imageItemHeight
                             x: (previewViewport.contentWidth - width) / 2
                             y: (previewViewport.contentHeight - height) / 2
                             source: editor.previewUrl; fillMode: Image.PreserveAspectFit; cache: false; visible: editor.hasPhoto && !editor.busy
@@ -375,11 +381,14 @@ ApplicationWindow {
                         RetouchOverlay {
                             x: (previewImage.width-previewImage.paintedWidth)/2
                             y: (previewImage.height-previewImage.paintedHeight)/2
-                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                            // These tools currently operate in Fit. Do not allocate
+                            // hidden Canvas backing images at magnified dimensions.
+                            width: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
+                            height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
                         }
                         LocalOverlay {
-                            photoWidth: previewImage.paintedWidth
-                            photoHeight: previewImage.paintedHeight
+                            photoWidth: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
+                            photoHeight: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
                             width: Math.max(84, photoWidth); height: Math.max(84, photoHeight)
                             x: (previewImage.width-width)/2
                             y: (previewImage.height-height)/2
@@ -387,12 +396,18 @@ ApplicationWindow {
                         TransformOverlay {
                             x: (previewImage.width-previewImage.paintedWidth)/2
                             y: (previewImage.height-previewImage.paintedHeight)/2
-                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                            // These tools currently operate in Fit. Do not allocate
+                            // hidden Canvas backing images at magnified dimensions.
+                            width: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
+                            height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
                         }
                         CropOverlay {
                             x: (previewImage.width-previewImage.paintedWidth)/2
                             y: (previewImage.height-previewImage.paintedHeight)/2
-                            width: previewImage.paintedWidth; height: previewImage.paintedHeight
+                            // These tools currently operate in Fit. Do not allocate
+                            // hidden Canvas backing images at magnified dimensions.
+                            width: previewViewport.pixelMode ? 0 : previewImage.paintedWidth
+                            height: previewViewport.pixelMode ? 0 : previewImage.paintedHeight
                         }
                         }
                         ColumnLayout {

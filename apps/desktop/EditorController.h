@@ -97,6 +97,11 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY stateChanged)
     Q_PROPERTY(bool oneToOne READ oneToOne WRITE setOneToOne NOTIFY stateChanged)
+    Q_PROPERTY(QString zoomMode READ zoomMode WRITE setZoomMode NOTIFY stateChanged)
+    Q_PROPERTY(double zoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY stateChanged)
+    Q_PROPERTY(bool zoomAvailable READ zoomAvailable NOTIFY stateChanged)
+    Q_PROPERTY(double minimumZoomFactor READ minimumZoomFactor CONSTANT)
+    Q_PROPERTY(double maximumZoomFactor READ maximumZoomFactor CONSTANT)
     Q_PROPERTY(QSize previewPixelSize READ previewPixelSize NOTIFY stateChanged)
     Q_PROPERTY(
         int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
@@ -304,10 +309,22 @@ class EditorController final : public QObject {
     }
     QString previewUrl() const;
     bool oneToOne() const {
-        return oneToOne_ && !cropMode_ && !guidedMode_ && !localMode_ &&
-               targetedTool_ == QStringLiteral("none");
+        return zoomMode() == QStringLiteral("manual") && zoomFactor_ == 1;
     }
     void setOneToOne(bool value);
+    QString zoomMode() const;
+    void setZoomMode(const QString &mode);
+    double zoomFactor() const {
+        return zoomFactor_;
+    }
+    void setZoomFactor(double factor);
+    bool zoomAvailable() const;
+    static constexpr double minimumZoomFactor() {
+        return 0.01;
+    }
+    static constexpr double maximumZoomFactor() {
+        return 16;
+    }
     QSize previewPixelSize() const;
     int previewCacheMiB() const {
         return previewCacheMiB_;
@@ -568,7 +585,12 @@ class EditorController final : public QObject {
     std::unique_ptr<luma::macos::MemoryPressureMonitor> memoryPressure_;
     luma::macos::MemoryPressure pressure_ = luma::macos::MemoryPressure::normal;
     int previewCacheMiB_ = 256;
-    bool oneToOne_ = false;
+    enum class PreviewZoom : std::uint8_t { fit, fill, manual };
+    PreviewZoom zoomMode_ = PreviewZoom::fit;
+    double zoomFactor_ = 1;
+    bool zoomToolsCompatible() const;
+    void applyPreviewZoom(PreviewZoom mode, double factor);
+    void resetPreviewZoom();
     bool metalPreview_ = true;
     std::shared_ptr<luma::DevelopAccelerator> accelerator_;
     std::shared_ptr<luma::ai::ISegmentationProvider> segmentation_;

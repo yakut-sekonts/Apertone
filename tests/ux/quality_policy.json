@@ -174,7 +174,10 @@
     "UX-P06-PRG-009",
     "UX-P06-ZOM-001",
     "UX-P06-ZOM-002",
+    "UX-P06-ZOM-003",
+    "UX-P06-ZOM-004",
     "UX-P06-ZOM-005",
+    "UX-P06-ZOM-012",
     "UX-PRS-001",
     "UX-PRS-002",
     "UX-PRS-003",
@@ -193,6 +196,7 @@
     "UX-PRS-018",
     "UX-PRV-004",
     "UX-PRV-007",
+    "UX-PRV-012",
     "UX-RACE-001",
     "UX-RACE-002",
     "UX-RACE-004",
@@ -722,7 +726,11 @@
     "UX-MAC-007": 2,
     "UX-MAC-008": 2,
     "UX-RACE-005": 1,
-    "UX-RACE-007": 3
+    "UX-RACE-007": 3,
+    "UX-PRV-012": 1,
+    "UX-P06-ZOM-003": 1,
+    "UX-P06-ZOM-004": 1,
+    "UX-P06-ZOM-012": 1
   },
   "default_quality_photo_count": 10
 }

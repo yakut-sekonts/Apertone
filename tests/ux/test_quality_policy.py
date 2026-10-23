@@ -47,7 +47,7 @@ class QualityPolicyTests(unittest.TestCase):
                                   case=[], suite='all', phase=None)
         self.assertFalse(runner.qualification_requested(args))
 
-    def run_cli(self, inventory, flags=(), native=None):
+    def run_cli(self, inventory, flags=(), native=None, manifest=None):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             build = root / 'build'
@@ -64,7 +64,7 @@ class QualityPolicyTests(unittest.TestCase):
                   patch.object(runner, 'INVENTORY', inventory),
                   patch.object(runner, 'NATIVE', native if native is not None else {row['id'] for row in inventory}),
                   patch.object(runner, 'GLOBAL', set()),
-                  patch.object(runner, 'MANIFEST', {'completed_phases': ['0.5']}),
+                  patch.object(runner, 'MANIFEST', manifest if manifest is not None else {'completed_phases': ['0.5']}),
                   patch.object(runner, 'fingerprint', return_value=snapshot),
                   patch.object(runner, 'build_provenance', return_value={'status': 'PASS'}),
                   patch.object(runner, 'fixtures', return_value={}) as fixtures,
@@ -87,6 +87,18 @@ class QualityPolicyTests(unittest.TestCase):
     def row(identifier):
         return {'id': identifier, 'scope': 'CURRENT', 'mode': 'BLOCKING',
                 'severity': 'P1', 'scenario': 'Policy-only mocked adapter'}
+
+    def test_only_named_source_implemented_target_enters_qualification(self):
+        self.assertTrue(runner.in_scope('TARGET', '0.6', 'UX-PRV-012'))
+        self.assertFalse(runner.in_scope('TARGET', '0.5', 'UX-PRV-012'))
+        self.assertFalse(runner.in_scope('TARGET', '1.0', 'UX-PRV-011'))
+        row = next(row for row in runner.INVENTORY if row['id'] == 'UX-PRV-012')
+        self.assertEqual(row['scope'], 'TARGET')
+        self.assertTrue(runner.phase_selected(row, '0.6'))
+        self.assertFalse(runner.phase_selected(row, '0.5'))
+        result = self.run_cli([row], flags=('--suite', 'regression', '--through', '0.6', '--case', row['id']), manifest=runner.MANIFEST)
+        self.assertEqual((result['code'], result['children'], result['fixtures']), (0, 1, 1))
+        self.assertEqual(result['summary']['release_gate'], 'NOT_QUALIFIED')
 
     def test_quality_ci_runs_safe_case_and_retains_deferred_case_as_skipped(self):
         result = self.run_cli([self.row('UX-APP-002'), self.row('UX-APP-001')])

@@ -176,20 +176,55 @@ QSize EditorController::previewPixelSize() const {
         return {};
     }
 }
+bool EditorController::zoomToolsCompatible() const {
+    return !cropMode_ && !guidedMode_ && !localMode_ && !whiteBalancePicking_ &&
+           !pointColorPicking_ && retouchMode_ == QStringLiteral("off") &&
+           targetedTool_ == QStringLiteral("none");
+}
+bool EditorController::zoomAvailable() const {
+    return editable() && zoomToolsCompatible() && pressure_ == luma::macos::MemoryPressure::normal;
+}
+QString EditorController::zoomMode() const {
+    if (!zoomToolsCompatible() || zoomMode_ == PreviewZoom::fit)
+        return QStringLiteral("fit");
+    return zoomMode_ == PreviewZoom::fill ? QStringLiteral("fill") : QStringLiteral("manual");
+}
+void EditorController::resetPreviewZoom() {
+    zoomMode_ = PreviewZoom::fit;
+    zoomFactor_ = 1;
+}
 void EditorController::setOneToOne(bool value) {
-    if (oneToOne_ == value ||
-        (value && (!editable() || cropMode_ || guidedMode_ || localMode_ || whiteBalancePicking_ ||
-                   pointColorPicking_ || retouchMode_ != QStringLiteral("off") ||
-                   targetedTool_ != QStringLiteral("none"))))
+    applyPreviewZoom(value ? PreviewZoom::manual : PreviewZoom::fit, 1);
+}
+void EditorController::setZoomMode(const QString &mode) {
+    if (mode == QStringLiteral("fit"))
+        applyPreviewZoom(PreviewZoom::fit, zoomFactor_);
+    else if (mode == QStringLiteral("fill"))
+        applyPreviewZoom(PreviewZoom::fill, zoomFactor_);
+    else if (mode == QStringLiteral("manual"))
+        applyPreviewZoom(PreviewZoom::manual, zoomFactor_);
+}
+void EditorController::setZoomFactor(double factor) {
+    applyPreviewZoom(PreviewZoom::manual, factor);
+}
+void EditorController::applyPreviewZoom(PreviewZoom mode, double factor) {
+    if (!std::isfinite(factor) || factor < minimumZoomFactor() || factor > maximumZoomFactor() ||
+        (mode != PreviewZoom::fit && !zoomAvailable()) ||
+        (mode == zoomMode_ && factor == zoomFactor_))
         return;
-    if (value && previewPixelSize().isEmpty()) {
+    if (mode != PreviewZoom::fit && previewPixelSize().isEmpty()) {
         error_ = QStringLiteral("Full-resolution preview exceeds the supported image dimensions.");
         emit stateChanged();
         return;
     }
-    oneToOne_ = value;
+    const bool wasFull = zoomMode() != QStringLiteral("fit");
+    zoomMode_ = mode;
+    zoomFactor_ = factor;
     emit stateChanged();
-    render();
+    // Scaling an already full-resolution image is a viewport operation. Keep
+    // the same render/job/history while wheel or pinch updates its transform.
+    if (wasFull != (zoomMode() != QStringLiteral("fit")))
+        render();
 }
 void EditorController::setPreviewCacheMiB(int value) {
     if (value < 64 || value > 2048 || previewCacheMiB_ == value)
@@ -233,7 +268,7 @@ void EditorController::handleMemoryPressure(luma::macos::MemoryPressure pressure
         cancelRetouch();
         // Cancel full-resolution work before replacing it with a bounded fit
         // preview. Existing source pixels and unsaved edits remain available.
-        oneToOne_ = false;
+        resetPreviewZoom();
         render();
         emit stateChanged();
     }
@@ -372,7 +407,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             ++self->historyGeneration_;
                             self->historyError_.clear();
                             self->original_ = false;
-                            self->oneToOne_ = false;
+                            self->resetPreviewZoom();
                             self->render();
                             emit self->photoLoaded(
                                 QString::fromStdString(self->session_->asset.id));
@@ -679,9 +714,7 @@ void EditorController::render(bool fullQuality) {
                              !pointColorPicking_ && !cropMode_ && !guidedMode_ && !localMode_ &&
                              retouchMode_ == QStringLiteral("off") &&
                              targetedTool_ == QStringLiteral("none");
-    const bool fullResolution = fullQuality && oneToOne_ && !whiteBalancePicking_ &&
-                                !pointColorPicking_ && !cropMode_ && !guidedMode_ && !localMode_ &&
-                                targetedTool_ == QStringLiteral("none");
+    const bool fullResolution = fullQuality && zoomMode() != QStringLiteral("fit");
     const auto image = interactive ? session_->interactivePreview : session_->preview;
     const auto metadata = session_->asset.metadata;
     const int orientation = metadata.orientation;
@@ -806,7 +839,7 @@ void EditorController::render(bool fullQuality) {
                                 self->error_ = message;
                                 self->publishHistogram(std::nullopt);
                                 if (fullResolution) {
-                                    self->oneToOne_ = false;
+                                    self->resetPreviewZoom();
                                     self->render();
                                 }
                                 emit self->stateChanged();

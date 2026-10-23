@@ -5,6 +5,44 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Viewer scale and input — 2026-10-23
+
+[Evidence](qualification/2026-10-23/viewer-scale-and-input.json) records the
+implementation of Fill, manual 1–1600% (including 2:1), pointer-anchored wheel and
+pinch zoom, smooth/momentum pan, and double-click Fit/100%. Scale changes on an
+already full-resolution image do not start another render or change saved edits,
+history or selection. New-photo, pressure and full-resolution failure reset Fit.
+
+The first input runs exposed incorrect scrolled-content coordinates for wheel
+and pinch. Scene-to-viewport conversion fixes both; queued wheel events preserve
+their pending bounded transform. Full-to-full anchors are exact; the rounded Fit
+raster and 1:1 backing-pixel snap have explicit half-source-pixel budgets.
+
+Two subsequent 1600% runs hit the unchanged five-second watchdog. Disabling
+image smoothing did not fix this and was reverted. Inactive tool Canvases were
+following the 49152×32768 magnified image. Keeping their geometry zero/tiny while
+zoom is active makes the same scenario pass, with original smoothing retained.
+Their dimensions are now asserted. Original failures and incomplete stack
+samples remain in the evidence; no watchdog or integrity limit was relaxed.
+
+The affected regression passes **51/51 offscreen/software DPR1** repetitions,
+with no QML warnings or original/catalog integrity failures. Full application
+build, **9/9 affected CTest checks**, **40 runner tests**, **11 quality-policy
+tests**, keyboard import/edit/export and eight-language preset dialogs pass.
+All eight languages also keep the new controls within a 1000×640 window.
+Affected formatting and blocking clang-tidy checks pass; nonblocking warnings
+remain. PRV012 enters qualification through an explicit implemented-target phase
+mapping; its original TARGET specification is unchanged. CI/release require all
+four new input adapters, three repetitions each, with retained evidence.
+
+Fresh native confirmation is requested but not yet completed. Synthetic Qt
+native-gesture delivery is not physical trackpad qualification. PRV011 and
+ZOM006–009 overlay mapping at arbitrary zoom remain open; tools still use Fit.
+GAP049 is therefore not closed. Hosted CI on `21b39ac` has passed model
+preparation/numerics/source quality, full build, photographic Denoise/Sky and
+unit/integration. Its blocking UX stage is still running. No overall CI or 1.0
+release PASS is inferred.
+
 ### Native transient confirmation and zoom-oracle worker — 2026-10-23
 
 [Evidence](qualification/2026-10-23/native-preview-zoom-worker.json) records

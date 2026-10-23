@@ -33,5 +33,8 @@
     "relink": true,
     "developer_id_notarization": false
   },
-  "phase_semantics": "Source implementation available; this manifest does not certify QA or release readiness."
+  "phase_semantics": "Source implementation available; this manifest does not certify QA or release readiness.",
+  "implemented_targets": {
+    "UX-PRV-012": "0.6"
+  }
 }
