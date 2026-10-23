@@ -1,13 +1,18 @@
 #include "apps/shared/MetadataService.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
+#include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
+#include <QCoreApplication>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
 #include <QSaveFile>
 #include <QSignalSpy>
 #include <QTimer>
+#include <QXmlStreamReader>
 #include <algorithm>
 #include <span>
 
@@ -522,4 +527,193 @@ bool metadataScenario(Context &c, const QString &id) {
            {"metadata_revision", static_cast<qint64>(catalog.metadataSnapshot(photo).revision)}});
     return true;
 }
+bool xmpAtomicScenario(Context &c, const QString &id, const QString &stage) {
+    const bool atomic = id == "UX-P09-XMP-001";
+    const bool beforeKill = id == "UX-P09-FLT-002";
+    const bool afterKill = id == "UX-P09-XMP-012";
+    if (!atomic && !beforeKill && !afterKill)
+        return false;
+    auto &d = *c.driver;
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    auto desired = unicodeValues();
+    desired.title = "Новая атомарная запись 夜景";
+    desired.keywords.push_back("atomic-new");
+    const auto source =
+        std::filesystem::path((c.stateRoot + "/xmp-originals/Atomic.png").toStdString());
+    const auto sidecar = luma::MetadataService::sidecarPath(source);
+    const auto expectedOldPath =
+        std::filesystem::path((c.stateRoot + "/expected-old.xmp").toStdString());
+    const auto expectedNewPath =
+        std::filesystem::path((c.stateRoot + "/expected-new.xmp").toStdString());
+    if (atomic || stage == "prepare") {
+        require(QDir().mkpath(QString::fromStdString(source.parent_path().string())),
+                "Cannot create owned atomic XMP directory");
+        const auto inputs = QDir(c.fixture).entryList({"*.png"}, QDir::Files, QDir::Name);
+        require(!inputs.empty() && QFile::copy(c.fixture + '/' + inputs.front(),
+                                               QString::fromStdString(source.string())),
+                "Cannot copy owned atomic XMP source");
+        require(d.object("library.importDialog")
+                    ->setProperty("sources", QVariant::fromValue(QList<QUrl>{QUrl::fromLocalFile(
+                                                 QString::fromStdString(source.string()))})),
+                "Atomic XMP import fixture selection rejected");
+        d.click("library.importButton");
+        d.wait([&] { return d.object("library.importDialog")->property("opened").toBool(); },
+               "Atomic XMP import opened");
+        d.click("library.importStart");
+        idle(c);
+        require(c.library.error().isEmpty() && c.library.count() == 1 && !c.library.autoWriteXMP(),
+                "Atomic XMP requires one catalog-only imported original");
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.reveal("develop.exposureSlider");
+        d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+        c.saved();
+        const auto photo = c.editor.photoID().toStdString();
+        const auto sourceHash = luma::macos::sha256File(source);
+        {
+            luma::Catalog expected((c.stateRoot + "/expected.sqlite").toStdString());
+            const auto asset = catalog.activeAsset().value();
+            const auto copy = expected.addAndSelect(source, asset.checksum, asset.metadata);
+            expected.saveEdits(copy.id, c.editor.currentSettings());
+        }
+        d.click("main.libraryButton");
+        d.click(c.card(0));
+        open(c, photo);
+        form(c, unicodeValues(), true);
+        click(c, "metadata.save");
+        idle(c);
+        click(c, "metadata.write");
+        idle(c);
+        require(c.library.error().isEmpty(), c.library.error());
+        const auto old = read(sidecar);
+        write(expectedOldPath, old);
+        const auto before = catalog.metadataSnapshot(photo);
+        require(before.writtenRevision == before.revision && !before.sidecarHash.empty(),
+                "Atomic XMP baseline was not fully acknowledged");
+        form(c, desired, true);
+        click(c, "metadata.save");
+        idle(c);
+        const auto pending = catalog.metadataSnapshot(photo);
+        require(pending.values == desired && pending.revision > before.revision &&
+                    pending.writtenRevision == before.writtenRevision && read(sidecar) == old,
+                "New metadata changed the existing sidecar before explicit write");
+        const auto newPacket = luma::macos::writeDescriptiveXMP(
+            desired,
+            std::span(reinterpret_cast<const std::uint8_t *>(old.constData()), old.size()));
+        const QByteArray next(reinterpret_cast<const char *>(newPacket.data()), newPacket.size());
+        write(expectedNewPath, next);
+        writeJson(c.stateRoot + "/xmp-expected.json",
+                  {{"photo", QString::fromStdString(photo)},
+                   {"source_sha256", QString::fromStdString(sourceHash)},
+                   {"old_revision", static_cast<qint64>(before.revision)},
+                   {"new_revision", static_cast<qint64>(pending.revision)},
+                   {"old_hash", QString::fromStdString(before.sidecarHash)},
+                   {"prepare_pid", QCoreApplication::applicationPid()}});
+        const std::vector<std::string> points =
+            atomic
+                ? std::vector<std::string>{"xmp.before-install", "xmp.after-install"}
+                : std::vector<std::string>{beforeKill ? "xmp.before-install" : "xmp.after-install"};
+        PersistenceGate gate(c.catalogFile.toStdString(), points);
+        click(c, "metadata.write");
+        for (std::size_t index = 0; index < points.size(); ++index) {
+            d.wait(
+                [&] {
+                    const auto observed = gate.snapshot();
+                    return observed.held && observed.events.size() == index + 1;
+                },
+                "Actual XMP filesystem checkpoint reached");
+            const auto observed = gate.snapshot();
+            const auto &event = observed.events.back();
+            require(!observed.hookFailed && event.target == sidecar && c.library.working(),
+                    "Atomic XMP checkpoint did not hold the actual owned operation");
+            const bool installed = points[index] == "xmp.after-install";
+            require(read(sidecar) == (installed ? next : old) &&
+                        (installed ? !std::filesystem::exists(event.temporary)
+                                   : read(event.temporary) == next),
+                    "Destination is torn or staging does not contain the complete new XMP");
+            const auto uncommitted = catalog.metadataSnapshot(photo);
+            require(uncommitted.values == desired && uncommitted.revision == pending.revision &&
+                        uncommitted.writtenRevision == before.writtenRevision &&
+                        uncommitted.sidecarHash == before.sidecarHash,
+                    "Uncommitted XMP transaction exposed a false acknowledgement");
+            d.log({{"action", "actual_xmp_checkpoint"},
+                   {"point", QString::fromStdString(event.point)},
+                   {"destination_sha256", QString::fromStdString(luma::macos::sha256File(sidecar))},
+                   {"staging_present", std::filesystem::exists(event.temporary)}});
+            if (!atomic) {
+                writeJson(c.root + "/metrics.json", c.metrics.json());
+                writeJson(c.root + "/kill-ready.json",
+                          {{"id", id},
+                           {"stage", stage},
+                           {"pid", QCoreApplication::applicationPid()},
+                           {"utc_ms", QDateTime::currentMSecsSinceEpoch()},
+                           {"checkpoint", QString::fromStdString(event.point)}});
+                d.wait([] { return false; }, "Parent SIGKILL was not delivered", 10000);
+                throw std::runtime_error("Kill checkpoint unexpectedly returned");
+            }
+            gate.release();
+        }
+        idle(c);
+        require(!gate.snapshot().hookFailed && c.library.error().isEmpty(), c.library.error());
+        require(luma::macos::sha256File(source) == sourceHash, "XMP write changed original bytes");
+    } else {
+        require(stage == "verify", "Unknown atomic XMP restart stage");
+        QFile saved(c.stateRoot + "/xmp-expected.json");
+        require(saved.open(QIODevice::ReadOnly), "Missing atomic XMP expected state");
+        const auto expected = QJsonDocument::fromJson(saved.readAll()).object();
+        require(expected["prepare_pid"].toInteger() != QCoreApplication::applicationPid(),
+                "XMP recovery did not use a fresh process");
+        idle(c);
+        require(c.library.count() == 1 && c.library.error().isEmpty(),
+                "XMP crash broke Library startup");
+        const auto photo = expected["photo"].toString().toStdString();
+        const auto current = catalog.metadataSnapshot(photo);
+        require(current.values == desired &&
+                    current.revision == expected["new_revision"].toInteger() &&
+                    current.writtenRevision == expected["old_revision"].toInteger() &&
+                    current.sidecarHash == expected["old_hash"].toString().toStdString(),
+                "Kill exposed a partial metadata transaction or lost the pending draft");
+        require(read(sidecar) == read(beforeKill ? expectedOldPath : expectedNewPath),
+                "Crash left torn or unexpected XMP bytes");
+        require(luma::macos::sha256File(source) ==
+                    expected["source_sha256"].toString().toStdString(),
+                "XMP crash changed the original file");
+        d.doubleClick(c.card(0));
+        c.loaded();
+        c.saved();
+        const auto savedEdits =
+            luma::Catalog((c.stateRoot + "/expected.sqlite").toStdString()).activeAsset();
+        require(savedEdits && c.editor.currentSettings() == savedEdits->edits,
+                "XMP crash lost the complete saved Develop document");
+        d.click("main.libraryButton");
+        d.click(c.card(0));
+        open(c, photo);
+        form(c, desired, false);
+        click(c, "metadata.write");
+        idle(c);
+        require(c.library.error().isEmpty(), "Explicit XMP retry failed: " + c.library.error());
+    }
+    const auto selected = c.library.selectedAssetIDs();
+    require(selected.size() == 1, "Atomic XMP lost its selected asset");
+    const auto photo = selected.front().toStdString();
+    const auto final = catalog.metadataSnapshot(photo);
+    require(read(sidecar) == read(expectedNewPath) && final.values == desired &&
+                final.writtenRevision == final.revision &&
+                final.sidecarHash == luma::macos::sha256File(sidecar),
+            "Completed/recovered XMP did not acknowledge exactly the complete new packet");
+    const auto packet = read(sidecar);
+    QXmlStreamReader xml(packet);
+    while (!xml.atEnd())
+        xml.readNext();
+    require(!xml.hasError(), "Published XMP is not well-formed XML");
+    auto serialized = desired;
+    serialized.flag = 0;
+    require(luma::macos::readDescriptiveMetadata(
+                source, std::span(reinterpret_cast<const std::uint8_t *>(packet.constData()),
+                                  packet.size())) == serialized,
+            "Recovered XMP lost supported descriptive fields");
+    d.screenshot(c.root + "/atomic-xmp-recovered.png");
+    return true;
+}
+
 } // namespace ux

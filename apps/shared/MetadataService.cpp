@@ -2,6 +2,9 @@
 #include "core/image/Bayer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+#include "tests/ux/PersistenceProbe.h"
+#endif
 #include <algorithm>
 #include <cctype>
 #include <cerrno>
@@ -245,11 +248,17 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id,
             throw std::runtime_error("XMP changed while a write was being prepared.");
         if (bytes == output)
             return;
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+        ux::observePersistenceCheckpoint(catalog_, "xmp.before-install", path, staged.path);
+#endif
         const int installed = bytes.empty() ? link(staged.path.c_str(), path.c_str())
                                             : rename(staged.path.c_str(), path.c_str());
         if (installed != 0)
             throw std::runtime_error("Cannot install XMP sidecar.");
         syncFolder(path.parent_path());
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+        ux::observePersistenceCheckpoint(catalog_, "xmp.after-install", path, staged.path);
+#endif
     });
     return path;
 }

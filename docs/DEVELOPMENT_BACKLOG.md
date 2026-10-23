@@ -639,3 +639,21 @@ has no observer symbols. Full build, four CTest entries and mandatory static che
 pass. [Evidence](qualification/2026-10-23/remove-semantic-workflows.json) retains
 initial outcomes and scope limits. Broad image quality, stress/privacy and final
 release qualification remain open; ten applicable blocking IDs lack adapters.
+
+### LUMA-BUG-069 — Hosted neutral Metal comparison intermittently fails
+
+OPEN. Run 39999961136 / a7b30d4: GPU002 repeats 2/3 fail the combined actual Metal
+completion/numeric assertion; first repeat passes. 286 PASS / 2 FAIL overall
+executed blocking report, with 59 skipped and 31 unimplemented. Ten local
+diagnostic repeats plus three final repeats pass. Passive per-result counters
+are added; cancellation, empty fallback or numeric difference are not yet proven.
+Keep original numeric and completion requirements. [Evidence](qualification/2026-10-23/xmp-atomic-crash.json).
+
+### LUMA-BUG-070 — XMP staging orphan survives process kill before installation
+
+OPEN. Real SIGKILL before rename leaves .luma-xmp-* in the owned original folder;
+fresh-process retry preserves original/edits/draft and installs a complete XMP,
+but does not remove the old stage. After-rename kill has no stage orphan. Existing
+names do not encode durable ownership: do not broadly delete matching files.
+Implement ownership-aware cleanup and retain actual-kill evidence. Atomic/retry
+contracts pass 9 offscreen + 3 Cocoa/Metal; cleanup is not counted as passed.

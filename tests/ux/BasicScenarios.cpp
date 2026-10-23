@@ -50,6 +50,7 @@ bool previewCacheBudgetScenario(Context &, const QString &);
 bool catalogMaintenanceScenario(Context &, const QString &);
 bool metadataScenario(Context &, const QString &);
 bool mergeWorkflowScenario(Context &, const QString &);
+bool xmpAtomicScenario(Context &, const QString &, const QString &);
 bool semanticScenario(Context &, const QString &);
 bool retouchScenario(Context &, const QString &);
 bool aiMaskScenario(Context &, const QString &);
@@ -69,8 +70,8 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (semanticScenario(c, id) || retouchScenario(c, id) || aiMaskScenario(c, id) ||
-        denoiseWorkflowScenario(c, id) || mergeOptionsScenario(c, id) ||
+    if (xmpAtomicScenario(c, id, {}) || semanticScenario(c, id) || retouchScenario(c, id) ||
+        aiMaskScenario(c, id) || denoiseWorkflowScenario(c, id) || mergeOptionsScenario(c, id) ||
         mergeWorkflowScenario(c, id) || metadataScenario(c, id) || relinkScenario(c, id))
         return;
     if (catalogMaintenanceScenario(c, id) || previewCacheBudgetScenario(c, id) ||

@@ -272,6 +272,10 @@ if(BUILD_TESTING)
     target_sources(luma_ux_tests PRIVATE tests/ux/LocalizedDialogCandidate.cpp)
     target_sources(luma_ux_tests PRIVATE tests/ux/AutoTransformProbe.cpp tests/ux/AutoTransformRaceCandidate.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_AUTO_TRANSFORM_PROBE)
+    # Direct UX objects replace the static library's matching service object;
+    # only the test executable compiles the real filesystem checkpoints.
+    target_sources(luma_ux_tests PRIVATE tests/ux/PersistenceProbe.cpp apps/shared/MetadataService.cpp)
+    target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_PERSISTENCE_PROBE)
     target_sources(luma_ux_tests PRIVATE tests/ux/RetouchResultProbe.cpp tests/ux/RetouchScenarios.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_RETOUCH_RESULT_PROBE)
     target_sources(luma_ux_tests PRIVATE tests/ux/PreviewResultProbe.cpp)

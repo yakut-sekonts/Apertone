@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 
 namespace ux {
+bool xmpAtomicScenario(Context &, const QString &, const QString &);
 bool localeRestartScenario(Context &, const QString &, const QString &);
 bool exportSettingsRestartScenario(Context &, const QString &, const QString &);
 bool copyRestartScenario(Context &, const QString &, const QString &);
@@ -24,7 +25,8 @@ void quit(Context &c) {
 }
 } // namespace
 void restartScenario(Context &c, const QString &id, const QString &stage) {
-    if (catalogScaleRestartScenario(c, id, stage) || mergeRestartScenario(c, id, stage))
+    if (xmpAtomicScenario(c, id, stage) || catalogScaleRestartScenario(c, id, stage) ||
+        mergeRestartScenario(c, id, stage))
         return;
     if (exportSettingsRestartScenario(c, id, stage) || whiteBalanceRestartScenario(c, id, stage) ||
         appMissingSourceRestartScenario(c, id, stage) ||

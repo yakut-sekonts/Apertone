@@ -5,6 +5,25 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Atomic XMP publication and real process kills — 2026-10-23
+
+[Evidence](qualification/2026-10-23/xmp-atomic-crash.json): XMP001/XMP012/FLT002
+pass 9 repeated offscreen and 3 Cocoa/Metal checks after the initial 3 passes.
+A real parent SIGKILL occurs before or after file installation, before catalog
+acknowledgement commit. Fresh processes retain complete old/new sidecars, pending
+Unicode drafts, original hashes and Develop documents; actual UI retry succeeds.
+Full build, five affected CTest entries, format, mandatory tidy and shipping/UX
+symbol isolation pass. Native recovery screenshot was inspected.
+
+**Open:** pre-install kill leaves an owned staging orphan (BUG070); these passes
+certify atomic data/retry, not cleanup. Hosted run 39999961136 on a7b30d4 reports
+286 PASS / 2 FAIL / 59 SKIPPED / 31 NOT_IMPLEMENTED: GPU002 repetitions 2/3 fail
+its real Metal completion/numeric assertion (BUG069). Ten local diagnostic runs
+and three final regressions pass. New passive counters distinguish cancellation,
+exceptions, empty results and invalid sizes; no acceptance/budget is relaxed and
+no root cause is claimed. Seven applicable blocking IDs still lack adapters;
+final release qualification remains incomplete.
+
 ### Actual Remove and semantic-search workflows — 2026-10-23
 
 [Evidence](qualification/2026-10-23/remove-semantic-workflows.json): final source

@@ -16,6 +16,8 @@ class MetalPreviewProbe final : public luma::DevelopAccelerator {
   public:
     struct Snapshot {
         unsigned calls = 0, completed = 0;
+        unsigned exceptionsWithCancelledToken = 0, otherExceptions = 0, emptyResults = 0,
+                 invalidSizes = 0;
         std::size_t samples = 0;
         double maximumLinearError = 0, maximumLimitRatio = 0;
         bool finite = true;
@@ -40,7 +42,24 @@ class MetalPreviewProbe final : public luma::DevelopAccelerator {
             std::lock_guard lock(mutex_);
             ++state_.calls;
         }
-        auto result = native_->develop(input, pipeline, stop);
+        std::vector<float> result;
+        try {
+            result = native_->develop(input, pipeline, stop);
+        } catch (...) {
+            std::lock_guard lock(mutex_);
+            if (stop.isCancelled())
+                ++state_.exceptionsWithCancelledToken;
+            else
+                ++state_.otherExceptions;
+            throw;
+        }
+        if (result.empty() || result.size() != input.rgb.size()) {
+            std::lock_guard lock(mutex_);
+            if (result.empty())
+                ++state_.emptyResults;
+            else
+                ++state_.invalidSizes;
+        }
         if (!result.empty() && result.size() == input.rgb.size()) {
             Snapshot observed;
             observed.completed = 1;
@@ -130,6 +149,21 @@ void neutralBackendAgreement(Context &c) {
             throw;
         }
         const auto observed = probe->snapshot();
+        d.log({{"action", "neutral_backend_probe_before_assert"},
+               {"metal_preference", gpu},
+               {"actual_metal_calls", static_cast<qint64>(observed.calls)},
+               {"actual_metal_completions", static_cast<qint64>(observed.completed)},
+               {"linear_samples", static_cast<qint64>(observed.samples)},
+               {"linear_finite", observed.finite},
+               {"exceptions_with_cancelled_token",
+                static_cast<qint64>(observed.exceptionsWithCancelledToken)},
+               {"other_exceptions", static_cast<qint64>(observed.otherExceptions)},
+               {"empty_results", static_cast<qint64>(observed.emptyResults)},
+               {"invalid_sizes", static_cast<qint64>(observed.invalidSizes)},
+               {"maximum_linear_error", observed.maximumLinearError},
+               {"maximum_linear_limit_ratio", observed.maximumLimitRatio},
+               {"histogram_pending", c.editor.histogramPending()},
+               {"preview_url", c.editor.previewUrl()}});
         require(observed.calls > 0 && observed.completed == observed.calls &&
                     observed.samples > 0 && observed.finite && observed.maximumLimitRatio <= 1,
                 "Neutral preview did not complete actual Metal within the linear-light budget");

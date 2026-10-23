@@ -329,7 +329,10 @@
     "UX-P07-REM-001",
     "UX-P07-REM-002",
     "UX-P07-REM-003",
-    "UX-P07-SEM-001"
+    "UX-P07-SEM-001",
+    "UX-P09-XMP-001",
+    "UX-P09-XMP-012",
+    "UX-P09-FLT-002"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -854,7 +857,10 @@
     "UX-P07-REM-001": 0,
     "UX-P07-REM-002": 0,
     "UX-P07-REM-003": 0,
-    "UX-P07-SEM-001": 0
+    "UX-P07-SEM-001": 0,
+    "UX-P09-XMP-001": 1,
+    "UX-P09-XMP-012": 1,
+    "UX-P09-FLT-002": 1
   },
   "default_quality_photo_count": 10
 }
