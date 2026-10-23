@@ -37,6 +37,14 @@ int main(int argc,char **argv) {
         const auto output=luma::macos::writeDescriptiveXMP(replacement,bytes(original));
         std::cout << "AFTER XML\n" << std::string(output.begin(),output.end()) << "\nAFTER PATHS\n";paths(output);
         const auto external=std::string("\n")+packet("<xmp:Rating>3</xmp:Rating><xmp:Label>External</xmp:Label><dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Внешний 夜景 &amp; café</rdf:li></rdf:Alt></dc:title><dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">Отдельный XMP</rdf:li></rdf:Alt></dc:description><dc:creator><rdf:Seq><rdf:li>Անի</rdf:li></rdf:Seq></dc:creator><dc:subject><rdf:Bag><rdf:li>外部</rdf:li></rdf:Bag></dc:subject>");
+        const std::string serialized(output.begin(),output.end());
+        const auto declarationEnd=serialized.find("?>");
+        std::cout << "AFTER WITHOUT DECLARATION\n";paths(bytes(serialized.substr(declarationEnd+2)));
+        std::cout << "BEFORE WITH DECLARATION\n";paths(bytes("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"+original));
+        std::cout << "AFTER DECLARATION NEWLINE\n";paths(bytes(serialized.substr(0,declarationEnd+2)+"\n"+serialized.substr(declarationEnd+2)));
+        std::cout << "AFTER READBACK\n";
+        try { values(luma::macos::readDescriptiveMetadata(argv[1],output)); }
+        catch(const std::exception &e) {std::cout << "READ ERROR " << e.what() << '\n';}
         std::cout << "EXTERNAL\n"; paths(bytes(external));
         try { values(luma::macos::readDescriptiveMetadata(argv[1],bytes(external))); }
         catch(const std::exception &e) {std::cout << "READ ERROR " << e.what() << '\n';}
