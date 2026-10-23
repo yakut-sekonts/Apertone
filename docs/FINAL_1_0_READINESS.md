@@ -5,6 +5,29 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Hosted XMP portability and retained UI failures — 2026-10-23
+
+[macOS 15 evidence](qualification/2026-10-23/xmp-macos15-portability.json)
+confirms two ImageIO compatibility defects: rejected legal XML prologs/leading
+whitespace, and non-default language substitution. XML-based merging preserves
+foreign properties/languages; validated document-element input and declaration-free
+output restore compatibility. The affected hosted unit + Library integration
+pass **2/2**, with identical production/unit sources to the main worktree.
+Full local build and CTest pass **62 / one private Nikon SKIP**; the six affected
+metadata/XMP UI scenarios have **18 offscreen PASS** across two reports. An
+accidentally selected unadapted META001 remains explicitly SKIPPED. Native
+confirmation and the new hosted UX run remain pending; this is not full CI PASS.
+
+[Retained CI/UI evidence](qualification/2026-10-23/ci-b404ad0-followup.json)
+records all b404ad0 UX failures. Library scroll now checks synchronized rendered
+frames and the final anchor at the unchanged one-pixel tolerance, retaining raw
+in-handler movement; it passes **6/6 offscreen**. PhotoCard's final-result gate
+is armed after the edited interactive image, and passive OS pressure observations
+are retained. The latest **10/10 PASS** do not close BUG-045: a prior local failure
+changed only preview URL, with identical pixels and preserved document/history.
+The cause remains open. Full hosted clang-tidy is still running on b404ad0; no
+new main-branch push interrupts that valuable scan.
+
 ### Preview cache budget and explicit clear — 2026-10-23
 
 [Evidence](qualification/2026-10-23/preview-cache-budget.json) adds official
@@ -14,10 +37,11 @@ all three caches. The active image remains exact; Undo/Redo reconstruct the
 expected CPU pixels and persist precisely two revisions. Document, selection,
 history and original hashes remain intact; no QML warnings occur.
 
-The adapter passes **3/3 offscreen**; existing 3072×2048 zoom and controlled
+The adapter passes **3/3 offscreen and 1/1 Cocoa/Metal DPR2**; existing 3072×2048 zoom and controlled
 memory-recovery cases pass **2/2** after the shared fixture gained an optional
 size. Affected blocking clang-tidy and 11 policy tests pass; nonblocking tidy
-warnings remain. Native confirmation is pending. This measures cache-owned
+warnings remain. Native confirmation has no QML warnings and preserves catalog/
+original integrity; Mac is free. This measures cache-owned
 references and bytes, not RSS, physical memory pressure or load qualification.
 The OS notification stream is deliberately isolated in this owned test controller.
 

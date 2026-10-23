@@ -444,3 +444,30 @@ supplemental sequence, while retaining the complete later evidence archive.
   affected blocking clang-tidy pass. Timing remains MEASURE_ONLY; recovery/load
   and complete hosted qualification remain open.
 - Evidence: [metadata and native XMP lists](qualification/2026-10-23/metadata-xmp-lists.json).
+
+## LUMA-BUG-056 — macOS 15 XMP XML and language interoperability
+
+- Status: **fixed in source; affected hosted unit/integration PASS; full CI/native retest pending**.
+- Hosted ImageIO 15 rejects legal leading whitespace/BOM and XML declarations.
+  Its language-alternative parser also replaces a non-default language with
+  x-default; writing a parsed packet therefore loses another application's text.
+- Parse validated UTF-8 XML without external entities, pass its document element
+  to ImageIO, and merge supported properties by expanded XML name. Preserve foreign
+  properties and non-default language nodes. Serialize without a synthesized
+  declaration while retaining packet instructions/comments and CR references.
+- Independent XML oracles cover language preservation, namespace aliases,
+  repeated writes, Unicode/list order, prologs and ambiguous-input rejection.
+  Hosted macOS 15 XMP + Library integration pass 2/2; local full CTest has
+  62 PASS / one private Nikon SKIP, with 18 affected offscreen UX repetitions PASS.
+- [Evidence](qualification/2026-10-23/xmp-macos15-portability.json).
+
+### BUG-045 follow-up — 2026-10-23
+
+A retained local run now identifies the differing field: preview URL changed
+from v3 to v4; exact pixels, full document, history, catalog, selection and sources
+remain unchanged. Passive pressure observation and per-condition diagnostics are
+added; ten subsequent runs pass with normal pressure throughout. No cause is
+inferred from those passes. The held-final fixture is now armed after the edited
+interactive result, so it cannot capture an unrelated initial-load refinement.
+The defect remains open pending native/hosted diagnosis.
+[Evidence](qualification/2026-10-23/ci-b404ad0-followup.json).

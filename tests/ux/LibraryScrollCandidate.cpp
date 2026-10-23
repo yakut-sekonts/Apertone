@@ -332,6 +332,7 @@ bool libraryScrollCandidate(Context &c, const QString &id) {
                 require(content, "Library scroll observer has no content item");
                 const double initialY = content->y();
                 QJsonArray positions{initialY};
+                QJsonArray framePositions;
                 bool overflow = false;
                 QObject observer;
                 QObject::connect(content, &QQuickItem::yChanged, &observer, [&] {
@@ -340,22 +341,36 @@ bool libraryScrollCandidate(Context &c, const QString &id) {
                     else
                         overflow = true;
                 });
+                // As for the filmstrip, Qt can reveal/restore currentIndex inside
+                // one event handler. Only synchronized frames reach the user.
+                // Retain the raw motion trace as evidence, with the same 1 px limit
+                // applied to every frame and the final visible anchor below.
+                QObject::connect(
+                    c.window, &QQuickWindow::beforeSynchronizing, &observer,
+                    [&] {
+                        if (framePositions.size() < 256)
+                            framePositions.append(content->y());
+                        else
+                            overflow = true;
+                    },
+                    Qt::DirectConnection);
                 d.click(target.selector);
                 verify(c, before, "single-click", checks);
                 checks.append(QJsonObject{{"action", "single-click-motion"},
                                           {"content_item_y", positions},
+                                          {"frame_content_item_y", framePositions},
                                           {"overflow", overflow}});
                 const auto selected = c.library.selectionIDs();
                 require(selected.size() == 1 && selected.front() == chosen.toStdString() &&
                             activation.isEmpty(),
                         "Single Library click selected the wrong asset or opened Develop");
-                require(!overflow && std::all_of(positions.begin(), positions.end(),
-                                                 [&](const auto &value) {
-                                                     return std::isfinite(value.toDouble()) &&
-                                                            std::abs(value.toDouble() - initialY) <=
-                                                                1;
-                                                 }),
-                        "Single click transiently moved the Library viewport by more than one "
+                require(!overflow && !framePositions.isEmpty() &&
+                            std::all_of(framePositions.begin(), framePositions.end(),
+                                        [&](const auto &value) {
+                                            return std::isfinite(value.toDouble()) &&
+                                                   std::abs(value.toDouble() - initialY) <= 1;
+                                        }),
+                        "Single click moved a rendered Library viewport by more than one "
                         "logical pixel");
             }
             const auto target = clickTarget(c, true);
