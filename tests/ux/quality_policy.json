@@ -282,7 +282,10 @@
     "UX-P09-XMP-002",
     "UX-P09-XMP-003",
     "UX-P09-XMP-004",
-    "UX-P09-XMP-005"
+    "UX-P09-XMP-005",
+    "UX-P09-BKP-002",
+    "UX-P09-BKP-006",
+    "UX-P09-BKP-007"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -298,7 +301,7 @@
       "source": "tests/ux/HistoryStressScenarios.cpp:109,125,142,155"
     },
     "UX-APP-001": {
-      "reason": "50 последовательных запусков и закрытий в runner; repeated-launch workload.",
+      "reason": "50 \u043f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u0437\u0430\u043f\u0443\u0441\u043a\u043e\u0432 \u0438 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u0439 \u0432 runner; repeated-launch workload.",
       "source": "tests/ux/run_ux_suite.py:362"
     },
     "UX-APP-005": {
@@ -748,7 +751,10 @@
     "UX-P09-XMP-002": 1,
     "UX-P09-XMP-003": 1,
     "UX-P09-XMP-004": 1,
-    "UX-P09-XMP-005": 1
+    "UX-P09-XMP-005": 1,
+    "UX-P09-BKP-002": 1,
+    "UX-P09-BKP-006": 1,
+    "UX-P09-BKP-007": 1
   },
   "default_quality_photo_count": 10
 }

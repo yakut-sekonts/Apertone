@@ -32,6 +32,7 @@ Dialog {
     }
     FileDialog {
         id: restoredFile
+        objectName: "catalog.restoreDestination"
         title: qsTranslate("Luma", "Restore to a new catalog file")
         fileMode: FileDialog.SaveFile
         defaultSuffix: "sqlite3"
@@ -65,8 +66,8 @@ Dialog {
         CheckBox { text: qsTranslate("Luma", "Automatically write metadata to XMP sidecar"); checked: library.autoWriteXMP; enabled: !library.working; onToggled: library.autoWriteXMP = checked; Layout.fillWidth: true }
         Button { text: qsTranslate("Luma", "Write pending XMP sidecars"); enabled: !library.working; onClicked: library.syncSidecars(); Layout.fillWidth: true }
         BusyIndicator { running: library.working; visible: running; Layout.alignment: Qt.AlignHCenter }
-        Label { text: library.status; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-        Label { text: qsTranslate("Luma", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { objectName: "catalog.status"; text: library.status; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+        Label { objectName: "catalog.error"; text: qsTranslate("Luma", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }
     }
 }
