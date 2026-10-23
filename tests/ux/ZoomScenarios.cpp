@@ -8,13 +8,17 @@
 #include <QColorSpace>
 #include <QCryptographicHash>
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QSignalSpy>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <future>
 #include <optional>
+#include <thread>
 
 namespace ux {
 namespace {
@@ -54,19 +58,50 @@ QImage reference(Context &c, const luma::DecodedImage &decoded, const luma::Edit
     const auto profile = displayProfile && QGuiApplication::platformName() == "cocoa"
                              ? luma::macos::displayProfile(c.window->winId())
                              : std::vector<std::uint8_t>{};
-    const auto reduced =
-        maximumDimension == 0
-            ? std::nullopt
-            : std::optional(luma::standardPreview(decoded.image, maximumDimension));
-    const auto &input = reduced ? *reduced : decoded.image;
-    const double scale = std::min(double(input.width) / decoded.image.width,
-                                  double(input.height) / decoded.image.height);
-    const auto result =
-        luma::renderCPU(input, document, decoded.metadata.orientation, profile, {},
-                        decoded.calibration, luma::DetailDiagnostic::none, scale, decoded.metadata);
-    return QImage(result.rgba.data(), result.width, result.height, result.width * 4,
-                  QImage::Format_RGBA8888)
-        .copy();
+    // A full CPU oracle can exceed the GUI watchdog budget on hosted runners.
+    // Only immutable test data enters this worker; the real GUI timer and the
+    // original application callbacks keep running while we await its result.
+    const auto guiThread = std::this_thread::get_id();
+    luma::CancellationSource cancellation;
+    QElapsedTimer elapsed;
+    elapsed.start();
+    c.driver->log(
+        {{"action", "zoom_cpu_reference_started"}, {"maximum_dimension", maximumDimension}});
+    auto work = std::async(std::launch::async, [&, document, profile, guiThread,
+                                                stop = cancellation.token()] {
+        require(std::this_thread::get_id() != guiThread,
+                "Independent zoom CPU reference must not run on the GUI thread");
+        const auto reduced =
+            maximumDimension == 0
+                ? std::nullopt
+                : std::optional(luma::standardPreview(decoded.image, maximumDimension, stop));
+        const auto &input = reduced ? *reduced : decoded.image;
+        const double scale = std::min(double(input.width) / decoded.image.width,
+                                      double(input.height) / decoded.image.height);
+        const auto result = luma::renderCPU(input, document, decoded.metadata.orientation, profile,
+                                            stop, decoded.calibration, luma::DetailDiagnostic::none,
+                                            scale, decoded.metadata);
+        return QImage(result.rgba.data(), result.width, result.height, result.width * 4,
+                      QImage::Format_RGBA8888)
+            .copy();
+    });
+    try {
+        c.driver->wait(
+            [&] { return work.wait_for(std::chrono::seconds(0)) == std::future_status::ready; },
+            "Independent zoom CPU reference worker completed");
+    } catch (...) {
+        cancellation.cancel();
+        work.wait(); // Join before the borrowed immutable decoded fixture leaves scope.
+        throw;
+    }
+    const auto result = work.get();
+    c.driver->log({{"action", "zoom_cpu_reference_completed"},
+                   {"maximum_dimension", maximumDimension},
+                   {"width", result.width()},
+                   {"height", result.height()},
+                   {"elapsed_ms", elapsed.elapsed()},
+                   {"worker_thread", true}});
+    return result;
 }
 void ready(Context &c, const QImage &pixels, const QString &previous = {}) {
     try {

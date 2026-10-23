@@ -5,6 +5,37 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Native transient confirmation and zoom-oracle worker — 2026-10-23
+
+[Evidence](qualification/2026-10-23/native-preview-zoom-worker.json) records
+**5/5 native PASS** on clean `bdea5bd`: SLD016/017, PRS017 and PRG007/008,
+Cocoa/Metal, Retina DPR2, with no QML warnings or catalog/original-integrity
+failures. The approved three-minute quiet interval is complete; Mac was released.
+
+[Hosted CI on bdea5bd](https://github.com/yakut-sekonts/Luma/actions/runs/39932371084)
+passes model preparation, numerical/source/photographic checks, full build and
+unit/integration. Blocking UX returns **203 PASS / 1 FAIL**, plus 87 SKIPPED and
+31 NOT_IMPLEMENTED. ZOM001 repeat 1 exceeds the unchanged five-second main-loop
+watchdog; repeats 2/3 pass. Supplemental and static stages are skipped.
+
+The failed sample contains a single LCMS frame on the GUI thread. Both passing
+sibling samples identify the synchronous test-only `reference -> renderCPU ->
+DisplayTransform` path; their maximum loop stalls are 2678/3573 ms. This supports
+test-oracle blocking as the cause, but the failing stack itself is incomplete.
+The original failure and verified artifact digest remain retained.
+
+The independent zoom CPU oracle now runs in an async worker using immutable
+fixtures/settings/profile data. Real GUI events and heartbeats continue while
+waiting; timeout cancels and joins before fixture lifetime ends. Exact pixels,
+ICC/geometry and watchdog limits are unchanged. All eight affected scenarios
+pass **24/24 offscreen repetitions** without warnings or integrity failures.
+The adversarial runner control still kills a hung process despite its forged PASS.
+Formatting and affected blocking tidy checks pass; nonblocking warnings remain.
+
+Native confirmation above precedes this worker-only harness change. A replacement
+hosted CI run is still required; this is not an overall release PASS. GAP049,
+BUG045 and all other unqualified scopes remain open. No 1.0 publication.
+
 ### Transient preview ordering and preset pixel oracle — 2026-10-23
 
 [Retained evidence](qualification/2026-10-23/transient-preview-preset-oracle.json)

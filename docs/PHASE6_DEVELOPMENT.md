@@ -30,8 +30,12 @@ Metal Qt scene. These regressions now run in CI/release workflows. Phase 0.6
 had seven official UX adapters at that checkpoint. PRG007/008 add both directions
 of Original/Processed stale-result rejection and current/obsolete preset-hover
 final delivery. Their initial six repeated offscreen checks and the later
-42-case affected preset/WB/transient regression pass; native confirmation of
-these additions remains pending. Phase 0.6 now has nine official adapters of 58.
+42-case affected preset/WB/transient regression pass. A subsequent quiet interval
+passes both additions plus PRS017/SLD016/017 on Cocoa/Metal Retina DPR2.
+Hosted CI later exposes a synchronous CPU oracle stall in ZOM001. Moving only
+the independent test reference to a worker preserves the watchdog and exact
+pixels; all eight affected cases pass 24 offscreen repetitions. Replacement
+hosted CI remains required. See [native/worker evidence](qualification/2026-10-23/native-preview-zoom-worker.json). Phase 0.6 now has nine official adapters of 58.
 
 The Viewer source audit confirms GAP049: Fill, 2:1, arbitrary scale, wheel/pinch
 zoom and double-click Fit/1:1 from requirements §16 are not implemented by the

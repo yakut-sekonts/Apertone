@@ -320,7 +320,7 @@ This does not close BUG-045 or full release qualification; see
 
 ## LUMA-QA-050 — Preset pixel oracle predates the Metal rounding budget
 
-- Status: **cause reproduced; affected bounded offscreen retests PASS; native follow-up pending**.
+- Status: **cause reproduced; affected bounded offscreen and native retests PASS**.
 - The full functional baseline's PRS017 fails after a valid Light-only paste.
   Three fresh runs retain one differing RGB byte at one level, with exact alpha.
   Captured UI bytes equal fresh actual Metal replay; expected bytes equal fresh
@@ -331,3 +331,24 @@ This does not close BUG-045 or full release qualification; see
   mismatches even when image bytes coincide. Full settings/history/persistence
   checks remain unchanged. Failure pixel capture stays enabled.
 - Evidence: [transient preview and preset oracle](qualification/2026-10-23/transient-preview-preset-oracle.json).
+
+The subsequent quiet interval passes PRS017 and SLD016/017 on Cocoa/Metal Retina
+DPR2, with intact originals/catalog and no warnings; see
+[native follow-up](qualification/2026-10-23/native-preview-zoom-worker.json).
+
+## LUMA-QA-051 — Full CPU test oracle blocks GUI watchdog
+
+- Status: **test oracle moved off GUI; 24 offscreen regressions PASS; hosted retest pending**.
+- Hosted bdea5bd CI records 203 PASS / 1 FAIL. ZOM001 repeat 1 is killed after
+  over five seconds without a main-loop heartbeat. Its sample contains one LCMS
+  frame; passing sibling samples show test `reference -> renderCPU ->
+  DisplayTransform` on the GUI thread, with 2678/3573 ms stalls. Source/action
+  ordering supports oracle blocking, but the failed caller stack is incomplete.
+- Independent zoom references now use `std::launch::async`; ICC is captured on
+  the GUI thread and only immutable fixture/settings data reaches the worker.
+  Timeout cancels and joins, and failures propagate. Real event-loop heartbeats
+  continue; no heartbeat is fabricated and no watchdog or pixel limit changes.
+- All eight affected cases pass three repetitions offscreen. The existing
+  adversarial watchdog control still kills a fake hung process despite PASS.
+  This is a harness correction, not a production rendering performance claim.
+- Evidence: [native and worker follow-up](qualification/2026-10-23/native-preview-zoom-worker.json).
