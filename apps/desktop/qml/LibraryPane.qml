@@ -253,7 +253,7 @@ Rectangle {
                 RowLayout {
                     Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
                     Label { Layout.maximumWidth: 80; elide: Text.ElideRight; text: qsTranslate("Luma", "Rating"); font.pixelSize: 11 }
-                    Repeater { model: 6; Button { required property int index; Accessible.name: qsTranslate("Luma", "Rating") + " " + index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
+                    Repeater { model: 6; Button { required property int index; objectName: "library.rate." + index; Accessible.name: qsTranslate("Luma", "Rating") + " " + index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
                     ComboBox { objectName: "library.flagChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }
                     ComboBox { objectName: "library.labelChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Label…"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: { if (currentIndex > 0) library.label(["","","red","yellow","green","blue","purple"][currentIndex]); currentIndex = 0 } }
                 }

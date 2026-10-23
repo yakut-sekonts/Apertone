@@ -465,3 +465,25 @@ python3 tests/ux/run_localized_dialog_regression.py --build build-verify --runs 
 Both workflows retain the binding ledger, input trace and 32 screenshots per
 repeat. This supplemental domain does not register VIS007/VIS008 or qualify
 every product surface, native chooser, translation meaning or physical scanout.
+
+
+Official `UX-P09-META-001` displays all six capture-data fields from one dedicated
+128×96 DNG with an EXIF IFD, then saves/reopens all nine supported descriptive
+fields. A real queued metadata completion is held while Escape, workspace
+navigation and Library selection run; the original result must deliver without
+reopening the dismissed dialog. This is a completion-boundary test, not a slow
+filesystem or large-catalog benchmark. The generic Lens/Building fixtures keep
+their previous bytes; only this case enables the DNG generator's EXIF IFD option.
+
+Official `UX-P09-META-006` selects three of four photos and uses the actual Rating,
+Flag and Label controls. For each operation the test VFS holds the first successful
+catalog write, independently reads the old snapshot, and checks that PhotoCards
+do not expose uncommitted values. `SQLITE_FULL` on a subsequent write must preserve
+all metadata/revisions and show an error. A retry commits all selected rows exactly
+once and preserves the unselected control, original hashes, Develop state/history
+and sidecar absence. This covers implemented catalog batch fields; crash recovery
+and multi-file XMP publication have separate cases and remain unqualified.
+
+Both adapters are in the blocking CI subset and support Cocoa/Metal and offscreen
+software runs. Bounded fixture routing and independent TIFF/EXIF decoding are
+registered as `ux-metadata-display-fixture-accounting` in CTest.

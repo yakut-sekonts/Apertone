@@ -5,6 +5,35 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Metadata display and atomic batch organization — 2026-10-23
+
+[Evidence](qualification/2026-10-23/metadata-display-batch-atomicity.json) adds
+UX-P09-META-001/006 to blocking coverage. The first displays six capture-data
+values from a dedicated EXIF IFD DNG, saves/reopens all nine descriptive fields,
+and preserves real GUI navigation/selection while a metadata completion is held.
+The second selects three of four photos and changes Rating, Flag and Label through
+actual controls. Each operation holds a successful SQLite write, observes old
+values from an independent connection, injects `SQLITE_FULL`, verifies full
+rollback and a visible error, then retries successfully. Each selected revision
+advances exactly once; the unselected control and Develop/original/sidecar state
+remain unchanged.
+
+The complete metadata/XMP regression passes **24/24 offscreen**, and the two new
+cases pass **2/2 Cocoa/Metal DPR2**, with no QML warnings or integrity failures.
+Full application build, formatting, affected blocking tidy, 11 policy tests and
+two dedicated EXIF/routing tests pass. After CTest registration, the fixture/policy
+regression passes **10/10 CTest entries**. Initial fixture failures are retained:
+LibRaw's normalized camera name and a main-IFD-only synthetic source did not match
+the new full-value expectations. The new fixture has an actual EXIF IFD; default
+DNG bytes remain identical. Neither production behavior nor acceptance gates were
+relaxed. These are completion-boundary and catalog-transaction checks, not slow
+I/O, large-catalog, multi-file XMP or crash-recovery qualification.
+
+On prior commit `fe64231`, the main PR run **39971392506** has passed all model,
+build and CTest stages: **62 PASS / 1 private Nikon RAW SKIP**, including both XMP
+fixes. The CTest archive digest is verified. UX/static stages are still in progress;
+this is not overall CI PASS and does not include these new metadata adapters.
+
 ### Hosted XMP portability and retained UI failures — 2026-10-23
 
 [macOS 15 evidence](qualification/2026-10-23/xmp-macos15-portability.json)
@@ -26,8 +55,9 @@ is armed after the edited interactive image, and passive OS pressure observation
 are retained. The latest **10/10 offscreen and 1/1 native PASS** do not close BUG-045: a prior local failure
 changed only preview URL, with identical pixels and preserved document/history.
 The cause remains open. Hosted scroll and PhotoCard retests pass **6/6 and 3/3**.
-Full hosted clang-tidy is still running on b404ad0; qualification now queues the
-latest new commit without cancelling that running scan. Other branches retain
+Full hosted clang-format/clang-tidy passed on both b404ad0 runs. Both overall
+runs failed on the retained unit/UX failures. Qualification now queues the
+latest new commit without cancelling an active scan. Other branches retain
 their previous cancellation policy; release gates and deadlines are unchanged.
 
 ### Generated XMP validation — 2026-10-23

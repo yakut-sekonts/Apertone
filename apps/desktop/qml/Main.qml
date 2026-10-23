@@ -539,12 +539,12 @@ ApplicationWindow {
                         Button { objectName: "develop.resetButton"; text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
                         Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
-                        MetadataRow { label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
-                        MetadataRow { label: qsTranslate("Luma", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
-                        MetadataRow { label: "ISO"; value: editor.iso; Layout.fillWidth: true }
-                        MetadataRow { label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
-                        MetadataRow { label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
-                        MetadataRow { label: qsTranslate("Luma", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.camera"; label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.lens"; label: qsTranslate("Luma", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.iso"; label: "ISO"; value: editor.iso; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.shutter"; label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.aperture"; label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.focalLength"; label: qsTranslate("Luma", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
                         Label { text: editor.saving ? qsTranslate("Luma", "Saving changes…") : qsTranslate("Luma", "Changes are saved automatically"); color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     }
                 }

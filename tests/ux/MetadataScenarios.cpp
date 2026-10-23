@@ -1,11 +1,14 @@
 #include "apps/shared/MetadataService.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
+#include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
 #include <QDir>
 #include <QFile>
 #include <QSaveFile>
 #include <QSignalSpy>
+#include <QTimer>
+#include <algorithm>
 #include <span>
 
 namespace ux {
@@ -141,9 +144,226 @@ void readConfirmation(Context &c, bool accept) {
            "Metadata confirmation closed through user input");
     idle(c);
 }
+void captureMetadata(Context &c) {
+    // Known Lens.DNG values; LibRaw normalizes Nikon make/model on decode.
+    // Expectations are independent of the controller and QML bindings.
+    const std::pair<QString, QString> fields[]{{"camera", "Nikon D7500"},
+                                               {"lens", "AF-S DX Nikkor 18-140mm f/3.5-5.6G ED VR"},
+                                               {"iso", "100"},
+                                               {"shutter", "1/125 s"},
+                                               {"aperture", "f/5.6"},
+                                               {"focalLength", "18 mm"}};
+    for (const auto &[name, expected] : fields) {
+        const auto id = "develop.metadata." + name;
+        c.reveal(id);
+        auto *row = c.driver->item(id);
+        require(row->isVisible() && row->property("value").toString() == expected,
+                "Capture metadata is missing or incorrect: " + name + " = " +
+                    row->property("value").toString());
+        bool rendered = false;
+        for (const auto *child : row->childItems())
+            if (child->isVisible() && child->property("text").toString() == expected &&
+                child->width() > 0 && child->height() > 0)
+                rendered = true;
+        require(rendered, "Capture metadata value is not bound to a visible Label: " + name);
+        c.driver->log(
+            {{"action", "capture_metadata_displayed"}, {"field", name}, {"expected", expected}});
+    }
+}
+void pendingMetadata(Context &c, const std::string &photo) {
+    auto &d = *c.driver;
+    QSignalSpy changed(&c.library, &LibraryModel::metadataChanged);
+    require(changed.isValid(), "Cannot observe metadata result delivery");
+    QueuedCallGate gate(
+        c.library,
+        [&] {
+            return c.library.descriptiveMetadata().isEmpty() &&
+                   d.object("photoMetadata")->property("opened").toBool();
+        },
+        [&] {
+            require(changed.count() == 1 &&
+                        !d.object("photoMetadata")->property("ready").toBool() &&
+                        !d.item("metadata.save")->isEnabled(),
+                    "Pending metadata read exposed an editable stale draft");
+            close(c);
+            d.click("main.developButton");
+            require(!c.window->property("libraryMode").toBool(),
+                    "Pending metadata read blocked Develop navigation");
+            d.click("main.libraryButton");
+            d.click("library.clearSelection");
+            require(c.library.selectedCount() == 0,
+                    "Pending metadata read blocked clear selection");
+            d.click(c.card(0));
+            require(c.library.selectionIDs() == std::vector<std::string>{photo},
+                    "Pending metadata read blocked Library selection");
+            int beats = 0;
+            QTimer timer;
+            QObject::connect(&timer, &QTimer::timeout, [&] { ++beats; });
+            timer.start(10);
+            d.wait([&] { return beats >= 5; }, "GUI heartbeat while metadata completion is held");
+            require(c.library.descriptiveMetadata().isEmpty() && changed.count() == 1 &&
+                        c.window->property("libraryMode").toBool(),
+                    "Fixture did not hold the actual metadata completion across Library input");
+            d.log({{"action", "metadata_completion_held_across_library_input"},
+                   {"heartbeat_events", beats},
+                   {"completion_boundary_fixture", true}});
+        });
+    d.click("library.photoActions");
+    d.click("library.photoMetadata");
+    d.wait([&] { return gate.caught; }, "Metadata completion boundary intercepted");
+    if (gate.failure)
+        std::rethrow_exception(gate.failure);
+    d.wait(
+        [&] {
+            return c.library.descriptiveMetadata().value("id").toString().toStdString() == photo;
+        },
+        "Original metadata callback delivered after Library input");
+    require(changed.count() == 2 && !d.object("photoMetadata")->property("visible").toBool(),
+            "Late metadata completion reopened the dialog or populated another result");
+    idle(c);
+}
+void batchMetadata(Context &c) {
+    auto &d = *c.driver;
+    c.import(4);
+    d.doubleClick(c.card(0));
+    c.loaded();
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {1., .5});
+    c.saved();
+    d.click("main.libraryButton");
+    d.click(c.card(0));
+    d.click(c.card(1), Qt::ControlModifier);
+    d.click(c.card(2), Qt::ControlModifier);
+    const auto selected = c.library.selectionIDs();
+    require(selected.size() == 3 && !c.library.autoWriteXMP(),
+            "Batch metadata fixture needs three selected assets and catalog-only mode");
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    const auto rows = catalog.libraryPage({}, 0, 4);
+    require(rows.size() == 4, "Batch metadata requires an unselected control asset");
+    std::vector<luma::AssetSnapshot> documents;
+    for (const auto &row : rows)
+        documents.push_back(catalog.assetSnapshot(row.id).value());
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    require(saves.isValid(), "Cannot observe Develop saves during batch metadata changes");
+    auto snapshots = [&] {
+        std::vector<luma::MetadataSnapshot> values;
+        for (const auto &row : rows)
+            values.push_back(catalog.metadataSnapshot(row.id));
+        return values;
+    };
+    auto unchanged = [&](const auto &before) {
+        const auto after = snapshots();
+        for (std::size_t i = 0; i < before.size(); ++i)
+            require(after[i].values == before[i].values &&
+                        after[i].revision == before[i].revision &&
+                        after[i].writtenRevision == before[i].writtenRevision &&
+                        after[i].sidecarHash == before[i].sidecarHash,
+                    "Uncommitted/failed batch exposed partial metadata or revision changes");
+    };
+    struct ReleaseFault {
+        SqliteFault &fault;
+        ~ReleaseFault() {
+            fault.diskFull(false);
+            fault.holdWrites(false);
+        }
+    };
+    for (int field = 0; field < 3; ++field) {
+        auto invoke = [&] {
+            if (field == 0)
+                d.click("library.rate.4");
+            else
+                d.choose(field == 1 ? "library.flagChoice" : "library.labelChoice",
+                         field == 1 ? 1 : 2);
+        };
+        const auto before = snapshots();
+        for (const bool fail : {true, false}) {
+            const int rejected = c.storageFault.rejectedWrites();
+            {
+                ReleaseFault release{c.storageFault};
+                c.storageFault.holdWrites(true);
+                invoke();
+                d.wait([&] { return c.storageFault.writeBlocked(); },
+                       "Real catalog write held after its first successful VFS write");
+                require(c.library.working() && !d.item("library.metadataActions")->isEnabled(),
+                        "Pending batch metadata write did not disable duplicate mutations");
+                unchanged(before); // Independent SQLite connection cannot see a partial batch.
+                for (std::size_t i = 0; i < rows.size(); ++i) {
+                    const auto *card = d.object(c.card(static_cast<int>(i)));
+                    require(card->property("rating").toInt() == before[i].values.rating &&
+                                card->property("flagValue").toInt() == before[i].values.flag &&
+                                card->property("colorLabel").toString().toStdString() ==
+                                    before[i].values.colorLabel(),
+                            "PhotoCard displayed uncommitted batch metadata");
+                }
+                if (fail)
+                    c.storageFault.diskFull(true);
+                c.storageFault.holdWrites(false);
+                idle(c);
+            }
+            if (fail) {
+                require(c.storageFault.rejectedWrites() > rejected &&
+                            !c.library.error().isEmpty() && d.item("library.error")->isVisible() &&
+                            d.object("library.error")->property("text").toString() ==
+                                c.library.error(),
+                        "Injected partial-write SQLITE_FULL did not produce a visible failure");
+                unchanged(before);
+            } else {
+                require(c.library.error().isEmpty(), c.library.error());
+                const auto after = snapshots();
+                for (std::size_t i = 0; i < rows.size(); ++i) {
+                    auto expected = before[i].values;
+                    const bool chosen =
+                        std::find(selected.begin(), selected.end(), rows[i].id) != selected.end();
+                    if (chosen) {
+                        if (field == 0)
+                            expected.rating = 4;
+                        else if (field == 1)
+                            expected.flag = 1;
+                        else
+                            expected.label = "Red";
+                    }
+                    require(after[i].values == expected &&
+                                after[i].revision == before[i].revision + (chosen ? 1 : 0) &&
+                                after[i].writtenRevision == before[i].writtenRevision &&
+                                after[i].sidecarHash == before[i].sidecarHash,
+                            "Retry did not commit the complete selected batch exactly once");
+                    const auto *card = d.object(c.card(static_cast<int>(i)));
+                    require(card->property("rating").toInt() == expected.rating &&
+                                card->property("flagValue").toInt() == expected.flag &&
+                                card->property("colorLabel").toString().toStdString() ==
+                                    expected.colorLabel(),
+                            "PhotoCard did not display committed batch values");
+                }
+            }
+            require(c.library.selectionIDs() == selected,
+                    "Batch metadata changed selection identity");
+            d.log({{"action", "batch_metadata_transaction"},
+                   {"field", field},
+                   {"injected_disk_full", fail},
+                   {"selected_assets", 3},
+                   {"control_assets", 1},
+                   {"rejected_writes", c.storageFault.rejectedWrites() - rejected}});
+        }
+    }
+    for (const auto &before : documents) {
+        const auto after = catalog.assetSnapshot(before.asset.id).value();
+        require(after.asset.edits == before.asset.edits && after.revision == before.revision &&
+                    luma::macos::sha256File(after.asset.path) == before.asset.checksum &&
+                    !std::filesystem::exists(luma::MetadataService::sidecarPath(after.asset.path)),
+                "Batch metadata changed originals, Develop documents or sidecars");
+    }
+    require(saves.isEmpty() && c.editor.canUndo() && !c.editor.canRedo() && c.warnings.isEmpty(),
+            "Batch metadata changed Develop history or emitted QML warnings");
+    catalog.verify();
+}
 } // namespace
 bool metadataScenario(Context &c, const QString &id) {
-    const bool catalogOnly = id == "UX-P09-META-002" || id == "UX-P09-META-007";
+    if (id == "UX-P09-META-006") {
+        batchMetadata(c);
+        return true;
+    }
+    const bool complete = id == "UX-P09-META-001";
+    const bool catalogOnly = complete || id == "UX-P09-META-002" || id == "UX-P09-META-007";
     const bool sidecarWrite = id == "UX-P09-XMP-002";
     const bool sidecarRead = id == "UX-P09-XMP-003";
     const bool conflict = id == "UX-P09-XMP-004";
@@ -155,10 +375,13 @@ bool metadataScenario(Context &c, const QString &id) {
     const auto sourceFolder = c.root + "/metadata-originals";
     require(QDir().mkpath(sourceFolder), "Cannot create owned metadata input directory");
     const auto inputs = QDir(c.fixture).entryList({"*.png"}, QDir::Files, QDir::Name);
-    require(!inputs.empty(), "Metadata case needs one public PNG");
-    const auto source = std::filesystem::path((sourceFolder + "/Фото 夜景.png").toStdString());
-    require(QFile::copy(c.fixture + '/' + inputs.front(), QString::fromStdString(source.string())),
-            "Cannot copy owned metadata input");
+    require(complete || !inputs.empty(), "Metadata case needs one public PNG");
+    const auto source = std::filesystem::path(
+        (sourceFolder + (complete ? "/Фото 夜景.DNG" : "/Фото 夜景.png")).toStdString());
+    require(
+        QFile::copy(complete ? c.fixture + "/stress/Lens.DNG" : c.fixture + '/' + inputs.front(),
+                    QString::fromStdString(source.string())),
+        "Cannot copy owned metadata input");
     const auto sourceHash = luma::macos::sha256File(source);
     const auto sidecar = luma::MetadataService::sidecarPath(source);
     require(!std::filesystem::exists(sidecar) && !c.library.autoWriteXMP(),
@@ -177,6 +400,8 @@ bool metadataScenario(Context &c, const QString &id) {
             "Metadata source import did not commit");
     d.doubleClick(c.card(0));
     c.loaded();
+    if (complete)
+        captureMetadata(c);
     c.reveal("develop.exposureSlider");
     d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {1., .5});
     c.saved();
@@ -202,6 +427,8 @@ bool metadataScenario(Context &c, const QString &id) {
             "Catalog-only save lost values or silently created XMP");
     const auto saved = catalog.metadataSnapshot(photo);
     close(c);
+    if (complete)
+        pendingMetadata(c, photo);
     open(c, photo);
     form(c, expected, false);
 

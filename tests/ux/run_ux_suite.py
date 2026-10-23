@@ -18,6 +18,8 @@ from export_watermark_fixtures import (OFFICIAL_CASE as WATERMARK_CASE,
                                        child_environment as watermark_child_environment)
 from export_current_filename_fixtures import (OFFICIAL_CASE as CURRENT_FILENAME_CASE,
                                               official_fixture as current_filename_fixture)
+from metadata_display_fixtures import (OFFICIAL_CASE as METADATA_DISPLAY_CASE,
+                                       official_fixture as metadata_display_fixture)
 import importlib.util
 import json
 import os
@@ -32,7 +34,7 @@ import sys
 import time
 import zlib
 
-CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE}
+CASE_PROFILE_IDS = THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
 
 # These adapters have explicit actual-native render contracts. NATIVE below means
 # implemented adapter, not compatibility with every requested Qt backend.
@@ -83,7 +85,7 @@ NATIVE.update(('UX-P06-MEM-001', 'UX-P06-MEM-002'))
 NATIVE.add('UX-P06-LRU-001')
 NATIVE.add('UX-P09-BKP-001')
 NATIVE.update(('UX-P09-BKP-002', 'UX-P09-BKP-006', 'UX-P09-BKP-007'))
-NATIVE.update(('UX-P09-META-002', 'UX-P09-META-007', 'UX-P09-XMP-002',
+NATIVE.update(('UX-P09-META-001', 'UX-P09-META-006', 'UX-P09-META-002', 'UX-P09-META-007', 'UX-P09-XMP-002',
                'UX-P09-XMP-003', 'UX-P09-XMP-004', 'UX-P09-XMP-005'))
 NATIVE.update(('UX-P06-ZOM-001', 'UX-P06-ZOM-002', 'UX-P06-ZOM-005',
                'UX-P06-PRG-002', 'UX-P06-PRG-004', 'UX-P06-PRG-007', 'UX-P06-PRG-008', 'UX-P06-PRG-009'))
@@ -736,6 +738,8 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                 extra_checksums, profile = crop_done_fixture(folder, owned_root=run_root)
             elif row['id'] == CURRENT_FILENAME_CASE:
                 extra_checksums, profile = current_filename_fixture(folder, owned_root=run_root)
+            elif row['id'] == METADATA_DISPLAY_CASE:
+                extra_checksums, profile = metadata_display_fixture(folder, owned_root=run_root)
             elif row['id'] == PARTIAL_RENDER_CASE:
                 extra_checksums, profile = partial_render_fixture(folder, owned_root=run_root)
             else:
