@@ -5,6 +5,30 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Native metadata and XMP lists — 2026-10-23
+
+[Evidence](qualification/2026-10-23/metadata-xmp-lists.json) records a confirmed
+ImageIO interoperability defect: creators/keywords can be returned as arrays of
+`CGImageMetadataTag`, while Luma required bare strings. Both external packets and
+Luma's own written lists failed to read. Unwrap only string-valued tags and retain
+strict structure/type checks and the 256-item limit. Native unit regression
+covers Unicode, ordered/repeated creators, unique keywords, exact roundtrip,
+normalized scalar spelling and rejection of nested/oversized lists.
+
+Six new metadata/XMP UX adapters pass **18/18 offscreen and 6/6 Cocoa/Metal DPR2**:
+Unicode form save/reopen, catalog-only storage, explicit XMP write/read,
+confirmation cancellation, external-write conflict and malformed input. Original
+hashes, catalog integrity, edits, history, revision and selection remain intact;
+no QML warnings occur. The native interval is complete and Mac is free. Timing
+is MEASURE_ONLY; a 2398 ms native stall is retained, not counted as a latency pass.
+
+Full application build and **62 CTest checks PASS**, with one SKIP for the absent
+private Nikon RAW. Formatting and affected blocking clang-tidy pass; nonblocking
+warnings remain. Initial harness Tab-input and XML-fixture failures are retained
+separately from the reproduced production defect. These checks do not qualify
+crash/disk-full recovery, native file pickers, load or the complete phase 0.9.
+Full hosted CI and all remaining release gates are still required.
+
 ### Cancel Import and catalog maintenance — 2026-10-23
 
 [Evidence](qualification/2026-10-23/import-cancel-maintenance.json) records a

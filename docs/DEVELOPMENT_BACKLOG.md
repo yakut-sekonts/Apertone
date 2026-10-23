@@ -419,3 +419,21 @@ see [CI evidence](qualification/2026-10-23/ci-memory-pressure-recovery.json).
 - Full build, 7 affected CTest checks, runner/policy tests, formatting and
   affected blocking clang-tidy pass. Full hosted CI remains pending.
 - Evidence: [import cancellation and maintenance](qualification/2026-10-23/import-cancel-maintenance.json).
+
+## LUMA-BUG-055 — ImageIO XMP lists reject valid creator and keyword entries
+
+- Status: **fixed; native unit regression and six bounded UX scenarios PASS**.
+- Valid external XMP and Luma-written sidecars fail with `XMP list must contain
+  text.` because ImageIO array entries are string-valued `CGImageMetadataTag`
+  objects. The decoder assumed bare `CFString` values. An actual native type
+  probe and pre-fix unit/UX failures retain this evidence.
+- Unwrap string tags only; preserve creator order/repeats, keyword uniqueness,
+  Unicode and original hashes. Nested structures/arrays and over 256 items still
+  fail. ImageIO-normalized scalar list spelling reads as one exact text entry.
+- UX metadata/XMP cases pass **18/18 offscreen and 6/6 Cocoa/Metal DPR2**, with
+  saved-form readback, explicit write/import/cancel/conflict/malformed paths and
+  unchanged Develop edits/history/selection. No integrity failures or warnings.
+- Full application build, **62 CTest PASS / 1 private RAW SKIP**, formatting and
+  affected blocking clang-tidy pass. Timing remains MEASURE_ONLY; recovery/load
+  and complete hosted qualification remain open.
+- Evidence: [metadata and native XMP lists](qualification/2026-10-23/metadata-xmp-lists.json).

@@ -113,12 +113,13 @@ Rectangle {
                 Button { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
                 Button { text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
                 Button {
+                    objectName: "library.photoActions"
                     text: qsTranslate("Luma", "Photo actions")
                     Layout.fillWidth: true
                     onClicked: photoActions.open()
                     Menu {
                         id: photoActions
-                        MenuItem { text: qsTranslate("Luma", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
+                        MenuItem { objectName: "library.photoMetadata"; text: qsTranslate("Luma", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
                         MenuItem { text: qsTranslate("Luma", "Compare Select / Candidate"); enabled: library.selectedCount === 2 && !library.working && !editor.busy; onTriggered: {editor.prepareCompare(library.selectedAssetIDs());compareDialog.open()} }
                         MenuItem { text: qsTranslate("Luma", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
                         MenuItem { text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }

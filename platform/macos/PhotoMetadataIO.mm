@@ -49,8 +49,17 @@ std::vector<std::string> array(CGImageMetadataRef data, CFStringRef path, bool u
         throw std::runtime_error("XMP list exceeds its item limit.");
     std::vector<std::string> result;
     for (CFIndex i = 0; i < CFArrayGetCount(list); ++i) {
-        const auto item = CFArrayGetValueAtIndex(list, i);
-        if (CFGetTypeID(item) != CFStringGetTypeID())
+        auto item = CFArrayGetValueAtIndex(list, i);
+        CFHandle<CFTypeRef> unwrapped;
+        // ImageIO can wrap textual array members in metadata tags.
+        if (item && CFGetTypeID(item) == CGImageMetadataTagGetTypeID()) {
+            const auto member = static_cast<CGImageMetadataTagRef>(const_cast<void *>(item));
+            if (CGImageMetadataTagGetType(member) != kCGImageMetadataTypeString)
+                throw std::runtime_error("XMP list must contain text.");
+            unwrapped = CFHandle(CGImageMetadataTagCopyValue(member));
+            item = unwrapped.get();
+        }
+        if (!item || CFGetTypeID(item) != CFStringGetTypeID())
             throw std::runtime_error("XMP list must contain text.");
         auto text = string(static_cast<CFStringRef>(item));
         if (!text.empty() &&

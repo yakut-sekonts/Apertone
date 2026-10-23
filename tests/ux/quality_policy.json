@@ -276,7 +276,13 @@
     "UX-VIS-001",
     "UX-VIS-002",
     "UX-VIS-003",
-    "UX-P09-BKP-001"
+    "UX-P09-BKP-001",
+    "UX-P09-META-002",
+    "UX-P09-META-007",
+    "UX-P09-XMP-002",
+    "UX-P09-XMP-003",
+    "UX-P09-XMP-004",
+    "UX-P09-XMP-005"
   ],
   "deferred_load": {
     "UX-ADV-003": {
@@ -736,7 +742,13 @@
     "UX-P06-ZOM-003": 1,
     "UX-P06-ZOM-004": 1,
     "UX-P06-ZOM-012": 1,
-    "UX-P09-BKP-001": 1
+    "UX-P09-BKP-001": 1,
+    "UX-P09-META-002": 1,
+    "UX-P09-META-007": 1,
+    "UX-P09-XMP-002": 1,
+    "UX-P09-XMP-003": 1,
+    "UX-P09-XMP-004": 1,
+    "UX-P09-XMP-005": 1
   },
   "default_quality_photo_count": 10
 }
