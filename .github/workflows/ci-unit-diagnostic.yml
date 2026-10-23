@@ -1,0 +1,39 @@
+name: macOS unit diagnostic
+on:
+  push:
+    branches: ['codex/ci-unit-diagnostic']
+permissions:
+  contents: read
+concurrency:
+  group: unit-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  unit-diagnostic:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Verify supported architecture
+        run: test "$(uname -m)" = arm64
+      - name: Install fixed toolchain and Qt
+        run: ./scripts/bootstrap.sh
+      - name: Configure
+        run: .tools/venv/bin/cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_MAKE_PROGRAM="$PWD/.tools/venv/bin/ninja"
+      - name: Build affected unit and integration targets
+        run: .tools/venv/bin/cmake --build build --parallel 3 --target luma_photo_metadata_tests luma_library_tests luma_cli
+      - name: Reproduce XMP and Library tests
+        run: .tools/venv/bin/ctest --test-dir build --output-on-failure -R '^(native-xmp-metadata-lists|library-import-restart)$'
+      - name: Preserve diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ctest-diagnostic
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/Testing/Temporary/LastTestsFailed.log
+            build/Testing/Temporary/CTestCostData.txt
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,7 +1,7 @@
 name: macOS Apple Silicon
 on:
   push:
-    branches: [main, 'codex/**', '!codex/1.0-development']
+    branches: [main, 'codex/**', '!codex/1.0-development', '!codex/ci-unit-diagnostic']
   pull_request:
     branches: [main, 'codex/**']
 permissions:
