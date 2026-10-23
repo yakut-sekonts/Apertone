@@ -39,8 +39,8 @@ Luma's original source is Apache-2.0. Dependencies retain their own licenses.
   UniformTypeIdentifiers from the system SDK. Used for hashing, color, image
   decoding/encoding, text and native format identification; no Apple SDK or framework
   binary is redistributed.
-- **NAFNet SIDD width32** — https://github.com/megvii-research/NAFNet
-  Copyright (c) 2022 megvii-model, MIT, with inherited BasicSR Apache-2.0 notices.
+- **DRUNet color** — https://github.com/cszn/DPIR/tree/15bca3fcc1f3cc51a1f99ccf027691e278c19354
+  Copyright (c) 2020 Kai Zhang, MIT. Original checkpoint from the author's KAIR v1.0 release.
   Converted denoise model and adapted inference architecture. Full notices,
   upstream revision, exact checkpoint hash and Luma changes are recorded in
   `resources/models/`; the compiled bundle includes those notices in `Models/`.

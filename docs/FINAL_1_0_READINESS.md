@@ -345,6 +345,41 @@ remain open. No new native UI session or release was performed.
 
 ## Source decisions and qualification requirements
 
+### WB, targeted gestures and native follow-up — 2026-10-23
+
+[Evidence](qualification/2026-10-23/wb-targeted-native-followup.json) retains the
+clean `41601b5` full functional run: **254 PASS / 2 FAIL**, plus 188 SKIPPED and
+326 NOT_IMPLEMENTED result entries. Unit/integration checks return **56 PASS /
+1 SKIP** (the absent private Nikon fixture). These counts do not close full QA.
+
+The approved five-minute native interval passed **8/8** affected import, thumbnail,
+Crop, preset and race scenarios plus **3/3** eight-language PhotoCard runs on
+Cocoa/Metal, DPR 2. No QML warnings occurred and original hashes stayed intact.
+BUG-045 remains open: passing repeats do not explain its original intermittent
+state-invariant failure. This interval predates the fixes below.
+
+The two functional failures are SLD016/017: actual preview differences from the
+independent CPU reference are one RGB step in 48 and one channels respectively.
+Actual Metal replay confirms the same differences within the existing linear
+budget. The WB/numeric UI oracle now explicitly allows RGB error <= 1 with exact
+alpha for Metal-enabled compatible documents; CPU-only/incompatible documents
+remain exact. This changes the obsolete bit-exact UI expectation, not the
+pre-existing renderer budget. Negative controls reject two-step RGB errors,
+altered alpha, wrong dimensions and missing images. Document, history, durable
+state and ready/source checks remain unchanged. Six extreme WB cases extend the
+native oracle to 13 Metal cases and two exact CPU fallbacks, all passing.
+
+ADV009 previously passed with four QML binding-loop warnings. Ending a targeted
+gesture during photo loading was followed by MouseArea cancellation, re-entering
+`endEdit`/`stateChanged`. `endTargeted` now does nothing after its gesture ended;
+tests also verify that stale cancellation cannot split an unrelated edit's Undo.
+The scenario now rejects binding loops. SLD015/016/017, ADV009/015 and RACE006
+pass **18/18** offscreen repeats without QML warnings. ADV003 was explicitly
+skipped by the quality-only workload policy, not passed. Eight affected CTest
+checks, all-target build, formatting, shipping-probe isolation and affected-file
+clang-tidy pass; non-blocking tidy warnings remain. New native coverage, hosted
+CI, later-phase qualification, load and final distribution checks remain open.
+
 - Denoise/Sky delivery is resolved: include both models in the installer and
   Sparkle archive. Pinned DRUNet color and U²-Net Sky sources/licenses, conversion,
   default model lookup and packaging guards are implemented in source. The

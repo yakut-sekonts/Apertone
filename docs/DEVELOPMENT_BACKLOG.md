@@ -253,3 +253,29 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 
 Evidence for BUG-042–045, all original failures, source/binary hashes and exact
 scope: [functional release fixes](qualification/2026-10-23/functional-release-fixes.json).
+
+## LUMA-BUG-046 — Targeted cancellation re-enters preview visibility
+
+- Status: **fixed; offscreen regression passes, native follow-up open**.
+- ADV009's photo switch produced four QML `visible` binding-loop warnings.
+  Loading already ended the targeted edit before hiding the Image; its cancelled
+  MouseArea then called `endTargeted` again and re-entered `stateChanged`.
+- `endTargeted` now ends only a live targeted gesture. The UX scenario rejects
+  binding loops; controller coverage checks no redundant notification and no
+  splitting of an unrelated gesture's Undo. Three UX repeats and affected
+  controller/integration checks pass.
+
+## LUMA-QA-047 — WB/numeric pixel oracle predates Metal rounding budget
+
+- Status: **oracle corrected with explicit limits; affected offscreen retests pass**.
+- SLD016/017 failed bit-exact CPU comparison at one RGB step in 48/one channels.
+  Actual Metal replay agrees with those retained UI differences and passes the
+  pre-existing linear error limit. Six additional extreme WB unit cases pass.
+- The UI oracle now applies the existing RGB <= 1, alpha-exact Metal budget
+  only to eligible documents with Metal enabled. CPU-only/incompatible paths
+  remain exact; negative controls reject two-step RGB/alpha/geometry errors.
+  This is an explicit expectation correction; no product pixel math changed.
+- SLD015/016/017 pass three repetitions each. New native follow-up remains open.
+
+The same interval passed eight earlier native regressions and three native
+PhotoCard repeats; BUG-045 is still open. See [retained follow-up evidence](qualification/2026-10-23/wb-targeted-native-followup.json).

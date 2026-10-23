@@ -136,6 +136,17 @@ int main() {
         calibration.asShotGains = {1.8F, 1, 1.3F};
         calibration.cameraToSRGB = {1.12F, -.1F, -.02F, -.06F, 1.09F, -.03F, .01F, -.16F, 1.15F};
         compare("camera-white-balance", input, edits, calibration, accelerator);
+        for (const double temperature : {2000., 25000.}) {
+            for (const double tint : {-150., 0., 150.}) {
+                luma::EditDocument boundary;
+                boundary.customWhiteBalance = true;
+                boundary.temperature = temperature;
+                boundary.tint = tint;
+                compare("white-balance-" + std::to_string(int(temperature)) + "-" +
+                            std::to_string(int(tint)),
+                        input, boundary, calibration, accelerator);
+            }
+        }
         edits.curves[0].points = {{0, 0}, {.2, .12}, {.7, .82}, {1, 1}};
         edits.curves[1].points = {{0, .02}, {.4, .35}, {1, .98}};
         edits.curveShadows = 31;
@@ -172,7 +183,7 @@ int main() {
         require(rejected, "Metal ignored cancellation before submission.");
         require(input.rgb == originalRGB && input.alpha == originalAlpha,
                 "Metal mutated the input image.");
-        std::cout << "Actual Metal/CPU equivalence: 7 cases, 2 explicit fallbacks, alpha/input "
+        std::cout << "Actual Metal/CPU equivalence: 13 cases, 2 explicit fallbacks, alpha/input "
                      "preservation, pre-cancel.\n";
         return 0;
     } catch (const std::exception &error) {

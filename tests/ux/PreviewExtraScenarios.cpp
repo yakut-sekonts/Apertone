@@ -345,6 +345,9 @@ void targetedPhotoSwitch(Context &c) {
                 "Targeted switch failed to save the old photo's final accepted state");
         rendered(c);
     }
+    for (const auto &warning : c.warnings)
+        require(!warning.contains("Binding loop detected"),
+                "Targeted photo switch re-entered a QML binding: " + warning);
 }
 void cancelCompletionBoundary(Context &c) {
     auto &d = *c.driver;
