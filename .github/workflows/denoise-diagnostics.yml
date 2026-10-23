@@ -28,12 +28,12 @@ jobs:
         run: |
           xcrun clang++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I . tests/unit/InferenceStackTests.cpp -o build/inference-stack-tests
           build/inference-stack-tests
-      # Retest the stack fix; preserve actual pressure/staging checkpoints and
-      # sampler errors for watchdog failures without changing its five-second budget.
+      # Retest joined inference stack and coalesced row-progress delivery with
+      # the original five-second watchdog and real staging/cancellation checks.
       - name: Reproduce Denoise through the production UI
         id: reproduce
         continue-on-error: true
-        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P07-DNS-001 --case UX-P07-DNS-002 --case UX-P07-DNS-008 --runs 1 --require-build-provenance --report build/ux-denoise-diagnostics
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P07-DNS-001 --case UX-P07-DNS-002 --case UX-P07-DNS-008 --runs 3 --require-build-provenance --report build/ux-denoise-diagnostics
       - name: Capture the actual crashing process under LLDB
         if: ${{ !cancelled() && steps.reproduce.outcome == 'failure' }}
         timeout-minutes: 12

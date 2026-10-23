@@ -8,7 +8,15 @@
 #include <QPointer>
 #include <QSettings>
 #include <QXmlStreamWriter>
+#include <atomic>
 #include <cmath>
+
+namespace {
+struct DenoiseProgress {
+    std::atomic<double> value{0};
+    std::atomic<bool> queued{false};
+};
+} // namespace
 
 QString EditorController::denoiseModelName() const {
     return QFileInfo(denoiseModelPath_).fileName();
@@ -57,13 +65,19 @@ void EditorController::denoisePhoto(double amount) {
                                             amount](const luma::JobContext &context) {
                 try {
                     const auto stop = context.stopToken();
-                    const auto progress = [self, revision](double value) {
-                        if (self)
+                    const auto progressState = std::make_shared<DenoiseProgress>();
+                    const auto progress = [self, revision, progressState](double value) {
+                        progressState->value.store(value);
+                        // DNG writing reports each row. Retain the latest value
+                        // in one pending GUI callback so progress cannot starve
+                        // input/timers through repeated QML binding updates.
+                        if (self && !progressState->queued.exchange(true))
                             QMetaObject::invokeMethod(
                                 self,
-                                [self, revision, value] {
+                                [self, revision, progressState] {
+                                    progressState->queued.store(false);
                                     if (self && self->aiRevision_ == revision) {
-                                        self->aiProgress_ = value;
+                                        self->aiProgress_ = progressState->value.load();
                                         emit self->stateChanged();
                                     }
                                 },

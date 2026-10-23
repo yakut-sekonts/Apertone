@@ -240,6 +240,8 @@ jobs:
             build/ux-artifacts/20*/**/after.png
             build/ux-artifacts/20*/**/failure.png
             build/ux-artifacts/20*/**/thread-sample.txt
+            build/ux-artifacts/20*/**/thread-sample.log
+            build/ux-artifacts/20*/**/thread-sample-status.json
             build/ux-artifacts/20*/**/catalog-copy.sqlite
           if-no-files-found: warn
           retention-days: 7

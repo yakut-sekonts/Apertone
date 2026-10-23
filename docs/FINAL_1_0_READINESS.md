@@ -5,6 +5,21 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Coalesced Denoise progress and batch/history — 2026-10-24
+
+[Follow-up evidence](qualification/2026-10-24/denoise-progress-coalescing.json): hosted
+run 40027066662 is **2 PASS / 1 watchdog FAIL**. Its thread sample places the GUI
+in repeated QML parameter-map work while the AI worker has reached staging. DNG
+progress reports each row; Denoise now coalesces those values into one pending GUI
+callback, with the original revision/cancellation guards. The five-second watchdog
+is unchanged. Local confirmation is **9/9 offscreen + 3/3 Cocoa/Metal PASS**, with
+full build, four affected CTest checks and mandatory tidy PASS. Hosted confirmation
+on the combined progress/parameter-cache fix remains pending.
+
+The previously deferred 100-photo batch and 50-edit Undo/Redo scenarios separately
+pass **4/4 offscreen + 4/4 Cocoa/Metal**. These are bounded functional/load cases;
+they do not replace long stress/soak or whole-release qualification.
+
 ### Progressive feedback and hosted Core ML stack — 2026-10-24
 
 [Evidence](qualification/2026-10-24/progressive-preview-denoise.json): real native
