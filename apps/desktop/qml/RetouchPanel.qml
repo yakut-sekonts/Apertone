@@ -7,6 +7,7 @@ ColumnLayout {
     Layout.fillWidth: true
     Layout.minimumWidth: 0
     Button {
+        objectName: "retouch.toggle"
         text: qsTranslate("Luma", "Retouch")
         checkable: true
         checked: editor.retouchMode !== "off"
@@ -26,6 +27,7 @@ ColumnLayout {
                         {key: "remove", title: qsTranslate("Luma", "Remove")}]
                 Button {
                     required property var modelData
+                    objectName: "retouch.mode." + modelData.key
                     text: modelData.title
                     highlighted: editor.retouchMode === modelData.key
                     onClicked: editor.retouchMode = modelData.key
@@ -95,8 +97,9 @@ ColumnLayout {
             wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
             Layout.fillWidth: true
         }
-        ProgressBar { visible: editor.retouchBusy; indeterminate: true; Layout.fillWidth: true }
+        ProgressBar { objectName: "retouch.progress"; visible: editor.retouchBusy; indeterminate: true; Layout.fillWidth: true }
         Button {
+            objectName: "retouch.cancel"
             visible: editor.retouchBusy || editor.retouchState.drawing
             text: qsTranslate("Luma", "Cancel")
             onClicked: editor.cancelRetouch()

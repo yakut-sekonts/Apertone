@@ -42,6 +42,7 @@ Item {
         }
     }
     MouseArea {
+        objectName: "retouch.gesture"
         anchors.fill: parent
         enabled: !editor.busy && !editor.retouchBusy && !editor.editingLocked && width > 0 && height > 0
         cursorShape: Qt.CrossCursor

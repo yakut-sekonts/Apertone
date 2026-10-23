@@ -118,7 +118,7 @@ Rectangle {
                 Label { text: qsTranslate("Luma", "LIBRARY"); font.pixelSize: 10; color: "#8290a1"; font.letterSpacing: 1.5 }
                 Button { objectName: "library.importButton"; text: qsTranslate("Luma", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 Button { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
-                Button { text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
+                Button { objectName: "semantic.open"; text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
                 Button {
                     objectName: "library.photoActions"
                     text: qsTranslate("Luma", "Photo actions")

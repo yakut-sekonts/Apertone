@@ -3,6 +3,9 @@
 #include "core/image/Bayer.h"
 #include "core/lens/LensCorrection.h"
 #include "core/render/RetouchPass.h"
+#ifdef LUMA_UX_RETOUCH_RESULT_PROBE
+#include "tests/ux/RetouchResultProbe.h"
+#endif
 #include <QPointer>
 #include <algorithm>
 #include <cmath>
@@ -262,32 +265,41 @@ void EditorController::endRetouch() {
                     stroke.sourceOffsetX = donor[0];
                     stroke.sourceOffsetY = donor[1];
                     luma::checkCancellation(stop);
+                    const auto publish = [self, revision, stroke] {
+#ifdef LUMA_UX_RETOUCH_RESULT_PROBE
+                        ux::observeRetouchDelivery(self.data(), revision,
+                                                   !self || self->retouchRevision_ != revision);
+#endif
+                        if (!self || self->retouchRevision_ != revision)
+                            return;
+                        self->retouchBusy_ = false;
+                        if (!self->editable()) {
+                            emit self->stateChanged();
+                            return;
+                        }
+                        try {
+                            auto next = self->history_.current();
+                            next.retouch.push_back(stroke);
+                            next.validate();
+                            self->retouchSelected_ = QString::fromStdString(stroke.id);
+                            self->retouchSource_ =
+                                std::array{stroke.points.front()[0] + stroke.sourceOffsetX,
+                                           stroke.points.front()[1] + stroke.sourceOffsetY};
+                            self->applyAdvanced(std::move(next));
+                        } catch (const std::exception &failure) {
+                            self->advancedFailure(failure);
+                        }
+                        emit self->stateChanged();
+                    };
+#ifdef LUMA_UX_RETOUCH_RESULT_PROBE
+                    if (ux::deferRetouchSuccess(self.data(), revision, stroke, [self, publish] {
+                            if (self)
+                                QMetaObject::invokeMethod(self, publish, Qt::QueuedConnection);
+                        }))
+                        return;
+#endif
                     if (self)
-                        QMetaObject::invokeMethod(
-                            self,
-                            [self, revision, stroke] {
-                                if (!self || self->retouchRevision_ != revision)
-                                    return;
-                                self->retouchBusy_ = false;
-                                if (!self->editable()) {
-                                    emit self->stateChanged();
-                                    return;
-                                }
-                                try {
-                                    auto next = self->history_.current();
-                                    next.retouch.push_back(stroke);
-                                    next.validate();
-                                    self->retouchSelected_ = QString::fromStdString(stroke.id);
-                                    self->retouchSource_ =
-                                        std::array{stroke.points.front()[0] + stroke.sourceOffsetX,
-                                                   stroke.points.front()[1] + stroke.sourceOffsetY};
-                                    self->applyAdvanced(std::move(next));
-                                } catch (const std::exception &failure) {
-                                    self->advancedFailure(failure);
-                                }
-                                emit self->stateChanged();
-                            },
-                            Qt::QueuedConnection);
+                        QMetaObject::invokeMethod(self, publish, Qt::QueuedConnection);
                 } catch (const std::exception &failure) {
                     const auto message = QString::fromUtf8(failure.what());
                     const bool cancelled = context.stopToken().isCancelled();

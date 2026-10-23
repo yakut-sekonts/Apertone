@@ -628,3 +628,14 @@ including exact bitmap Undo/Redo and normal Local Adjustments controls. Five
 affected CTest entries, full build and static checks pass. See
 [retained evidence](qualification/2026-10-23/ai-mask-workflow.json). Photographic
 boundary quality, other provider modes and stress remain outside this result.
+
+### LUMA-GAP-068 — real Remove and semantic-search workflow coverage
+
+REM001/002/003 and SEM001 now execute actual local processing through QML controls.
+Final 18 offscreen and four Cocoa/Metal checks pass, including late cancelled-result
+rejection, exact Undo/Redo and expected semantic ranking/index deletion. Test-only
+RetouchResultProbe exceptions are contained and reported explicitly; shipping
+has no observer symbols. Full build, four CTest entries and mandatory static checks
+pass. [Evidence](qualification/2026-10-23/remove-semantic-workflows.json) retains
+initial outcomes and scope limits. Broad image quality, stress/privacy and final
+release qualification remain open; ten applicable blocking IDs lack adapters.

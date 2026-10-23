@@ -4,6 +4,7 @@ import QtQuick.Layouts
 
 Dialog {
     id: dialog
+    objectName: "semantic.dialog"
     title: qsTranslate("Luma", "Search by description")
     modal: true
     anchors.centerIn: parent
@@ -20,11 +21,13 @@ Dialog {
         RowLayout {
             Layout.fillWidth: true
             Button {
+                objectName: "semantic.build"
                 text: library.semanticEnabled ? qsTranslate("Luma", "Update local index") : qsTranslate("Luma", "Enable and build index")
                 enabled: !library.working
                 onClicked: library.buildSemanticIndex()
             }
             Button {
+                objectName: "semantic.disable"
                 text: qsTranslate("Luma", "Disable and delete index")
                 enabled: library.semanticEnabled
                 onClicked: library.disableSemantic()
@@ -39,6 +42,7 @@ Dialog {
             Layout.fillWidth: true
             TextField {
                 id: query
+                objectName: "semantic.query"
                 placeholderText: qsTranslate("Luma", "Describe a photo in English")
                 maximumLength: 512; selectByMouse: true
                 Layout.fillWidth: true
@@ -46,6 +50,7 @@ Dialog {
                 onAccepted: library.searchSemantic(text)
             }
             Button {
+                objectName: "semantic.search"
                 text: qsTranslate("Luma", "Search")
                 enabled: library.semanticEnabled && !library.semanticBusy && query.text.trim().length > 0
                 onClicked: library.searchSemantic(query.text)
@@ -67,6 +72,7 @@ Dialog {
                 required property var modelData
                 width: results.cellWidth; height: results.cellHeight
                 Button {
+                    objectName: "semantic.result." + modelData.id
                     anchors.fill: parent; anchors.margins: 5
                     Accessible.name: modelData.filename
                     onClicked: { editor.openFile(modelData.url); dialog.close() }

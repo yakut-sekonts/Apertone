@@ -5,6 +5,27 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Actual Remove and semantic-search workflows — 2026-10-23
+
+[Evidence](qualification/2026-10-23/remove-semantic-workflows.json): final source
+passes **18/18 offscreen** (including mask-profile regression) and **4/4 Cocoa/Metal
+DPR2**. Real Remove computes its donor before the test retains the original queued
+dispatch; progress/Cancel remain visible. Cancel rejects that exact late result;
+success reduces the known central defect, matches independent CPU pixels and is
+one exact Undo/Redo unit. Actual Vision/sentence embedding ranks the declared
+portrait/river/night queries correctly and opt-out deletes persisted embeddings.
+Source hashes, catalog integrity and provenance pass with no QML warnings.
+
+Full build, four affected CTest entries, format, mandatory affected tidy and
+shipping/UX symbol isolation pass. Initial 4 + 12 + 4 passes are retained;
+static review then prompted exception containment in the test-only observer.
+All final checks require its explicit hookFailed state to remain false. Other
+nonblocking diagnostics remain in the logs. Native result screenshots were read.
+The center-defect fixture does not certify feathered edges or broad photographic
+removal quality; three search queries do not certify arbitrary semantic quality
+or network privacy. **10** applicable blocking IDs still need adapters, alongside
+the broader final qualification and actual artifact/update checks.
+
 ### Actual AI subject-mask lifecycle — 2026-10-23
 
 [Evidence](qualification/2026-10-23/ai-mask-workflow.json): **6/6 repeated offscreen
