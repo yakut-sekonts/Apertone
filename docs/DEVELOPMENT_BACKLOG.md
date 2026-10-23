@@ -305,3 +305,29 @@ This does not close BUG-045 or full release qualification; see
   with no QML warnings and intact original hashes/catalogs.
   Full pan/trackpad, external display and phase 0.6 QA remain open.
 - Evidence: [zoom/progressive follow-up](qualification/2026-10-23/zoom-progressive-followup.json).
+
+## LUMA-GAP-049 — Viewer zoom modes and input remain incomplete
+
+- Status: **open implementation gap**, confirmed by source audit on 2026-10-23.
+- Requirements §16 explicitly requires Fill, 2:1, arbitrary zoom, mouse-wheel
+  zoom, pinch zoom and double-click 1:1/Fit. Main.qml currently has only Fit and
+  100% controls backed by EditorController's boolean oneToOne, with panning.
+  No Viewer wheel/pinch/double-click scale handler exists in the inspected source.
+- These behaviors must be implemented and qualified before claiming complete
+  Viewer scope. UX-PRV-011/012 and P06-ZOM-003/012 stay unqualified; test inventory
+  labels alone do not establish source completion. Existing Fit/100% passes do
+  not close this gap. Other Viewer requirements require their own audit.
+
+## LUMA-QA-050 — Preset pixel oracle predates the Metal rounding budget
+
+- Status: **cause reproduced; affected bounded offscreen retests PASS; native follow-up pending**.
+- The full functional baseline's PRS017 fails after a valid Light-only paste.
+  Three fresh runs retain one differing RGB byte at one level, with exact alpha.
+  Captured UI bytes equal fresh actual Metal replay; expected bytes equal fresh
+  CPU replay. The unchanged linear budget passes (maximum error 2.38419e-7).
+- Presets and WB now share the established RGB <= 1, alpha-exact allowance only
+  for Metal-enabled, GPU-compatible documents. CPU-only/incompatible paths remain
+  exact. Negative controls additionally reject format, color-space and DPR
+  mismatches even when image bytes coincide. Full settings/history/persistence
+  checks remain unchanged. Failure pixel capture stays enabled.
+- Evidence: [transient preview and preset oracle](qualification/2026-10-23/transient-preview-preset-oracle.json).

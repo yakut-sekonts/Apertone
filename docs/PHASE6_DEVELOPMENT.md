@@ -27,7 +27,18 @@ the next photo load is pending. Entering 100%, panning and switching photos
 resets zoom/pan to Fit and preserves saved edits. The interception is UX-only
 and absent from shipping; image rendering is explicitly CPU, with the native
 Metal Qt scene. These regressions now run in CI/release workflows. Phase 0.6
-has seven official UX adapters of 58; this is not complete phase qualification.
+had seven official UX adapters at that checkpoint. PRG007/008 add both directions
+of Original/Processed stale-result rejection and current/obsolete preset-hover
+final delivery. Their initial six repeated offscreen checks and the later
+42-case affected preset/WB/transient regression pass; native confirmation of
+these additions remains pending. Phase 0.6 now has nine official adapters of 58.
+
+The Viewer source audit confirms GAP049: Fill, 2:1, arbitrary scale, wheel/pinch
+zoom and double-click Fit/1:1 from requirements §16 are not implemented by the
+current boolean Fit/100% interface. This is missing functionality, separate from
+unadapted tests. See [the backlog](DEVELOPMENT_BACKLOG.md#luma-gap-049--viewer-zoom-modes-and-input-remain-incomplete)
+and [evidence](qualification/2026-10-23/transient-preview-preset-oracle.json).
+This is not complete phase qualification.
 
 ## Source changes
 

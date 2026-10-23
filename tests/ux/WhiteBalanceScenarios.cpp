@@ -33,45 +33,6 @@ QString sliderID(const QString &parameter) {
 void exact(Context &c, const luma::EditDocument &expected, const QString &reason) {
     require(c.editor.currentSettings() == expected && c.editor.error().isEmpty(), reason);
 }
-bool pixelAgreement(const QImage &actual, const QImage &expected, bool metalEligible) {
-    if (actual.isNull() || expected.isNull())
-        return false;
-    if (actual == expected)
-        return true;
-    if (!metalEligible || actual.size() != expected.size() ||
-        actual.format() != QImage::Format_RGBA8888 ||
-        expected.format() != QImage::Format_RGBA8888 ||
-        actual.colorSpace() != expected.colorSpace() ||
-        actual.devicePixelRatio() != expected.devicePixelRatio())
-        return false;
-    // Same pre-existing budget as MetalDevelopTests: one final RGB rounding
-    // step, exact alpha. The independent reference still runs entirely on CPU.
-    for (int y = 0; y < actual.height(); ++y)
-        for (int channel = 0; channel < actual.width() * 4; ++channel) {
-            const int difference = std::abs(int(actual.constScanLine(y)[channel]) -
-                                            int(expected.constScanLine(y)[channel]));
-            if (difference > (channel % 4 == 3 ? 0 : 1))
-                return false;
-        }
-    return true;
-}
-void checkPixelOracle() {
-    QImage expected(2, 2, QImage::Format_RGBA8888);
-    expected.fill(QColor(100, 100, 100, 128));
-    auto actual = expected.copy();
-    require(pixelAgreement(actual, expected, false), "Exact CPU oracle rejected equal pixels");
-    actual.scanLine(0)[0] += 1;
-    require(pixelAgreement(actual, expected, true) && !pixelAgreement(actual, expected, false),
-            "One RGB step must be accepted only by the Metal-eligible oracle");
-    actual.scanLine(0)[0] += 1;
-    require(!pixelAgreement(actual, expected, true), "Oracle accepted two RGB steps");
-    actual = expected.copy();
-    actual.scanLine(0)[3] += 1;
-    require(!pixelAgreement(actual, expected, true), "Oracle accepted altered alpha");
-    require(!pixelAgreement(expected.copy(0, 0, 1, 1), expected, true) &&
-                !pixelAgreement({}, {}, true),
-            "Oracle accepted incorrect geometry or missing pixels");
-}
 QImage rendered(Context &c, const luma::EditDocument &expected) {
     const auto pixels = fixtureReference(c, expected, c.editor.sourcePath());
     const bool metalEligible =
@@ -83,8 +44,8 @@ QImage rendered(Context &c, const luma::EditDocument &expected) {
                 return !c.editor.busy() && image->isVisible() &&
                        image->property("status").toInt() == 1 &&
                        image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                       pixelAgreement(c.provider->requestImage({}, nullptr, {}), pixels,
-                                      metalEligible);
+                       previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), pixels,
+                                          metalEligible);
             },
             "WB/numeric preview matches the complete expected document");
     } catch (...) {
@@ -241,7 +202,7 @@ void protectUnrelatedLight(Context &c) {
     rendered(c, expected);
 }
 void whiteBalanceSemantics(Context &c) {
-    checkPixelOracle();
+    checkPreviewPixelOracle();
     importPublicPair(c);
     protectUnrelatedLight(c);
     const auto base = c.editor.currentSettings();

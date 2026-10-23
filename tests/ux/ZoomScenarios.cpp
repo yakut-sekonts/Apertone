@@ -225,6 +225,85 @@ void filmstrip(Context &c, int row, const QString &path, const luma::EditDocumen
     fitGeometry(c);
 }
 
+PreviewResultSnapshot heldFinal(Context &c, PreviewResultGate &gate, const QImage &expected,
+                                const QString &phase) {
+    c.driver->wait(
+        [&] {
+            const auto state = gate.snapshot();
+            return state.held && state.held->job->state.load() == luma::JobState::completed;
+        },
+        "Actual transient final result held: " + phase);
+    const auto state = gate.snapshot();
+    require(state.held && state.held->controller == &c.editor && state.held->resolution == 2560 &&
+                state.held->assetID == c.editor.photoID().toStdString() && !state.hookFailed &&
+                !state.released && state.deliveries == 0 && expected.width() == 2560 &&
+                state.pixels == expected,
+            "Held transient result differs from the exact independent CPU reference");
+    c.driver->log({{"action", "progressive_transient_final_held"},
+                   {"phase", phase},
+                   {"exact_cpu_pixels", state.pixels == expected},
+                   {"original", c.editor.original()},
+                   {"preset_preview", c.editor.presetPreview()}});
+    return state;
+}
+void rejectTransient(Context &c, PreviewResultGate &gate, const QImage &expected,
+                     const QString &phase) {
+    const auto url = c.editor.previewUrl();
+    const auto histogram = c.editor.histogram();
+    const auto document = c.editor.currentSettings();
+    const auto photo = c.editor.photoID();
+    const auto selection = c.library.selectionIDs();
+    const bool original = c.editor.original(), hover = c.editor.presetPreview();
+    const bool undo = c.editor.canUndo(), redo = c.editor.canRedo();
+    require(!c.editor.histogramPending() && !c.editor.busy() && !c.editor.saving(),
+            "Replacement preview is not settled before delayed transient delivery");
+    QSignalSpy changes(&c.editor, &EditorController::stateChanged);
+    QSignalSpy histograms(&c.editor, &EditorController::histogramChanged);
+    require(changes.isValid() && histograms.isValid(), "Cannot observe transient side effects");
+    gate.release();
+    c.driver->wait([&] { return gate.snapshot().deliveries == 1; },
+                   "Actual transient success callback delivered: " + phase);
+    c.driver->frame();
+    const auto result = gate.snapshot();
+    require(result.held && result.delivered && result.held->sameAs(*result.delivered) &&
+                result.released && !result.hookFailed && !result.deliveryBeforeRelease &&
+                result.deliveries == 1 && result.rejections == 1 &&
+                result.rejectionRevision > result.held->revision &&
+                result.held->job->cancellation.token().isCancelled(),
+            "Existing revision guard failed to reject the exact obsolete transient result");
+    require(c.editor.previewUrl() == url && c.provider->requestImage({}, nullptr, {}) == expected &&
+                c.editor.histogram() == histogram && !c.editor.histogramPending() &&
+                c.editor.currentSettings() == document && c.editor.photoID() == photo &&
+                c.library.selectionIDs() == selection && c.editor.original() == original &&
+                c.editor.presetPreview() == hover && c.editor.canUndo() == undo &&
+                c.editor.canRedo() == redo && changes.isEmpty() && histograms.isEmpty() &&
+                !c.editor.busy() && !c.editor.saving() && c.editor.error().isEmpty(),
+            "Delayed transient result changed the replacement image or durable/UI state");
+    c.driver->log(
+        {{"action", "progressive_transient_rejected"},
+         {"phase", phase},
+         {"exact_job_identity",
+          result.held && result.delivered && result.held->sameAs(*result.delivered)},
+         {"deliveries", int(result.deliveries)},
+         {"guard_rejections", int(result.rejections)},
+         {"held_revision", QString::number(result.held.value().revision)},
+         {"current_revision", QString::number(result.rejectionRevision)},
+         {"current_pixels_exact", c.provider->requestImage({}, nullptr, {}) == expected}});
+}
+void transientHistory(Context &c, const luma::EditDocument &document, const QImage &neutral,
+                      const QImage &edited) {
+    c.driver->click("main.undoButton");
+    ready(c, neutral);
+    require(c.editor.currentSettings() == luma::EditDocument{} && !c.editor.canUndo() &&
+                c.editor.canRedo(),
+            "Transient preview polluted the single-gesture Undo history");
+    c.driver->click("main.redoButton");
+    ready(c, edited);
+    c.saved();
+    require(c.editor.currentSettings() == document && c.editor.canUndo() && !c.editor.canRedo(),
+            "Transient preview polluted Redo");
+}
+
 } // namespace
 bool zoomScenario(Context &c, const QString &id) {
     if (id != "UX-P06-ZOM-001" && id != "UX-P06-ZOM-002")
@@ -576,6 +655,125 @@ bool progressiveRaceScenario(Context &c, const QString &id) {
            {"second_sha256", QString::fromLatin1(secondHash)}});
     require(c.warnings.isEmpty(),
             "Progressive race produced QML warnings: " + c.warnings.join('\n'));
+    return true;
+}
+
+bool progressiveTransientScenario(Context &c, const QString &id) {
+    const bool originalCase = id == "UX-P06-PRG-007";
+    if (!originalCase && id != "UX-P06-PRG-008")
+        return false;
+    auto &d = *c.driver;
+    const auto source = openChart(c);
+    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
+    c.saved();
+    const auto document = c.editor.currentSettings();
+    require(document.exposure != 0 && c.editor.canUndo() && !c.editor.canRedo(),
+            "Transient test needs one saved, non-neutral UI gesture");
+    const auto edited = reference(c, decoded, document, 2560);
+    const auto neutral = reference(c, decoded, {}, 2560);
+    require(edited != neutral, "Transient fixture cannot distinguish Original and Processed");
+    ready(c, edited);
+    const auto before = savedSnapshot(c);
+    const auto selection = c.library.selectionIDs();
+    QSignalSpy saves(&c.editor, &EditorController::editsSaved);
+    require(saves.isValid(), "Cannot observe unintended transient saves");
+    if (originalCase) {
+        const auto originalInteraction = reference(c, decoded, {}, 1024);
+        const auto editedInteraction = reference(c, decoded, document, 1024);
+        for (const bool original : {true, false}) {
+            // Exercise both obsolete Original -> Processed and the reverse.
+            if (!original) {
+                d.click("develop.originalButton");
+                ready(c, neutral);
+            }
+            const auto phase = original ? QStringLiteral("Original-to-Processed")
+                                        : QStringLiteral("Processed-to-Original");
+            PreviewResultGate gate(c.editor, 2560);
+            const auto previous = c.editor.previewUrl();
+            d.click(original ? "develop.originalButton" : "develop.processedButton");
+            ready(c, original ? originalInteraction : editedInteraction, previous);
+            require(c.editor.original() == original && !c.editor.presetPreview(),
+                    "Original/Processed input did not select the intended mode");
+            heldFinal(c, gate, original ? neutral : edited, phase);
+            d.log({{"action", "progressive_transient_interaction"},
+                   {"phase", phase},
+                   {"width", c.provider->requestImage({}, nullptr, {}).width()}});
+            d.click(original ? "develop.processedButton" : "develop.originalButton");
+            const auto &replacement = original ? edited : neutral;
+            ready(c, replacement);
+            require(c.editor.original() != original, "Replacement mode was not selected");
+            rejectTransient(c, gate, replacement, phase);
+            sameSaved(c, before);
+        }
+        d.click("develop.processedButton");
+        ready(c, edited);
+    } else {
+        const auto preset = c.presets.snapshot("builtin:soft-portrait");
+        const auto hoveredDocument =
+            luma::mergeSettings(document, preset.settings, preset.groups, preset.parameters);
+        const auto hoverInteraction = reference(c, decoded, hoveredDocument, 1024);
+        const auto hoverFinal = reference(c, decoded, hoveredDocument, 2560);
+        const auto builtins = c.presets.builtinItems();
+        const auto userPresets = c.presets.items();
+        require(hoveredDocument != document && hoverFinal != edited,
+                "Hover fixture must distinguish the declared preset subset");
+        for (const bool obsolete : {false, true}) {
+            const auto phase = obsolete ? QStringLiteral("hover-leave-before-final")
+                                        : QStringLiteral("hover-final-before-leave");
+            PreviewResultGate gate(c.editor, 2560);
+            const auto previous = c.editor.previewUrl();
+            d.move("filter_soft-portrait", {.5, .5});
+            ready(c, hoverInteraction, previous);
+            require(c.editor.presetPreview() && !c.editor.original() &&
+                        d.object("filter_soft-portrait")->property("hovered").toBool(),
+                    "Real pointer hover did not activate the preset preview");
+            heldFinal(c, gate, hoverFinal, phase);
+            if (!obsolete) {
+                gate.release();
+                ready(c, hoverFinal);
+                const auto result = gate.snapshot();
+                require(result.held && result.delivered && result.held->sameAs(*result.delivered) &&
+                            result.deliveries == 1 && result.rejections == 0 &&
+                            !result.deliveryBeforeRelease && !result.hookFailed &&
+                            c.editor.presetPreview() && c.editor.currentSettings() == document &&
+                            !c.editor.saving() && saves.isEmpty(),
+                        "A current final hover must display without persisting the preset");
+                d.log({{"action", "progressive_transient_current_accepted"},
+                       {"phase", phase},
+                       {"width", c.provider->requestImage({}, nullptr, {}).width()},
+                       {"deliveries", int(result.deliveries)},
+                       {"rejections", int(result.rejections)}});
+                sameSaved(c, before);
+            }
+            d.move("develop.preview", {.5, .5});
+            ready(c, edited);
+            require(!c.editor.presetPreview(), "Pointer leave retained a preset preview");
+            if (obsolete)
+                rejectTransient(c, gate, edited, phase);
+            sameSaved(c, before);
+        }
+        require(c.presets.builtinItems() == builtins && c.presets.items() == userPresets,
+                "Hover changed builtin/user preset data");
+    }
+    sameSaved(c, before);
+    require(c.editor.currentSettings() == document &&
+                c.editor.photoID().toStdString() == before.asset.id &&
+                c.editor.sourcePath() == source.path && c.library.count() == 1 &&
+                c.library.selectionIDs() == selection && saves.isEmpty() && !c.editor.saving() &&
+                c.editor.canUndo() && !c.editor.canRedo() && !c.editor.original() &&
+                !c.editor.presetPreview(),
+            "Original/hover modified persisted edits, identity, membership, selection or history");
+    transientHistory(c, document, neutral, edited);
+    require(sourceHash(source.path) == source.hash, "Transient preview changed original bytes");
+    d.log({{"action", "progressive_transient_preserved"},
+           {"scenario", id},
+           {"original_sha256", QString::fromLatin1(source.hash)},
+           {"saved_revision_before", QString::number(before.revision)},
+           {"view_modes_created_history_entries", false}});
+    require(c.warnings.isEmpty(),
+            "Transient preview produced QML warnings: " + c.warnings.join('\n'));
     return true;
 }
 

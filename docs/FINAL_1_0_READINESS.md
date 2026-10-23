@@ -5,6 +5,46 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Transient preview ordering and preset pixel oracle — 2026-10-23
+
+[Retained evidence](qualification/2026-10-23/transient-preview-preset-oracle.json)
+records the complete bounded offscreen baseline: **264 PASS / 1 FAIL**, plus
+427 SKIPPED and 78 NOT_IMPLEMENTED inventory entries. The complete CTest run
+passes **61 tests**, with one SKIP for the absent private Nikon RAW fixture.
+These counts do not qualify skipped workflows or hardware/native behavior.
+
+The PRS017 failure reproduces in three runs with failure-only pixel capture.
+Each actual UI image equals fresh actual Metal replay byte-for-byte; the expected
+image equals the independent CPU replay. Exactly one RGB byte differs by one,
+with exact alpha, and the linear error stays below the existing fixed budget.
+Preset readiness now shares the established WB/numeric Metal rounding allowance:
+RGB <= 1 only for enabled, GPU-compatible processing; CPU-only/incompatible paths
+remain exact. Alpha, geometry, channel format, color space and DPR remain exact.
+Negative controls reject violations, including equal bytes with different metadata.
+No product pixel math or complete document/history/persistence assertion changed.
+
+New PRG007/008 adapters verify actual delayed final delivery during Original/
+Processed transitions and preset hover. Current hover completion is accepted
+without saving; completion after leaving hover is rejected once by the original
+revision guard. Both Original directions, final CPU pixels, histogram, saved
+revision, selection, history and original hashes are checked. The UX-only probe
+reuses actual results and original callbacks without blocking the render worker.
+The renderer is explicitly CPU to isolate ordering; native Metal describes the
+Qt scene. CI and release require both cases with three repetitions.
+
+The final affected regression passes **42/42** bounded preset/WB/transient
+repetitions, with workload-only PRS012/019 explicitly skipped. New native
+confirmation is pending a fresh quiet interval; no permission is inferred from
+previous completed intervals. Source/build identities are in the linked evidence.
+This regression is separate from the preceding full baseline.
+The independent hosted run remains a required gate; no overall CI PASS is inferred.
+
+The source audit also confirms **LUMA-GAP-049**: requirements §16 specifies Fill,
+2:1, arbitrary scale, wheel/pinch zoom and double-click 1:1/Fit, while the current
+Viewer exposes only Fit/100% plus pan. Missing behavior is an implementation gap,
+not merely an absent adapter. BUG045 and the remaining qualification gates stay
+open. Source remains 0.9.0, stable distribution 0.5.1; no 1.0 artifact is published.
+
 ## Qualification started — 2026-10-21
 
 The source-completion handoff is now being qualified on `codex/1.0-qualification`
@@ -437,7 +477,7 @@ adapters become explicit SKIPPED/unadapted qualification gaps rather than future
 NOT_IMPLEMENTED capabilities. No unexecuted case becomes PASS. That checkpoint
 had one official phase 0.6 adapter of 58; the zoom/export follow-up above adds
 three; the completion-ordering/photo-switch follow-up adds another three, for
-seven total. Phases 0.7/0.8/0.9 still require adapters for
+seven at that checkpoint; PRG007/008 above bring the total to nine. Phases 0.7/0.8/0.9 still require adapters for
 their 56/50/84 inventory cases, with applicability review for conditional tools.
 Existing unit/model reports remain separate evidence. Release qualification is
 still open, including load, hardware, installation and updater checks.

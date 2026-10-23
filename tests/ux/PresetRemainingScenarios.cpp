@@ -1,8 +1,10 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/render/CpuRenderer.h"
+#include "core/render/DevelopPipeline.h"
 #include "platform/macos/DisplayProfile.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UxPixels.h"
 #include <QCoreApplication>
 #include <QCursor>
 #include <QElapsedTimer>
@@ -187,7 +189,10 @@ QImage pixels(Context &c, const luma::EditDocument &document) {
         .copy();
 }
 void ready(Context &c, const luma::EditDocument &document) {
+    checkPreviewPixelOracle();
     const auto expected = pixels(c, document);
+    const bool metalEligible =
+        c.editor.metalPreview() && luma::DevelopPipeline(document).gpuCompatible();
     try {
         c.driver->wait(
             [&] {
@@ -195,10 +200,14 @@ void ready(Context &c, const luma::EditDocument &document) {
                 return !c.editor.busy() && !c.editor.previewUrl().isEmpty() && image->isVisible() &&
                        image->property("status").toInt() == 1 &&
                        image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                       c.provider->requestImage({}, nullptr, {}) == expected;
+                       previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), expected,
+                                          metalEligible);
             },
             "preset fixture pixels match the current document");
     } catch (...) {
+        recordPreviewDifference(c, expected,
+                                metalEligible ? "Preset CPU reference: RGB <= 1, alpha exact"
+                                              : "Preset exact CPU reference");
         auto *image = c.driver->item("develop.preview");
         c.driver->log(
             {{"action", "preset_pixel_readiness_failure"},
@@ -215,6 +224,10 @@ void ready(Context &c, const luma::EditDocument &document) {
               c.driver->object("filter_landscape")->property("hovered").toBool()}});
         throw;
     }
+    c.driver->log({{"action", "preset_cpu_pixel_oracle"},
+                   {"metal_eligible", metalEligible},
+                   {"rgb_max_error", metalEligible ? 1 : 0},
+                   {"alpha_max_error", 0}});
 }
 class HoverTrace final : public QObject {
   public:

@@ -79,7 +79,7 @@ NATIVE.add('UX-PRV-013')
 NATIVE.add('UX-PRV-006')
 NATIVE.add('UX-P06-GPU-001')
 NATIVE.update(('UX-P06-ZOM-001', 'UX-P06-ZOM-002', 'UX-P06-ZOM-005',
-               'UX-P06-PRG-002', 'UX-P06-PRG-004', 'UX-P06-PRG-009'))
+               'UX-P06-PRG-002', 'UX-P06-PRG-004', 'UX-P06-PRG-007', 'UX-P06-PRG-008', 'UX-P06-PRG-009'))
 NATIVE.update(f'UX-IMP-{i:03}' for i in (1, 2, 3, 4, 6, 7, 8, 9, 13, 14, 15, 16))
 NATIVE.add('UX-APP-008')
 NATIVE.update(f'UX-REC-{i:03}' for i in (1, 2, 3, 4, 5, 6, 12))
