@@ -69,6 +69,22 @@ class MergeFixtureTests(unittest.TestCase):
                              extra_flags=('--through', '0.9'))
         self.assertEqual((mixed['code'], mixed['base_calls'], len(mixed['calls'])), (0, 1, 2))
 
+    def test_update_guard_supplies_bounded_images_and_real_hdr_brackets(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            folder = root / 'case-fixtures/UX-P10-UPG-012'
+            hashes, profile = merge.official_fixture(folder, owned_root=root, case_id=folder.name)
+            self.assertEqual((len(hashes), profile['public_photo_count']), (35, 32))
+            self.assertEqual(profile['workflow_variants'],
+                             ['save', 'import', 'export', 'batch', 'merge', 'merge-cancel'])
+            control = root / 'case-fixtures/UX-P08-HDR-001'
+            controls, _ = merge.official_fixture(control, owned_root=root, case_id=control.name)
+            for path, checksum in controls.items():
+                self.assertEqual(hashes[str(folder / Path(path).name)], checksum)
+        outcome = self.run_cli(['UX-P10-UPG-012'], quality=True,
+                               extra_flags=('--through', '1.0'))
+        self.assertEqual((outcome['code'], outcome['base_calls'], len(outcome['calls'])), (0, 0, 1))
+
     def test_daily_merge_supplies_both_previously_verified_source_sets(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

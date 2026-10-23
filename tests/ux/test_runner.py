@@ -647,6 +647,11 @@ failed_variant=''' + repr(failed_variant) + '''
         self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'))
         self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'), 'panorama')
 
+    def test_update_guard_requires_all_operations_including_cancelled_worker(self):
+        variants = ('save', 'import', 'export', 'batch', 'merge', 'merge-cancel')
+        self._fake_isolated_variant_children('UX-P10-UPG-012', variants)
+        self._fake_isolated_variant_children('UX-P10-UPG-012', variants, 'merge-cancel')
+
     def _mac008_failure_aggregation(self, failed_variant, expected_variants):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

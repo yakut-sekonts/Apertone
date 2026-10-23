@@ -31,9 +31,8 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
       exporter(catalogFile.toStdString(), editor, library),
       updates(
           [&] {
-              return !editor.aiBusy() && !editor.retouchBusy() && !editor.transformAutoBusy() &&
-                     !editor.busy() && !editor.saving() && !editor.exporting() &&
-                     !library.working() && !batch.working() && !exporter.working();
+              return editor.readyForUpdate() && !library.working() && !batch.working() &&
+                     !exporter.working();
           },
           updaterProbe),
       metrics(root + "/heartbeat.json") {

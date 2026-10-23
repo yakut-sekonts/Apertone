@@ -7,6 +7,7 @@ import struct
 import zlib
 
 CASE_PROFILE_IDS = {
+    'UX-P10-UPG-012',
     'UX-P10-DAY-011',
     'UX-P09-FLT-006',
     'UX-P07-DNS-001', 'UX-P07-DNS-002', 'UX-P07-DNS-008',
@@ -76,13 +77,19 @@ def official_fixture(folder, *, owned_root, case_id):
     if daily:
         png(folder / 'Frame01.png', 0, 0)
         png(folder / 'Frame02.png', 64, 0)
+    update = case_id == 'UX-P10-UPG-012'
+    if update:
+        from thumbnail_response_fixtures import palette_png
+        for index in range(32):
+            palette_png(folder / f'Photo-{index:04}.png', index)
     files = sorted(folder.iterdir())
     return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in files}, {
         'case_id': case_id, 'name': 'merge-owned-bracket-overlap-v1', 'directory': str(folder),
-        'public_photo_count': 2 if daily else len(files) if panorama else 0,
+        'public_photo_count': 32 if update else 2 if daily else len(files) if panorama else 0,
         'original_checksum_count': len(files), 'width': 256, 'height': 192,
         'large_24mp_generated': False, 'panorama': None if daily else panorama,
-        'workflow_variants': ['hdr', 'panorama'] if daily else ['panorama' if panorama else 'hdr'],
+        'workflow_variants': (['save', 'import', 'export', 'batch', 'merge', 'merge-cancel'] if update
+                              else ['hdr', 'panorama'] if daily else ['panorama' if panorama else 'hdr']),
         'offset': list(offset) if panorama else None, 'expected_alignment_rejection': rejected,
         'shutter_seconds': None if panorama else [1 / 500, 1 / 125, 4 / 125],
     }

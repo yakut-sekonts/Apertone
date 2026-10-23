@@ -100,6 +100,14 @@ int main(int argc, char **argv) {
                 !parser.isSet("seed") && !parser.isSet("actions") && !parser.isSet("replay"),
                 "seed/actions/replay are supported only by UND-017; refusing ignored flags");
         }
+        if (id == "UX-P10-UPG-012") {
+            const QStringList variants{"save",  "import", "export",
+                                       "batch", "merge",  "merge-cancel"};
+            ux::require(parser.values("variant").size() == 1 &&
+                            variants.contains(parser.value("variant")) && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Update guard requires one operation variant without shared state");
+        }
         if (id == "UX-P10-DAY-011") {
             ux::require(
                 parser.values("variant").size() == 1 &&

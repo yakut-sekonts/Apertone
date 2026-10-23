@@ -114,6 +114,16 @@ EditorController::~EditorController() {
     ioJobs_.shutdown();
     renderJobs_.shutdown();
 }
+bool EditorController::readyForUpdate() const {
+    // Cancel releases UI busy flags before workers finish. Inspect every pool,
+    // including cancelled jobs whose handles have already been replaced.
+    // Flags also cover completed work awaiting its queued GUI callback/autosave.
+    return !busy() && !saving() && !exporting_ && !aiBusy_ && !retouchBusy_ &&
+           !transformAutoBusy_ && !creativeBusy_ && !whiteBalanceBusy_ && !localSampling_ &&
+           aiJobs_.idle() && retouchJobs_.idle() && ioJobs_.idle() && renderJobs_.idle() &&
+           compareJobs_.idle() && creativeJobs_.idle() && whiteBalanceJobs_.idle() &&
+           transformJobs_.idle();
+}
 QString EditorController::filename() const {
     return session_ ? QString::fromStdString(session_->asset.path.filename().string()) : QString();
 }

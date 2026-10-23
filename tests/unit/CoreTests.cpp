@@ -322,6 +322,7 @@ void catalogTests() {
 }
 void jobTests() {
     luma::JobManager jobs;
+    require(jobs.idle(), "An empty job pool is not idle.");
     std::promise<void> firstStarted;
     std::promise<void> release;
     auto waiting = release.get_future().share();
@@ -330,6 +331,7 @@ void jobTests() {
         waiting.wait();
     });
     firstStarted.get_future().wait();
+    require(!jobs.idle(), "Running worker was reported idle.");
     std::atomic<bool> executed = false;
     auto cancelled = jobs.submit(luma::JobPriority::background,
                                  [&](const luma::JobContext &) { executed = true; });
@@ -349,6 +351,29 @@ void jobTests() {
             "Cancelled job state was not retained.");
     require(first.state() == luma::JobState::completed, "Completed job state is wrong.");
     require(interactive.progress() == 1, "Job progress did not complete.");
+    require(jobs.idle(), "A stopped, drained pool is not idle.");
+}
+void cancelledWorkerIdleTests() {
+    luma::JobManager jobs;
+    std::promise<void> started, release;
+    auto waiting = release.get_future().share();
+    auto previous = jobs.submit(luma::JobPriority::background, [&](const luma::JobContext &) {
+        started.set_value();
+        waiting.wait();
+    });
+    started.get_future().wait();
+    previous.cancel();
+    auto newest = jobs.submit(luma::JobPriority::background, [](const luma::JobContext &) {});
+    newest.cancel();
+    jobs.submit(luma::JobPriority::interactive, [](const luma::JobContext &) {});
+    const bool newestTerminal = newest.state() == luma::JobState::cancelled;
+    const bool oldWorkerRetained = previous.state() == luma::JobState::running && !jobs.idle();
+    release.set_value();
+    jobs.shutdown();
+    require(newestTerminal, "Cancelled queued handle did not reach its terminal state.");
+    require(oldWorkerRetained, "Terminal replacement handle hid an older cancelled worker.");
+    require(jobs.idle() && previous.state() == luma::JobState::cancelled,
+            "Cancelled worker was not drained before idle.");
 }
 } // namespace
 int main() {
@@ -359,6 +384,7 @@ int main() {
         jpegProfileTests();
         catalogTests();
         jobTests();
+        cancelledWorkerIdleTests();
         std::cout << "Core unit tests passed\n";
         return 0;
     } catch (const std::exception &error) {

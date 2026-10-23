@@ -5,6 +5,27 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Update waits for cancelled workers — 2026-10-24
+
+[Evidence](qualification/2026-10-24/update-worker-drain.json): UPG012 executes six
+independent processes for save/import/export/batch/merge/cancelled-merge. First five
+passed, but Cancel cleared aiBusy while the real HDR worker was held at catalog
+staging, allowing the actual UpdateController installer callback prematurely.
+EditorController.readyForUpdate now checks pending GUI/save flags and every owned
+JobManager pool. The unit regression retains an old cancelled running worker after
+a newer queued handle is already terminal. Production and UX share this predicate.
+
+Corrected checks pass **3/3 offscreen + 3/3 Cocoa/Metal**, each containing all six
+variants (36 successful operation processes). Original files and catalog integrity
+pass. Full build, CTest (**69 PASS / 1 private-NEF SKIP**), format and eight affected
+mandatory tidy checks pass. The initial system-Python read-only audit failure is
+retained separately; the configured runtime reached and reproduced the actual bug.
+The temporary Denoise workflow push trigger is removed; manual diagnostics remain.
+
+This tests the real deferred SDK callback boundary, without downloading/installing
+an update. Actual Sparkle upgrade remains a separate gate. **25 blocking / 310 total**
+applicable IDs remain unadapted; no release qualification or publication is claimed.
+
 ### Backup status and daily recovery/merge workflows — 2026-10-24
 
 [Evidence](qualification/2026-10-24/daily-backup-merge.json): a real watched-directory

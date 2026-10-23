@@ -711,3 +711,14 @@ watched-directory event and requires both visible messages. Backup regression:
 12/12 offscreen + 12/12 native; final combined daily workflow 9/9 native. Initial
 10 PASS / 2 FAIL retained in daily-backup-merge.json. Full CTest: 69 PASS / private
 NEF SKIP. DAY010/011 coverage does not qualify native pickers or golden photographs.
+
+### LUMA-BUG-074 — Update installation can overtake a cancelled merge worker
+
+Fixed and retested, 2026-10-24. Actual HDR staging remains active after Cancel clears
+aiBusy; the previous update predicate delivered its install callback too early.
+The shared editor readiness contract now requires all owned job pools to drain,
+plus existing pending GUI/save state. A unit case covers an old running cancelled
+worker hidden by a newer terminal handle. Six operation variants pass three times
+each offscreen and Cocoa/Metal; full CTest 69 PASS / private NEF SKIP. No actual
+Sparkle install/relaunch is inferred. See update-worker-drain.json for the original
+cancel failure, separate system-Python audit failure, corrected evidence and limits.

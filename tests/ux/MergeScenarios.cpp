@@ -159,6 +159,22 @@ void unchanged(Context &c, const std::vector<luma::AssetRecord> &sources) {
     }
 }
 } // namespace
+luma::JobHandle startMergeForUpdate(Context &c) {
+    importSources(c, false);
+    auto &d = *c.driver;
+    d.click("library.photoActions");
+    d.click("library.hdr");
+    d.wait([&] { return d.object("merge.hdr")->property("opened").toBool(); },
+           "HDR dialog opened before update");
+    c.storageFault.holdWrites(true);
+    d.click("merge.hdr.create");
+    const auto job = MergeJobProbe::job(c.editor);
+    d.wait([&] { return c.storageFault.writeBlocked() || !c.editor.aiBusy(); },
+           "Real HDR worker reached catalog staging before update", 60000);
+    require(c.editor.aiBusy() && c.storageFault.writeBlocked(),
+            "HDR update fixture failed before staging: " + c.editor.error());
+    return job;
+}
 bool denoiseWorkflowScenario(Context &c, const QString &id) {
     if (id != "UX-P07-DNS-001" && id != "UX-P07-DNS-002")
         return false;

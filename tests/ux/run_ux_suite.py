@@ -194,6 +194,7 @@ CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UN
 
 
 ISOLATED_VARIANTS = {
+    'UX-P10-UPG-012': ('save', 'import', 'export', 'batch', 'merge', 'merge-cancel'),
     'UX-P10-DAY-011': ('hdr', 'panorama'),
     'UX-UPD-003': ('import', 'export', 'batch'),
     'UX-MAC-008': ('copy', 'export'),

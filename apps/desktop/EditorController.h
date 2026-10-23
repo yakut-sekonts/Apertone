@@ -168,6 +168,7 @@ class EditorController final : public QObject {
     bool saving() const {
         return pendingSave_ || pendingWrites_ > 0 || saveFailed_;
     }
+    bool readyForUpdate() const;
     bool hasPhoto() const {
         return session_.has_value();
     }

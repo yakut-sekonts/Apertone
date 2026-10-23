@@ -1,9 +1,6 @@
 name: Core ML Denoise crash diagnostics
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/1.0-qualification]
-    paths: [.github/workflows/denoise-diagnostics.yml]
 permissions:
   contents: read
 jobs:
