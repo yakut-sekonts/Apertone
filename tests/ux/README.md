@@ -1,5 +1,18 @@
 # Native UX regression
 
+Official `UX-P06-GPU-002` imports one neutral 256×192 PNG and uses actual Settings
+clicks to compare CPU and GPU preview buffers and completed Image-node readbacks.
+A UX-only `MetalPreviewProbe` forwards to the exact controller-created native
+accelerator, counts genuine completions and compares every returned linear sample
+with the CPU pipeline at the existing `2e-5 + 2e-5 * abs(reference)` tolerance.
+CPU fallback, missing buffers, nonfinite samples or extra GPU calls while disabled
+fail. Final CPU samples are exact; GPU/scene RGB8 allows one existing quantization
+step and alpha remains exact. Saved document/revision/identity, selection/history
+and original hashes remain unchanged. The observer never changes pixels or GPU
+eligibility. Shipping isolation includes local as well as global observer symbols.
+This bounded neutral check does not qualify arbitrary RAW/edits, GPU failures,
+display transitions or performance; observation adds CPU work in the worker.
+
 Official `UX-P06-LRU-002` checks the actual thumbnail provider's 512 MiB disk cap
 with two owned photos and two 256 MiB sparse cache entries (less than 1 MiB physical
 allocation each). Cold insertion and the first warm hit on a recreated real

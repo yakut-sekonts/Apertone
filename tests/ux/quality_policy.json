@@ -167,6 +167,7 @@
     "UX-NAV-009",
     "UX-NAV-010",
     "UX-P06-GPU-001",
+    "UX-P06-GPU-002",
     "UX-P06-MEM-001",
     "UX-P06-MEM-002",
     "UX-P06-PRG-002",
@@ -774,7 +775,8 @@
     "UX-P09-RLK-004": 3,
     "UX-P09-RLK-006": 3,
     "UX-P09-RLK-007": 3,
-    "UX-P06-LRU-002": 2
+    "UX-P06-LRU-002": 2,
+    "UX-P06-GPU-002": 1
   },
   "default_quality_photo_count": 10
 }

@@ -5,6 +5,36 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Neutral CPU and actual Metal preview agreement — 2026-10-23
+
+[Evidence](qualification/2026-10-23/neutral-metal-preview.json) adds blocking
+UX-P06-GPU-002. A forwarding observer wraps the genuine controller accelerator
+without changing eligibility or returned pixels. Every actual linear RGB sample
+must satisfy the existing MetalDevelopTests budget `2e-5 + 2e-5 * abs(reference)`;
+complete native execution is required, so silent CPU fallback cannot pass.
+Actual Settings toggles Metal off/on. Preview buffers and completed Image-node
+readbacks must match the independent CPU reference and each other within one
+RGB8 step and exact alpha. Saved edits/revisions, identity, selection, Undo/Redo
+and source hashes remain unchanged.
+
+The new scenario passes **3/3 offscreen**, with exactly two real Metal completions
+and zero linear RGB difference on each neutral fixture. Disabling Metal produces
+no extra accelerator call. The existing GPU001 UI regression passes **1/1**.
+Full app build, Metal equivalence, workload policy, formatting and affected
+blocking tidy pass; nonblocking tidy warnings remain. Symbol isolation also passes
+after correcting its inspection to include local observer definitions, preserving
+the original global renderer-signature check. The initial isolation failure and
+an initial unsigned-to-QJsonValue build error are retained as harness corrections.
+No product rendering defect was observed in this scenario.
+
+Native Cocoa/Retina confirmation and hosted verification are pending. This is a
+bounded neutral PNG check, not all RAW/calibration/edit combinations, GPU failure,
+profile transitions, hardware coverage or load/performance qualification. QML
+uses software offscreen while Develop's actual Metal compute is observed directly.
+The extra CPU comparison runs in the worker; timings are not performance evidence.
+Remaining unadapted applicable blocking IDs are **43**; the release gate and
+BUG045 remain open.
+
 ### Persisted thumbnail cache byte cap — 2026-10-23
 
 [Evidence](qualification/2026-10-23/thumbnail-cache-bound.json) adds blocking
@@ -20,8 +50,9 @@ engine provider and a never-displayed second image rule out Qt pixmap reuse;
 actual response/texture observations are mandatory. Real filters and scene pixels,
 full saved documents/revisions and original hashes are checked. The new case
 passes **3/3 offscreen**, with six affected CTest entries, full application build,
-format, affected blocking clang-tidy and 11 policy tests PASS. Native confirmation
-is pending a fresh quiet-desktop interval. Earlier fixture failures are retained
+format, affected blocking clang-tidy and 11 policy tests PASS. Fresh native
+confirmation passes **1/1 Cocoa/Metal DPR2** on clean commit `c985ef6`, with
+matching build provenance, intact catalog/original hashes and no QML warnings. Earlier fixture failures are retained
 and distinguished from the actual provider negative control.
 
 This is disk byte accounting with sparse files, not a 512 MiB physical-write

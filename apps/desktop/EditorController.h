@@ -23,10 +23,18 @@ namespace ux {
 class MemoryPressureProbe;
 }
 #endif
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+namespace ux {
+class MetalPreviewProbe;
+}
+#endif
 class EditorController final : public QObject {
     Q_OBJECT
 #ifdef LUMA_UX_MEMORY_PRESSURE_PROBE
     friend class ux::MemoryPressureProbe;
+#endif
+#ifdef LUMA_UX_PREVIEW_RESULT_PROBE
+    friend class ux::MetalPreviewProbe;
 #endif
     Q_PROPERTY(QVariantMap comparison READ comparison NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)

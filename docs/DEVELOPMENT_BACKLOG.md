@@ -508,8 +508,8 @@ The defect remains open; no root cause is inferred from passing repeats.
 
 ## LUMA-BUG-059 — Persisted thumbnail cache exceeds its cap on cache-only reopening
 
-- Status: **fixed; 3/3 offscreen UX and six affected CTest entries PASS;
-  native/hosted confirmation pending**.
+- Status: **fixed; 3/3 offscreen UX, 1/1 Cocoa/Metal DPR2 and six affected
+  CTest entries PASS; hosted confirmation pending**.
 - A newly created genuine provider returned a valid cached JPEG while retaining
   536,882,181 bytes above the 512 MiB cap. New writes trim, but warm reads previously
   skipped it. The first successful cache hit now validates the cap under the
