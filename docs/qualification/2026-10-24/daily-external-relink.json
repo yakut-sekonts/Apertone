@@ -473,7 +473,7 @@
     "No installed artifact/update qualification is inferred."
   ],
   "unadapted_applicable": {
-    "total": 309,
-    "blocking": 24
+    "total": 308,
+    "blocking": 23
   }
 }
