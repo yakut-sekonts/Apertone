@@ -21,20 +21,6 @@ NSString *xmlText(std::span<const std::uint8_t> bytes) {
         throw std::runtime_error("XMP must be UTF-8 without DTD or entity declarations.");
     return xml;
 }
-CFHandle<CGImageMetadataRef> parse(std::span<const std::uint8_t> bytes) {
-    (void)xmlText(bytes);
-    // Older ImageIO rejects legal leading XML whitespace (including after a BOM).
-    if (bytes.size() >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF)
-        bytes = bytes.subspan(3);
-    while (!bytes.empty() && (bytes.front() == ' ' || bytes.front() == '\t' ||
-                              bytes.front() == '\r' || bytes.front() == '\n'))
-        bytes = bytes.subspan(1);
-    CFHandle data(CFDataCreate(nullptr, bytes.data(), static_cast<CFIndex>(bytes.size())));
-    CFHandle result(CGImageMetadataCreateFromXMPData(data.get()));
-    if (!result)
-        throw std::runtime_error("Invalid or unsupported XMP packet.");
-    return result;
-}
 std::string string(CFStringRef value) {
     const char *utf8 = value ? [(__bridge NSString *)value UTF8String] : nullptr;
     return utf8 ? utf8 : "";
@@ -137,6 +123,22 @@ NSXMLDocument *xmlDocument(std::span<const std::uint8_t> bytes) {
         throw std::runtime_error("Invalid or unsupported XMP packet.");
     return document;
 }
+NSString *serializedText(NSXMLNode *node) {
+    // XML normalizes literal CR/CRLF. Preserve character references and newly
+    // edited CR characters when serializing parsed text.
+    return [node.XMLString stringByReplacingOccurrencesOfString:@"\r" withString:@"&#13;"];
+}
+CFHandle<CGImageMetadataRef> parse(std::span<const std::uint8_t> bytes) {
+    auto *document = xmlDocument(bytes);
+    // ImageIO 15 rejects a legal XML declaration and leading whitespace/BOM.
+    // Parse securely first and hand it only the validated document element;
+    // declarations, comments and processing instructions are not RDF properties.
+    NSData *data = [serializedText(document.rootElement) dataUsingEncoding:NSUTF8StringEncoding];
+    CFHandle result(data ? CGImageMetadataCreateFromXMPData((__bridge CFDataRef)data) : nullptr);
+    if (!result)
+        throw std::runtime_error("Invalid or unsupported XMP packet.");
+    return result;
+}
 NSArray<NSXMLElement *> *descriptions(NSXMLDocument *document) {
     constexpr auto rdf = @"http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     auto *root = document.rootElement;
@@ -169,12 +171,16 @@ NSArray<NSXMLElement *> *descriptions(NSXMLDocument *document) {
     return result;
 }
 void replaceProperty(NSArray<NSXMLElement *> *descriptions, NSXMLElement *update) {
+    NSString *name = update.localName;
+    NSString *space = update.URI;
+    if (!name || !space)
+        throw std::runtime_error("XMP update is missing its expanded property name.");
     NSXMLNode *previous = nil;
     NSXMLElement *owner = descriptions.firstObject;
     for (NSXMLElement *description in descriptions) {
         NSMutableArray<NSXMLNode *> *matches =
-            [[description elementsForLocalName:update.localName URI:update.URI] mutableCopy];
-        if (auto *attribute = [description attributeForLocalName:update.localName URI:update.URI])
+            [[description elementsForLocalName:name URI:space] mutableCopy];
+        if (auto *attribute = [description attributeForLocalName:name URI:space])
             [matches addObject:attribute];
         for (NSXMLNode *match in matches) {
             if (previous)
@@ -221,7 +227,10 @@ void replaceProperty(NSArray<NSXMLElement *> *descriptions, NSXMLElement *update
         }
     }
     if (previous.kind == NSXMLAttributeKind) {
-        [owner removeAttributeForName:previous.name];
+        NSString *attributeName = previous.name;
+        if (!attributeName)
+            throw std::runtime_error("XMP attribute has no qualified name.");
+        [owner removeAttributeForName:attributeName];
         [owner addChild:replacement];
     } else if (previous) {
         const auto index = [owner.children indexOfObjectIdenticalTo:previous];
@@ -242,12 +251,12 @@ std::vector<std::uint8_t> mergeXMP(const std::string &updates,
     for (NSXMLNode *property in descriptions(source).firstObject.children)
         if (property.kind == NSXMLElementKind)
             replaceProperty(targets, (NSXMLElement *)property);
-    destination.characterEncoding = @"UTF-8";
-    // XML parsers normalize literal CR/CRLF. Parsed character references and
-    // newly edited text can still contain CR; retain those characters on output.
-    // Input comments/PI/CDATA line endings were already normalized by the parser.
-    NSString *serialized = [destination.XMLString stringByReplacingOccurrencesOfString:@"\r"
-                                                                            withString:@"&#13;"];
+    // Serializing the document would synthesize an XML declaration that
+    // ImageIO 15 rejects. Its children retain the root, comments and original
+    // processing instructions without adding that incompatible prolog.
+    NSMutableString *serialized = [NSMutableString string];
+    for (NSXMLNode *child in destination.children)
+        [serialized appendString:serializedText(child)];
     NSData *output = [serialized dataUsingEncoding:NSUTF8StringEncoding];
     if (!output || output.length == 0 || output.length > 8 * 1024 * 1024)
         throw std::runtime_error("Cannot serialize XMP within its size limit.");

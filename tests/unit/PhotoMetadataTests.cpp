@@ -150,6 +150,15 @@ void alternatePacketForms(const std::filesystem::path &source) {
                                    QStringLiteral("title")),
                 "Repeated metadata merge changed the language map.");
     }
+    const auto wrapped = write("<?xml version='1.0'?><?xpacket begin=''?>" + original +
+                               "<!-- outer metadata comment --><?xpacket end='w'?>");
+    const std::string wrappedText(wrapped.begin(), wrapped.end());
+    require(wrappedText.find("<?xml ") == std::string::npos &&
+                wrappedText.find("<?xpacket begin=") != std::string::npos &&
+                wrappedText.find("<!-- outer metadata comment -->") != std::string::npos &&
+                wrappedText.find("<?xpacket end=") != std::string::npos &&
+                luma::macos::readDescriptiveMetadata(source, wrapped) == values,
+            "Metadata merge lost packet instructions/comments or emitted an incompatible prolog.");
     for (const auto &input :
          {packet("<dc:title>First</dc:title><dc:title>Second</dc:title>"),
           packet("<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">A</rdf:li>"
@@ -186,9 +195,14 @@ int main(int argc, char **argv) {
                     std::vector<std::string>{"Անի Սարգսյան", "山田 太郎", "Անի Սարգսյան"} &&
                 values.keywords == std::vector<std::string>{"ночь", "빛", "café"},
             "Native ImageIO arrays lost Unicode, creator sequence/repeats or keyword uniqueness.");
-        for (const std::string &prefix : {std::string("\n \t\r"), std::string("\xEF\xBB\xBF\n")})
-            require(read(source, prefix + xml) == values,
-                    "Legal leading XML whitespace or UTF-8 BOM was rejected.");
+        for (const std::string &prefix :
+             {std::string("\n \t\r"), std::string("\xEF\xBB\xBF\n"),
+              std::string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"),
+              std::string("\xEF\xBB\xBF<?xml version='1.0'?>\n<!-- preserved comment -->"),
+              std::string("<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?>")})
+            require(
+                read(source, prefix + xml) == values,
+                "Legal XML declaration, whitespace, BOM or processing instruction was rejected.");
         const auto written = luma::macos::writeDescriptiveXMP(values, {});
         require(luma::macos::readDescriptiveMetadata(source, written) == values,
                 "Written XMP lists cannot be read back exactly.");
