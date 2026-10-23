@@ -27,7 +27,11 @@ the original global renderer-signature check. The initial isolation failure and
 an initial unsigned-to-QJsonValue build error are retained as harness corrections.
 No product rendering defect was observed in this scenario.
 
-Native Cocoa/Retina confirmation and hosted verification are pending. This is a
+Fresh native confirmation passes **1/1 Cocoa/Metal DPR2** on clean commit
+`4157cf9`, with matching source/build provenance, clean original/catalog integrity
+and no QML warnings. Three actual Metal completions (two during initial native
+loading, one after re-enabling) have zero linear RGB difference; disabling Metal
+adds no accelerator call. Hosted verification remains pending. This is a
 bounded neutral PNG check, not all RAW/calibration/edit combinations, GPU failure,
 profile transitions, hardware coverage or load/performance qualification. QML
 uses software offscreen while Develop's actual Metal compute is observed directly.
