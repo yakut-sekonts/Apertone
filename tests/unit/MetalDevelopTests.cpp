@@ -1,3 +1,4 @@
+#include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/MetalDevelop.h"
 #include <algorithm>
@@ -23,6 +24,32 @@ class ObservedAccelerator final : public luma::DevelopAccelerator {
         return result;
     }
 };
+enum class Fault { unavailable, shortBuffer, longBuffer, exception, cancel };
+class FaultAccelerator final : public luma::DevelopAccelerator {
+  public:
+    explicit FaultAccelerator(Fault value) : fault(value) {}
+    Fault fault;
+    unsigned calls = 0;
+    luma::CancellationSource cancellation;
+    std::vector<float> develop(const luma::FloatImage &input, const luma::DevelopPipeline &,
+                               luma::CancellationToken) override {
+        ++calls;
+        switch (fault) {
+        case Fault::unavailable:
+            return {};
+        case Fault::shortBuffer:
+            return std::vector<float>(input.rgb.size() - 1, .5F);
+        case Fault::longBuffer:
+            return std::vector<float>(input.rgb.size() + 1, .5F);
+        case Fault::exception:
+            throw std::runtime_error("Injected backend error.");
+        case Fault::cancel:
+            cancellation.cancel();
+            return {};
+        }
+        throw std::runtime_error("Unknown test fault.");
+    }
+};
 luma::FloatImage fixture() {
     luma::FloatImage image(257, 193);
     image.alpha.resize(luma::pixelCount(image.width, image.height));
@@ -39,6 +66,72 @@ luma::FloatImage fixture() {
         for (std::size_t channel = 0; channel < 3; ++channel)
             image.rgb[index * 3 + channel] = boundaries[index];
     return image;
+}
+void fallbackContracts(const luma::FloatImage &input) {
+    const auto originalRGB = input.rgb, originalAlpha = input.alpha;
+    luma::EditDocument detail;
+    detail.exposure = .8;
+    detail.highlights = -30;
+    detail.noiseLuminance = 25;
+    detail.sharpenAmount = 60;
+    detail.crop.angle = 7;
+    detail.crop.x = .1;
+    detail.crop.y = .1;
+    detail.crop.width = .8;
+    detail.crop.height = .8;
+    unsigned exactFallbacks = 0;
+    for (const auto &edits : {luma::EditDocument{}, detail}) {
+        require(luma::DevelopPipeline(edits).gpuCompatible(),
+                "Fault fixture must request the accelerator.");
+        const auto render = [&](luma::DevelopAccelerator *accelerator,
+                                luma::CancellationToken stop = {}) {
+            return luma::renderCPU(input, edits, 0, {}, stop, {}, luma::DetailDiagnostic::none, 1,
+                                   {}, {}, accelerator, {true, luma::ClippingPreview::both});
+        };
+        const auto reference = render(nullptr);
+        FaultAccelerator unavailable(Fault::unavailable);
+        const auto fallback = render(&unavailable);
+        require(unavailable.calls == 1 && fallback.width == reference.width &&
+                    fallback.height == reference.height && fallback.rgba == reference.rgba &&
+                    fallback.histogram && reference.histogram,
+                "Unavailable backend did not preserve exact CPU pixels/geometry/alpha.");
+        const auto &actualHistogram = fallback.histogram.value();
+        const auto &expectedHistogram = reference.histogram.value();
+        require(actualHistogram.bins == expectedHistogram.bins &&
+                    actualHistogram.weight == expectedHistogram.weight &&
+                    actualHistogram.shadows == expectedHistogram.shadows &&
+                    actualHistogram.highlights == expectedHistogram.highlights &&
+                    actualHistogram.samples == expectedHistogram.samples,
+                "Unavailable backend changed the histogram or clipping analysis.");
+        ++exactFallbacks;
+        for (const auto fault :
+             {Fault::shortBuffer, Fault::longBuffer, Fault::exception, Fault::cancel}) {
+            FaultAccelerator backend(fault);
+            std::string message;
+            bool returned = false;
+            try {
+                render(&backend, backend.cancellation.token());
+                returned = true;
+            } catch (const std::runtime_error &error) {
+                message = error.what();
+            }
+            const auto expected = fault == Fault::exception ? "Injected backend error."
+                                  : fault == Fault::cancel  ? "Operation cancelled."
+                                                            : "Invalid accelerated Develop buffer.";
+            require(!returned && backend.calls == 1 && message == expected,
+                    "Fault/cancellation returned partial pixels or lost the actionable error.");
+        }
+        // A failed previous call must not poison subsequent complete CPU output.
+        const auto recovered = render(&unavailable);
+        require(unavailable.calls == 2 && recovered.rgba == reference.rgba,
+                "Rendering after a failed backend did not recover exact CPU pixels.");
+    }
+    require(input.rgb == originalRGB && input.alpha == originalAlpha,
+            "Injected fallback/failure modified source pixels or coverage.");
+    std::cout << "Accelerator interface contracts: " << exactFallbacks
+              << " exact CPU fallbacks with histogram/clipping, 8 malformed/error/cancel "
+                 "rejections, clean subsequent renders and unchanged source. "
+                 "Injected interface outcomes, not native Metal command failures.\n";
 }
 void compare(const std::string &name, const luma::FloatImage &input,
              const luma::EditDocument &edits, const luma::RawColorCalibration &calibration,
@@ -111,8 +204,10 @@ void fallback(const luma::FloatImage &input, const luma::EditDocument &edits,
 } // namespace
 int main() {
     try {
-        ObservedAccelerator accelerator;
         const auto input = fixture();
+        // These deterministic contracts execute even when actual Metal is unavailable.
+        fallbackContracts(input);
+        ObservedAccelerator accelerator;
         const auto originalRGB = input.rgb, originalAlpha = input.alpha;
         if (accelerator.develop(input, luma::DevelopPipeline({}), {}).empty()) {
             std::cout << "SKIPPED: real Metal device/runtime unavailable; no equivalence claim.\n";

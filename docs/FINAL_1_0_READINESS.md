@@ -371,6 +371,16 @@ The independent CPU oracle runs on the test GUI thread, so heartbeat stalls in
 these reports are not product performance measurements.
 [Evidence](qualification/2026-10-23/zoom-progressive-followup.json).
 
+The accelerator interface also passes deterministic fault contracts: unavailable
+output falls back to exact CPU RGBA/geometry, every histogram field and clipping
+overlay for neutral and Noise/Sharpen/Crop/Exposure documents. Eight malformed
+buffer, exception and cancellation cases reject without returning partial pixels;
+subsequent renders recover and source RGB/alpha remain unchanged. The same CTest
+run passes the existing 13 actual Metal numerical cases and two explicit
+Curve/HSL CPU fallbacks at unchanged tolerances. These injected interface outcomes
+do not qualify native command-buffer, device, driver or allocation failures.
+[Evidence](qualification/2026-10-23/develop-fallback-followup.json).
+
 ### Initial phase 0.6 contracts and native confirmation — 2026-10-23
 
 The subsequent approved three-minute interval passed **4/4** on Cocoa/Metal,
