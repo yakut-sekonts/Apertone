@@ -12,6 +12,12 @@ Most phase 0.6 workflows/load/hardware cases remain unqualified. Current results
 and limits are recorded in [final readiness](FINAL_1_0_READINESS.md), not inferred
 from the source-availability capability manifest.
 
+The subsequent zoom/export follow-up fixes Fit-to-100% centering after content
+size bindings settle, with backing-pixel alignment. Three new official adapters
+pass 9/9 local offscreen runs on a 3072×2048 chart: pixel mapping, center-preserving
+round trips and full-resolution PNG export after a real interaction preview.
+Native Retina, pan/hardware, latency and memory-pressure gates remain open.
+
 ## Source changes
 
 - `ByteLruCache` retains immutable values under a byte budget. Eviction releases

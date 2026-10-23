@@ -285,3 +285,21 @@ Cocoa/Metal DPR 2 without warnings, completing the bounded native follow-up for
 BUG-046/QA-047. It also passed the first phase 0.6 Metal preference workflow.
 This does not close BUG-045 or full release qualification; see
 [the native/cache evidence](qualification/2026-10-23/phase6-native-preview-followup.json).
+
+## LUMA-BUG-048 — Fit to 100% opens the top-left corner
+
+- Reproduced 2026-10-23 by both new P06-ZOM-001/002 adapters on a 3072×2048 chart.
+  The initial viewport retained contentX/contentY=0; its visible center was source
+  (383,233), instead of (1536,1024). Both original failures are retained.
+- Cause: `onPixelModeChanged` centered before the new content-size bindings had
+  settled, so Flickable clamped the requested offset to the previous Fit bounds.
+- Fix: defer centering with `Qt.callLater` and align the offset to backing pixels.
+  Exiting pixel mode still resets Fit offsets and cancels kinetic scrolling.
+- Verified locally offscreen: ZOM001/002 pass 3/3 each at even and odd window
+  sizes. Actual scene pixels preserve single-pixel detail, and full CPU provider
+  pixels, document/revision, selection and original hashes remain unchanged.
+  Related PRG002 export passes 3/3, including actual 1024 interaction preview,
+  2560 final Fit preview, exact 3072×2048 sRGB PNG and single-gesture Undo/Redo.
+- Status: fixed, bounded offscreen confirmation complete; native Retina pending.
+  Full pan/trackpad, external display and phase 0.6 QA remain open.
+- Evidence: [zoom/progressive follow-up](qualification/2026-10-23/zoom-progressive-followup.json).

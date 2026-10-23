@@ -253,6 +253,7 @@ ApplicationWindow {
                         Label { text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
                         Item { Layout.fillWidth: true }
                         Button {
+                            objectName: "develop.fit"
                             text: qsTranslate("Luma", "FIT")
                             checkable: true; checked: !editor.oneToOne
                             enabled: editor.hasPhoto && !editor.busy
@@ -274,6 +275,7 @@ ApplicationWindow {
                         Layout.minimumWidth: 84; Layout.minimumHeight: 84
                         Flickable {
                             id: previewViewport
+                            objectName: "develop.viewport"
                             anchors.fill: parent
                             clip: true
                             property bool pixelMode: editor.oneToOne && !editor.cropMode &&
@@ -283,10 +285,18 @@ ApplicationWindow {
                             contentHeight: pixelMode ? Math.max(height, editor.previewPixelSize.height / Screen.devicePixelRatio) : height
                             interactive: pixelMode
                             boundsBehavior: Flickable.StopAtBounds
+                            function centerPixelPreview() {
+                                if (!pixelMode) return
+                                const dpr = Screen.devicePixelRatio
+                                contentX = Math.max(0, Math.round((contentWidth - width) * dpr / 2) / dpr)
+                                contentY = Math.max(0, Math.round((contentHeight - height) * dpr / 2) / dpr)
+                            }
                             onPixelModeChanged: {
                                 cancelFlick()
-                                contentX = pixelMode ? Math.max(0, (contentWidth - width) / 2) : 0
-                                contentY = pixelMode ? Math.max(0, (contentHeight - height) / 2) : 0
+                                // The content-size bindings must settle before Flickable
+                                // accepts the new offset. Snap to backing pixels at 100%.
+                                if (pixelMode) Qt.callLater(centerPixelPreview)
+                                else { contentX = 0; contentY = 0 }
                             }
                             ScrollBar.horizontal: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }
                             ScrollBar.vertical: ScrollBar { policy: previewViewport.pixelMode ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff }

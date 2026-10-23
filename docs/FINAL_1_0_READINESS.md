@@ -345,6 +345,32 @@ remain open. No new native UI session or release was performed.
 
 ## Source decisions and qualification requirements
 
+### Full-resolution zoom and progressive export — 2026-10-23
+
+New P06-ZOM-001/002 adapters reproduced **2/2 failures**: Fit to 100% left
+`contentX/contentY` at zero, showing the top-left corner instead of the center.
+The QML callback ran before its content-size bindings settled. BUG-048 now defers
+centering until those bindings settle and snaps the offset to backing pixels.
+Both even and odd window dimensions are exercised.
+
+P06-ZOM-001/002 and P06-PRG-002 pass **9/9** final local offscreen/software
+repetitions. A separately hashed 3072×2048 generated chart distinguishes the
+1024 interaction, 2560 Fit and full-resolution paths. The held Exposure gesture
+actually displays 1024 output before release. The full provider image matches
+an independent CPU document; the composited 100% scene preserves single-pixel
+detail. PNG export retains all 3072×2048 pixels, declares sRGB and equals the
+full-source CPU reference exactly. Saved revision/document, selection, identity,
+original bytes and one-gesture Undo/Redo are preserved. No QML warnings occurred.
+
+All targets, QML shipping smoke, test-probe isolation, 40 runner and 10 policy
+checks pass. Formatting and blocking tidy checks pass; optional-access warnings
+remain behind the test's throwing `require()` guard. Native Cocoa/Retina
+confirmation awaits a fresh approved quiet interval. These generated PNG checks
+do not qualify RAW, physical input/panning, OS pressure, latency or GPU failures.
+The independent CPU oracle runs on the test GUI thread, so heartbeat stalls in
+these reports are not product performance measurements.
+[Evidence](qualification/2026-10-23/zoom-progressive-followup.json).
+
 ### Initial phase 0.6 contracts and native confirmation — 2026-10-23
 
 The subsequent approved three-minute interval passed **4/4** on Cocoa/Metal,
@@ -369,8 +395,9 @@ pass; non-blocking optional-access warnings remain in the UI test.
 
 The capability manifest now reflects source availability for 0.6–0.9. Missing
 adapters become explicit SKIPPED/unadapted qualification gaps rather than future
-NOT_IMPLEMENTED capabilities. No unexecuted case becomes PASS. There is one
-official phase 0.6 adapter of 58; phases 0.7/0.8/0.9 still require adapters for
+NOT_IMPLEMENTED capabilities. No unexecuted case becomes PASS. That checkpoint
+had one official phase 0.6 adapter of 58; the zoom/export follow-up above adds
+three, for four total. Phases 0.7/0.8/0.9 still require adapters for
 their 56/50/84 inventory cases, with applicability review for conditional tools.
 Existing unit/model reports remain separate evidence. Release qualification is
 still open, including load, hardware, installation and updater checks.
