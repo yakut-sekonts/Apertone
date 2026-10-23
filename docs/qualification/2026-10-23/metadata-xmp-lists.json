@@ -906,5 +906,40 @@
       "sha256": "38a1f36dbfabc32886cc1be6d822a6130c48956008793fe40b8df2962b7027b5",
       "bytes": 1883
     }
-  ]
+  ],
+  "unedited_property_followup": {
+    "recorded_utc": "2026-10-23T12:46:42.445835+00:00",
+    "status": "PASS",
+    "scope": "Writing current supported descriptive values into an existing packet preserves an external custom scalar, crs:Exposure2012 and the de-DE title while updating x-default. Exact native readback of the edited values also passes.",
+    "production_changes": "None",
+    "checks": "native-xmp-metadata-lists PASS, formatting PASS, affected blocking clang-tidy PASS with nonblocking warnings",
+    "limits": "Native ImageIO unit boundary; no additional official UX adapter or full phase claim. Earlier full CTest result predates this extra unit assertion.",
+    "source": {
+      "path": "tests/unit/PhotoMetadataTests.cpp",
+      "sha256": "4f2b9140f7ef0e8b215b67be2cd17614b2132e5c7f86ec877d484e36ac4680a0",
+      "bytes": 6221
+    },
+    "logs": [
+      {
+        "path": ".tools/final-xmp-preservation-build.log",
+        "sha256": "324718997d9b92f4af13a6e8341b4bffaf4e972473f46fd10a4540122400776a",
+        "bytes": 264
+      },
+      {
+        "path": ".tools/final-xmp-preservation.log",
+        "sha256": "9668d37b14439c623c6868a892ab8783204700df5d0ac4addcf0dc8e5d951943",
+        "bytes": 465
+      },
+      {
+        "path": ".tools/final-xmp-preservation-tidy.log",
+        "sha256": "4961174b6e73a87569fc4fc6cb18cc8a907678c9438f9bbdf82f70b45ebdcb9e",
+        "bytes": 1437
+      },
+      {
+        "path": ".tools/final-xmp-preservation-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      }
+    ]
+  }
 }

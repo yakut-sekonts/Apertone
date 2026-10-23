@@ -1,5 +1,7 @@
+#include "platform/macos/CFHandle.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
+#include <ImageIO/ImageIO.h>
 #include <iostream>
 #include <stdexcept>
 
@@ -28,6 +30,33 @@ void rejects(const std::filesystem::path &source, const std::string &xml) {
     }
     require(rejected, "Unsupported or oversized XMP list was accepted.");
 }
+void preservesUneditedProperties(const std::filesystem::path &source,
+                                 const luma::DescriptiveMetadata &values) {
+    const auto original = packet(
+        "<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Before</rdf:li>"
+        "<rdf:li xml:lang=\"de-DE\">Deutscher Titel</rdf:li></rdf:Alt></dc:title>"
+        "<qa:Note xmlns:qa=\"https://example.invalid/luma-qa/\">Keep &amp; preserve</qa:Note>"
+        "<crs:Exposure2012 xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\">"
+        "1.25</crs:Exposure2012>");
+    const auto output = luma::macos::writeDescriptiveXMP(
+        values,
+        std::span(reinterpret_cast<const std::uint8_t *>(original.data()), original.size()));
+    require(luma::macos::readDescriptiveMetadata(source, output) == values,
+            "Updating an existing XMP packet did not replace the supported metadata exactly.");
+    luma::macos::CFHandle data(
+        CFDataCreate(nullptr, output.data(), static_cast<CFIndex>(output.size())));
+    luma::macos::CFHandle metadata(CGImageMetadataCreateFromXMPData(data.get()));
+    require(static_cast<bool>(metadata), "Updated XMP cannot be parsed by ImageIO.");
+    for (const auto &[path, expected] :
+         {std::pair{CFSTR("qa:Note"), CFSTR("Keep & preserve")},
+          std::pair{CFSTR("crs:Exposure2012"), CFSTR("1.25")},
+          std::pair{CFSTR("dc:title[de-DE]"), CFSTR("Deutscher Titel")}}) {
+        luma::macos::CFHandle actual(
+            CGImageMetadataCopyStringValueWithPath(metadata.get(), nullptr, path));
+        require(actual && CFEqual(actual.get(), expected),
+                "Writing supported metadata removed an external property or another language.");
+    }
+}
 } // namespace
 int main(int argc, char **argv) {
     if (argc != 2)
@@ -51,6 +80,7 @@ int main(int argc, char **argv) {
         const auto written = luma::macos::writeDescriptiveXMP(values, {});
         require(luma::macos::readDescriptiveMetadata(source, written) == values,
                 "Written XMP lists cannot be read back exactly.");
+        preservesUneditedProperties(source, values);
         for (const auto &property : {"creator", "subject"}) {
             const std::string prefix = std::string("<dc:") + property + "><rdf:Seq>";
             const std::string suffix = std::string("</rdf:Seq></dc:") + property + ">";
