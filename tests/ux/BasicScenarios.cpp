@@ -49,6 +49,7 @@ bool memoryPressureScenario(Context &, const QString &);
 bool previewCacheBudgetScenario(Context &, const QString &);
 bool catalogMaintenanceScenario(Context &, const QString &);
 bool metadataScenario(Context &, const QString &);
+bool relinkScenario(Context &, const QString &);
 bool zoomInteractionScenario(Context &, const QString &);
 bool zoomSwitchScenario(Context &, const QString &);
 bool progressiveRaceScenario(Context &, const QString &);
@@ -61,7 +62,7 @@ void basicScenario(Context &c, const QString &id) {
                 "The complete export-failure readability scenario is unavailable");
         return;
     }
-    if (metadataScenario(c, id))
+    if (metadataScenario(c, id) || relinkScenario(c, id))
         return;
     if (catalogMaintenanceScenario(c, id) || previewCacheBudgetScenario(c, id) ||
         memoryPressureScenario(c, id) || progressiveTransientScenario(c, id) ||

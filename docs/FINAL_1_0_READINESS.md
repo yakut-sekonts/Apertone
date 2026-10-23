@@ -5,6 +5,38 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Missing originals and relink preservation — 2026-10-23
+
+[Evidence](qualification/2026-10-23/relink-missing-originals.json) adds official
+RLK001/002/003/004/006/007 coverage: real missing badges, file/tree relink,
+same-name/same-size wrong-checksum refusal and retry, saved edits/metadata/
+collection/selection/history preservation, and reopening the new path with an
+independent CPU pixel oracle. Four of these IDs extend blocking coverage.
+
+An actual parent-directory move left Library's availability unchanged. Watching
+existing ancestors within the existing 512-watch cap and rearming after changes
+now detects both removal and restoration. The event timer coalesces bursts without
+postponing an already scheduled check. Tests also move a file after restoring the
+folder, and exercise ongoing unrelated directory activity. The initial suite
+and an intermittent pre-coalescing unit timeout are retained. The latter's exact
+cause is not inferred from the subsequent passing repeat. Chooser-fixture cleanup
+now uses the actual metadata Close button instead of sending Escape to a stale
+popup focus target; this was a harness correction.
+
+The six scenarios pass **18/18 offscreen** with clean catalog/source integrity and
+no QML warnings. Full application build, format, affected blocking clang-tidy,
+11 policy tests, and **three affected CTest entries repeated three times** pass.
+Native Cocoa/Metal confirmation is pending a fresh quiet-desktop interval.
+Selected file/folder URLs are declared fixtures, not native picker qualification.
+Push and PR runs include the new scenarios through the shared CI workflow. Volume
+eject/remount, network paths, large catalogs and crash recovery remain separate.
+
+Verified `fe64231` push/PR blocking artifacts each contain **225 PASS, 80 SKIPPED,
+31 NOT_IMPLEMENTED and 0 FAIL**. Source/original checks and build provenance pass.
+The failed blocking step correctly represents incomplete coverage, not an executed
+test failure. Full CI is still pending; these artifacts predate the new metadata
+and relink coverage. BUG045 remains open and the complete release gate is unchanged.
+
 ### Metadata display and atomic batch organization — 2026-10-23
 
 [Evidence](qualification/2026-10-23/metadata-display-batch-atomicity.json) adds

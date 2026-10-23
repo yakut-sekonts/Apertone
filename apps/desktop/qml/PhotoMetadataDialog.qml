@@ -25,8 +25,8 @@ Dialog {
             labelField.text = values.label || ""
         }
     }
-    FileDialog { id: locateFile; title: qsTranslate("Luma", "Locate original"); onAccepted: library.locateOriginal(selectedFile) }
-    FolderDialog { id: locateFolder; title: qsTranslate("Luma", "Locate folder"); onAccepted: library.locateFolder(selectedFolder, nearby.checked) }
+    FileDialog { id: locateFile; objectName: "metadata.locateFileDialog"; title: qsTranslate("Luma", "Locate original"); onAccepted: library.locateOriginal(selectedFile) }
+    FolderDialog { id: locateFolder; objectName: "metadata.locateFolderDialog"; title: qsTranslate("Luma", "Locate folder"); onAccepted: library.locateFolder(selectedFolder, nearby.checked) }
     Dialog {
         id: confirmImport
         objectName: "metadata.confirmRead"
@@ -50,7 +50,7 @@ Dialog {
         clip: true; contentWidth: availableWidth
         ColumnLayout {
             width: parent.width; spacing: 8
-            Label { text: library.descriptiveMetadata.path || ""; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            Label { objectName: "metadata.path"; text: library.descriptiveMetadata.path || ""; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", library.descriptiveMetadata.readError || ""); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { objectName: "metadata.error"; text: qsTranslate("Luma", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Title") }
@@ -100,10 +100,10 @@ Dialog {
             Label { text: qsTranslate("Luma", "Missing original"); font.bold: true; Layout.topMargin: 10 }
             RowLayout {
                 Layout.fillWidth: true
-                Button { text: qsTranslate("Luma", "Locate original"); enabled: dialog.ready; onClicked: locateFile.open(); Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Locate folder"); enabled: dialog.ready; onClicked: locateFolder.open(); Layout.fillWidth: true }
+                Button { objectName: "metadata.locateOriginal"; text: qsTranslate("Luma", "Locate original"); enabled: dialog.ready; onClicked: locateFile.open(); Layout.fillWidth: true }
+                Button { objectName: "metadata.locateFolder"; text: qsTranslate("Luma", "Locate folder"); enabled: dialog.ready; onClicked: locateFolder.open(); Layout.fillWidth: true }
             }
-            CheckBox { id: nearby; text: qsTranslate("Luma", "Also find nearby missing files by name and checksum"); checked: true; Layout.fillWidth: true }
+            CheckBox { id: nearby; objectName: "metadata.locateNearby"; text: qsTranslate("Luma", "Also find nearby missing files by name and checksum"); checked: true; Layout.fillWidth: true }
         }
     }
 }

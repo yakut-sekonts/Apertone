@@ -458,6 +458,42 @@ void sourceAvailabilityTests(const std::filesystem::path &root,
                 catalog.assetByID(original.id)->edits == original.edits &&
                 luma::macos::sha256File(source) == original.checksum,
             "Actual source restoration changed identity, original bytes or edits.");
+    const auto movedFolder = root / "moved-watched-originals";
+    std::filesystem::rename(folder, movedFolder);
+    wait([&] { return model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    std::filesystem::rename(movedFolder, folder);
+    wait([&] { return !model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    require(resets == 0 && notifications == 4 && !unexpectedRoles,
+            "Parent rename/restoration did not refresh only the missing role.");
+    std::cout << "Source watcher: file and parent rename/restoration passed\n";
+    // Unrelated incoming files must not defer the availability refresh forever.
+    // Keep real directory events flowing faster than the production coalescer.
+    const auto activity = folder / "unrelated-incoming-file";
+    QTimer events;
+    events.setInterval(25);
+    QObject::connect(&events, &QTimer::timeout, &model, [&] {
+        if (std::filesystem::exists(activity))
+            std::filesystem::remove(activity);
+        else
+            std::ofstream(activity) << "owned test activity";
+    });
+    events.start();
+    std::filesystem::rename(source, held);
+    try {
+        wait([&] { return model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    } catch (const std::exception &) {
+        throw std::runtime_error("Continuous directory events starved missing-source refresh.");
+    }
+    std::filesystem::rename(held, source);
+    wait([&] { return !model.data(model.index(0), LibraryModel::Missing).toBool(); });
+    events.stop();
+    std::filesystem::remove(activity);
+    require(resets == 0 && notifications == 6 && !unexpectedRoles && model.count() == 1 &&
+                model.selectedCount() == 1 &&
+                model.data(model.index(0), LibraryModel::Active).toBool() &&
+                catalog.assetByID(original.id)->edits == original.edits &&
+                luma::macos::sha256File(source) == original.checksum,
+            "Continuous folder events starved availability or changed source/model state.");
 }
 
 void modelTests(const std::filesystem::path &root, bool scaleContract) {

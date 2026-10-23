@@ -487,3 +487,21 @@ The defect remains open; no root cause is inferred from passing repeats.
   paths, with a valid Unicode publication control. Three affected CTest checks
   and 12 offscreen XMP repetitions pass. Full build/format/affected tidy pass.
 - [Evidence](qualification/2026-10-23/xmp-generated-xml-validation.json).
+
+## LUMA-BUG-058 — Moving an original's parent folder leaves availability stale
+
+- Status: **fixed; affected unit/integration and 18 offscreen UX repetitions PASS;
+  native confirmation pending**.
+- A real parent-tree rename did not produce the Missing state while only leaf
+  source directories were watched. Observe existing ancestors within the existing
+  512-watch limit, reconcile watches after events, and retain model delegates,
+  selection and original/catalog bytes.
+- Repeated events no longer restart an already pending 500 ms availability check.
+  Unit tests cover parent move/restore and subsequent file move/restore with
+  ongoing unrelated directory events. The pre-change unit test failed once and
+  passed once; that alone does not establish the cause of its individual timeout.
+- Six official relink scenarios verify file/tree identity, checksum refusal and
+  retry, complete saved state and regenerated edited pixels. All original hashes
+  and catalog checks pass without QML warnings. Native picker interaction, volume
+  mount lifecycle, network filesystems and crash/load qualification remain open.
+- [Evidence](qualification/2026-10-23/relink-missing-originals.json).

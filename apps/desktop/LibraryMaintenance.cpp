@@ -45,7 +45,9 @@ void LibraryModel::initializeMaintenance() {
     sourceWatchTimer_.setSingleShot(true);
     sourceWatchTimer_.setInterval(500);
     connect(&sourceWatcher_, &QFileSystemWatcher::directoryChanged, this, [this](const QString &) {
-        if (!closing_)
+        // Coalesce a burst without postponing the first refresh indefinitely
+        // when other files keep changing in an observed directory.
+        if (!closing_ && !sourceWatchTimer_.isActive())
             sourceWatchTimer_.start();
     });
     connect(&sourceWatchTimer_, &QTimer::timeout, this, [this] {
@@ -57,6 +59,7 @@ void LibraryModel::initializeMaintenance() {
         // Changes are observed, never used to replace an original or import XMP automatically.
         status_ = QStringLiteral(
             "Source folder changed. Reload metadata explicitly to import external XMP changes.");
+        watchVisibleFolders();
         refreshSourceAvailability();
         emit stateChanged();
     });
@@ -119,7 +122,20 @@ void LibraryModel::watchVisibleFolders() {
         for (const auto &row : rows) {
             if (wanted.size() >= 512)
                 break;
-            wanted.insert(QString::fromStdString(row.path.parent_path().string()));
+            // Watching a directory's contents does not reliably report a rename
+            // of that directory (or one of its ancestors). Watch existing parents
+            // too, so moved folders and their restoration refresh availability.
+            for (auto path = row.path.parent_path(); !path.empty() && wanted.size() < 512;) {
+                const auto name = QString::fromStdString(path.string());
+                if (wanted.contains(name))
+                    break; // This ancestor chain has already been considered.
+                if (QFileInfo(name).isDir())
+                    wanted.insert(name);
+                const auto parent = path.parent_path();
+                if (parent == path)
+                    break;
+                path = parent;
+            }
         }
     }
     const auto current = sourceWatcher_.directories();

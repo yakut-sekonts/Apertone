@@ -1,5 +1,19 @@
 # Native UX regression
 
+Official `UX-P09-RLK-001/002/003/004/006/007` use three owned PNGs with Unicode
+paths and a two-member collection. Actual UI saves Exposure and descriptive
+metadata, moves one original or its parent tree, checks Missing badges, then
+drives Locate Original/Folder and reopens the new path. File/folder chooser URLs
+are explicit fixture boundaries; native picker navigation is not qualified.
+A same-name/same-size/different-hash candidate must fail without any mutation,
+then a valid candidate must succeed. Exact document/revision/identity, saved
+metadata, collection, selection, history and source hashes are preserved. Preview
+pixels after reopening are checked against an independent CPU reference. The
+missing-only case restores the folder and moves a nested file again to verify
+watch rearming. Three repeats run in shared CI; RLK001/002/003/006 are blocking.
+These bounded checks do not cover network volumes, eject/remount, watcher-limit
+saturation, process kill during relink or large-catalog latency.
+
 P06-MEM-001/002 exercise warning/critical and normal recovery through the real
 EditorController GUI handler. The UX-only friend probe stops and drains OS
 notifications on an empty owned controller so host events cannot interleave with
