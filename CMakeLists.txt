@@ -179,7 +179,7 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/tests/assets/images/quadrants.webp")
     set_tests_properties(advanced-import-copy-move-backup PROPERTIES TIMEOUT 30 LABELS "unit;import")
     add_executable(luma_photo_metadata_tests tests/unit/PhotoMetadataTests.cpp)
-    target_link_libraries(luma_photo_metadata_tests PRIVATE luma_services)
+    target_link_libraries(luma_photo_metadata_tests PRIVATE luma_services Qt6::Core)
     target_compile_options(luma_photo_metadata_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME native-xmp-metadata-lists COMMAND luma_photo_metadata_tests
         "${CMAKE_SOURCE_DIR}/tests/assets/images/quadrants.webp")

@@ -2,7 +2,9 @@
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
 #include <ImageIO/ImageIO.h>
+#include <QXmlStreamReader>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 
 namespace {
@@ -30,6 +32,38 @@ void rejects(const std::filesystem::path &source, const std::string &xml) {
     }
     require(rejected, "Unsupported or oversized XMP list was accepted.");
 }
+std::map<std::string, std::string> languageValues(std::span<const std::uint8_t> bytes,
+                                                  const QString &space, const QString &property) {
+    QXmlStreamReader reader(QByteArray(reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+    std::map<std::string, std::string> result;
+    int depth = 0, propertyDepth = -1;
+    while (!reader.atEnd()) {
+        reader.readNext();
+        if (reader.isStartElement()) {
+            ++depth;
+            if (reader.namespaceUri() == space && reader.name() == property) {
+                require(propertyDepth == -1, "Nested duplicate property in XML oracle.");
+                propertyDepth = depth;
+            } else if (propertyDepth > 0 &&
+                       reader.namespaceUri() ==
+                           QStringLiteral("http://www.w3.org/1999/02/22-rdf-syntax-ns#") &&
+                       reader.name() == QStringLiteral("li")) {
+                const auto language = reader.attributes().value(
+                    QStringLiteral("http://www.w3.org/XML/1998/namespace"), QStringLiteral("lang"));
+                const auto key = language.toString().toStdString();
+                const auto text = reader.readElementText().toStdString();
+                require(result.emplace(key, text).second, "Duplicate language in XML oracle.");
+                --depth;
+            }
+        } else if (reader.isEndElement()) {
+            if (depth == propertyDepth)
+                propertyDepth = -1;
+            --depth;
+        }
+    }
+    require(!reader.hasError(), "XMP output is not well-formed XML.");
+    return result;
+}
 void preservesUneditedProperties(const std::filesystem::path &source,
                                  const luma::DescriptiveMetadata &values) {
     const auto original = packet(
@@ -37,24 +71,99 @@ void preservesUneditedProperties(const std::filesystem::path &source,
         "<rdf:li xml:lang=\"de-DE\">Deutscher Titel</rdf:li></rdf:Alt></dc:title>"
         "<qa:Note xmlns:qa=\"https://example.invalid/luma-qa/\">Keep &amp; preserve</qa:Note>"
         "<crs:Exposure2012 xmlns:crs=\"http://ns.adobe.com/camera-raw-settings/1.0/\">"
-        "1.25</crs:Exposure2012>");
+        "1.25</crs:Exposure2012>"
+        "<qa:Text xmlns:qa=\"https://example.invalid/luma-qa/\"><rdf:Alt>"
+        "<rdf:li xml:lang=\"x-default\">Foreign default</rdf:li>"
+        "<rdf:li xml:lang=\"fr-FR\">Texte conservé</rdf:li></rdf:Alt></qa:Text>");
     const auto output = luma::macos::writeDescriptiveXMP(
         values,
         std::span(reinterpret_cast<const std::uint8_t *>(original.data()), original.size()));
     require(luma::macos::readDescriptiveMetadata(source, output) == values,
             "Updating an existing XMP packet did not replace the supported metadata exactly.");
+    // ImageIO 15 itself substitutes x-default while reading alternate languages.
+    // Verify serialized RDF through an independent XML parser, not the faulty API.
+    require(languageValues(output, QStringLiteral("http://purl.org/dc/elements/1.1/"),
+                           QStringLiteral("title")) ==
+                std::map<std::string, std::string>{{"x-default", values.title},
+                                                   {"de-DE", "Deutscher Titel"}},
+            "Writing default metadata changed another serialized language.");
+    require(languageValues(output, QStringLiteral("https://example.invalid/luma-qa/"),
+                           QStringLiteral("Text")) ==
+                std::map<std::string, std::string>{{"x-default", "Foreign default"},
+                                                   {"fr-FR", "Texte conservé"}},
+            "Writing supported metadata changed a foreign language property.");
     luma::macos::CFHandle data(
         CFDataCreate(nullptr, output.data(), static_cast<CFIndex>(output.size())));
     luma::macos::CFHandle metadata(CGImageMetadataCreateFromXMPData(data.get()));
     require(static_cast<bool>(metadata), "Updated XMP cannot be parsed by ImageIO.");
-    for (const auto &[path, expected] :
-         {std::pair{CFSTR("qa:Note"), CFSTR("Keep & preserve")},
-          std::pair{CFSTR("crs:Exposure2012"), CFSTR("1.25")},
-          std::pair{CFSTR("dc:title[de-DE]"), CFSTR("Deutscher Titel")}}) {
+    for (const auto &[path, expected] : {std::pair{CFSTR("qa:Note"), CFSTR("Keep & preserve")},
+                                         std::pair{CFSTR("crs:Exposure2012"), CFSTR("1.25")}}) {
         luma::macos::CFHandle actual(
             CGImageMetadataCopyStringValueWithPath(metadata.get(), nullptr, path));
         require(actual && CFEqual(actual.get(), expected),
                 "Writing supported metadata removed an external property or another language.");
+    }
+}
+void alternatePacketForms(const std::filesystem::path &source) {
+    luma::DescriptiveMetadata values;
+    values.title = "New & <literal>";
+    values.caption = "First\r\nSecond\tline";
+    values.rating = 4;
+    const auto original =
+        packet("<dc:title><rdf:Alt><rdf:li xml:lang=\"de-DE\">Unverändert</rdf:li>"
+               "</rdf:Alt></dc:title>");
+    auto write = [&](const std::string &input) {
+        return luma::macos::writeDescriptiveXMP(
+            values, std::span(reinterpret_cast<const std::uint8_t *>(input.data()), input.size()));
+    };
+    for (const bool aliases : {false, true}) {
+        auto input = original;
+        if (aliases) {
+            for (const auto &[from, to] :
+                 {std::pair{"dc:", "other:"}, std::pair{"xmlns:dc=", "xmlns:other="},
+                  std::pair{"rdf:", "r:"}, std::pair{"xmlns:rdf=", "xmlns:r="}}) {
+                std::size_t position = 0;
+                while ((position = input.find(from, position)) != std::string::npos) {
+                    input.replace(position, std::string_view(from).size(), to);
+                    position += std::string_view(to).size();
+                }
+            }
+        }
+        const auto output = write(input);
+        require(languageValues(output, QStringLiteral("http://purl.org/dc/elements/1.1/"),
+                               QStringLiteral("title")) ==
+                    std::map<std::string, std::string>{{"x-default", values.title},
+                                                       {"de-DE", "Unverändert"}},
+                "Adding x-default lost another language or namespace aliases.");
+        const auto actual = luma::macos::readDescriptiveMetadata(source, output);
+        if (actual != values)
+            std::cerr << "aliases=" << aliases << " title=" << actual.title << " caption_hex="
+                      << QByteArray::fromStdString(actual.caption).toHex().constData()
+                      << " rating=" << actual.rating << "\n"
+                      << std::string(output.begin(), output.end()) << "\n";
+        require(actual == values,
+                "Metadata merge changed literal text, line endings or aliased properties.");
+        const auto again = luma::macos::writeDescriptiveXMP(values, output);
+        require(languageValues(again, QStringLiteral("http://purl.org/dc/elements/1.1/"),
+                               QStringLiteral("title")) ==
+                    languageValues(output, QStringLiteral("http://purl.org/dc/elements/1.1/"),
+                                   QStringLiteral("title")),
+                "Repeated metadata merge changed the language map.");
+    }
+    for (const auto &input :
+         {packet("<dc:title>First</dc:title><dc:title>Second</dc:title>"),
+          packet("<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">A</rdf:li>"
+                 "<rdf:li xml:lang=\"x-default\">B</rdf:li></rdf:Alt></dc:title>"),
+          std::string("<!DOCTYPE x [<!ENTITY remote SYSTEM \"file:///nonexistent-luma-qa\">]>") +
+              original,
+          std::string("<x:xmpmeta>unclosed")}) {
+        bool rejected = false;
+        try {
+            (void)write(input);
+        } catch (const std::exception &) {
+            rejected = true;
+        }
+        require(rejected, "Ambiguous or unsafe XMP packet was rewritten.");
     }
 }
 } // namespace
@@ -77,10 +186,14 @@ int main(int argc, char **argv) {
                     std::vector<std::string>{"Անի Սարգսյան", "山田 太郎", "Անի Սարգսյան"} &&
                 values.keywords == std::vector<std::string>{"ночь", "빛", "café"},
             "Native ImageIO arrays lost Unicode, creator sequence/repeats or keyword uniqueness.");
+        for (const std::string &prefix : {std::string("\n \t\r"), std::string("\xEF\xBB\xBF\n")})
+            require(read(source, prefix + xml) == values,
+                    "Legal leading XML whitespace or UTF-8 BOM was rejected.");
         const auto written = luma::macos::writeDescriptiveXMP(values, {});
         require(luma::macos::readDescriptiveMetadata(source, written) == values,
                 "Written XMP lists cannot be read back exactly.");
         preservesUneditedProperties(source, values);
+        alternatePacketForms(source);
         for (const auto &property : {"creator", "subject"}) {
             const std::string prefix = std::string("<dc:") + property + "><rdf:Seq>";
             const std::string suffix = std::string("</rdf:Seq></dc:") + property + ">";
