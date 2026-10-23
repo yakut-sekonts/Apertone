@@ -5,6 +5,10 @@ paths and a two-member collection. Actual UI saves Exposure and descriptive
 metadata, moves one original or its parent tree, checks Missing badges, then
 drives Locate Original/Folder and reopens the new path. File/folder chooser URLs
 are explicit fixture boundaries; native picker navigation is not qualified.
+The folder fixture sets `currentFolder` before opening the actual dialog because
+Cocoa does not select a different directory through an already open panel's
+`selectedFolder` setter. Returned local URLs are logged and must resolve to the
+exact owned canonical target before the production accepted handler runs.
 A same-name/same-size/different-hash candidate must fail without any mutation,
 then a valid candidate must succeed. Exact document/revision/identity, saved
 metadata, collection, selection, history and source hashes are preserved. Preview

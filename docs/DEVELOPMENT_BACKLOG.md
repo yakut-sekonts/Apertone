@@ -490,8 +490,8 @@ The defect remains open; no root cause is inferred from passing repeats.
 
 ## LUMA-BUG-058 — Moving an original's parent folder leaves availability stale
 
-- Status: **fixed; affected unit/integration and 18 offscreen UX repetitions PASS;
-  native confirmation pending**.
+- Status: **fixed; affected unit/integration, 18 offscreen UX repetitions and
+  six Cocoa/Metal DPR2 scenarios PASS**.
 - A real parent-tree rename did not produce the Missing state while only leaf
   source directories were watched. Observe existing ancestors within the existing
   512-watch limit, reconcile watches after events, and retain model delegates,

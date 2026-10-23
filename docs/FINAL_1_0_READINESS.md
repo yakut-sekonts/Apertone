@@ -26,7 +26,13 @@ popup focus target; this was a harness correction.
 The six scenarios pass **18/18 offscreen** with clean catalog/source integrity and
 no QML warnings. Full application build, format, affected blocking clang-tidy,
 11 policy tests, and **three affected CTest entries repeated three times** pass.
-Native Cocoa/Metal confirmation is pending a fresh quiet-desktop interval.
+The six cases also pass **6/6 Cocoa/Metal DPR2** with clean original/catalog
+integrity and no QML warnings; the quiet-desktop run is complete.
+The initial native folder case stopped at the declared chooser fixture: Cocoa
+returned the current repository directory instead of the assigned target. Preparing
+the chooser's initial directory before the actual Locate click fixes the fixture;
+all six cases then pass on Cocoa/Metal and again offscreen. Both earlier native
+failures and the path readback diagnostics are retained. Production code is unchanged.
 Selected file/folder URLs are declared fixtures, not native picker qualification.
 Push and PR runs include the new scenarios through the shared CI workflow. Volume
 eject/remount, network paths, large catalogs and crash recovery remain separate.
@@ -34,8 +40,10 @@ eject/remount, network paths, large catalogs and crash recovery remain separate.
 Verified `fe64231` push/PR blocking artifacts each contain **225 PASS, 80 SKIPPED,
 31 NOT_IMPLEMENTED and 0 FAIL**. Source/original checks and build provenance pass.
 The failed blocking step correctly represents incomplete coverage, not an executed
-test failure. Full CI is still pending; these artifacts predate the new metadata
-and relink coverage. BUG045 remains open and the complete release gate is unchanged.
+test failure. The prior PR run 39971392506 is now complete with overall FAILURE:
+all supplemental UX and full format/tidy pass; the final model aggregate step is
+SKIPPED. Its artifacts predate the new metadata and relink coverage. Current-head
+CI is still pending. BUG045 remains open and the complete release gate is unchanged.
 
 ### Metadata display and atomic batch organization — 2026-10-23
 

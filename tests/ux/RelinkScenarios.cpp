@@ -4,6 +4,7 @@
 #include "tests/ux/UxPixels.h"
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QSignalSpy>
 #include <algorithm>
 
@@ -73,13 +74,29 @@ void locate(Context &c, const std::filesystem::path &path, bool folder) {
     const auto button = folder ? "metadata.locateFolder" : "metadata.locateOriginal";
     const auto dialogID = folder ? "metadata.locateFolderDialog" : "metadata.locateFileDialog";
     const auto property = folder ? "selectedFolder" : "selectedFile";
+    auto *dialog = d.object(dialogID);
+    const auto url = QUrl::fromLocalFile(QString::fromStdString(path.string()));
+    // Cocoa's open folder panel does not select another directory through
+    // selectedFolder. Seed its initial directory before the real Locate click;
+    // the owned chooser-result boundary is still verified below.
+    if (folder)
+        require(dialog->setProperty("currentFolder", url),
+                "Cannot prepare owned folder chooser initial directory");
     reveal(c, button);
     d.click(button);
-    auto *dialog = d.object(dialogID);
     d.wait([&] { return dialog->property("visible").toBool(); },
            "Actual Locate control opened chooser");
-    const auto url = QUrl::fromLocalFile(QString::fromStdString(path.string()));
-    require(dialog->setProperty(property, url) && dialog->property(property).toUrl() == url,
+    const bool assigned = dialog->setProperty(property, url);
+    const auto selected = dialog->property(property).toUrl();
+    d.log({{"action", "locate_fixture_path_readback"},
+           {"assigned", assigned},
+           {"requested", url.toString()},
+           {"selected", selected.toString()}});
+    // Native folder URLs may normalize symlinks or append a directory slash.
+    // Require the same existing canonical object, not identical URL spelling.
+    const auto expected = QFileInfo(url.toLocalFile()).canonicalFilePath();
+    require(assigned && selected.isLocalFile() && !expected.isEmpty() &&
+                QFileInfo(selected.toLocalFile()).canonicalFilePath() == expected,
             "Locate chooser rejected declared owned-path fixture");
     d.log({{"action", "file_dialog_selection_fixture_boundary"},
            {"id", dialogID},
