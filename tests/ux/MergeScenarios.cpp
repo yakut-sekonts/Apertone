@@ -3,10 +3,12 @@
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/ImageAlignment.h"
 #include "tests/ux/CrashScenarios.h"
+#include "tests/ux/MemoryPressureProbe.h"
 #include "tests/ux/PersistenceProbe.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -160,6 +162,31 @@ bool denoiseWorkflowScenario(Context &c, const QString &id) {
         return false;
     const bool cancel = id == "UX-P07-DNS-002";
     auto &d = *c.driver;
+    QElapsedTimer elapsed;
+    elapsed.start();
+    const auto checkpoint = [&](const QString &phase) {
+        d.log({{"action", "denoise_checkpoint"},
+               {"phase", phase},
+               {"elapsed_ms", elapsed.elapsed()},
+               {"memory_pressure", static_cast<int>(MemoryPressureProbe::current(c.editor))},
+               {"ai_busy", c.editor.aiBusy()},
+               {"ai_progress", c.editor.aiProgress()},
+               {"job_state", static_cast<int>(MergeJobProbe::job(c.editor).state())},
+               {"write_blocked", c.storageFault.writeBlocked()},
+               {"error", c.editor.error()}});
+    };
+    // Observe actual OS notifications and production state without injecting
+    // pressure, changing cancellation or writing substitute heartbeat files.
+    QObject observer;
+    auto previousPressure = MemoryPressureProbe::current(c.editor);
+    QObject::connect(&c.editor, &EditorController::stateChanged, &observer, [&] {
+        const auto pressure = MemoryPressureProbe::current(c.editor);
+        if (pressure != previousPressure) {
+            previousPressure = pressure;
+            checkpoint("memory_pressure_changed");
+        }
+    });
+    checkpoint("started");
     auto sources = importSources(c, false);
     const auto source = std::find_if(sources.begin(), sources.end(), [](const auto &asset) {
         return asset.path.filename() == "Frame02.dng";
@@ -175,11 +202,14 @@ bool denoiseWorkflowScenario(Context &c, const QString &id) {
             "Denoise fixture requires a committed edited source");
     require(c.editor.denoiseModelBundled(), "AI Denoise must use the actual bundled model");
     c.reveal("denoise.create");
+    checkpoint("before_create");
     WriteHold hold(c.storageFault);
     d.click("denoise.create");
+    checkpoint("created");
     const auto job = MergeJobProbe::job(c.editor);
     d.wait([&] { return c.storageFault.writeBlocked() || !c.editor.aiBusy(); },
            "Actual CoreML denoise reached durable staging", 60000);
+    checkpoint("staging_wait_finished");
     require(c.storageFault.writeBlocked(), "Denoise failed before staging: " + c.editor.error());
     c.reveal("denoise.cancel");
     d.frame();
@@ -191,14 +221,17 @@ bool denoiseWorkflowScenario(Context &c, const QString &id) {
                 c.editor.currentSettings() == source->edits,
             "AI Denoise processing/progress/Cancel or source state is incorrect");
     d.screenshot(c.root + "/denoise-processing.png");
+    checkpoint("processing_captured");
     if (cancel)
         d.click("denoise.cancel");
     hold.release();
+    checkpoint("staging_released");
     d.wait(
         [&] {
             return job.state() != luma::JobState::queued && job.state() != luma::JobState::running;
         },
         "Actual denoise worker terminated");
+    checkpoint("worker_finished");
     if (cancel) {
         d.frame();
         luma::Catalog catalog(c.catalogFile.toStdString());
@@ -216,9 +249,11 @@ bool denoiseWorkflowScenario(Context &c, const QString &id) {
     } else {
         d.wait([&] { return !c.editor.aiBusy() && c.editor.photoID().toStdString() != source->id; },
                "Denoised DNG became the selected asset");
+        checkpoint("result_selected");
         c.loaded();
         c.saved();
         idle(c);
+        checkpoint("result_loaded");
         luma::Catalog catalog(c.catalogFile.toStdString());
         const auto result = catalog.activeAsset();
         require(result && catalog.libraryCount() == 4 && c.library.count() == 4 &&
