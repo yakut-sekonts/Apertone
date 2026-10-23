@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "reviewed_on": "2026-10-19",
+  "reviewed_on": "2026-10-23",
   "scope": "Current executable adapters, preserving specification mode and scenario text",
   "quality_allowlist": [
     "UX-ADV-001",
@@ -166,6 +166,7 @@
     "UX-NAV-008",
     "UX-NAV-009",
     "UX-NAV-010",
+    "UX-P06-GPU-001",
     "UX-PRS-001",
     "UX-PRS-002",
     "UX-PRS-003",

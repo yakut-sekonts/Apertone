@@ -66,6 +66,7 @@ Dialog {
             onClicked: editor.clearPreviewCache()
         }
         CheckBox {
+            objectName: "settings.metalPreview"
             text: qsTranslate("Luma", "Use Metal for photo previews")
             checked: editor.metalPreview
             onToggled: editor.metalPreview = checked

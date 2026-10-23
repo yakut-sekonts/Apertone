@@ -5,6 +5,13 @@ Development branch: `codex/1.0-development`. The source has advanced to 0.7.0;
 the published stable release remains 0.5.1. No release tag or installer is
 created from this implementation checkpoint.
 
+Qualification update, 2026-10-23: the historical source-only checkpoint above
+has entered final QA. The application builds; the bounded Metal numerical
+oracle, initial cache contract and actual backend-preference UX checks now pass.
+Most phase 0.6 workflows/load/hardware cases remain unqualified. Current results
+and limits are recorded in [final readiness](FINAL_1_0_READINESS.md), not inferred
+from the source-availability capability manifest.
+
 ## Source changes
 
 - `ByteLruCache` retains immutable values under a byte budget. Eviction releases

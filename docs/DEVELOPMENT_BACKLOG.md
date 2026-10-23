@@ -279,3 +279,9 @@ scope: [functional release fixes](qualification/2026-10-23/functional-release-fi
 
 The same interval passed eight earlier native regressions and three native
 PhotoCard repeats; BUG-045 is still open. See [retained follow-up evidence](qualification/2026-10-23/wb-targeted-native-followup.json).
+
+The later three-minute native interval passed SLD016/017 and ADV009 on
+Cocoa/Metal DPR 2 without warnings, completing the bounded native follow-up for
+BUG-046/QA-047. It also passed the first phase 0.6 Metal preference workflow.
+This does not close BUG-045 or full release qualification; see
+[the native/cache evidence](qualification/2026-10-23/phase6-native-preview-followup.json).

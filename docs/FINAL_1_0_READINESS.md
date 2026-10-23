@@ -345,6 +345,36 @@ remain open. No new native UI session or release was performed.
 
 ## Source decisions and qualification requirements
 
+### Initial phase 0.6 contracts and native confirmation — 2026-10-23
+
+The subsequent approved three-minute interval passed **4/4** on Cocoa/Metal,
+DPR 2: SLD016/017, ADV009 and the new P06-GPU-001 Settings workflow. No QML
+warnings, original changes or source/provenance drift were observed. This closes
+the bounded native follow-up for the WB/targeted fixes described below, without
+claiming complete native QA. [Evidence](qualification/2026-10-23/phase6-native-preview-followup.json).
+
+P06-GPU-001 also passes **3/3** offscreen. It toggles the real Metal checkbox in
+both directions and checks a newly rendered preview against its CPU fixture,
+complete edits, saved revision/asset identity, membership/selection, preference
+persistence and one-step Undo/Redo. This is a UI/state-preservation contract;
+actual GPU execution and failure injection require separate evidence.
+
+New `preview-cache-contract` coverage passes LRU eviction, byte accounting,
+immutable active ownership across replacement/purge, stale generation rejection,
+zero-budget purge/resume, invalid replacements and SIZE_MAX arithmetic without
+large allocations. It tests the cache directly, not actual OS memory pressure,
+overall RSS or multi-hour load. All-target build, shipping smoke/probe isolation,
+40 runner tests, 10 workload-policy tests, formatting and blocking tidy checks
+pass; non-blocking optional-access warnings remain in the UI test.
+
+The capability manifest now reflects source availability for 0.6–0.9. Missing
+adapters become explicit SKIPPED/unadapted qualification gaps rather than future
+NOT_IMPLEMENTED capabilities. No unexecuted case becomes PASS. There is one
+official phase 0.6 adapter of 58; phases 0.7/0.8/0.9 still require adapters for
+their 56/50/84 inventory cases, with applicability review for conditional tools.
+Existing unit/model reports remain separate evidence. Release qualification is
+still open, including load, hardware, installation and updater checks.
+
 ### WB, targeted gestures and native follow-up — 2026-10-23
 
 [Evidence](qualification/2026-10-23/wb-targeted-native-followup.json) retains the
