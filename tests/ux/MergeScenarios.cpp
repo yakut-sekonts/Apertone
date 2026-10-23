@@ -14,11 +14,16 @@
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QSettings>
 #include <QtEndian>
 #include <algorithm>
 #include <bit>
+#include <cerrno>
 #include <cmath>
 #include <map>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #ifndef LUMA_UX_MERGE_PROBE
 #error "Merge observation is restricted to the UX executable"
@@ -159,6 +164,123 @@ void unchanged(Context &c, const std::vector<luma::AssetRecord> &sources) {
     }
 }
 } // namespace
+void prepareOfflineModelFixture(const QString &root) {
+    // Verify the process-level network sandbox, without changing the host's
+    // network settings or contacting an external service.
+    const int socket = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (socket < 0)
+        throw std::runtime_error("Cannot create the offline network-denial probe");
+    sockaddr_in address{};
+    address.sin_len = sizeof(address);
+    address.sin_family = AF_INET;
+    address.sin_port = htons(9);
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    const auto result =
+        ::connect(socket, reinterpret_cast<const sockaddr *>(&address), sizeof(address));
+    const int failure = errno;
+    ::close(socket);
+    require(result == -1 && failure == EPERM, "Offline workflow requires actual network denial");
+    require(!QFileInfo::exists(root + "/preview.ini"), "Offline settings fixture is not fresh");
+    // Owned persisted configuration models a custom provider that is no longer
+    // available. The real Core ML loader must report the missing model itself.
+    QSettings settings(root + "/preview.ini", QSettings::IniFormat);
+    settings.setValue("denoiseModel", root + "/unavailable.mlmodelc");
+    settings.sync();
+    require(settings.status() == QSettings::NoError, "Cannot persist offline model fixture");
+}
+bool offlineDailyScenario(Context &c) {
+    auto &d = *c.driver;
+    const auto sources = importSources(c, false);
+    const auto source = std::find_if(sources.begin(), sources.end(), [](const auto &asset) {
+        return asset.path.filename() == "Frame02.dng";
+    });
+    require(source != sources.end(), "Offline workflow lacks its RAW source");
+    const QString card = "library.card." + QString::fromStdString(source->id);
+    d.doubleClick(card);
+    c.loaded();
+    c.saved();
+    luma::Catalog catalog(c.catalogFile.toStdString());
+    const auto baseline = catalog.assetSnapshot(source->id).value();
+    require(c.editor.denoiseModelConfigured() && !c.editor.denoiseModelBundled() &&
+                c.editor.denoiseModelName() == "unavailable.mlmodelc",
+            "Offline fixture did not load the owned unavailable provider configuration");
+    c.reveal("denoise.create");
+    d.click("denoise.create");
+    const auto job = MergeJobProbe::job(c.editor);
+    d.wait([&] { return !c.editor.aiBusy() && !c.editor.error().isEmpty(); },
+           "Actual unavailable Core ML provider reports its error");
+    d.wait(
+        [&] {
+            return job.state() != luma::JobState::queued && job.state() != luma::JobState::running;
+        },
+        "Unavailable provider worker exits");
+    const auto providerError = c.editor.error();
+    d.frame();
+    require(d.item("main.editorError")->isVisible() &&
+                c.editor.currentSettings() == baseline.asset.edits &&
+                catalog.assetSnapshot(source->id)->revision == baseline.revision &&
+                catalog.libraryCount() == 3 && catalog.pendingDerived().empty(),
+            "Provider failure changed committed edits or left a derived operation");
+    d.screenshot(c.root + "/provider-unavailable.png");
+    c.reveal("develop.exposureSlider");
+    d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.65, .5});
+    const auto edited = c.editor.currentSettings();
+    d.wait([&] { return !c.editor.saving() && !c.editor.busy(); },
+           "Non-AI edit commits while the provider remains unavailable");
+    require(edited.exposure > 1 && catalog.assetSnapshot(source->id)->asset.edits == edited,
+            "Unavailable AI prevented non-AI editing or durable save");
+    d.click("main.undoButton");
+    d.wait([&] { return !c.editor.saving(); }, "Offline Undo commits");
+    require(c.editor.currentSettings() == baseline.asset.edits,
+            "Offline Undo did not restore the complete document");
+    d.click("main.redoButton");
+    d.wait([&] { return !c.editor.saving(); }, "Offline Redo commits");
+    require(c.editor.currentSettings() == edited &&
+                catalog.assetSnapshot(source->id)->asset.edits == edited,
+            "Offline Redo did not commit the complete document");
+    const auto decoded = luma::PhotoDecoder().decode(source->path);
+    const auto reference =
+        luma::renderCPU(decoded.image, edited, decoded.metadata.orientation, {}, {},
+                        decoded.calibration, luma::DetailDiagnostic::none, 1, decoded.metadata);
+    const QImage output(c.exportPNG("Offline-daily"));
+    const auto pixels = output.convertToFormat(QImage::Format_RGBA8888);
+    require(!pixels.isNull() && pixels.size() == QSize(reference.width, reference.height) &&
+                output.colorSpace() == QColorSpace(QColorSpace::SRgb),
+            "Offline export lost full resolution or sRGB profile");
+    for (int y = 0; y < pixels.height(); ++y)
+        require(std::equal(pixels.constScanLine(y), pixels.constScanLine(y) + pixels.width() * 4,
+                           reference.rgba.data() + y * reference.width * 4),
+                "Offline export differs from the independent full-source CPU document");
+    // Ordinary navigation must recover the visible error and retain both photos'
+    // own documents; no direct controller error clearing is used.
+    d.click("main.libraryButton");
+    idle(c);
+    const auto other = std::find_if(sources.begin(), sources.end(),
+                                    [&](const auto &asset) { return asset.id != source->id; });
+    require(other != sources.end(), "Offline workflow lacks another unchanged original");
+    d.doubleClick("library.card." + QString::fromStdString(other->id));
+    c.loaded();
+    d.click("main.libraryButton");
+    idle(c);
+    d.doubleClick(card);
+    c.loaded();
+    c.saved();
+    require(c.editor.currentSettings() == edited && catalog.pendingDerived().empty() &&
+                catalog.libraryCount() == 3,
+            "Offline Library return lost the edited document");
+    for (const auto &original : sources) {
+        const auto stored = catalog.assetByID(original.id);
+        require(stored && stored->edits == (original.id == source->id ? edited : original.edits) &&
+                    luma::macos::sha256File(original.path) == original.checksum,
+                "Offline workflow changed an original or another photo's document");
+    }
+    d.log({{"action", "offline_non_ai_daily_workflow"},
+           {"network_denial_verified", true},
+           {"provider_error", providerError},
+           {"export_cpu_pixels_exact", true},
+           {"native_model_picker_navigation", false}});
+    return true;
+}
 luma::JobHandle startMergeForUpdate(Context &c) {
     importSources(c, false);
     auto &d = *c.driver;

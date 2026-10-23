@@ -370,6 +370,12 @@ def build_provenance(build, snapshot):
         return {'status': 'UNVERIFIED', 'path': str(path), 'reason': str(error)}
 
 
+def offline_child_command(identifier, command):
+    if identifier != 'UX-P10-DAY-012':
+        return list(command)
+    return ['/usr/bin/sandbox-exec', '-p', '(version 1) (allow default) (deny network*)', *command]
+
+
 def execute(row, directory, arguments, fixture_folder):
     directory.mkdir(parents=True)
     environment = os.environ.copy()
@@ -392,6 +398,7 @@ def execute(row, directory, arguments, fixture_folder):
         command.extend(['--seed', str(arguments.seed), '--actions', str(arguments.actions)])
         if arguments.replay:
             command.extend(['--replay', str(arguments.replay)])
+    command = offline_child_command(row['id'], command)
     atomic_json(directory / 'command.json', command)
     deadline_seconds = scenario_timeout(row['id'], arguments)
     started = time.monotonic()

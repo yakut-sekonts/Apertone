@@ -85,6 +85,20 @@ class MergeFixtureTests(unittest.TestCase):
                                extra_flags=('--through', '1.0'))
         self.assertEqual((outcome['code'], outcome['base_calls'], len(outcome['calls'])), (0, 0, 1))
 
+    def test_offline_daily_uses_real_owned_raws_without_network_fixtures(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            folder = root / 'case-fixtures/UX-P10-DAY-012'
+            hashes, _ = merge.official_fixture(folder, owned_root=root, case_id=folder.name)
+            control = root / 'case-fixtures/UX-P08-HDR-001'
+            controls, _ = merge.official_fixture(control, owned_root=root, case_id=control.name)
+            self.assertEqual(len(hashes), 3)
+            for path, checksum in controls.items():
+                self.assertEqual(hashes[str(folder / Path(path).name)], checksum)
+        outcome = self.run_cli(['UX-P10-DAY-012'], quality=True,
+                               extra_flags=('--through', '1.0'))
+        self.assertEqual((outcome['code'], outcome['base_calls'], len(outcome['calls'])), (0, 0, 1))
+
     def test_daily_merge_supplies_both_previously_verified_source_sets(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary).resolve()

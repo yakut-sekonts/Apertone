@@ -5,6 +5,23 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Offline provider failure preserves daily work — 2026-10-24
+
+[Evidence](qualification/2026-10-24/offline-daily.json): DAY012 runs under a
+process-only network-denial sandbox, verified inside the child by EPERM on a local
+connection. The production AI provider rejects an unavailable owned custom model
+before inference. Its visible error leaves the committed RAW document untouched;
+normal editing, durable save, complete Undo/Redo, exact full PNG pixels and Library
+away/back continue to work. Original hashes and catalog integrity pass.
+
+Initial and final series each pass **3/3 offscreen + 3/3 Cocoa/Metal**. Mandatory
+tidy required explicit handling of a failed socket creation instead of a helper
+whose throwing behavior is not visible to the analyzer; no check was suppressed.
+Final UX build, 19 affected CTest checks, format and both affected tidy units pass.
+System network settings and native model picker are not exercised. This bounded
+case does not qualify model image quality or actual installation/update.
+**24 blocking / 309 total** applicable IDs remain unadapted. No 1.0 publication.
+
 ### Update waits for cancelled workers — 2026-10-24
 
 [Evidence](qualification/2026-10-24/update-worker-drain.json): UPG012 executes six

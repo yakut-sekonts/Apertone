@@ -7,6 +7,7 @@ import struct
 import zlib
 
 CASE_PROFILE_IDS = {
+    'UX-P10-DAY-012',
     'UX-P10-UPG-012',
     'UX-P10-DAY-011',
     'UX-P09-FLT-006',
