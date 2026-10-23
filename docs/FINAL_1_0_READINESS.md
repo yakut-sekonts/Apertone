@@ -5,6 +5,20 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Complete 100-photo culling workflow — 2026-10-24
+
+[Evidence](qualification/2026-10-24/daily-culling.json): DAY003 imports 100 distinct
+owned images, rates/flags two groups, checks exact filter/selection/collection IDs,
+edits one member and applies a preset to ten members. All 100 saved documents are
+checked; exactly ten full-resolution sRGB PNGs match independent CPU pixels. All
+original hashes, untouched documents and catalog integrity pass. Final series is
+**3/3 offscreen + 3/3 Cocoa/Metal**. Initial adapter failures are retained: row count
+arrives before identity pages, and equal counts cannot identify a completed query.
+The adapter now waits for exact expected IDs with unchanged timeouts/driver/product.
+Build, 19 affected CTest checks, format and both affected tidy units pass.
+This does not claim photographic quality, native picker navigation or large-catalog
+performance. **22 blocking / 307 total** applicable IDs remain unadapted.
+
 ### External-volume relink daily workflow — 2026-10-24
 
 [Evidence](qualification/2026-10-24/daily-external-relink.json): DAY009 uses a real

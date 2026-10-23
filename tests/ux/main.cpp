@@ -27,6 +27,7 @@ bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
 bool mergeDailyScenario(Context &, const QString &);
 bool offlineDailyScenario(Context &);
+bool dailyCullingScenario(Context &);
 void prepareOfflineModelFixture(const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
 void prepareMissingStartupSource(const QString &, const QString &);
@@ -70,10 +71,10 @@ int main(int argc, char **argv) {
     ShutdownMarker contextDestroying{"context.owner.destroy.begin"};
     try {
         const auto id = parser.value("case");
-        if (id == "UX-P10-DAY-009")
+        if (id == "UX-P10-DAY-009" || id == "UX-P10-DAY-003")
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
-                        "Daily external-volume relink requires fresh owned state");
+                        "Daily workflow requires fresh owned state");
         if (id == "UX-P10-DAY-012") {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
@@ -205,7 +206,9 @@ int main(int argc, char **argv) {
         }
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
                                                 stateRoot, updaterProbe);
-        if (id == "UX-P10-DAY-012")
+        if (id == "UX-P10-DAY-003")
+            ux::require(ux::dailyCullingScenario(*context), "Daily culling workflow unavailable");
+        else if (id == "UX-P10-DAY-012")
             ux::require(ux::offlineDailyScenario(*context), "Offline daily workflow unavailable");
         else if (id == "UX-P10-DAY-011")
             ux::require(ux::mergeDailyScenario(*context, parser.value("variant")),
