@@ -177,6 +177,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P09-META-002 --case UX-P09-META-007 --case UX-P09-XMP-002 --case UX-P09-XMP-003 --case UX-P09-XMP-004 --case UX-P09-XMP-005 --runs 3 --require-build-provenance --report build/ux-metadata-xmp-report
       - name: Catalog backup and restore regression
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P09-BKP-001 --case UX-P09-BKP-002 --case UX-P09-BKP-006 --case UX-P09-BKP-007 --runs 3 --require-build-provenance --report build/ux-catalog-backup-report
+      - name: Implemented phase 1.0 daily and data workflows
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --through 1.0 --suite blocking --quality-only --case UX-P10-DAT-004 --case UX-P10-DAT-005 --case UX-P10-DAY-003 --case UX-P10-DAY-007 --case UX-P10-DAY-009 --case UX-P10-DAY-010 --case UX-P10-DAY-011 --case UX-P10-DAY-012 --case UX-P10-DAY-013 --case UX-P10-UPG-012 --runs 3 --require-build-provenance --report build/ux-phase-1-report
       - name: Upload release UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -194,6 +196,7 @@ jobs:
             build/ux-viewer-input-report/
             build/ux-metadata-xmp-report/
             build/ux-catalog-backup-report/
+            build/ux-phase-1-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
             build/ux-thumbnail-away-back-report/
@@ -205,6 +208,9 @@ jobs:
             build/ux-artifacts/20*/fixture-manifest.json
             build/ux-artifacts/20*/**/result.json
             build/ux-artifacts/20*/**/child-result.json
+            build/ux-artifacts/20*/**/data-invariants.json
+            build/ux-artifacts/20*/**/serialized-audit.json
+            build/ux-artifacts/20*/**/activation-failure.json
             build/ux-artifacts/20*/**/metrics.json
             build/ux-artifacts/20*/**/actions.jsonl
             build/ux-artifacts/20*/**/keyboard-activation.json

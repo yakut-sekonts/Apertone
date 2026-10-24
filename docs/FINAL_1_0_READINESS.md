@@ -5,6 +5,29 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Phase 1.0 CI routing and local signed candidate — 2026-10-24
+
+[Evidence](qualification/2026-10-24/phase1-ci-and-candidate-signature.json): the
+explicit hosted-compatible phase 1.0 route passes **30/30**. CI and release
+workflows now run these ten implemented IDs three times even while the source
+version remains 0.9.0. Native-only A11Y002 remains a separate Cocoa requirement.
+
+The first route attempt retained **29 PASS / 1 FAIL**: DAY003 selected photos
+before a debounced flag-filter reload when old/new result identities matched.
+The harness now observes the actual reload before selection and verifies the
+selection remains exact after collection creation. Its focused retest passes
+**5/5**, followed by the 30-case route. Production code and timeouts are unchanged;
+affected mandatory clang-tidy, format, YAML parsing and diff checks pass.
+
+Local 0.9.0 candidate artifacts at source 91caa17 pass strict ad-hoc signature,
+SDK-hidden standalone execution and read-only DMG checks. The actual 434,015,893-byte
+ZIP is signed with the dedicated Sparkle key and independently verified by
+CryptoKit. A one-byte archive alteration, unrelated public key and truncated
+signature are rejected; original ZIP/hash manifest remain valid. The candidate
+feed is local only and is **not** a published update or final 1.0 qualification.
+CI 40037519005 on older head 1c1c37e completed successfully including clang-tidy;
+latest-head CI and all remaining release gates still require completion.
+
 ### Reproducible stable migration and native activation blocker — 2026-10-24
 
 [Evidence](qualification/2026-10-24/stable-migration-adapter.json) adds

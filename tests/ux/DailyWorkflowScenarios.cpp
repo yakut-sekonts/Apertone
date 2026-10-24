@@ -6,6 +6,7 @@
 #include <QColorSpace>
 #include <QDir>
 #include <QImage>
+#include <QSignalSpy>
 #include <algorithm>
 #include <map>
 #include <set>
@@ -68,6 +69,15 @@ void search(Context &c, const QString &text, const Ids &expected) {
         "Daily search result");
     require(visibleIDs(c) == expected, "Daily search returned the wrong photos");
 }
+void chooseFilter(Context &c, const QString &selector, int index) {
+    QSignalSpy reloads(&c.library, &LibraryModel::reloadStarted);
+    c.driver->choose(selector, index);
+    // Different filters can return identical photos. Wait for the debounced
+    // reload itself before selecting; matching identities alone are not enough.
+    c.driver->wait([&] { return !reloads.empty(); }, "Daily filter reload started");
+    require(!reloads.front().front().toBool(), "Daily filter must reset the view");
+    idle(c);
+}
 } // namespace
 
 bool dailyCullingScenario(Context &c) {
@@ -120,11 +130,9 @@ bool dailyCullingScenario(Context &c) {
         }
     };
     checkMetadata();
-    d.choose("library.ratingFilter", 3);
-    idle(c);
+    chooseFilter(c, "library.ratingFilter", 3);
     expectVisible(c, picked, "Daily rating filter returned expected identities");
-    d.choose("libraryFlagFilter", 3);
-    idle(c);
+    chooseFilter(c, "libraryFlagFilter", 3);
     expectVisible(c, picked, "Daily combined flag/rating filter returned expected identities");
     selectAll(c, picked);
     d.click("library.newCollection");
@@ -139,6 +147,11 @@ bool dailyCullingScenario(Context &c) {
     require(collections.size() == 1 && collections.front().name == "Daily picks",
             "Daily collection was not durably created");
     const auto collection = collections.front().id;
+    const auto selected = c.library.selectionIDs();
+    require(Ids(selected.begin(), selected.end()) == picked,
+            "Daily collection creation changed the selected photos");
+    d.wait([&] { return d.item("libraryAddToCollection")->isEnabled(); },
+           "Daily collection membership control ready");
     d.click("libraryAddToCollection");
     idle(c);
     luma::LibraryFilter collectionFilter;

@@ -796,3 +796,16 @@ qualification and the latest local fixes still require the remaining campaign.
   it is not a claim that a release job has already timed out or passed.
 
 [Evidence](qualification/2026-10-24/completed-ci-budget.json).
+
+### LUMA-QA-080 — Daily workflow starts selection before a same-result filter reload
+
+- Status: **harness fixed; 5 focused + 30 phase-route offscreen checks PASS**.
+- DAY003's initial hosted-route repeat 2 fails with disabled Add to collection.
+  Rating-only and rating+flag filters have identical expected members; the old
+  readiness predicate accepted the pre-filter model before the 160 ms debounce.
+- Wait for `reloadStarted` from the actual filter input, then Library idle before
+  selecting. Verify the exact selected IDs after collection creation and await
+  the actual membership control. No production or timeout change.
+- Both CI workflows explicitly include the ten implemented hosted-compatible
+  phase 1.0 IDs; retain native A11Y002 as a separate requirement.
+- [Original failure and retest evidence](qualification/2026-10-24/phase1-ci-and-candidate-signature.json).
