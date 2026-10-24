@@ -14,6 +14,7 @@ import sys
 import xml.etree.ElementTree as ET
 import zipfile
 from model_assets import describe_models, verify_zip
+from release_identity import verify_zip_identity
 
 repository = os.environ.get("GITHUB_REPOSITORY")
 if repository != "yakut-sekonts/Luma":
@@ -79,6 +80,7 @@ if int(version.split(".")[0]) >= 1 or "bundled_models" in info:
         raise SystemExit("Release requires both pinned offline models and their manifest checksum.")
     with zipfile.ZipFile(paths[0]) as archive:
         verify_zip(archive, model_digest)
+        verify_zip_identity(archive, info)
 
 def gh(*args, check=True):
     result = subprocess.run(["gh", *args, "--repo", repository], capture_output=True, text=True)

@@ -3,6 +3,7 @@ import hashlib
 import base64
 import json
 import os
+import plistlib
 from pathlib import Path
 import subprocess
 import sys
@@ -16,7 +17,7 @@ from model_assets import SOURCES, describe_models, digest, recipe_digest
 
 
 class ReleasePublisherTests(unittest.TestCase):
-    def run_case(self, mode, version="0.3.0", info_override=None):
+    def run_case(self, mode, version="0.3.0", info_override=None, archive_mode=None):
         with tempfile.TemporaryDirectory(prefix="luma-publisher-") as temporary:
             root = Path(temporary)
             assets = root / "dist/release"
@@ -43,11 +44,31 @@ class ReleasePublisherTests(unittest.TestCase):
                             bundled_models=models, models_manifest_sha256=hashlib.sha256(raw).hexdigest())
             if mode.startswith("signed-") or int(version.split(".")[0]) >= 1:
                 info["dependencies"] = {"Sparkle": "2.10.0"}
-                if mode != "signed-missing":
-                    signature = base64.b64encode(bytes(64)).decode()
-                    feed_version = "0.2.0" if mode == "signed-wrong-version" else version
-                    (assets / "appcast.xml").write_text(f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><enclosure url="https://github.com/yakut-sekonts/Luma/releases/download/v{version}/Luma-{version}-macos-arm64.zip" length="{(assets / f'Luma-{version}-macos-arm64.zip').stat().st_size}" sparkle:version="{feed_version}" sparkle:edSignature="{signature}" /></item></channel></rss>')
             info.update(info_override or {})
+            if int(version.split(".")[0]) >= 1:
+                embedded = dict(info)
+                if embedded.get("signing") == "developer-id":
+                    embedded.pop("notarized", None)
+                    embedded.pop("notarization", None)
+                plist = {"CFBundleIdentifier": "app.luma.desktop", "CFBundleExecutable": "Luma",
+                         "CFBundleShortVersionString": version, "CFBundleVersion": version}
+                if archive_mode == "stale-source": embedded["source_commit"] = "c" * 40
+                if archive_mode == "stale-version": embedded["version"] = "0.9.0"
+                if archive_mode == "different-signing": embedded["signing"] = "developer-id"
+                if archive_mode == "different-models": embedded["models_manifest_sha256"] = "0" * 64
+                if archive_mode == "wrong-plist-version": plist["CFBundleShortVersionString"] = "0.9.0"
+                if archive_mode == "wrong-plist-build": plist["CFBundleVersion"] = "0.9.0"
+                if archive_mode == "wrong-app-id": plist["CFBundleIdentifier"] = "app.other.desktop"
+                if archive_mode == "wrong-executable": plist["CFBundleExecutable"] = "Other"
+                with zipfile.ZipFile(assets / f"Luma-{version}-macos-arm64.zip", "a") as archive:
+                    if archive_mode != "missing-build-info":
+                        archive.writestr("Luma.app/Contents/Resources/BUILD_INFO.json", json.dumps(embedded))
+                    archive.writestr("Luma.app/Contents/Info.plist", plistlib.dumps(plist))
+                    archive.writestr("Luma.app/Contents/MacOS/Luma", b"synthetic executable fixture")
+            if info.get("dependencies", {}).get("Sparkle") and mode != "signed-missing":
+                signature = base64.b64encode(bytes(64)).decode()
+                feed_version = "0.2.0" if mode == "signed-wrong-version" else version
+                (assets / "appcast.xml").write_text(f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><enclosure url="https://github.com/yakut-sekonts/Luma/releases/download/v{version}/Luma-{version}-macos-arm64.zip" length="{(assets / f'Luma-{version}-macos-arm64.zip').stat().st_size}" sparkle:version="{feed_version}" sparkle:edSignature="{signature}" /></item></channel></rss>')
             (assets / "BUILD_INFO.json").write_text(json.dumps(info))
             entries = []
             for path in sorted(assets.iterdir()):
@@ -129,6 +150,15 @@ if args[0] == "api":
                 result, calls = self.run_case("valid", "1.0.0", override)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(calls, [], "Invalid local provenance contacted GitHub")
+
+    def test_archive_identity_must_match_release_before_any_github_request(self):
+        for mode in ("stale-source", "stale-version", "different-signing", "different-models",
+                     "wrong-plist-version", "wrong-plist-build", "wrong-app-id",
+                     "wrong-executable", "missing-build-info"):
+            with self.subTest(mode=mode):
+                result, calls = self.run_case("valid", "1.0.0", archive_mode=mode)
+                self.assertNotEqual(result.returncode, 0, "Mismatched archive was published")
+                self.assertEqual(calls, [], "Mismatched archive contacted GitHub")
 
     def test_optional_developer_id_requires_both_accepted_receipts(self):
         receipts = {kind: {"status": "Accepted", "submission_id": "12345678-1234-1234-1234-123456789abc"}

@@ -5,6 +5,28 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Release archive/installer identity — 2026-10-24
+
+[Evidence](qualification/2026-10-24/release-package-identity.json): nine controlled,
+network-free negative cases reproduced acceptance of stale or missing embedded
+ZIP metadata despite correct outer release checksums. Publication now checks exact
+embedded/release BUILD_INFO and the plist version/build/app/executable identity
+before contacting GitHub. The installer check additionally compares every regular
+file, executable bit and symlink target against the ZIP. Only post-signing Developer
+ID receipt fields may differ; existing signing/model/source gates remain intact.
+
+Nine publisher tests, ten package negative-control tests and five affected CTest
+targets pass. The existing signed 0.9.0 candidate at 91caa17 passes the actual
+read-only DMG/ZIP comparison: **2,350 files/symlinks; 564,917,208 regular-file bytes**.
+The owned volume detached successfully and archive checksums stayed unchanged.
+This old candidate predates the Import Cancel fix and is not a final artifact.
+
+PhotoCard's unchanged-source attribution series passes **50/50 offscreen**, with
+normal pressure in every observed callback. This does not establish the cause of
+the historical URL-only mismatch, so BUG045 remains open. A nonpublishing hosted
+candidate build at 535eb54 has passed signing configuration and is still running;
+it predates this package-audit change. No final CI/release approval is claimed.
+
 ### History chaos baseline and native measurement routing — 2026-10-24
 
 [Evidence](qualification/2026-10-24/history-chaos-and-native-contracts.json): the

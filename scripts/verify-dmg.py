@@ -8,7 +8,9 @@ import time
 import subprocess
 import sys
 import tempfile
+import zipfile
 from model_assets import digest, verify_artifacts
+from release_identity import verify_bundle_matches_zip
 
 root = Path(__file__).resolve().parents[1]
 image = Path(sys.argv[1]).resolve()
@@ -47,6 +49,10 @@ try:
     model_manifest = verify_artifacts(models)
     assert provenance["bundled_models"] == model_manifest["models"]
     assert provenance["models_manifest_sha256"] == digest(models / "manifest.json")
+    release_info = json.loads((image.parent / "BUILD_INFO.json").read_text())
+    with zipfile.ZipFile(image.with_suffix(".zip")) as archive:
+        identity = verify_bundle_matches_zip(app, archive, release_info)
+    print("Installer/archive identity: " + json.dumps(identity, sort_keys=True))
     run("codesign", "--verify", "--deep", "--strict", app)
     executable = app / "Contents/MacOS/Luma"
     env = os.environ.copy()

@@ -464,6 +464,8 @@ if(BUILD_TESTING)
     set_tests_properties(signed-update-feed PROPERTIES TIMEOUT 180)
     add_test(NAME release-publisher COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/release_publisher.py")
+    add_test(NAME release-archive-identity COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/release_identity.py")
     add_test(NAME release-dmg-recovery COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/release_dmg.py")
     add_test(NAME release-build-verification COMMAND ${Python3_EXECUTABLE}

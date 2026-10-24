@@ -854,3 +854,24 @@ qualification and the latest local fixes still require the remaining campaign.
   Do not bypass the system-app refusal or change startup timeouts to call it PASS.
 
 [Original failures, replay and backend evidence](qualification/2026-10-24/history-chaos-and-native-contracts.json).
+
+### LUMA-BUG-085 — Publisher does not verify the identity embedded in the ZIP
+
+- Status: **fixed; nine reproduced negative cases reject before GitHub access**.
+- Outer checksums/model manifests can be valid while ZIP BUILD_INFO/plist are
+  stale, inconsistent or absent. The original publisher accepts all nine owned
+  synthetic counterexamples; no real release was published by those tests.
+- Validate embedded provenance against release metadata and exact plist identity.
+  Compare mounted installer regular files, executable bits and symlink targets to
+  the ZIP, including the actual executable/resources/frameworks and model files.
+- Ten identity controls reject tampering, missing/extra files, changed executable
+  permissions, altered symlinks, ambiguous ZIP paths and substituted metadata.
+  Five affected CTest targets pass. The actual older candidate comparison passes
+  for 2,350 members; it does not qualify current/final installation or upgrade.
+- [Reproduction, tests and actual candidate evidence](qualification/2026-10-24/release-package-identity.json).
+
+### BUG-045 attribution follow-up — 2026-10-24
+
+Fifty unchanged-source offscreen repetitions pass, with normal memory pressure in
+all observed callbacks and exact source/catalog invariants. No original failure
+cause was captured. Keep the defect open; do not infer a fix from these passes.
