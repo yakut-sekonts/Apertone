@@ -829,3 +829,28 @@ qualification and the latest local fixes still require the remaining campaign.
 - Three 200-cycle Import and Export runs pass, and the blocking check passes 3/3.
   Production build, CTest 71 PASS/1 private NEF SKIP and affected tidy pass.
 - [Initial failures, diagnostics and retests](qualification/2026-10-24/stress-import-cancel-fixes.json).
+
+### LUMA-QA-083 — History chaos uses an exact-only pixel oracle for Metal
+
+- Status: **harness fixed; original 10,000-action replay PASS**.
+- The step-200 checkpoint has exact full document/history/autosave and one RGB
+  channel differing by one level. Diagnostic reproduction and images are retained.
+- Reuse the established GPU-compatible Metal pixel budget, with exact CPU/alpha,
+  geometry/color space/DPR and existing oracle negative controls. No production
+  render, timeout, action schedule or checkpoint frequency changed.
+- The byte-identical original replay completes 100 durable checkpoints and the
+  final retained-history sweep. This does not qualify general chaos or soak.
+
+### LUMA-QA-084 — Offscreen routing attempts Cocoa-only performance contracts
+
+- Status: **runner classification fixed; native measurement still blocked**.
+- NAV002, PRV002, ADV012 and PERF006 explicitly reject non-Cocoa in their existing
+  adapters. The first offscreen run preserves these four precondition failures.
+- Register their existing platform contracts before fixtures/processes launch.
+  Real CLI produces four unsupported-backend skips, exit 1, INCOMPLETE and
+  NOT_QUALIFIED. Twelve routing tests pass; native selection remains eligible.
+- FLT002 and TRN013 have offscreen functional passes, not native SLO acceptance.
+- Fresh native startup remains blocked by UserNotificationCenter at 01:56 UTC.
+  Do not bypass the system-app refusal or change startup timeouts to call it PASS.
+
+[Original failures, replay and backend evidence](qualification/2026-10-24/history-chaos-and-native-contracts.json).

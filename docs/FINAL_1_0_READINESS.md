@@ -5,6 +5,34 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### History chaos baseline and native measurement routing — 2026-10-24
+
+[Evidence](qualification/2026-10-24/history-chaos-and-native-contracts.json): the
+original seeded **10,000-action** schedule now completes with **100 durable
+checkpoints**, exact typed documents, natural autosave and retained Undo/Redo.
+The replay is byte-identical to the initial failing schedule. That failure and a
+diagnostic reproduction remain retained: one Metal RGB channel differed by one
+level, with exact alpha. The oracle now uses the existing GPU-compatible Metal
+budget; CPU, alpha, geometry, color space and DPR remain exact, and existing
+negative controls execute before the scenario. Production rendering is unchanged.
+
+Release CI now mandates the 15 implemented stress IDs and this complete seeded
+history baseline, retaining schedules, measurements and execution traces. Local
+affected unit/CTest checks, mandatory tidy, format and graph diagnostics pass.
+This bounded three-slider/Undo/Redo schedule is not general Chaos Monkey or soak.
+
+The attempted offscreen performance subset records **2 PASS / 4 native-only
+precondition FAIL**. The runner now classifies those four explicitly Cocoa-only
+contracts before spawning fixtures or child processes: **4 unsupported-backend
+SKIP**, exit 1, INCOMPLETE and NOT_QUALIFIED. Twelve routing tests pass. Neither
+this classification nor the two functional passes qualify native performance.
+
+An ordinary native readiness recheck at 01:56 UTC still fails before the scenario:
+UserNotificationCenter retains foreground while Luma is visible and key-capable.
+Manual dismissal remains pending; the system-app safety refusal was not bypassed.
+The remaining native, installation/update, artifact, broader data-safety, soak and
+hardware gates remain open. No new hosted result or published candidate is claimed.
+
 ### Implemented stress campaign and Import Cancel — 2026-10-24
 
 [Evidence](qualification/2026-10-24/stress-import-cancel-fixes.json): the first

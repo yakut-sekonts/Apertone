@@ -41,12 +41,16 @@ import zlib
 
 CASE_PROFILE_IDS = AI_PROFILE_IDS | CATALOG_SCALE_IDS | MERGE_PROFILE_IDS | THUMBNAIL_PROFILE_IDS | {WATERMARK_CASE, CROP_DONE_CASE, CURRENT_FILENAME_CASE, PARTIAL_RENDER_CASE, METADATA_DISPLAY_CASE}
 
-# These adapters have explicit actual-native render contracts. NATIVE below means
+# These adapters have explicit actual-native render/measurement contracts. NATIVE below means
 # implemented adapter, not compatibility with every requested Qt backend.
 NATIVE_ONLY_CONTRACTS = {
     'UX-MAC-001': {'platform': 'cocoa', 'graphics_api': 'metal', 'device_pixel_ratio': 2},
     CROP_DONE_CASE: {'platform': 'cocoa', 'graphics_api': 'metal'},
     'UX-P10-A11Y-002': {'platform': 'cocoa'},
+    'UX-NAV-002': {'platform': 'cocoa'},
+    'UX-PRV-002': {'platform': 'cocoa'},
+    'UX-ADV-012': {'platform': 'cocoa'},
+    'UX-PERF-006': {'platform': 'cocoa'},
 }
 
 

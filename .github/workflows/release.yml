@@ -179,6 +179,10 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P09-BKP-001 --case UX-P09-BKP-002 --case UX-P09-BKP-006 --case UX-P09-BKP-007 --runs 3 --require-build-provenance --report build/ux-catalog-backup-report
       - name: Implemented phase 1.0 daily and data workflows
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --through 1.0 --suite blocking --quality-only --case UX-P10-DAT-004 --case UX-P10-DAT-005 --case UX-P10-DAY-003 --case UX-P10-DAY-007 --case UX-P10-DAY-009 --case UX-P10-DAY-010 --case UX-P10-DAY-011 --case UX-P10-DAY-012 --case UX-P10-DAY-013 --case UX-P10-UPG-012 --runs 3 --require-build-provenance --report build/ux-phase-1-report
+      - name: Implemented stress workloads
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --through 1.0 --suite stress --case UX-APP-005 --case UX-IMP-019 --case UX-SLD-013 --case UX-SLD-014 --case UX-PRV-008 --case UX-ADV-013 --case UX-TRN-014 --case UX-DTL-011 --case UX-PRS-019 --case UX-BAT-014 --case UX-EXP-023 --case UX-EXP-024 --case UX-UND-016 --case UX-PERF-017 --case UX-PERF-018 --runs 1 --require-build-provenance --report build/ux-stress-report
+      - name: Seeded history chaos - 10000 actions
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --through 1.0 --suite chaos --case UX-UND-017 --actions 10000 --seed 123456 --require-build-provenance --report build/ux-history-chaos-report
       - name: Upload release UX evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -197,6 +201,8 @@ jobs:
             build/ux-metadata-xmp-report/
             build/ux-catalog-backup-report/
             build/ux-phase-1-report/
+            build/ux-stress-report/
+            build/ux-history-chaos-report/
             build/ux-card-flags-report/
             build/ux-thumbnail-response-report/
             build/ux-thumbnail-away-back-report/
@@ -211,6 +217,10 @@ jobs:
             build/ux-artifacts/20*/**/data-invariants.json
             build/ux-artifacts/20*/**/serialized-audit.json
             build/ux-artifacts/20*/**/activation-failure.json
+            build/ux-artifacts/20*/**/measurements.json
+            build/ux-artifacts/20*/**/replay.jsonl
+            build/ux-artifacts/20*/**/chaos-execution.jsonl
+            build/ux-artifacts/20*/**/panel-stress-failure.json
             build/ux-artifacts/20*/**/metrics.json
             build/ux-artifacts/20*/**/actions.jsonl
             build/ux-artifacts/20*/**/keyboard-activation.json
