@@ -5,6 +5,37 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Resumed native regression and stable-catalog migration — 2026-10-24
+
+[Evidence](qualification/2026-10-24/native-regression-remainder.json): the resumed
+101-case Cocoa/Metal campaign completed **97 PASS / 4 FAIL** with unchanged source
+fingerprint and originals. REC008 displayed the correct new preview; one RGB channel
+differed by one level. Its oracle now uses the established Metal budget, with exact
+CPU/alpha. VIS012's second click targeted a clipped toggle over the Filmstrip after
+wheel-to-top. Every cycle now reveals the toggle, checks ancestor clipping and counts
+its actual pointer/keyboard clicks. **20 native + 20 offscreen cycles pass**.
+
+A zoom failure reproduced with passive diagnostics: a real macOS memory-pressure
+warning changed zoomAvailable to false. The functional fixture now releases its
+redundant full FloatImage before input and waits for actual control recovery, without
+injecting normal pressure, disabling monitoring or widening timeouts. Final REC008,
+zoom and separate warning/critical recovery cases pass **15/15 native + 15/15
+offscreen**. Initial failed attempts remain retained. Build, affected mandatory tidy,
+format and diff checks pass; production code did not change in this follow-up.
+
+All **275 currently implemented REGRESSION IDs** now have a passing observation
+across the source-bound campaign checkpoints. This is not a single-source full release
+run or coverage of the **21 blocking / 306 total** unadapted IDs. BUG045, final
+installation/update/artifact and long-running/hardware gates remain open.
+
+[Stable migration pilot](qualification/2026-10-24/stable-051-migration-pilot.json):
+actual signed 0.5.1 creates and reopens three owned RAW/WebP catalogs. The development
+executable migrates schema 11 to 21, preserves historical data and full typed edits,
+creates readable exact pre-migration backups and reopens again. Original hashes and
+exported PNG bytes match across versions and restarts. Two earlier fixture-setup
+failures are retained. This bounded pilot does not qualify final installation or
+actual Sparkle replacement; the official adapter inventory is unchanged.
+
 ### Native regression crash and responsive Library viewport — 2026-10-24
 
 [Evidence](qualification/2026-10-24/native-regression-fixes.json): the broader

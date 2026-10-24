@@ -882,8 +882,26 @@ bool visualRemainingScenario(Context &c, const QString &id) {
         };
         const double collapsed = check();
         focusByActualTab(c, "localPanelToggle"); // Acquire while visible, before deep wheel input.
+        QSignalSpy toggledClicks(toggle, SIGNAL(clicked()));
+        require(toggledClicks.isValid(), "Dynamic relayout toggle click signal is absent");
         for (int cycle = 0; cycle < 20; ++cycle) {
+            // Each previous cycle returns to the Histogram at the top. Local
+            // adjustments can then be clipped even when its scene point still
+            // lies inside the window, over an unrelated Filmstrip card.
+            c.reveal("localPanelToggle");
+            const auto center = toggle->mapToScene({toggle->width() / 2, toggle->height() / 2});
+            for (auto *ancestor = toggle->parentItem(); ancestor; ancestor = ancestor->parentItem())
+                require(!ancestor->clip() ||
+                            ancestor->boundingRect().contains(ancestor->mapFromScene(center)),
+                        "Dynamic relayout click target is clipped by its scroll viewport");
+            d.log({{"action", "dynamic_scrollbar_toggle_target"},
+                   {"cycle", cycle + 1},
+                   {"center_x", center.x()},
+                   {"center_y", center.y()},
+                   {"content_y", view->property("contentY").toDouble()}});
             d.click("localPanelToggle");
+            require(toggledClicks.count() == cycle * 2 + 1,
+                    "Dynamic relayout pointer did not activate the actual toggle once");
             d.wait(
                 [&] {
                     return toggle->property("checked").toBool() &&
@@ -896,6 +914,8 @@ bool visualRemainingScenario(Context &c, const QString &id) {
             require(c.window->activeFocusItem() == toggle,
                     "Discrete wheel input did not retain the actually focused toggle button");
             d.key(Qt::Key_Space); // Real focused keyboard action while scrolled to the old maximum.
+            require(toggledClicks.count() == cycle * 2 + 2,
+                    "Dynamic relayout keyboard did not activate the actual toggle once");
             d.wait(
                 [&] {
                     return !toggle->property("checked").toBool() &&

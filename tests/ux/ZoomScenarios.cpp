@@ -33,6 +33,46 @@
 
 namespace ux {
 namespace {
+void observeZoomAvailability(Context &c, QObject &owner) {
+    const auto record = [&c](const QString &reason) {
+        c.driver->log({{"action", "zoom_availability_observation"},
+                       {"reason", reason},
+                       {"pressure", int(MemoryPressureProbe::current(c.editor))},
+                       {"available", c.editor.zoomAvailable()},
+                       {"has_photo", c.editor.hasPhoto()},
+                       {"busy", c.editor.busy()},
+                       {"preview_url", c.editor.previewUrl()}});
+    };
+    record("initial");
+    QObject::connect(&c.editor, &EditorController::stateChanged, &owner,
+                     [&c, record, pressure = MemoryPressureProbe::current(c.editor),
+                      available = c.editor.zoomAvailable()]() mutable {
+                         const auto nextPressure = MemoryPressureProbe::current(c.editor);
+                         const auto nextAvailable = c.editor.zoomAvailable();
+                         if (nextPressure != pressure || nextAvailable != available) {
+                             record("state_changed");
+                             pressure = nextPressure;
+                             available = nextAvailable;
+                         }
+                     });
+}
+void awaitZoomControls(Context &c) {
+    // Real OS pressure can arrive during the independent large-image oracle.
+    // A disabled zoom control is the intentional memory fallback. Wait for the
+    // actual normal/recovered state; never inject pressure or suppress callbacks.
+    QElapsedTimer elapsed;
+    elapsed.start();
+    c.driver->wait(
+        [&] {
+            return c.editor.zoomAvailable() &&
+                   c.driver->item("develop.actualPixels")->isEnabled() &&
+                   c.driver->item("develop.zoomPercent")->isEnabled();
+        },
+        "Zoom controls recovered from actual OS memory pressure");
+    c.driver->log({{"action", "zoom_controls_available"},
+                   {"wait_ms", elapsed.elapsed()},
+                   {"pressure", int(MemoryPressureProbe::current(c.editor))}});
+}
 QByteArray sourceHash(const QString &path) {
     QFile source(path);
     require(source.open(QIODevice::ReadOnly), "Cannot read own zoom fixture");
@@ -570,20 +610,26 @@ bool zoomScenario(Context &c, const QString &id) {
     if (id != "UX-P06-ZOM-001" && id != "UX-P06-ZOM-002")
         return false;
     auto &d = *c.driver;
+    QObject availabilityObserver;
+    observeZoomAvailability(c, availabilityObserver);
     const auto source = openChart(c);
     const auto &path = source.path;
     const auto hash = QString::fromLatin1(source.hash);
-    const auto decoded = luma::PhotoDecoder().decode(path.toStdString());
-    require(decoded.image.width == 3072 && decoded.image.height == 2048,
-            "Zoom fixture was not decoded at full resolution");
+
     c.reveal("develop.exposureSlider");
     d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.6, .5});
     c.saved();
     const auto document = c.editor.currentSettings();
     require(c.editor.canUndo() && !c.editor.canRedo() && document.exposure != 0,
             "Zoom fixture needs one committed UI edit");
-    const auto fit = reference(c, decoded, document, 2560);
-    const auto full = reference(c, decoded, document, 0);
+    // Release the oracle's duplicate full FloatImage before exercising zoom.
+    // Both independent pixel references remain immutable for every assertion.
+    const auto [fit, full] = [&] {
+        const auto decoded = luma::PhotoDecoder().decode(path.toStdString());
+        require(decoded.image.width == 3072 && decoded.image.height == 2048,
+                "Zoom fixture was not decoded at full resolution");
+        return std::pair{reference(c, decoded, document, 2560), reference(c, decoded, document, 0)};
+    }();
     require(fit.width() == 2560 && full.size() == QSize(3072, 2048),
             "Zoom fixture must distinguish reduced and full-resolution rendering");
     ready(c, fit);
@@ -597,6 +643,7 @@ bool zoomScenario(Context &c, const QString &id) {
     for (int cycle = 0; cycle < 2; ++cycle) {
         if (cycle == 1)
             d.resize({c.window->width() + 1, c.window->height() + 1});
+        awaitZoomControls(c);
         auto previous = c.editor.previewUrl();
         d.click("develop.actualPixels");
         ready(c, full, previous);
@@ -1293,12 +1340,16 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
         id != "UX-PRV-012")
         return false;
     auto &d = *c.driver;
+    QObject availabilityObserver;
+    observeZoomAvailability(c, availabilityObserver);
     const auto source = openChart(c);
-    const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
     const auto document = c.editor.currentSettings();
-    const auto fit = reference(c, decoded, document, 2560);
-    const auto full = reference(c, decoded, document, 0);
+    const auto [fit, full] = [&] {
+        const auto decoded = luma::PhotoDecoder().decode(source.path.toStdString());
+        return std::pair{reference(c, decoded, document, 2560), reference(c, decoded, document, 0)};
+    }();
     ready(c, fit);
+    awaitZoomControls(c);
     const auto saved = savedSnapshot(c);
     const auto selection = c.library.selectionIDs();
     QSignalSpy saves(&c.editor, &EditorController::editsSaved);

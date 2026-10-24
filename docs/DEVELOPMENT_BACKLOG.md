@@ -750,3 +750,21 @@ BUG069/BUG072 hosted follow-up, 2026-10-24: full blocking run 40034163108 record
 merge 7d795c8, preserving the original Metal numeric and five-second heartbeat
 contracts. This closes their reproduced blocking failures; whole-release
 qualification and the latest local fixes still require the remaining campaign.
+
+### LUMA-QA-077 — Remaining regression adapters used stale preview/input assumptions
+
+- Status: **fixed in test code; targeted native/offscreen checks pass**.
+- REC008's correct retained-source preview differed from CPU in one RGB channel by
+  one level. Reuse the existing Metal budget; CPU and alpha remain exact.
+- VIS012 returned to the Histogram and then clicked the clipped Local toggle over
+  the Filmstrip. Each cycle now reveals its actual hit area, checks clipping and
+  verifies clicked counts; 20 native and 20 offscreen relayout cycles pass.
+- ZOM002/012's unavailable-control failure reproduced with a real OS warning and
+  zoomAvailable=false. Release the duplicate oracle FloatImage before input and
+  wait for actual availability. Monitoring stays enabled; no forced normal state,
+  timeout increase or pixel/data tolerance change. Final recovery/zoom/source-loss
+  checks pass 15/15 native + 15/15 offscreen, including separate controlled warning
+  and critical recovery cases. Original broad and diagnostic failures remain.
+- This does not qualify host memory/load budgets or close unrelated BUG045.
+
+[Evidence](qualification/2026-10-24/native-regression-remainder.json).
