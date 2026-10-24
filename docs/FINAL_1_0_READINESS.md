@@ -5,6 +5,46 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Native regression crash and responsive Library viewport — 2026-10-24
+
+[Evidence](qualification/2026-10-24/native-regression-fixes.json): the broader
+native regression campaign recorded 168 PASS and six scenario failures before
+an ImageIO export crash caused ten later processes to block in AppKit's saved-window
+recovery prompt. The campaign was stopped, not declared complete; its partial
+results and crash report remain preserved. An ordinary LaunchServices diagnostic
+restored test-window activation without changing global OS preferences.
+
+Copyright-only export now removes a filtered XMP parent once, rather than first
+removing its nested values/qualifiers. A new descriptive-metadata overlay unit
+regression reproduced SIGTRAP before the fix and passes afterward. Failed metadata
+removal now fails the export instead of silently retaining private fields.
+Library retains its user-chosen row and pixel offset across column-count changes,
+including resize while Develop hides Library. Before the fix, row 24 became row 0.
+The acceptance check now pins the visible asset and offset while allowing Qt to
+rebase originY; all document, selection, layout and scroll-distance checks remain.
+
+Three acceptance defects were isolated with evidence: SLD018 differed in one RGB
+channel by one level (the existing Metal budget, not an increased tolerance);
+PRS006 observed stateChanged instead of previewChanged despite correct C pixels;
+PRS012 clicked while an enclosing Flickable was still scrolling. CPU/alpha remain
+exact, actual hover ordering is observed, and preset clicks wait for all scroll
+ancestors and remain inside their clips.
+
+Final affected cases pass **18/18 Cocoa/Metal + 12/12 offscreen**, including 300
+fullscreen round trips. Library/filmstrip selection regressions pass **6/6 native
++ 6/6 offscreen**. Full build, formatting and five mandatory tidy units pass;
+CTest records **70 PASS / one private Nikon fixture SKIP**. Existing non-blocking
+tidy warnings remain. The remaining 101 executable regression scenarios still
+need the resumed broad campaign. Unadapted coverage remains **21 blocking / 306
+total**; install/update, long-running and hardware qualification are not waived.
+
+[Hosted blocking evidence](qualification/2026-10-24/hosted-blocking-regression-green.json):
+run 40034163108, tested merge 7d795c8 for head 7d66d83, records **366 PASS / zero
+FAIL**, with 33 skipped and 31 unimplemented. GPU002 and DNS001/002/008 each pass
+three times with unchanged numerical/watchdog requirements. All later functional
+steps also pass; full-job clang-tidy was still running at the recorded checkpoint.
+This older CI source does not include the latest metadata/viewport fixes.
+
 ### Post-exit data invariants after restored daily work — 2026-10-24
 
 [Evidence](qualification/2026-10-24/restored-data-invariants.json): DAT005 restores

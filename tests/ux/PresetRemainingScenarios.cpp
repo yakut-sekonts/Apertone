@@ -16,6 +16,7 @@
 #include <QJsonDocument>
 #include <QMouseEvent>
 #include <QSet>
+#include <QSignalSpy>
 #include <QUuid>
 #include <algorithm>
 #include <cmath>
@@ -129,7 +130,43 @@ QString create(Context &c, const QString &name, std::uint32_t selected = 3,
     return id;
 }
 void select(Context &c, const QString &id) {
+    auto *row = c.driver->item("preset." + id);
+    c.driver->wait(
+        [&] {
+            for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
+                if (parent->property("moving").toBool())
+                    return false;
+            return true;
+        },
+        "preset list and enclosing panel finished actual wheel movement");
+    c.driver->frame();
+    for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
+        if (parent->clip())
+            require(parent->contains(row->mapToItem(parent, {row->width() / 2, row->height() / 2})),
+                    "Preset click target is outside a clipped ancestor");
+    QJsonArray scrolling;
+    for (auto *parent = row->parentItem(); parent; parent = parent->parentItem()) {
+        if (parent->property("moving").isValid())
+            scrolling.append(QJsonObject{{"name", parent->objectName()},
+                                         {"class", parent->metaObject()->className()},
+                                         {"moving", parent->property("moving").toBool()},
+                                         {"content_y", parent->property("contentY").toDouble()}});
+    }
+    const auto center = row->mapToScene({row->width() / 2, row->height() / 2});
+    QSignalSpy clicks(row, SIGNAL(clicked()));
+    require(clicks.isValid(), "Preset row has no actual clicked signal");
+    c.driver->log({{"action", "preset_selection_before_click"},
+                   {"id", id},
+                   {"center_x", center.x()},
+                   {"center_y", center.y()},
+                   {"enabled", row->isEnabled()},
+                   {"scroll_ancestors", scrolling}});
     c.driver->click("preset." + id);
+    c.driver->log(
+        {{"action", "preset_selection_after_click"},
+         {"id", id},
+         {"clicks", clicks.count()},
+         {"selected", c.driver->object("presetPanel")->property("selectedId").toString()}});
     require(c.driver->object("presetPanel")->property("selectedId").toString() == id,
             "Preset row did not select its own UUID");
 }
@@ -427,8 +464,8 @@ bool presetRemainingScenario(Context &c, const QString &id) {
         bool acknowledgedC = false;
         bool staleAfterC = false;
         QObject observationLifetime;
-        const auto observe =
-            QObject::connect(&c.editor, &EditorController::stateChanged, &observationLifetime, [&] {
+        const auto observe = QObject::connect(
+            &c.editor, &EditorController::previewChanged, &observationLifetime, [&] {
                 const auto current = c.provider->requestImage({}, nullptr, {});
                 if (acknowledgedC && current != expectedC)
                     staleAfterC = true;
@@ -462,6 +499,14 @@ bool presetRemainingScenario(Context &c, const QString &id) {
             if (gate.failure)
                 std::rethrow_exception(gate.failure);
             d.frame();
+            const auto observedPixels = c.provider->requestImage({}, nullptr, {});
+            d.log({{"action", "hover_race_observer_diagnostic"},
+                   {"acknowledged_c", acknowledgedC},
+                   {"stale_after_c", staleAfterC},
+                   {"pixels_equal_a", observedPixels == expectedA},
+                   {"pixels_equal_b", observedPixels == expectedB},
+                   {"pixels_equal_c", observedPixels == expectedC},
+                   {"preset_preview", c.editor.presetPreview()}});
             require(acknowledgedC && !staleAfterC &&
                         c.provider->requestImage({}, nullptr, {}) == expectedC,
                     "Stale A/B render replaced the acknowledged C hover");

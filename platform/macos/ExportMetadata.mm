@@ -146,11 +146,36 @@ CFHandle<CGMutableImageMetadataRef> exportMetadata(const std::filesystem::path &
                   CFArrayAppendValue(paths, path);
               return true;
             });
-        // Child paths are removed first, then any filtered parent structure.
-        for (CFIndex i = CFArrayGetCount(paths); i > 0; --i)
-            CGImageMetadataRemoveTagWithPath(
-                result.get(), nullptr,
-                static_cast<CFStringRef>(CFArrayGetValueAtIndex(paths, i - 1)));
+        std::vector<std::string> pathNames;
+        std::set<std::string> filteredPaths;
+        for (CFIndex i = 0; i < CFArrayGetCount(paths); ++i) {
+            auto path = static_cast<CFStringRef>(CFArrayGetValueAtIndex(paths, i));
+            const char *name = [(__bridge NSString *)path UTF8String];
+            if (!name)
+                throw std::runtime_error("Cannot read export metadata path.");
+            pathNames.emplace_back(name);
+            filteredPaths.emplace(name);
+        }
+        // Remove an entire filtered branch once. Removing its array members or
+        // qualifiers first can invalidate ImageIO's parent storage (notably
+        // localized dc:title/dc:description values). Keep reverse order for
+        // independent sibling array members, whose indices can otherwise shift.
+        for (CFIndex i = CFArrayGetCount(paths); i > 0; --i) {
+            const auto &name = pathNames[static_cast<std::size_t>(i - 1)];
+            bool parentFiltered = false;
+            for (auto boundary = name.find_first_of("[/?"); boundary != std::string::npos;
+                 boundary = name.find_first_of("[/?", boundary + 1)) {
+                if (filteredPaths.contains(name.substr(0, boundary))) {
+                    parentFiltered = true;
+                    break;
+                }
+            }
+            if (!parentFiltered &&
+                !CGImageMetadataRemoveTagWithPath(
+                    result.get(), nullptr,
+                    static_cast<CFStringRef>(CFArrayGetValueAtIndex(paths, i - 1))))
+                throw std::runtime_error("Cannot remove private export metadata.");
+        }
     }
     if (options.metadata != MetadataPolicy::copyrightOnly) {
         set(result.get(), kCGImagePropertyTIFFDictionary, kCGImagePropertyTIFFOrientation, 1);

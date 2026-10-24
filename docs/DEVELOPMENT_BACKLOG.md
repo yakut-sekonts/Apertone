@@ -722,3 +722,31 @@ worker hidden by a newer terminal handle. Six operation variants pass three time
 each offscreen and Cocoa/Metal; full CTest 69 PASS / private NEF SKIP. No actual
 Sparkle install/relaunch is inferred. See update-worker-drain.json for the original
 cancel failure, separate system-Python audit failure, corrected evidence and limits.
+
+### LUMA-BUG-075 — Copyright-only export crashes on nested XMP overlay values
+
+Fixed and retested, 2026-10-24. Native EXP027 crashed in ImageIO's
+CGImageMetadataRemoveTagWithPath / CFRelease. A new export unit fixture with
+localized title/caption, keywords, multiple creators and rights reproduced the
+same SIGTRAP. Filtered parents are now removed once; descendants of a removed
+parent are not mutated separately. Independent siblings keep reverse removal
+order, and removal failure aborts export. Unit and actual four-policy native/
+offscreen export checks pass; source hashes remain unchanged. The ensuing AppKit
+restoration-prompt failures were startup failures, not executed Undo scenarios.
+See native-regression-fixes.json for retained evidence and limits.
+
+### LUMA-BUG-076 — Fullscreen reflow resets Library to its first photograph
+
+Fixed and retested, 2026-10-24. Changing GridView columns while Library was hidden
+behind Develop replaced the nonzero visible anchor with row zero. Preserve the
+user's row/offset across geometry changes, refresh it after actual scrolling and
+resolve it again after model reload. A changed Qt originY alone is not a visible
+scroll change: acceptance now checks relative scroll plus exact asset/row/offset.
+Six native repetitions complete 300 fullscreen round trips; Library/filmstrip
+selection and filtering regressions pass six times on each backend.
+
+BUG069/BUG072 hosted follow-up, 2026-10-24: full blocking run 40034163108 records
+366 PASS and no failures. GPU002 and DNS001/002/008 each pass three times on tested
+merge 7d795c8, preserving the original Metal numeric and five-second heartbeat
+contracts. This closes their reproduced blocking failures; whole-release
+qualification and the latest local fixes still require the remaining campaign.

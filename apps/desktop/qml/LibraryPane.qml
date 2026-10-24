@@ -203,23 +203,60 @@ Rectangle {
                     property real viewportOffset: 0
                     property bool restorePending: false
                     property int restoreRevision: 0
+                    property int geometryAnchorRow: -1
+                    property real geometryAnchorOffset: 0
+                    property bool geometryRestorePending: false
+                    property int geometryRevision: 0
+                    function firstViewportCard() {
+                        let card = null
+                        for (const candidate of contentItem.children) {
+                            if (candidate instanceof PhotoCard && candidate.assetID.length &&
+                                candidate.y + candidate.height > contentY && candidate.y < contentY + height &&
+                                (!card || candidate.index < card.index))
+                                card = candidate
+                        }
+                        return card
+                    }
+                    function captureGeometryAnchor() {
+                        if (restorePending || geometryRestorePending || library.loading || moving || libraryBar.pressed)
+                            return
+                        const card = firstViewportCard()
+                        geometryAnchorRow = card ? card.index : -1
+                        geometryAnchorOffset = card ? card.y - contentY : 0
+                    }
+                    function cancelGeometryRestore() {
+                        ++geometryRevision
+                        geometryRestorePending = false
+                    }
+                    function restoreGeometryAnchor() {
+                        if (geometryAnchorRow < 0 || restorePending || library.loading || moving || libraryBar.pressed)
+                            return
+                        const revision = ++geometryRevision
+                        geometryRestorePending = true
+                        Qt.callLater(function() {
+                            if (revision !== geometryRevision)
+                                return
+                            geometryRestorePending = false
+                            if (restorePending || library.loading || geometryAnchorRow >= count)
+                                return
+                            forceLayout()
+                            positionViewAtIndex(geometryAnchorRow, GridView.Beginning)
+                            contentY = Math.max(originY, Math.min(originY + Math.max(0, contentHeight - height), contentY - geometryAnchorOffset))
+                        })
+                    }
                     function cancelViewportRestore() {
                         ++restoreRevision
                         restorePending = false
                     }
                     function captureViewport(preserve) {
+                        cancelGeometryRestore()
+                        geometryAnchorRow = -1
                         ++restoreRevision
                         if (!preserve || dragging || libraryBar.pressed) {
                             restorePending = false
                             viewportAsset = ""
                         } else {
-                            let card = null
-                            for (const candidate of contentItem.children) {
-                                if (candidate instanceof PhotoCard && candidate.assetID.length &&
-                                    candidate.y + candidate.height > contentY && candidate.y < contentY + height &&
-                                    (!card || candidate.index < card.index))
-                                    card = candidate
-                            }
+                            const card = firstViewportCard()
                             if (card && card.assetID.length) {
                                 viewportAsset = card.assetID
                                 viewportOffset = card.y - contentY
@@ -238,22 +275,42 @@ Rectangle {
                             if (revision !== restoreRevision || !restorePending)
                                 return
                             restorePending = false
-                            if (row < 0 || row >= count)
+                            if (row < 0 || row >= count) {
+                                captureGeometryAnchor()
                                 return
+                            }
                             cancelFlick()
                             forceLayout()
                             positionViewAtIndex(row, GridView.Beginning)
                             contentY = Math.max(originY, Math.min(originY + Math.max(0, contentHeight - height), contentY - viewportOffset))
+                            // The model has resolved this identity even if its
+                            // metadata page has not populated the delegate yet.
+                            geometryAnchorRow = row
+                            geometryAnchorOffset = viewportOffset
                         })
                     }
-                    onMovementStarted: cancelViewportRestore()
+                    // Keep the user's row across responsive column-count changes,
+                    // including changes while Library is hidden behind Develop.
+                    // Reflow must not replace that row with the new row's first cell.
+                    onWidthChanged: restoreGeometryAnchor()
+                    onHeightChanged: restoreGeometryAnchor()
+                    onVisibleChanged: { if (visible) restoreGeometryAnchor() }
+                    onMovementStarted: { cancelViewportRestore(); cancelGeometryRestore() }
+                    onMovementEnded: captureGeometryAnchor()
                     cellWidth: width / Math.max(1,Math.floor(width / 220)); cellHeight: 210
                     cacheBuffer: 420
                     delegate: PhotoCard { width: grid.cellWidth - 12; height: grid.cellHeight - 12 }
                     ScrollBar.vertical: ScrollBar {
                         id: libraryBar
                         objectName: "library.scrollBar"
-                        onPressedChanged: { if (pressed) grid.cancelViewportRestore() }
+                        onPressedChanged: {
+                            if (pressed) {
+                                grid.cancelViewportRestore()
+                                grid.cancelGeometryRestore()
+                            } else {
+                                grid.captureGeometryAnchor()
+                            }
+                        }
                     }
                 }
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
