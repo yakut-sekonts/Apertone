@@ -80,7 +80,7 @@ Dialog {
         }
     }
     footer:DialogButtonBox {
-        Button {objectName:"library.importCancel";text:qsTranslate("Luma","Cancel");onClicked:dialog.close()}
+        Button {objectName:"library.importCancel";text:qsTranslate("Luma","Cancel");onClicked:dialog.reject()}
         Button {
             objectName:"library.importStart";text:qsTranslate("Luma","Import photos")
             enabled:dialog.sources.length>0&&(mode.currentIndex===0||dialog.destination.toString().length>0)&&!library.working

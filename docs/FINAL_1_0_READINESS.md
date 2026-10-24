@@ -5,6 +5,35 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Implemented stress campaign and Import Cancel — 2026-10-24
+
+[Evidence](qualification/2026-10-24/stress-import-cancel-fixes.json): the first
+software/offscreen stress campaign completed **13 PASS / 2 FAIL**. Passing cases
+include 1,000 Exposure inputs, 500 Curve/HSL edits with exact retained Undo/Redo,
+100 Auto/Cancel cycles, 200 detail edits plus export, 1,000 preset-store mutations,
+100 batch Apply/Undo cycles, a 500-item export queue, 100 export Start/Cancel cycles
+and 200 Export panel cycles. Original failed attempts remain retained.
+
+IMP019's SQL counters and copied originals were correct, but a real directory-watch
+notification replaced the shared status before the test read it. The test now
+captures the actual import-completion transition and requires exact summary/error
+values plus the unchanged independent journal/file checks. PERF018's diagnostic
+isolates `rejected == 0` after one actual Cancel click/close; every form/document/
+history check is true. The production Import Cancel handler now calls `reject()`.
+
+Affected repeats pass **12/12**: three 50-cycle import runs and three 200-cycle
+runs for each Import/Export panel, plus repeated-Cancel checks. Mandatory IMP001
+now checks Cancel button and Escape separately and passes **3/3**. Full production
+build and CTest pass (**71 PASS / 1 unavailable private NEF SKIP**); affected
+mandatory clang-tidy, formatting and diff checks pass. Graphify's structural graph
+is updated, with known self-loop warnings retained; QML was inspected manually.
+
+All 15 currently implemented stress IDs now have passing observations across these
+checkpoints. These are not native Cocoa results, reference-machine performance
+acceptance, full soak/chaos coverage or final release approval. The system-dialog
+native blocker and remaining final gates are unchanged. The local signed candidate
+at source 91caa17 predates this QML fix and must not be treated as a final artifact.
+
 ### Phase 1.0 CI routing and local signed candidate — 2026-10-24
 
 [Evidence](qualification/2026-10-24/phase1-ci-and-candidate-signature.json): the

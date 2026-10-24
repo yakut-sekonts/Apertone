@@ -809,3 +809,23 @@ qualification and the latest local fixes still require the remaining campaign.
 - Both CI workflows explicitly include the ten implemented hosted-compatible
   phase 1.0 IDs; retain native A11Y002 as a separate requirement.
 - [Original failure and retest evidence](qualification/2026-10-24/phase1-ci-and-candidate-signature.json).
+
+### LUMA-QA-081 — Import completion assertion races directory-watch status
+
+- Status: **harness fixed; 3 complete 50-cycle retests PASS**.
+- The original IMP019 failure has correct terminal SQL counts and originals; its
+  screenshot shows the source-folder notification replacing the shared summary.
+- Observe the real importing true-to-false transition and assert its exact summary,
+  report and error. Preserve independent SQL/file/hash checks and one completion
+  per operation. No production status policy or timeout changed.
+
+### LUMA-BUG-082 — Import Cancel closes without a rejected result
+
+- Status: **fixed; bounded and repeated offscreen checks PASS; native pending**.
+- Actual Cancel emits one clicked/opened/closed sequence but no `rejected`; the
+  per-field diagnostic preserves all other true form/document/history checks.
+- Use `Dialog.reject()` for Cancel. IMP001 now checks both button and Escape
+  through real inputs with exactly one rejection/close and no acceptance.
+- Three 200-cycle Import and Export runs pass, and the blocking check passes 3/3.
+  Production build, CTest 71 PASS/1 private NEF SKIP and affected tidy pass.
+- [Initial failures, diagnostics and retests](qualification/2026-10-24/stress-import-cancel-fixes.json).

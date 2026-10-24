@@ -413,6 +413,35 @@ void panelStress(Context &c, bool importing, const QString &id) {
         d.click(importing ? "library.importCancel" : "export.close");
         d.wait([&] { return !panel->property("visible").toBool() && closed.count() == cycle; },
                "stress panel fully closed");
+        const QJsonObject checks{
+            {"clicked_once", closingClick.count() == cycle},
+            {"opened_once", opened.count() == cycle},
+            {"accepted_empty", accepted.isEmpty()},
+            {"rejected_once", !importing || rejected.count() == cycle},
+            {"document", c.editor.currentSettings() == before.document},
+            {"undo", c.editor.canUndo() == before.undo},
+            {"redo", c.editor.canRedo() == before.redo},
+            {"import_idle", !c.library.importing()},
+            {"export_idle", !c.exporter.working()},
+            {"sources", qmlValue(d.object("library.importDialog"), "sources") == sources},
+            {"destination",
+             qmlValue(d.object("library.importDialog"), "destination") == destination},
+            {"recursive",
+             d.object("library.importRecursive")->property("checked").toBool() == recursive},
+            {"duplicates",
+             d.object("library.importDuplicates")->property("checked").toBool() == duplicates}};
+        for (auto check = checks.begin(); check != checks.end(); ++check)
+            if (!check.value().toBool()) {
+                writeJson(c.root + "/panel-stress-failure.json", {{"scenario", id},
+                                                                  {"cycle", cycle},
+                                                                  {"checks", checks},
+                                                                  {"opened", opened.count()},
+                                                                  {"closed", closed.count()},
+                                                                  {"clicked", closingClick.count()},
+                                                                  {"accepted", accepted.count()},
+                                                                  {"rejected", rejected.count()}});
+                break;
+            }
         require(
             closingClick.count() == cycle && opened.count() == cycle && accepted.isEmpty() &&
                 (!importing || rejected.count() == cycle) &&

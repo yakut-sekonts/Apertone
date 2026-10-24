@@ -423,6 +423,22 @@ bool importExtraScenario(Context &c, const QString &id) {
     elapsed.start();
     int expectedRows = 0;
     for (int cycle = 0; cycle < cycles; ++cycle) {
+        QJsonArray completions;
+        bool wasImporting = c.library.importing();
+        QObject observation;
+        QObject::connect(&c.library, &LibraryModel::stateChanged, &observation, [&] {
+            const bool importing = c.library.importing();
+            if (wasImporting && !importing) {
+                const QJsonObject completion{{"action", "import_terminal_ui_observation"},
+                                             {"cycle", cycle + 1},
+                                             {"status", c.library.status()},
+                                             {"report", c.library.importReport()},
+                                             {"error", c.library.error()}};
+                completions.append(completion);
+                d.log(completion);
+            }
+            wasImporting = importing;
+        });
         const auto before = ids(sessions(c));
         const auto destination = c.root + QString("/copies-%1").arg(cycle, 3, 10, QChar('0'));
         {
@@ -449,8 +465,16 @@ bool importExtraScenario(Context &c, const QString &id) {
             ++expectedRows;
             terminal(c, sessionID, "cancelled", count, 1, 0, 0, count - 1);
             copiedRows(c, expectedRows);
-            require(c.library.importReport().isEmpty() &&
-                        c.library.status().contains("cancelled: 9"),
+            // A real directory-watch notification can replace the shared status
+            // after completion. Observe the terminal transition itself; keep the
+            // independent exact journal counters and current error/report checks.
+            const auto completion =
+                completions.isEmpty() ? QJsonObject{} : completions.at(0).toObject();
+            require(c.library.importReport().isEmpty() && completions.size() == 1 &&
+                        completion.value("status").toString() ==
+                            "Imported: 1 · duplicates: 0 · errors: 0 · cancelled: 9" &&
+                        completion.value("report").toString().isEmpty() &&
+                        completion.value("error").toString().isEmpty(),
                     "Repeated Cancel produced spurious errors or inconsistent cancelled counts");
         }
         if (stress) {
@@ -462,6 +486,8 @@ bool importExtraScenario(Context &c, const QString &id) {
             terminal(c, completed.id, "completed", count, newlyAdded, count - newlyAdded, 0, 0);
             expectedRows += newlyAdded;
             copiedRows(c, expectedRows);
+            require(completions.size() == 2,
+                    "Reimport did not produce exactly one additional UI completion");
             require(c.library.importReport().isEmpty(), "Duplicate reimport produced false errors");
         }
         const auto all = sessions(c);
