@@ -5,6 +5,39 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Reproducible stable migration and native activation blocker — 2026-10-24
+
+[Evidence](qualification/2026-10-24/stable-migration-adapter.json) adds
+UX-P10-DAT-004. Its checked-in fixture was created by the actual 0.5.1 app:
+three RAW/WebP assets, schema 11, global adjustments and complete/local masks,
+plus historical export PNGs. Only original-path prefixes are normalized.
+
+The final offscreen run passes **3/3**, with two clean processes per repetition
+and **18 exact historical-image export comparisons**. Independent post-exit
+checks cover all 11 old tables, 22 current tables, 425 numeric SQL values, full
+decoded masks/documents, unchanged originals, an exact readable schema-11 backup
+and restart idempotence. There are no saved versions or collections in this fixture.
+Eleven auditor negative controls, twelve policy tests, four affected CTest targets,
+format and affected mandatory clang-tidy checks pass. Production code is unchanged.
+
+Native attempts fail before the scenario at the existing five-second activation
+precondition. Passive AppKit evidence shows a visible, non-minimized, key-capable
+Luma window and `com.apple.UserNotificationCenter` as the foreground process.
+The computer-use tool refuses access to that system app for safety; manual dismissal
+has been requested. No timeout, activation policy or security preference was changed,
+and no native migration PASS is claimed. The diagnostics are retained in the runner
+for future activation failures.
+
+Applicable IDs without adapters are now **20 blocking / 305 total**. CI run
+[40034163108](https://github.com/yakut-sekonts/Luma/actions/runs/40034163108)
+completed successfully, including the full clang-tidy step, on older head 7d66d83;
+latest-head CI remains pending/in progress. The release job budget is increased
+from 120 to 180 minutes: the completed equivalent job took 123m44s before release
+packaging ([timing evidence](qualification/2026-10-24/completed-ci-budget.json));
+no checks or individual watchdogs were removed. Final installation/update/artifact,
+long-running/hardware gates and BUG045 remain open. Local 0.9.0 candidate artifacts
+are preparation only; no tag, appcast or public release is authorized by these results.
+
 ### Resumed native regression and stable-catalog migration — 2026-10-24
 
 [Evidence](qualification/2026-10-24/native-regression-remainder.json): the resumed

@@ -244,13 +244,16 @@
     "UX-P09-XMP-005",
     "UX-P09-XMP-012",
     "UX-P10-A11Y-002",
+    "UX-P10-DAT-004",
+    "UX-P10-DAT-005",
+    "UX-P10-DAY-003",
     "UX-P10-DAY-007",
+    "UX-P10-DAY-009",
     "UX-P10-DAY-010",
     "UX-P10-DAY-011",
     "UX-P10-DAY-012",
-    "UX-P10-DAY-009",
-    "UX-P10-UPG-012",
     "UX-P10-DAY-013",
+    "UX-P10-UPG-012",
     "UX-PRS-001",
     "UX-PRS-002",
     "UX-PRS-003",
@@ -346,9 +349,7 @@
     "UX-UPD-006",
     "UX-VIS-001",
     "UX-VIS-002",
-    "UX-VIS-003",
-    "UX-P10-DAY-003",
-    "UX-P10-DAT-005"
+    "UX-VIS-003"
   ],
   "deferred_load": {
     "UX-ADV-003": {

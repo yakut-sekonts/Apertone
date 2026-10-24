@@ -9,6 +9,7 @@ from contextlib import closing
 import hashlib
 from history_chaos_cli import configure_history_chaos
 from catalog_invariants import audit_restored_workflow
+from migration_fixtures import prepare_migration, audit_migration
 from native_bundle_provenance import native_bundle_info, launch_executable
 from quality_policy import quality_skip_reason, quality_fixture_count
 from thumbnail_response_fixtures import CASE_PROFILE_IDS as THUMBNAIL_PROFILE_IDS, official_fixture as thumbnail_fixture
@@ -118,6 +119,7 @@ RESTART.update(('UX-P09-XMP-012', 'UX-P09-FLT-002'))
 CRASH_IDS = {f'UX-P09-FLT-{i:03}' for i in (1, 3, 4, 5, 6)}
 RESTART.update(CRASH_IDS)
 KILL.update(CRASH_IDS)
+RESTART.add('UX-P10-DAT-004')
 RESTART.update(('UX-P10-DAY-007', 'UX-P10-DAY-010', 'UX-P10-DAY-013', 'UX-P10-DAT-005'))
 KILL.add('UX-P10-DAY-007')
 NATIVE.add('UX-P09-XMP-001')
@@ -393,6 +395,8 @@ def execute(row, directory, arguments, fixture_folder):
     command = [str(launch_executable(arguments.build)), '--case', row['id'], '--root', str(directory),
                '--fixtures', str(fixture_folder), '--qml', str(ROOT / 'apps/desktop/qml')]
     state_root = getattr(arguments, 'state_root', directory)
+    if row['id'] == 'UX-P10-DAT-004' and getattr(arguments, 'stage', None) == 'prepare':
+        prepare_migration(state_root)
     if getattr(arguments, 'stage', None):
         command.extend(['--stage', arguments.stage, '--state-root', str(state_root)])
     if getattr(arguments, 'variant', None):
@@ -501,6 +505,15 @@ def execute(row, directory, arguments, fixture_folder):
             result['data_invariants'] = audit
         except (OSError, ValueError, sqlite3.Error, KeyError, TypeError) as error:
             result.update(status='FAIL', message=f'P0 restored data invariant: {error}')
+    if row['id'] == 'UX-P10-DAT-004' and result['status'] == 'PASS':
+        try:
+            audit, after = audit_migration(state_root, directory, process.pid, arguments.stage)
+            atomic_json(directory / 'data-invariants.json', audit)
+            if arguments.stage == 'prepare':
+                atomic_json(state_root / 'first-migration.json', after)
+            result['data_invariants'] = audit
+        except (OSError, ValueError, sqlite3.Error, KeyError, TypeError) as error:
+            result.update(status='FAIL', message=f'P0 migration data invariant: {error}')
     if result['status'] == 'FAIL' and catalog.exists():
         try:
             with closing(sqlite3.connect(f'file:{catalog}?mode=ro', uri=True)) as source:

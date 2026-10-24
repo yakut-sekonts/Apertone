@@ -51,7 +51,9 @@ jobs:
   build-package:
     needs: signing-configuration
     runs-on: macos-15
-    timeout-minutes: 120
+    # The equivalent qualified CI run takes ~124 minutes before packaging.
+    # Keep all checks and allow room for DMG/model/signature verification.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4.2.2
         with:

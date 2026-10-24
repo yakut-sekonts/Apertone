@@ -1,6 +1,7 @@
 #include "tests/ux/UxContext.h"
 #include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/DiagnosticsController.h"
+#include "tests/ux/NativeWindowLifecycle.h"
 #include "tests/ux/UpdaterProbe.h"
 #include <QDir>
 #include <QFileInfo>
@@ -87,7 +88,19 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
                                  "Cannot write model reset evidence");
                      });
     window->requestActivate();
-    driver->wait([&] { return window->isActive(); }, "native window active", 5000);
+    try {
+        driver->wait([&] { return window->isActive(); }, "native window active", 5000);
+    } catch (...) {
+        if (QGuiApplication::platformName() == "cocoa") {
+            try {
+                writeJson(root + "/activation-failure.json", nativeActivationSnapshot(*window));
+            } catch (const std::exception &error) {
+                writeJson(root + "/activation-failure.json",
+                          {{"diagnostic_error", QString::fromUtf8(error.what())}});
+            }
+        }
+        throw;
+    }
     driver->wait([&] { return !library.working() && !library.loading() && window->isVisible(); },
                  "empty app ready");
     driver->frame();

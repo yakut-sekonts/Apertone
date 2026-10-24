@@ -768,3 +768,31 @@ qualification and the latest local fixes still require the remaining campaign.
 - This does not qualify host memory/load budgets or close unrelated BUG045.
 
 [Evidence](qualification/2026-10-24/native-regression-remainder.json).
+
+### LUMA-QA-078 — System notification prevents native qualification activation
+
+- Status: **open environmental blocker; manual dialog dismissal requested**.
+- New DAT004 migration passes three offscreen repetitions, including independent
+  post-exit preservation/backup audits and exact 0.5.1 output in both processes.
+- Native migration and an independent startup control stop before the scenario at
+  `native window active`. Passive AppKit snapshot shows the Luma window visible,
+  not minimized and capable of becoming key; foreground PID belongs to
+  `com.apple.UserNotificationCenter`.
+- The native UI tool refuses that system application for safety. Do not bypass
+  the refusal with another automation route or turn startup failures into PASS.
+  The user has been asked to dismiss the system dialog; independent work continues.
+- Added failure-only diagnostic snapshot; no changes to application code, activation
+  behavior, timeout, watchdog or OS security preferences.
+
+[Evidence](qualification/2026-10-24/stable-migration-adapter.json).
+
+### LUMA-QA-079 — Release job budget is shorter than the verified CI workload
+
+- Fixed configuration: release `build-package` now has 180 minutes, matching the
+  main qualification job, instead of 120. All tests and signing checks remain.
+- Successful run 40034163108 took 7,424 seconds (123 minutes 44 seconds), including
+  41 minutes 29 seconds of full clang-tidy. Release additionally packages, mounts,
+  verifies and signs the archives. This timing demonstrates insufficient budget;
+  it is not a claim that a release job has already timed out or passed.
+
+[Evidence](qualification/2026-10-24/completed-ci-budget.json).
