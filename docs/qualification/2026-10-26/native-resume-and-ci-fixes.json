@@ -1,0 +1,1284 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-26T07:56:53.595744+00:00",
+  "base_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+  "release_gate": "NOT_QUALIFIED",
+  "reports": {
+    "native_resume": {
+      "report": {
+        "path": "build-verify/ux-native-resume-20261026/UX_REPORT.json",
+        "sha256": "e13d437313ac9c1268ef57fd79b4c4e9250d8e17dc51e5ae1238cd0a43b0b03d",
+        "bytes": 55338
+      },
+      "summary": {
+        "PASS": 12
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T071946Z-79331",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 12
+      },
+      "failed_results": [],
+      "original_integrity": {
+        "PASS": 12
+      },
+      "catalog_integrity": {
+        "PASS": 12
+      }
+    },
+    "initial_native_measurements": {
+      "report": {
+        "path": "build-verify/ux-native-performance-20261026/UX_REPORT.json",
+        "sha256": "975cf500bda793a4d223fd14a5c35c967462bacf45786b13c8ce44c23ae15bde",
+        "bytes": 98856
+      },
+      "summary": {
+        "PASS": 10,
+        "FAIL": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T072111Z-79786",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 12
+      },
+      "failed_results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 34555,
+          "frame_intervals": 1277,
+          "frame_max_ms": 391,
+          "frame_p50_ms": 26,
+          "frame_p95_ms": 28,
+          "frame_p99_ms": 141,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "UX-ADV-012",
+          "input_dispatch_p95_ms": 13.378083,
+          "main_loop_stall_max_ms": 268,
+          "message": "Timeout: performance fixture final pixels ready outside measurement",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 138.28125,
+          "rss_last_mb": 61.4375,
+          "rss_minutes": [
+            {
+              "maximum_mb": 196.609375,
+              "mean_mb": 75.4464003164557,
+              "minimum_mb": 60.46875,
+              "minute": 0,
+              "samples": 158
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 196.609375,
+          "rss_samples": 158,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 19,
+          "stall_over_250_ms": 1,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072111Z-79786/UX-ADV-012/repeat-1/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "CURRENT",
+          "mode": "PERF_LOCAL",
+          "severity_if_failed": "P2",
+          "scenario": "targeted drag latency.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072111Z-79786/UX-ADV-012/repeat-1",
+          "child_pid": 80595,
+          "wall_duration_ms": 35595,
+          "original_integrity": "PASS"
+        },
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 36540,
+          "frame_intervals": 1319,
+          "frame_max_ms": 2612,
+          "frame_p50_ms": 26,
+          "frame_p95_ms": 28,
+          "frame_p99_ms": 83,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "UX-ADV-012",
+          "input_dispatch_p95_ms": 2619.268708,
+          "main_loop_stall_max_ms": 2612,
+          "message": "Timeout: performance fixture final pixels ready outside measurement",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 141.421875,
+          "rss_last_mb": 46.703125,
+          "rss_minutes": [
+            {
+              "maximum_mb": 212.1875,
+              "mean_mb": 81.67513844936708,
+              "minimum_mb": 46.609375,
+              "minute": 0,
+              "samples": 158
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 212.1875,
+          "rss_samples": 158,
+          "stall_over_1000_ms": 1,
+          "stall_over_100_ms": 15,
+          "stall_over_250_ms": 3,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072111Z-79786/UX-ADV-012/repeat-2/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "CURRENT",
+          "mode": "PERF_LOCAL",
+          "severity_if_failed": "P2",
+          "scenario": "targeted drag latency.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072111Z-79786/UX-ADV-012/repeat-2",
+          "child_pid": 80744,
+          "wall_duration_ms": 38304,
+          "original_integrity": "PASS"
+        }
+      ],
+      "original_integrity": {
+        "PASS": 12
+      },
+      "catalog_integrity": {
+        "PASS": 12
+      }
+    },
+    "metadata_adversarial_reproduction": {
+      "report": {
+        "path": "build-verify/ux-metadata-queued-negative-20261026/UX_REPORT.json",
+        "sha256": "02a19b43ed1d4423e5bf7fb79b28300257ded98162707f24d865e1f9a5dacee4",
+        "bytes": 9198
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T072839Z-81544",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('offscreen', 'software', 1)": 1
+      },
+      "failed_results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 1,
+          "display_geometry": {
+            "height": 800,
+            "width": 800
+          },
+          "duration_ms": 3162,
+          "frame_intervals": 133,
+          "frame_max_ms": 95,
+          "frame_p50_ms": 15,
+          "frame_p95_ms": 51,
+          "frame_p99_ms": 95,
+          "graphics_api": "software",
+          "hard_hang": false,
+          "id": "UX-P09-META-001",
+          "input_dispatch_p95_ms": 13,
+          "main_loop_stall_max_ms": 55,
+          "message": "Fixture did not hold the actual metadata completion across Library input",
+          "platform": "offscreen",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "software",
+          "rss_first_mb": 103.890625,
+          "rss_last_mb": 129.109375,
+          "rss_minutes": [
+            {
+              "maximum_mb": 135.203125,
+              "mean_mb": 124.42788461538461,
+              "minimum_mb": 103.890625,
+              "minute": 0,
+              "samples": 13
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 135.203125,
+          "rss_samples": 13,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 0,
+          "stall_over_250_ms": 0,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072839Z-81544/UX-P09-META-001/repeat-1/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "0.9",
+          "mode": "BLOCKING",
+          "severity_if_failed": "P1",
+          "scenario": "display complete supported metadata set without blocking Library.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072839Z-81544/UX-P09-META-001/repeat-1",
+          "child_pid": 81612,
+          "wall_duration_ms": 3489,
+          "original_integrity": "PASS"
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "targeted_pixel_diagnostic": {
+      "report": {
+        "path": "build-verify/ux-targeted-diagnostic-20261026/UX_REPORT.json",
+        "sha256": "0f9c7c76bc0f724ae591f12ad723f31d76c2efe4a1179c41c19fab9d02892daf",
+        "bytes": 12220
+      },
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T072914Z-81682",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "failed_results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 33872,
+          "frame_intervals": 1374,
+          "frame_max_ms": 263,
+          "frame_p50_ms": 24,
+          "frame_p95_ms": 27,
+          "frame_p99_ms": 127,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "UX-ADV-012",
+          "input_dispatch_p95_ms": 5.287125,
+          "main_loop_stall_max_ms": 252,
+          "message": "Timeout: performance fixture final pixels ready outside measurement",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 142.53125,
+          "rss_last_mb": 51.84375,
+          "rss_minutes": [
+            {
+              "maximum_mb": 256.25,
+              "mean_mb": 80.23635284810126,
+              "minimum_mb": 49.15625,
+              "minute": 0,
+              "samples": 158
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 256.25,
+          "rss_samples": 158,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 18,
+          "stall_over_250_ms": 1,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072914Z-81682/UX-ADV-012/repeat-2/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "CURRENT",
+          "mode": "PERF_LOCAL",
+          "severity_if_failed": "P2",
+          "scenario": "targeted drag latency.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T072914Z-81682/UX-ADV-012/repeat-2",
+          "child_pid": 81970,
+          "wall_duration_ms": 34988,
+          "original_integrity": "PASS"
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "metadata_fixed_offscreen": {
+      "report": {
+        "path": "build-verify/ux-metadata-fixed-20261026/UX_REPORT.json",
+        "sha256": "4619b3bbc486cfbe8114ab875290b4262a3403a5b150ac10c35976d7dbdc57b6",
+        "bytes": 48659
+      },
+      "summary": {
+        "PASS": 15
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T073159Z-82178",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('offscreen', 'software', 1)": 15
+      },
+      "failed_results": [],
+      "original_integrity": {
+        "PASS": 15
+      },
+      "catalog_integrity": {
+        "PASS": 15
+      }
+    },
+    "metadata_and_targeted_fixed_native": {
+      "report": {
+        "path": "build-verify/ux-native-fixed-20261026/UX_REPORT.json",
+        "sha256": "f3bbf36389f6e3464309ce4c15bb215aebdd6014fe70fbc852de3e3c4046e88f",
+        "bytes": 29814
+      },
+      "summary": {
+        "PASS": 9
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T073632Z-83853",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 9
+      },
+      "failed_results": [],
+      "original_integrity": {
+        "PASS": 9
+      },
+      "catalog_integrity": {
+        "PASS": 9
+      }
+    },
+    "initial_scene_followup": {
+      "report": {
+        "path": "build-verify/ux-native-preview-measurement-fixed-20261026/UX_REPORT.json",
+        "sha256": "be7990496a18d06c5cf916087ec994e8e64aa43062e3bf07dd4e1f2e8683ee85",
+        "bytes": 12317
+      },
+      "summary": {
+        "PASS": 1,
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T074010Z-83840",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "failed_results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 60770,
+          "frame_intervals": 1180,
+          "frame_max_ms": 511,
+          "frame_p50_ms": 41,
+          "frame_p95_ms": 156,
+          "frame_p99_ms": 172,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "UX-PRV-002",
+          "input_dispatch_p95_ms": 136.484666,
+          "main_loop_stall_max_ms": 494,
+          "message": "Timeout: native input acknowledged by current QML state and rendered scene: processed_to_original_shortcut",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 151.71875,
+          "rss_last_mb": 119.5625,
+          "rss_minutes": [
+            {
+              "maximum_mb": 315.234375,
+              "mean_mb": 185.17689950980392,
+              "minimum_mb": 102.0625,
+              "minute": 0,
+              "samples": 255
+            },
+            {
+              "maximum_mb": 119.5625,
+              "mean_mb": 119.25,
+              "minimum_mb": 119.09375,
+              "minute": 1,
+              "samples": 3
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 315.234375,
+          "rss_samples": 258,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 162,
+          "stall_over_250_ms": 3,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T074010Z-83840/UX-PRV-002/repeat-1/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "CURRENT",
+          "mode": "PERF_LOCAL",
+          "severity_if_failed": "P2",
+          "scenario": "Original toggle p95.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T074010Z-83840/UX-PRV-002/repeat-1",
+          "child_pid": 84885,
+          "wall_duration_ms": 61681,
+          "original_integrity": "PASS"
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "original_scene_diagnostic": {
+      "report": {
+        "path": "build-verify/ux-original-scene-diagnostic-20261026/UX_REPORT.json",
+        "sha256": "e6749f083ae19c64f221e3da88b6917e2ed8f2f9107f74e3d8dff96a16de6a29",
+        "bytes": 15705
+      },
+      "summary": {
+        "FAIL": 1,
+        "PASS": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T074531Z-85292",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 3
+      },
+      "failed_results": [
+        {
+          "application_version": "0.9.0",
+          "device_pixel_ratio": 2,
+          "display_geometry": {
+            "height": 1169,
+            "width": 1800
+          },
+          "duration_ms": 60736,
+          "frame_intervals": 1161,
+          "frame_max_ms": 543,
+          "frame_p50_ms": 41,
+          "frame_p95_ms": 163,
+          "frame_p99_ms": 196,
+          "graphics_api": "metal",
+          "hard_hang": false,
+          "id": "UX-PRV-002",
+          "input_dispatch_p95_ms": 140.212959,
+          "main_loop_stall_max_ms": 304,
+          "message": "Timeout: native input acknowledged by current QML state and rendered scene: processed_to_original_shortcut",
+          "platform": "cocoa",
+          "qt_runtime": "6.10.3",
+          "quantile_resolution_ms": 1,
+          "quick_backend": "default",
+          "rss_first_mb": 140.640625,
+          "rss_last_mb": 115.796875,
+          "rss_minutes": [
+            {
+              "maximum_mb": 254.609375,
+              "mean_mb": 160.89819525193798,
+              "minimum_mb": 98.328125,
+              "minute": 0,
+              "samples": 258
+            },
+            {
+              "maximum_mb": 115.796875,
+              "mean_mb": 115.796875,
+              "minimum_mb": 115.796875,
+              "minute": 1,
+              "samples": 2
+            }
+          ],
+          "rss_minutes_limit": 1440,
+          "rss_peak_mb": 254.609375,
+          "rss_samples": 260,
+          "stall_over_1000_ms": 0,
+          "stall_over_100_ms": 153,
+          "stall_over_250_ms": 5,
+          "status": "FAIL",
+          "warnings": [],
+          "window_size": {
+            "height": 840,
+            "width": 1320
+          },
+          "window_state": "visible",
+          "child_returncode": 1,
+          "child_reported_status": "FAIL",
+          "intentional_kill_requested": false,
+          "catalog_audit_path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T074531Z-85292/UX-PRV-002/repeat-1/catalog.sqlite",
+          "catalog_integrity": "PASS",
+          "catalog_snapshot": "catalog-copy.sqlite",
+          "scope": "CURRENT",
+          "mode": "PERF_LOCAL",
+          "severity_if_failed": "P2",
+          "scenario": "Original toggle p95.",
+          "artifacts": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/20261026T074531Z-85292/UX-PRV-002/repeat-1",
+          "child_pid": 85380,
+          "wall_duration_ms": 61912,
+          "original_integrity": "PASS"
+        }
+      ],
+      "original_integrity": {
+        "PASS": 3
+      },
+      "catalog_integrity": {
+        "PASS": 3
+      }
+    },
+    "final_native_measurements": {
+      "report": {
+        "path": "build-verify/ux-native-scene-fixed-20261026/UX_REPORT.json",
+        "sha256": "c527a91017079b959fe68797c83935bb4fed2c9bb9d5056a0fe2c6c9d3cf76db",
+        "bytes": 38913
+      },
+      "summary": {
+        "PASS": 9
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T074946Z-86011",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 9
+      },
+      "failed_results": [],
+      "original_integrity": {
+        "PASS": 9
+      },
+      "catalog_integrity": {
+        "PASS": 9
+      }
+    }
+  },
+  "fixes": {
+    "metadata": "The prior QObject MetaCall gate intercepted an unrelated queued Library callback. A deterministic no-op callback reproduces the hosted assertion before the fix and remains a required delivered control. A UX-only existing PersistenceGate now holds MetadataService::read after actual I/O, scoped to the owned catalog and original path; real GUI events and final metadataChanged delivery remain required. Production builds contain no observer.",
+    "provider_pixels": "Targeted native calibration differed in four RGB channels by one level with exact alpha. Reuse the existing GPU-eligible RGB <= 1 / exact CPU-alpha-geometry-format-colorspace-DPR oracle and its negative controls; no image-processing math changed.",
+    "scene_readback": "Two retained PRV002 failures had one blue scene channel differing by two levels. The diagnostic captures byte-identical calibration/current provider images, also identical to the CPU reference; scene dimensions and alpha match. Treat Qt/Metal scaling/quantization as an inference. The scene-only comparison uses RGB <= 2 and exact alpha, with controls rejecting RGB 3, altered alpha, layout and geometry. Preview pixel limits remain separate and unchanged."
+  },
+  "provider_diagnostic": {
+    "path": ".tools/targeted-calibration-channel-difference.json",
+    "sha256": "68283b66329cf5c668f7d79e644a3b3523a686f5443acb549865099d3aecc17b",
+    "bytes": 892
+  },
+  "first_scene_diagnostic": {
+    "path": ".tools/original-scene-channel-difference.json",
+    "sha256": "fc9e0aad7002e45009fd46d2efdebb8e518c28b08d833ee3e833e80889cc3a4f",
+    "bytes": 490
+  },
+  "scene_provider_control": {
+    "evidence": {
+      "path": ".tools/original-scene-provider-control.json",
+      "sha256": "d751cedf80c0708fd2fab0e0e58b00db2105a45accc88def346496e4a0cc31cb",
+      "bytes": 956
+    },
+    "observations": {
+      "run": "build-verify/ux-artifacts/20261026T074531Z-85292/UX-PRV-002/repeat-1",
+      "provider_bytes_equal_to_calibration": true,
+      "provider_bytes_equal_to_cpu_reference": true,
+      "provider_size": [
+        256,
+        192
+      ],
+      "scene_dimensions_equal": true,
+      "scene_size": [
+        1532,
+        932
+      ],
+      "scene_channel_difference_extrema": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          2
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "files": {
+        "calibrated-original.png": "30c51d76f952f8e2d23fa727c78dbbd0110814989797d5ef70d1f9f4eba6e2a5",
+        "actual-preview.png": "30c51d76f952f8e2d23fa727c78dbbd0110814989797d5ef70d1f9f4eba6e2a5",
+        "expected-preview.png": "30c51d76f952f8e2d23fa727c78dbbd0110814989797d5ef70d1f9f4eba6e2a5",
+        "expected-scene.png": "0287abe93aa7da01b03e9d20df49cbccfc109621a6ae40b5d8a64578af2d61af",
+        "observed-scene.png": "9c381248737d2fac04d8ec166fa15618521c1064c7a39ef589cba08c728baabc"
+      }
+    }
+  },
+  "measurements": [
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-ADV-012/repeat-1/measurements.json",
+        "sha256": "52d3c203137c36e58fbb6110135898c790b9994c02aea55416c9bdc0759202d3",
+        "bytes": 1622
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "continuous_drag_throughput_measured": false,
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "one real move inside an accepted held-pointer gesture; press, release, Undo, save and fixture calibration are outside each timing interval",
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-ADV-012",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "50 single pointer-move acknowledgments per targeted tool",
+        "tools": {
+          "curve_rgb": {
+            "maximum_ms": 373.37175,
+            "p50_ms": 227,
+            "p95_ms": 245,
+            "p99_ms": 373.37175,
+            "samples": 50
+          },
+          "hsl_saturation": {
+            "maximum_ms": 194.675583,
+            "p50_ms": 173,
+            "p95_ms": 185,
+            "p99_ms": 194.675583,
+            "samples": 50
+          }
+        }
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-ADV-012/repeat-2/measurements.json",
+        "sha256": "c9fbee01b1abfae28300c30e83490d0bb96165b62136e96457ee7963a36978af",
+        "bytes": 1624
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "continuous_drag_throughput_measured": false,
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "one real move inside an accepted held-pointer gesture; press, release, Undo, save and fixture calibration are outside each timing interval",
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-ADV-012",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "50 single pointer-move acknowledgments per targeted tool",
+        "tools": {
+          "curve_rgb": {
+            "maximum_ms": 493.000375,
+            "p50_ms": 223,
+            "p95_ms": 328,
+            "p99_ms": 493.000375,
+            "samples": 50
+          },
+          "hsl_saturation": {
+            "maximum_ms": 218.713583,
+            "p50_ms": 173,
+            "p95_ms": 184,
+            "p99_ms": 218.713583,
+            "samples": 50
+          }
+        }
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-ADV-012/repeat-3/measurements.json",
+        "sha256": "254d204b83631e1025fbb60112eb940ef244c5f01827899cfe21b555d772534d",
+        "bytes": 1624
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "continuous_drag_throughput_measured": false,
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "one real move inside an accepted held-pointer gesture; press, release, Undo, save and fixture calibration are outside each timing interval",
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-ADV-012",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "50 single pointer-move acknowledgments per targeted tool",
+        "tools": {
+          "curve_rgb": {
+            "maximum_ms": 292.739041,
+            "p50_ms": 221,
+            "p95_ms": 235,
+            "p99_ms": 292.739041,
+            "samples": 50
+          },
+          "hsl_saturation": {
+            "maximum_ms": 198.611042,
+            "p50_ms": 172,
+            "p95_ms": 183,
+            "p99_ms": 198.611042,
+            "samples": 50
+          }
+        }
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-NAV-002/repeat-1/measurements.json",
+        "sha256": "18dbb2c63cfb4ad680570a15e2df31fd2ebb7cde3930140695fd181f38c3e96c",
+        "bytes": 1493
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "develop_to_library": {
+          "maximum_ms": 45.545291,
+          "p50_ms": 34,
+          "p95_ms": 41,
+          "p99_ms": 45,
+          "samples": 100
+        },
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "library_acknowledgment": "visible grid, warmed thumbnail Image.Ready/current model URL, thumbnail scene readback with the declared RGBA8 tolerance",
+        "library_to_develop": {
+          "maximum_ms": 46.371625,
+          "p50_ms": 36,
+          "p95_ms": 45,
+          "p99_ms": 46,
+          "samples": 100
+        },
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-NAV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 warmed Library/Develop round trips with one loaded photo"
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-NAV-002/repeat-2/measurements.json",
+        "sha256": "ce49174925b11191797b015d008499e108133873dca1837b4c359639f2accb34",
+        "bytes": 1494
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "develop_to_library": {
+          "maximum_ms": 208.893541,
+          "p50_ms": 33,
+          "p95_ms": 39,
+          "p99_ms": 44,
+          "samples": 100
+        },
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "library_acknowledgment": "visible grid, warmed thumbnail Image.Ready/current model URL, thumbnail scene readback with the declared RGBA8 tolerance",
+        "library_to_develop": {
+          "maximum_ms": 67.276667,
+          "p50_ms": 35,
+          "p95_ms": 42,
+          "p99_ms": 45,
+          "samples": 100
+        },
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-NAV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 warmed Library/Develop round trips with one loaded photo"
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-NAV-002/repeat-3/measurements.json",
+        "sha256": "f1f0268d4072986f32f7d55b34dbc526b971b432e76ca2c041dbcd7a287a120e",
+        "bytes": 1492
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "develop_to_library": {
+          "maximum_ms": 65.525375,
+          "p50_ms": 34,
+          "p95_ms": 39,
+          "p99_ms": 44,
+          "samples": 100
+        },
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "library_acknowledgment": "visible grid, warmed thumbnail Image.Ready/current model URL, thumbnail scene readback with the declared RGBA8 tolerance",
+        "library_to_develop": {
+          "maximum_ms": 46.15175,
+          "p50_ms": 34,
+          "p95_ms": 43,
+          "p99_ms": 46,
+          "samples": 100
+        },
+        "mode": "MEASURE_ONLY",
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-NAV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 warmed Library/Develop round trips with one loaded photo"
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-PRV-002/repeat-1/measurements.json",
+        "sha256": "affd7913758058b6917d409253fb39547650e02eb6874f0f5ead891150bffd17",
+        "bytes": 1428
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "real Backslash key through the production Shortcut",
+        "mode": "MEASURE_ONLY",
+        "original_to_processed": {
+          "maximum_ms": 202.759791,
+          "p50_ms": 154,
+          "p95_ms": 168,
+          "p99_ms": 196,
+          "samples": 100
+        },
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "processed_to_original": {
+          "maximum_ms": 214.769417,
+          "p50_ms": 155,
+          "p95_ms": 167,
+          "p99_ms": 194,
+          "samples": 100
+        },
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-PRV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 Original/Processed shortcut round trips on a loaded edited photo"
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-PRV-002/repeat-2/measurements.json",
+        "sha256": "cd552e9b1d101b9c7ef9ca914b1a060803f0066cb512ddd8c209698c0e2d6cb9",
+        "bytes": 1428
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "real Backslash key through the production Shortcut",
+        "mode": "MEASURE_ONLY",
+        "original_to_processed": {
+          "maximum_ms": 339.388166,
+          "p50_ms": 153,
+          "p95_ms": 161,
+          "p99_ms": 166,
+          "samples": 100
+        },
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "processed_to_original": {
+          "maximum_ms": 174.166792,
+          "p50_ms": 153,
+          "p95_ms": 161,
+          "p99_ms": 166,
+          "samples": 100
+        },
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-PRV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 Original/Processed shortcut round trips on a loaded edited photo"
+      }
+    },
+    {
+      "evidence": {
+        "path": "build-verify/ux-artifacts/20261026T074946Z-86011/UX-PRV-002/repeat-3/measurements.json",
+        "sha256": "14ac032f40833baed92192ea86d186f33f9df405cf0134c837bc5e2ad69d4f8a",
+        "bytes": 1426
+      },
+      "values": {
+        "acknowledgment": "QML Image Ready/current source, provider pixels within the existing renderer budget, post-input polish and scene-region readback within two RGB8 quantization levels, exact alpha",
+        "display_scanout_measured": false,
+        "fixture": "generated opaque 256x192 public PNG",
+        "image_processing": "production preview with Metal when enabled/eligible and CPU fallback; independent CPU reference",
+        "input": "real Backslash key through the production Shortcut",
+        "mode": "MEASURE_ONLY",
+        "original_to_processed": {
+          "maximum_ms": 184.8065,
+          "p50_ms": 154,
+          "p95_ms": 168,
+          "p99_ms": 177,
+          "samples": 100
+        },
+        "performance_thresholds_applied": false,
+        "poll_interval_ms": 10,
+        "precondition": "native Cocoa, idle host; no concurrent build/tidy/CTest",
+        "processed_to_original": {
+          "maximum_ms": 201.319375,
+          "p50_ms": 155,
+          "p95_ms": 168,
+          "p99_ms": 170,
+          "samples": 100
+        },
+        "provider_alpha_tolerance": 0,
+        "provider_pixels_tolerance": "RGB <= 1 only for Metal-eligible documents; CPU exact",
+        "quantile_resolution_ms": 1,
+        "quantiles": "conservative 1 ms Distribution bins",
+        "readback_included": true,
+        "scenario": "UX-PRV-002",
+        "scene_alpha_tolerance": 0,
+        "scene_rgb8_channel_tolerance": 2,
+        "scope": "100 Original/Processed shortcut round trips on a loaded edited photo"
+      }
+    }
+  ],
+  "measurement_limits": [
+    "MEASURE_ONLY, no acceptance thresholds applied",
+    "256x192 generated opaque PNG for navigation/Original/targeted; 100k metadata-only rows for search in initial passing run",
+    "Includes CPU oracle, polling, QML polish and scene readback; not physical scanout",
+    "No claim of 20 MP performance, 16 GiB hardware, general chaos or soak"
+  ],
+  "validation": {
+    "production_build": {
+      "path": ".tools/native-fixes-20261026-production-build.log",
+      "sha256": "79ebc858c00043fbf7e5c7c0460467d1dc258c375b042ccf20084fd6745bd1f2",
+      "bytes": 1902
+    },
+    "full_ctest": {
+      "passed": 72,
+      "skipped": 1,
+      "failed": 0,
+      "skip_reason": "Optional unavailable private Nikon NEF",
+      "log": {
+        "path": ".tools/native-fixes-20261026-ctest.log",
+        "sha256": "b02469d2b822aca5ea3cb1fef9bcee5417a818012532af2fce487097ea0eb7ca",
+        "bytes": 10570
+      }
+    },
+    "affected_tidy": {
+      "path": ".tools/native-fixes-20261026-tidy.log",
+      "sha256": "79108f1deb0d7e097712d0619091e4017f1f9e0b64acb589d3007e78efbe1268",
+      "bytes": 17075
+    },
+    "final_scene_tidy": {
+      "path": ".tools/scene-fixed-20261026-tidy.log",
+      "sha256": "3094fef41b10d9f761638f7c1bca5c73f30db221fc1177bd3f5a847f7468e6b1",
+      "bytes": 11503
+    },
+    "final_scene_ctest": {
+      "path": ".tools/scene-fixed-20261026-ctest.log",
+      "sha256": "f868cec64c5ceed1cbe329fd7d5f5f0fbc0c8d92faf30fd9a28fd8e0e819dadb",
+      "bytes": 1386
+    },
+    "test_build": {
+      "path": ".tools/scene-fixed-20261026-build.log",
+      "sha256": "833c2b6dbf7bf572190ec895641aace90f1b79e377e874cbbc247d0fb0929540",
+      "bytes": 469
+    },
+    "graphify": {
+      "path": ".tools/native-fixes-20261026-graph-final.log",
+      "sha256": "d74181f6bd40bc63ab163b7cf6b7b2fc3fb2a9744f50ea40478e197818c1885b",
+      "bytes": 2509
+    }
+  },
+  "hosted_ci": {
+    "runs": [
+      {
+        "id": 40052678745,
+        "name": "macOS Release",
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": "535eb541409dc3935114235b157f24d4d3e03fa4",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40052678745",
+        "created_at": "2026-10-24T02:05:10Z",
+        "updated_at": "2026-10-24T03:49:22Z"
+      },
+      {
+        "id": 40052678714,
+        "name": "macOS Apple Silicon",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "535eb541409dc3935114235b157f24d4d3e03fa4",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40052678714",
+        "created_at": "2026-10-24T02:05:10Z",
+        "updated_at": "2026-10-24T04:15:47Z"
+      },
+      {
+        "id": 40053516509,
+        "name": "macOS Apple Silicon",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40053516509",
+        "created_at": "2026-10-24T02:16:58Z",
+        "updated_at": "2026-10-24T05:16:45Z"
+      },
+      {
+        "id": 40053512957,
+        "name": "macOS Apple Silicon",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "a421ae55deefac46cfd08b895065705a79dfad5c",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40053512957",
+        "created_at": "2026-10-24T02:16:55Z",
+        "updated_at": "2026-10-24T05:30:06Z"
+      },
+      {
+        "id": 40047953688,
+        "name": "macOS Apple Silicon",
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": "91caa174925c91a3a1b51074eeaf0af3bfcfefaa",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40047953688",
+        "created_at": "2026-10-24T01:02:41Z",
+        "updated_at": "2026-10-24T03:09:29Z"
+      },
+      {
+        "id": 40045874879,
+        "name": "macOS Apple Silicon",
+        "status": "completed",
+        "conclusion": "success",
+        "head_sha": "60c338831ef274743a3aeb4c564b4aee07b21e75",
+        "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40045874879",
+        "created_at": "2026-10-24T00:37:17Z",
+        "updated_at": "2026-10-24T02:57:49Z"
+      }
+    ],
+    "current_a421_summary": {
+      "path": ".tools/ci-a421ae5-summary.log",
+      "sha256": "8493593e92cc249ea89f42e4860344a95e04f72ef83f2a2643bd6daeaed5de76",
+      "bytes": 3385
+    },
+    "failed_release_excerpt": {
+      "path": ".tools/ci-release-40052678745-excerpt.log",
+      "sha256": "99ecdc11431b5dc7f47fa572ee067e74659d725269e9b41b93c638ca4d983f83",
+      "bytes": 1717
+    },
+    "release_artifact": {
+      "path": ".tools/ci-release-40052678745.zip",
+      "sha256": "3e0f1d17cce45536b859031f3129c93a440b8fff52ae9e13b3fd30ab1d4e53ac",
+      "bytes": 2039881
+    },
+    "failure": "Both failed older jobs stopped on META001 with the same held-callback assertion; latest a421 push and PR full jobs passed. The fixes in this record still need hosted CI."
+  },
+  "candidate_a421": {
+    "signature_checks": {
+      "scope": "Local 0.9.0 candidate only; no 1.0 qualification or public upload",
+      "source_commit": "a421ae55deefac46cfd08b895065705a79dfad5c",
+      "archive_sha256": "b524378efb6125953f1ee2e38d3d88a4425d0f25a7f66b3a8036f9356bcd3f4e",
+      "archive_bytes": 434015914,
+      "checks": {
+        "actual_archive_valid": true,
+        "one_byte_tamper_rejected": true,
+        "unrelated_public_key_rejected": true,
+        "truncated_signature_rejected": true,
+        "original_archive_unchanged": true,
+        "feed_version": true,
+        "feed_length": true,
+        "feed_url": true,
+        "complete_manifest": true,
+        "manifest_hashes": true
+      },
+      "manifest": {
+        "BUILD_INFO.json": "3231b7c07b97e03eda975b15d10ea180734893f2eca50ed8606be5c4ecc2ab49",
+        "Luma-0.9.0-macos-arm64.dmg": "d7af958bbcd18743d91ab9ccf62f2330ffbab78de484992888ec194653a434b2",
+        "Luma-0.9.0-macos-arm64.zip": "b524378efb6125953f1ee2e38d3d88a4425d0f25a7f66b3a8036f9356bcd3f4e",
+        "appcast.xml": "c2441423b19c388ecac70beeb063c4450c0decf1b0045dddfdaaf1fee18b5096"
+      },
+      "status": "PASS"
+    },
+    "standalone": {
+      "path": ".tools/candidate-a421ae5-standalone-build-verify.log",
+      "sha256": "11a3a7e8d408fd3cd3e970107a0a0a20ffdd3008fccc7990c6ca665e20f299ac",
+      "bytes": 383
+    },
+    "dmg": {
+      "path": ".tools/candidate-a421ae5-dmg.log",
+      "sha256": "619a9ef54e81ea7efbdc64ac5a099d22de65fb58e196ed2c2cee42158ed4069b",
+      "bytes": 323
+    },
+    "signature_log": {
+      "path": ".tools/candidate-a421ae5-signature-correct-path.log",
+      "sha256": "d56e1a60f2c0a057ccd4b93abab54cf3c5792716c18b1757b617aa8db730a239",
+      "bytes": 44
+    },
+    "scope": "Local 0.9.0 candidate only; no tag, public appcast or release upload"
+  },
+  "remaining": [
+    "Full native stress and general chaos/soak",
+    "20 blocking / 305 total applicable unadapted scenarios",
+    "Final installation, actual update and published-artifact checks",
+    "Hardware not available: 16 GiB/external monitor; no waiver inferred",
+    "BUG045 remains open; passing retests alone do not identify its historical cause"
+  ]
+}

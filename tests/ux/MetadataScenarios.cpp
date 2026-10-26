@@ -2,7 +2,6 @@
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
 #include "tests/ux/PersistenceProbe.h"
-#include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
 #include <QCoreApplication>
 #include <QDateTime>
@@ -14,6 +13,7 @@
 #include <QTimer>
 #include <QXmlStreamReader>
 #include <algorithm>
+#include <memory>
 #include <span>
 
 namespace ux {
@@ -179,45 +179,53 @@ void pendingMetadata(Context &c, const std::string &photo) {
     auto &d = *c.driver;
     QSignalSpy changed(&c.library, &LibraryModel::metadataChanged);
     require(changed.isValid(), "Cannot observe metadata result delivery");
-    QueuedCallGate gate(
-        c.library,
-        [&] {
-            return c.library.descriptiveMetadata().isEmpty() &&
-                   d.object("photoMetadata")->property("opened").toBool();
-        },
-        [&] {
-            require(changed.count() == 1 &&
-                        !d.object("photoMetadata")->property("ready").toBool() &&
-                        !d.item("metadata.save")->isEnabled(),
-                    "Pending metadata read exposed an editable stale draft");
-            close(c);
-            d.click("main.developButton");
-            require(!c.window->property("libraryMode").toBool(),
-                    "Pending metadata read blocked Develop navigation");
-            d.click("main.libraryButton");
-            d.click("library.clearSelection");
-            require(c.library.selectedCount() == 0,
-                    "Pending metadata read blocked clear selection");
-            d.click(c.card(0));
-            require(c.library.selectionIDs() == std::vector<std::string>{photo},
-                    "Pending metadata read blocked Library selection");
-            int beats = 0;
-            QTimer timer;
-            QObject::connect(&timer, &QTimer::timeout, [&] { ++beats; });
-            timer.start(10);
-            d.wait([&] { return beats >= 5; }, "GUI heartbeat while metadata completion is held");
-            require(c.library.descriptiveMetadata().isEmpty() && changed.count() == 1 &&
-                        c.window->property("libraryMode").toBool(),
-                    "Fixture did not hold the actual metadata completion across Library input");
-            d.log({{"action", "metadata_completion_held_across_library_input"},
-                   {"heartbeat_events", beats},
-                   {"completion_boundary_fixture", true}});
-        });
+    // A harmless Library callback may precede the metadata worker's completion.
+    // Keep this ordering explicit rather than depending on directory-watch timing.
+    const auto unrelatedCalls = std::make_shared<int>(0);
+    QObject unrelatedObserver;
+    QObject::connect(&c.library, &LibraryModel::metadataChanged, &unrelatedObserver, [&] {
+        if (c.library.descriptiveMetadata().isEmpty() && changed.count() == 1)
+            QMetaObject::invokeMethod(
+                &c.library, [unrelatedCalls] { ++*unrelatedCalls; }, Qt::QueuedConnection);
+    });
+    const auto source = luma::Catalog(c.catalogFile.toStdString()).metadataSnapshot(photo).path;
+    PersistenceGate gate(c.catalogFile.toStdString(), {"metadata.after-read"});
     d.click("library.photoActions");
     d.click("library.photoMetadata");
-    d.wait([&] { return gate.caught; }, "Metadata completion boundary intercepted");
-    if (gate.failure)
-        std::rethrow_exception(gate.failure);
+    d.wait([&] { return gate.snapshot().held && *unrelatedCalls == 1; },
+           "Actual metadata read held while unrelated Library callback is delivered");
+    const auto observed = gate.snapshot();
+    require(!observed.hookFailed && observed.events.size() == 1 &&
+                observed.events.front().point == "metadata.after-read" &&
+                observed.events.front().target == source &&
+                d.object("photoMetadata")->property("opened").toBool() && changed.count() == 1 &&
+                !d.object("photoMetadata")->property("ready").toBool() &&
+                !d.item("metadata.save")->isEnabled(),
+            "Pending metadata read exposed an editable stale draft or held an unrelated result");
+    close(c);
+    d.click("main.developButton");
+    require(!c.window->property("libraryMode").toBool(),
+            "Pending metadata read blocked Develop navigation");
+    d.click("main.libraryButton");
+    d.click("library.clearSelection");
+    require(c.library.selectedCount() == 0, "Pending metadata read blocked clear selection");
+    d.click(c.card(0));
+    require(c.library.selectionIDs() == std::vector<std::string>{photo},
+            "Pending metadata read blocked Library selection");
+    int beats = 0;
+    QTimer timer;
+    QObject::connect(&timer, &QTimer::timeout, [&] { ++beats; });
+    timer.start(10);
+    d.wait([&] { return beats >= 5; }, "GUI heartbeat while metadata completion is held");
+    require(gate.snapshot().held && !gate.snapshot().hookFailed &&
+                c.library.descriptiveMetadata().isEmpty() && changed.count() == 1 &&
+                c.window->property("libraryMode").toBool(),
+            "Fixture did not hold the actual metadata completion across Library input");
+    d.log({{"action", "metadata_completion_held_across_library_input"},
+           {"heartbeat_events", beats},
+           {"unrelated_library_callbacks_delivered", *unrelatedCalls},
+           {"actual_read_boundary_fixture", true}});
+    gate.release();
     d.wait(
         [&] {
             return c.library.descriptiveMetadata().value("id").toString().toStdString() == photo;

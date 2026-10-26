@@ -875,3 +875,41 @@ qualification and the latest local fixes still require the remaining campaign.
 Fifty unchanged-source offscreen repetitions pass, with normal memory pressure in
 all observed callbacks and exact source/catalog invariants. No original failure
 cause was captured. Keep the defect open; do not infer a fix from these passes.
+
+### LUMA-QA-086 — Metadata completion gate can intercept unrelated Library work
+
+- Status: **deterministic reproduction fixed; 15 offscreen and six native metadata checks pass; hosted retest pending**.
+- Release run 40052678745 and older push run 40047953688 fail META001 at the same
+  held-completion assertion. A harmless queued callback posted when the draft is
+  cleared reproduces the failure: the generic QObject gate holds that callback,
+  while the actual metadata result arrives during nested UI processing.
+- Use the existing UX-only persistence probe after the actual read, scoped to the
+  owned catalog and source path. Keep the unrelated callback as a required
+  delivered control, and require navigation, selection, heartbeat, one eventual
+  metadata result and all durable-data checks. Production builds have no probe.
+
+### LUMA-QA-087 — Native performance provider oracle assumes CPU-only pixels
+
+- Status: **fixed; targeted Curve/HSL passes three final native repetitions**.
+- Retained calibration failure differs in four RGB channels by one level with
+  exact alpha. The test now uses the existing Metal-eligible RGB <= 1 oracle,
+  retaining exact CPU/alpha/geometry/format/color-space/DPR and negative controls.
+- Measurement metadata now names the actual production CPU/Metal preview path;
+  the independent reference remains CPU. Product rendering is unchanged.
+
+### LUMA-QA-088 — Independent native scene readbacks exceed the one-level bound
+
+- Status: **scene-only oracle corrected; nine final native measurement checks pass**.
+- Two PRV002 failures have a two-level discrepancy in one blue scene channel,
+  with exact alpha and matching dimensions. The diagnostic provider image is
+  byte-identical to both its calibration image and independent CPU reference.
+- Permit RGB <= 2 only for scaled scene readback, require exact alpha, and reject
+  RGB 3, wrong geometry/format and absent images with explicit controls. Provider
+  numerical limits remain unchanged. Qt/Metal rounding is an inference; no
+  application image-processing defect is claimed from the scene captures.
+- These are bounded small-image MEASURE_ONLY results, not final performance SLO,
+  20 MP, general chaos, soak or full release acceptance.
+
+Evidence for QA086–088, original failures, exact source-bound reports, hosted
+status and signed local candidate:
+[native resumption and CI fixes](qualification/2026-10-26/native-resume-and-ci-fixes.json).

@@ -186,6 +186,18 @@ input/debounce/polish boundaries; they do not measure physical scanout. PERF-006
 uses a native foreground-only local run; FLT-002 retains the separate CI functional
 path. The Qt Quick Metal UI is not the planned 0.6 GPU image-processing backend.
 
+The paragraph above records the 2026-10-16 checkpoint. The current 2026-10-26
+adapters also exercise the implemented Metal image-processing backend. Their
+provider oracle now uses the established RGB <= 1 budget only for Metal-eligible
+documents, with exact CPU, alpha, geometry, format, color-space and DPR checks.
+Two native Original failures retain matching scene dimensions and exact provider
+images but a two-level blue scene discrepancy. The scene-only oracle consequently
+uses RGB <= 2 and exact alpha, with explicit rejection controls for three levels,
+alpha, geometry, format and missing images. Qt/Metal quantization is an inference
+from those observations, not an established product defect. Final native repeats
+pass 9/9; the timing scope remains MEASURE_ONLY with readback included. See
+[retained failures and controls](../qualification/2026-10-26/native-resume-and-ci-fixes.json).
+
 ## StandardKey.Quit differs between Cocoa and offscreen
 
 Hosted PR run 38922231206 at commit 8a1efbb was cancelled at its 50-minute limit.

@@ -122,6 +122,9 @@ MetadataSnapshot MetadataService::read(const std::string &id) const {
             snapshot.readError = error.what();
         }
     }
+#ifdef LUMA_UX_PERSISTENCE_PROBE
+    ux::observePersistenceCheckpoint(catalog_, "metadata.after-read", snapshot.path, {});
+#endif
     return snapshot;
 }
 void MetadataService::readSourceMetadata(const std::filesystem::path &source,

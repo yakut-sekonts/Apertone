@@ -5,6 +5,43 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Native resumption and hosted metadata race — 2026-10-26
+
+[Evidence](qualification/2026-10-26/native-resume-and-ci-fixes.json): after the
+user dismissed the system dialog, startup, Import Cancel, actual stable-catalog
+migration and accessibility-tree checks pass **12/12 native**. The former activation
+blocker is cleared without an OS preference or activation-timeout change.
+
+Full hosted PR/push CI on a421ae5 completed successfully, including clang-tidy:
+the blocking route records 366 PASS, 33 SKIPPED and 31 NOT_IMPLEMENTED, and the
+separate phase 1.0 route passes 30/30. Two older jobs, including candidate release
+40052678745, failed the same metadata assertion. An unrelated queued Library
+callback reproduces that failure deterministically. The UX fixture now holds the
+actual completed metadata read on its worker, scoped to the owned catalog/source,
+while requiring unrelated callbacks, navigation, selection and GUI heartbeat to
+continue. The probe is absent from production builds. Follow-up passes **15/15
+offscreen**, then metadata/targeted-tool checks pass **9/9 native**.
+
+The first native measurement series retains 10 PASS / 2 FAIL. Targeted calibration
+differs from its CPU reference in four RGB channels by one level, with exact alpha;
+it now uses the existing Metal-eligible budget and negative controls. A separate
+Original follow-up retains a scene mismatch: one blue channel differs by two
+levels despite byte-identical calibration/current/CPU provider images and matching
+scene dimensions/alpha. The scene-only oracle now permits RGB <= 2 and exact alpha;
+controls reject three levels, altered alpha, wrong geometry/format and absent images.
+This is not a change to image processing or its CPU/Metal numerical limits.
+Final native navigation, Original and targeted measurements pass **9/9**. These
+small-fixture MEASURE_ONLY timings include readback overhead and do not qualify
+20 MP performance, general chaos or long-running sessions.
+
+Full production build and CTest pass **72 PASS / one private Nikon NEF SKIP**;
+affected mandatory tidy/format and six follow-up renderer/isolation CTests pass.
+The local a421ae5 candidate now passes SDK-hidden standalone execution, DMG/ZIP
+equivalence and Sparkle signing with three rejected cryptographic counterexamples.
+It remains an unpublished 0.9.0 candidate. New hosted CI, native stress, installation,
+actual update, final artifact, broader data-safety, soak and hardware gates remain
+open. Adapter counts remain 20 blocking / 305 total; BUG045 is not closed.
+
 ### Release archive/installer identity — 2026-10-24
 
 [Evidence](qualification/2026-10-24/release-package-identity.json): nine controlled,
