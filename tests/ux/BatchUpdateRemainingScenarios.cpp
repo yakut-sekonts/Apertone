@@ -60,6 +60,10 @@ struct Database {
             handle = nullptr;
             require(false, "Cannot open isolated batch/update evidence database");
         }
+        // Opening the WAL while background Catalog readers open/close can return
+        // BUSY (including BUSY_RECOVERY) before the first read. Use the same
+        // bounded wait as Catalog; evidence queries must not fail immediately.
+        sqlite3_busy_timeout(handle, 3000);
     }
     ~Database() {
         if (handle)
@@ -76,12 +80,20 @@ struct Database {
     }
     std::int64_t scalar(const QByteArray &sql) const {
         sqlite3_stmt *raw = nullptr;
-        require(sqlite3_prepare_v2(handle, sql.constData(), -1, &raw, nullptr) == SQLITE_OK,
-                "Cannot prepare batch footprint query");
+        const int prepared = sqlite3_prepare_v2(handle, sql.constData(), -1, &raw, nullptr);
         const std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> statement(
             raw, sqlite3_finalize);
-        require(sqlite3_step(raw) == SQLITE_ROW && sqlite3_column_type(raw, 0) == SQLITE_INTEGER,
-                "Footprint query did not return an integer");
+        require(prepared == SQLITE_OK,
+                "Cannot prepare batch footprint query [" + QString::fromUtf8(sql) +
+                    "]: code=" + QString::number(prepared) +
+                    " extended=" + QString::number(sqlite3_extended_errcode(handle)) + " " +
+                    QString::fromUtf8(sqlite3_errmsg(handle)));
+        const int stepped = sqlite3_step(raw);
+        require(stepped == SQLITE_ROW && sqlite3_column_type(raw, 0) == SQLITE_INTEGER,
+                "Footprint query did not return an integer [" + QString::fromUtf8(sql) +
+                    "]: code=" + QString::number(stepped) +
+                    " extended=" + QString::number(sqlite3_extended_errcode(handle)) + " " +
+                    QString::fromUtf8(sqlite3_errmsg(handle)));
         return sqlite3_column_int64(raw, 0);
     }
 };

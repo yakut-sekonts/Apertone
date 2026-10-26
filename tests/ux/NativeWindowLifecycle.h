@@ -13,7 +13,7 @@ class NativeWindowLifecycle final {
     NativeWindowLifecycle(const NativeWindowLifecycle &) = delete;
     NativeWindowLifecycle &operator=(const NativeWindowLifecycle &) = delete;
     QJsonObject state() const;
-    void minimize();
+    void minimize(bool directAction = false);
     void restore();
 
   private:

@@ -5,6 +5,46 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Native stress, full history baseline and deactivation — 2026-10-26
+
+[Evidence](qualification/2026-10-26/native-stress-history-and-lifecycle.json): the
+native implemented-stress campaign retained **14 PASS / 1 FAIL**. BAT014's
+independent SQLite footprint reader had no busy timeout. A controlled concurrent
+connection experiment with the same SQLite library reproduces ten BUSY failures
+in 3,000 reads; the existing production 3,000 ms timeout gives **3,000/3,000 PASS**.
+The original failure did not retain its SQLite code, so its exact cause is not
+claimed from this experiment alone. The corrected observer passes **3/3 native
+and 3/3 offscreen**. All 15 implemented stress IDs now have native passing
+observations across these checkpoints; production persistence is unchanged.
+
+The native seeded **10,000-action** history replay passes with **100 durable
+checkpoints**. Its replay is byte-identical to the prior failing and passing
+software schedules. It covers three integer sliders and Undo/Redo; general
+Chaos Monkey, one million actions and long soak remain separate requirements.
+
+APP017 and SLD009 now pass **6/6 native**, followed by **2/2** after static-analysis
+corrections. A separate owned AppKit process, using the same attested UX binary,
+performs a cooperative public activation handoff. Native and Qt observations
+prove genuine inactivity, safe gesture completion before any release, actual
+return, a clean new gesture, exact saved documents and Undo/Redo. The peer's
+Accessory policy prevents the observed late Regular-app startup activation;
+Luma keeps its normal activation policy. Both adapters explicitly skip offscreen.
+Preview readback now discards a capture superseded by real refinement within the
+original deadline, while retaining exact provider/document/source checks.
+
+Eight affected CTests and mandatory affected static analysis pass, including
+shipping-symbol isolation of the new native peer. Original failed attempts are
+retained. APP016 minimize/restore remains open: neither public AppKit actions nor
+the attempted native UI transport established the required miniaturize event.
+No product defect or successful physical-input test is inferred from that result.
+
+Applicable missing adapters are **20 blocking / 303 total**. Hosted CI on 2156ee8
+was still running without failed steps at the last check; these newer local
+changes need their own hosted results. Installation, actual update/relaunch,
+golden installed workflows, published artifact, broader chaos/soak and hardware
+gates remain open. BUG045 remains open. The cancelled project/chat archive was
+not created, and no public release or appcast changed.
+
 ### Native resumption and hosted metadata race — 2026-10-26
 
 [Evidence](qualification/2026-10-26/native-resume-and-ci-fixes.json): after the

@@ -142,7 +142,7 @@ QJsonObject NativeWindowLifecycle::state() const {
                 {"qt_window_state", static_cast<int>(impl_->window.windowState())}};
     }
 }
-void NativeWindowLifecycle::minimize() {
+void NativeWindowLifecycle::minimize(bool directAction) {
     @autoreleasepool {
         NSWindow *native = impl_->native();
         NSButton *button = [native standardWindowButton:NSWindowMiniaturizeButton];
@@ -151,7 +151,10 @@ void NativeWindowLifecycle::minimize() {
                 "Actual native minimize control is unavailable");
         // Standard traffic-light buttons can implement their mouse handling
         // outside NSButton's target/action path. Use NSWindow's public action.
-        [native performMiniaturize:nil];
+        if (directAction)
+            [native miniaturize:nil];
+        else
+            [native performMiniaturize:nil];
     }
 }
 void NativeWindowLifecycle::restore() {

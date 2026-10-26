@@ -294,6 +294,23 @@ class CropDoneProfileTests(unittest.TestCase):
                 self.assertIsNone(runner.unsupported_backend_requirement(identifier))
                 self.assertEqual(runner.NATIVE_ONLY_CONTRACTS[identifier], {'platform': 'cocoa'})
 
+    def test_deactivation_requires_actual_native_lifecycle(self):
+        identifiers = ['UX-APP-017', 'UX-SLD-009']
+        with patch.dict(os.environ, {'GITHUB_ACTIONS': 'true'}):
+            outcome = self.run_cli(identifiers, runs=3)
+            self.assertEqual(outcome['code'], 1)
+            self.assertEqual(outcome['calls'], [])
+            self.assertEqual(outcome['base_calls'], 0)
+            self.assertEqual(outcome['summary']['summary'], {'SKIPPED': 2})
+            self.assertEqual(outcome['summary']['execution_status'], 'INCOMPLETE')
+            self.assertEqual(outcome['summary']['release_gate'], 'NOT_QUALIFIED')
+            self.assertEqual(set(outcome['summary']['unsupported_backend']), set(identifiers))
+        with patch.dict(os.environ, {'GITHUB_ACTIONS': ''}):
+            for identifier in identifiers:
+                self.assertIn(identifier, runner.NATIVE)
+                self.assertIsNone(runner.unsupported_backend_requirement(identifier))
+                self.assertEqual(runner.NATIVE_ONLY_CONTRACTS[identifier], {'platform': 'cocoa'})
+
 
 if __name__ == '__main__':
     unittest.main()

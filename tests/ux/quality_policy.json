@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "reviewed_on": "2026-10-23",
+  "reviewed_on": "2026-10-26",
   "scope": "Current executable adapters, preserving specification mode and scenario text",
   "quality_allowlist": [
     "UX-ADV-001",
@@ -22,6 +22,7 @@
     "UX-APP-007",
     "UX-APP-011",
     "UX-APP-013",
+    "UX-APP-017",
     "UX-BAT-007",
     "UX-BAT-009",
     "UX-CRP-001",
@@ -311,6 +312,7 @@
     "UX-SLD-006",
     "UX-SLD-007",
     "UX-SLD-008",
+    "UX-SLD-009",
     "UX-SLD-010",
     "UX-SLD-011",
     "UX-SLD-012",
@@ -814,6 +816,8 @@
     }
   },
   "fixture_photo_overrides": {
+    "UX-APP-017": 1,
+    "UX-SLD-009": 1,
     "UX-P06-MEM-001": 1,
     "UX-P06-MEM-002": 1,
     "UX-IMP-009": 20,

@@ -913,3 +913,46 @@ cause was captured. Keep the defect open; do not infer a fix from these passes.
 Evidence for QA086–088, original failures, exact source-bound reports, hosted
 status and signed local candidate:
 [native resumption and CI fixes](qualification/2026-10-26/native-resume-and-ci-fixes.json).
+
+### LUMA-QA-089 — Batch footprint reader has no SQLite busy timeout
+
+- Status: **observation connection corrected; 3 native and 3 offscreen repeats pass**.
+- The native stress campaign retained 14 PASS and one BAT014 SQL-prepare failure.
+  Its original diagnostic lacks the exact SQLite code; the frozen catalog passes
+  integrity/FK checks. A same-library concurrent connection experiment produces
+  ten BUSY failures in 3,000 reads with a zero timeout, including BUSY_RECOVERY.
+- The evidence reader now uses the 3,000 ms timeout already used by production
+  Catalog. The controlled experiment then passes all 3,000 reads. SQL text,
+  result code and extended error are retained for future failures. Production
+  persistence is unchanged; the experiment does not reconstruct the lost original code.
+
+### LUMA-QA-090 — Preview generation changes during a valid scene capture
+
+- Status: **readback retries superseded generations within its existing deadline**.
+- Deactivation diagnostics record a changed preview URL with the same complete
+  document and exact CPU/provider pixels. The real refinement timer can run
+  after histogram completion; one observed rerender also crosses a pressure level.
+- The helper rejects a superseded capture and repeats only within one shared
+  ten-second deadline. Exact source/document/provider checks remain mandatory.
+  This does not change rendering tolerances or close historical BUG045.
+
+### LUMA-QA-091 — Native deactivation needs a cooperative return transport
+
+- Status: **APP017 and SLD009 pass 6/6 native, then 2/2 after analyzer fixes**.
+- Finder handoff proved actual inactivity and safe gesture completion, but
+  advisory return activation and external UI attempts did not reliably return
+  the window. They remain retained failures rather than product-defect claims.
+- A separate owned process of the same attested UX executable now uses public
+  AppKit handoff in both directions. The parent PID, executable and one-time
+  return request are pinned. The peer uses Accessory policy and finishes its
+  startup handoff before the held gesture, avoiding observed late Regular-app
+  activation. Luma retains its normal policy; no global OS setting changes.
+- Native/Qt transitions, no injected release before completion, exact durable
+  documents, a clean new gesture and complete Undo/Redo checks are required.
+  Offscreen routes skip explicitly; the helper is excluded from shipping symbols.
+- APP016 remains open after public/direct AppKit and external UI attempts.
+  No actual miniaturize notification was observed for background export.
+
+Evidence, original failures, controlled experiments, native 10,000-action history
+and exact coverage limits:
+[native stress, history and lifecycle](qualification/2026-10-26/native-stress-history-and-lifecycle.json).

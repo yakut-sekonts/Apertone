@@ -946,3 +946,30 @@ visible missing B pathname and both cached thumbnails. The infrastructure subset
 passed (30 runner cases plus metric accounting,6.03 seconds); format and focused
 new-helper/scenario tidy passed. The full CTest run above preceded the user's
 load deferral; no full load-bearing campaign was repeated after that direction.
+
+## Native stress and cooperative app return — 2026-10-26
+
+Final qualification now includes load work by the later user instruction. The
+native implemented-stress run retains 14 PASS / one BAT014 footprint-query FAIL;
+the independent SQLite observer correction passes three native and three software
+repeats. The 10,000-action native history baseline passes 100 durable checkpoints
+with a byte-identical replay of the original seeded schedule. These bounded
+workloads do not qualify general chaos, long soak or unavailable hardware.
+
+Finder return remains unreliable in its original candidate. APP017 and SLD009
+now use an owned cooperative AppKit peer of the exact same UX binary, with a
+distinct PID, validated parent, fresh nonce-bound request and finite lifetime.
+The peer's Accessory policy affects only that child. The main Qt app remains
+Regular. Actual AppKit/Qt loss and return, safe automatic gesture completion,
+full persistence and post-return history checks pass six repetitions, followed
+by two checks after mandatory analyzer fixes. A Regular peer's late startup
+activation failures and all earlier attempts remain retained.
+
+APP016 is still open. Public performMiniaturize and direct miniaturize did not
+produce its required native event. External button access returned
+elementHasNoFrame/timeoutReached; a separate screenshot-preparation attempt
+timed out and reset the UI tool before any coordinate click. Those are not
+successful minimize observations or evidence of a production defect. No OS
+security/activation setting, real user catalog or installed stable app changed.
+
+See [source-bound evidence and all retained attempts](../qualification/2026-10-26/native-stress-history-and-lifecycle.json).

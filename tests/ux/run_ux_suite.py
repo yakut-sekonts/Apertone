@@ -51,6 +51,8 @@ NATIVE_ONLY_CONTRACTS = {
     'UX-PRV-002': {'platform': 'cocoa'},
     'UX-ADV-012': {'platform': 'cocoa'},
     'UX-PERF-006': {'platform': 'cocoa'},
+    'UX-APP-017': {'platform': 'cocoa'},
+    'UX-SLD-009': {'platform': 'cocoa'},
 }
 
 
@@ -187,6 +189,7 @@ NATIVE.add('UX-P09-PERF-001')  # Executable Python schema adapter; no native UI 
 NATIVE.add('UX-P10-A11Y-002')
 NATIVE.add('UX-P10-DAY-009')
 NATIVE.add('UX-P10-DAY-003')
+NATIVE.update(('UX-APP-017', 'UX-SLD-009'))
 GLOBAL = {'UX-UND-018'}
 
 CASE_TIMEOUTS = {'UX-MAC-008': 300, 'UX-MAC-007': 300, 'UX-EXP-026': 300, 'UX-UND-017': 3600, 'UX-LIB-006': 300, 'UX-LIB-018': 300, 'UX-MAC-001': 300,

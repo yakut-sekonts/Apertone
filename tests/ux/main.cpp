@@ -1,4 +1,5 @@
 #include "tests/ux/HistoryChaos.h"
+#include "tests/ux/NativeApplicationHandoff.h"
 #include "tests/ux/UxContext.h"
 #include <QCommandLineParser>
 #include <QDir>
@@ -8,6 +9,7 @@
 #include <cstdio>
 #include <iostream>
 #include <optional>
+#include <string_view>
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
@@ -43,6 +45,8 @@ struct ShutdownMarker {
 };
 } // namespace
 int main(int argc, char **argv) {
+    if (argc > 1 && std::string_view(argv[1]) == "--activation-peer")
+        return ux::nativeActivationPeerMain(argc, argv);
     ShutdownMarker applicationDestroyed{"qguiapplication.owner.destroy.end"};
     QGuiApplication app(argc, argv);
     ShutdownMarker applicationDestroying{"qguiapplication.owner.destroy.begin"};
@@ -162,7 +166,8 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "VIS003 candidate forbids ignored variant/stage/state-root flags");
-        if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+        if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION" || id == "UX-APP-017" ||
+            id == "UX-SLD-009")
             ux::require(
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "App deactivation candidate forbids ignored variant/stage/state-root flags");
@@ -237,7 +242,8 @@ int main(int argc, char **argv) {
         else if (id == "CANDIDATE-LIB005-AWAY-BACK" || id == "UX-LIB-005")
             ux::require(ux::lib005ActualResponseCandidate(*context, id),
                         "Actual Library away/back thumbnail candidate unavailable");
-        else if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+        else if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION" || id == "UX-APP-017" ||
+                 id == "UX-SLD-009")
             ux::require(ux::appDeactivationCandidate(*context, id),
                         "Real cross-process app deactivation candidate unavailable");
         else if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
