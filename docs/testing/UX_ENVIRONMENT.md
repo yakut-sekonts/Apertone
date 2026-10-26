@@ -973,3 +973,14 @@ successful minimize observations or evidence of a production defect. No OS
 security/activation setting, real user catalog or installed stable app changed.
 
 See [source-bound evidence and all retained attempts](../qualification/2026-10-26/native-stress-history-and-lifecycle.json).
+
+## Manual minimize discrepancy — 2026-10-26
+
+The user reports a physical yellow-button click and visible minimization in the
+prepared window. The external-input candidate retains its timeout and no actual
+NSWindow/Qt miniaturize notification. A subsequent public-action diagnostic
+records a miniaturizable window with an enabled button, no native will/did
+notification, and no minimized owned window. A hidden second owned window was
+also enumerated. Neither the human report nor this failed automation establishes
+completion of the background export/restore contract. APP016 remains open.
+See [source-bound evidence](../qualification/2026-10-26/manual-minimize-observation.json).

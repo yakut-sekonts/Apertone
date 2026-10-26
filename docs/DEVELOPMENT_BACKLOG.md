@@ -956,3 +956,16 @@ status and signed local candidate:
 Evidence, original failures, controlled experiments, native 10,000-action history
 and exact coverage limits:
 [native stress, history and lifecycle](qualification/2026-10-26/native-stress-history-and-lifecycle.json).
+
+### LUMA-QA-092 — Human minimize observation differs from native test evidence
+
+- Status: **open observation discrepancy; no product defect established**.
+- The user confirms clicking the yellow button and seeing the prepared Luma QA
+  window minimize. The automated candidate observed no matching NSWindow/Qt
+  transition during its original 45-second external-input window.
+- Preserve both observations. A passive diagnostic now records bounded native
+  lifecycle/occlusion events and every owned window; the public-action follow-up
+  still fails before minimized background work can be qualified.
+- Build and mandatory affected analysis pass. No timing extension, simulated
+  state, acceptance relaxation or production change was introduced.
+- Evidence: [manual minimize observation](qualification/2026-10-26/manual-minimize-observation.json).

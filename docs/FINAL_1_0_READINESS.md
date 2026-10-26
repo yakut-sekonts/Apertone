@@ -5,6 +5,21 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Manual minimize observation — 2026-10-26
+
+[Evidence](qualification/2026-10-26/manual-minimize-observation.json): the user
+confirmed a physical yellow-button click and visible minimization after the
+fresh ready signal. The candidate nevertheless timed out without the required
+native/Qt transition. This discrepancy is not evidence of a product failure or
+a qualified background export/restore workflow. The manual observation and raw
+failure are both retained.
+
+A passive diagnostic follow-up records every owned window and bounded native
+will/did-miniaturize and occlusion events. The public AppKit action still records
+no transition despite an enabled minimize control and miniaturizable key window.
+Build and mandatory affected static analysis pass; deadlines and acceptance
+criteria are unchanged. APP016 remains open. No repeat manual click is requested.
+
 ### Native stress, full history baseline and deactivation — 2026-10-26
 
 [Evidence](qualification/2026-10-26/native-stress-history-and-lifecycle.json): the

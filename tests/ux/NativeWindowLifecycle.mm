@@ -21,8 +21,9 @@ NSWindow *ownedWindow(QQuickWindow &window) {
     return native;
 }
 struct Counts {
-    unsigned minimized = 0, restored = 0;
+    unsigned minimizing = 0, minimized = 0, restored = 0;
     QJsonArray focusEvents;
+    QJsonArray windowEvents;
 };
 } // namespace
 QJsonObject nativeActivationSnapshot(QQuickWindow &window) {
@@ -64,6 +65,38 @@ struct NativeWindowLifecycle::Impl {
         : window(target), original(ownedWindow(target)), number(original.windowNumber) {
         const std::weak_ptr<Counts> weak = counts;
         auto *center = NSNotificationCenter.defaultCenter;
+        for (NSNotificationName name in @[
+                 NSWindowWillMiniaturizeNotification, NSWindowDidMiniaturizeNotification,
+                 NSWindowDidDeminiaturizeNotification, NSWindowDidChangeOcclusionStateNotification
+             ]) {
+            [tokens
+                addObject:
+                    [center
+                        addObserverForName:name
+                                    object:original
+                                     queue:nil
+                                usingBlock:^(NSNotification *notification) {
+                                  if (const auto value = weak.lock()) {
+                                      NSWindow *observed = notification.object;
+                                      if ([notification.name
+                                              isEqualToString:NSWindowWillMiniaturizeNotification])
+                                          ++value->minimizing;
+                                      if (value->windowEvents.size() < 128)
+                                          value->windowEvents.append(QJsonObject{
+                                              {"event",
+                                               QString::fromUtf8(notification.name.UTF8String)},
+                                              {"window_number",
+                                               static_cast<int>(observed.windowNumber)},
+                                              {"miniaturized",
+                                               static_cast<bool>(observed.miniaturized)},
+                                              {"visible", static_cast<bool>(observed.visible)},
+                                              {"occlusion",
+                                               static_cast<int>(observed.occlusionState)},
+                                              {"system_uptime",
+                                               NSProcessInfo.processInfo.systemUptime}});
+                                  }
+                                }]];
+        }
         [tokens addObject:[center addObserverForName:NSWindowDidMiniaturizeNotification
                                               object:original
                                                queue:nil
@@ -125,6 +158,14 @@ QJsonObject NativeWindowLifecycle::state() const {
     @autoreleasepool {
         NSWindow *native = impl_->native();
         NSRunningApplication *front = NSWorkspace.sharedWorkspace.frontmostApplication;
+        NSButton *button = [native standardWindowButton:NSWindowMiniaturizeButton];
+        QJsonArray windows;
+        for (NSWindow *owned in NSApp.windows)
+            windows.append(QJsonObject{{"window_number", static_cast<int>(owned.windowNumber)},
+                                       {"title", QString::fromUtf8(owned.title.UTF8String)},
+                                       {"miniaturized", static_cast<bool>(owned.miniaturized)},
+                                       {"visible", static_cast<bool>(owned.visible)},
+                                       {"key", static_cast<bool>(owned.keyWindow)}});
         return {{"window_number", static_cast<int>(native.windowNumber)},
                 {"miniaturized", static_cast<bool>(native.miniaturized)},
                 {"visible", static_cast<bool>(native.visible)},
@@ -137,6 +178,12 @@ QJsonObject NativeWindowLifecycle::state() const {
                                          ? QString::fromUtf8(front.bundleIdentifier.UTF8String)
                                          : QString{}},
                 {"focus_events", impl_->counts->focusEvents},
+                {"window_events", impl_->counts->windowEvents},
+                {"owned_windows", windows},
+                {"miniaturizable", static_cast<bool>(native.miniaturizable)},
+                {"minimize_button_enabled", static_cast<bool>(button && button.enabled)},
+                {"occlusion", static_cast<int>(native.occlusionState)},
+                {"will_miniaturize", static_cast<int>(impl_->counts->minimizing)},
                 {"did_miniaturize", static_cast<int>(impl_->counts->minimized)},
                 {"did_deminiaturize", static_cast<int>(impl_->counts->restored)},
                 {"qt_window_state", static_cast<int>(impl_->window.windowState())}};
