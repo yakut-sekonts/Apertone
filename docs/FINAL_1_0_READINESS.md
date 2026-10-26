@@ -5,6 +5,38 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Full implemented native regression and qualification accounting — 2026-10-26
+
+[Evidence](qualification/2026-10-26/native-regression-and-gate-accounting.json):
+all **277 implemented regression IDs** ran on one unchanged source/binary:
+**276 PASS / 1 retained FAIL**, with original hashes and catalog integrity intact.
+UPD001's strict pixel comparison also fails twice in three diagnostic repeats:
+the full document, ready state and preview URL match, while one green channel
+differs from its CPU reference by one level. The original failure lacks pixel
+captures; its exact image difference cannot be reconstructed retrospectively.
+
+The batch/update helper now uses the existing Metal-eligible RGB <= 1 comparison,
+with exact alpha/geometry/format/color-space/DPR and exact CPU comparison. Its
+negative controls remain active. Four affected IDs pass **12/12 native and 12/12
+offscreen**. No application rendering or timeout changed.
+
+Qualification accounting previously allowed applicable nonblocking
+NOT_IMPLEMENTED rows to produce a full release PASS in an isolated reproduction.
+They now make execution incomplete and block full release qualification. The
+specification's conditional MSK005 is explicitly SKIPPED only when the declared
+mask_duplicate capability is boolean false. Missing/malformed declarations do
+not grant the exception. **51 runner unit tests, eight affected CTests, Metal
+equivalence, build and mandatory affected analysis pass.** There are now **20
+blocking / 302 total** missing applicable adapters; one conditional item was
+reclassified, not implemented or passed.
+
+All three standard CI jobs on 2156ee8 passed. Its separate release candidate
+failed PRS019 at the 900-second scenario deadline after at least 843 recorded
+preset mutations; the other 14 stress IDs passed. The signed artifact stage was
+not reached. Diagnosis continues with the original Actions evidence retained.
+Newer standard CI on a66ebf4 is still running. No 1.0 publication is authorized by
+these subset results; other final gates and the minimize discrepancy remain open.
+
 ### Manual minimize observation — 2026-10-26
 
 [Evidence](qualification/2026-10-26/manual-minimize-observation.json): the user

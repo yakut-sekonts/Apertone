@@ -1,0 +1,3225 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-26T10:46:15.340531+00:00",
+  "release_gate": "NOT_QUALIFIED",
+  "base_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+  "reports": {
+    "native_all_implemented_regression": {
+      "file": {
+        "path": "build-verify/ux-native-regression-a66ebf4/UX_REPORT.json",
+        "sha256": "ba7d8b69c02c205917064c83be7745e5d32c032c05ee0395faddc5cde6eedbd5"
+      },
+      "summary": {
+        "PASS": 276,
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "original_hashes": "PASS",
+      "source": {
+        "commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "source_tree_sha256": "021272b63417497ac334e17b02c15c37b9c2f9ff8ff069311cce03c2a665360d",
+        "test_executable_sha256": "9791efe031e0e29ca230e93046f125a24b1ab08713f8a1285c6f56cde2626b75",
+        "worktree_dirty": false
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "reason": ""
+      },
+      "results": [
+        {
+          "id": "UX-APP-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-APP-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-APP-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-APP-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-APP-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-NAV-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LIB-018",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-018",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SEL-019",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-FLT-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-IMP-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DSC-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-018",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-SLD-019",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRV-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRV-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRV-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRV-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-ADV-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-CRP-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-TRN-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LNS-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-DTL-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-PRS-018",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-018",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-019",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-021",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-022",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-025",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-026",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-027",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-028",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-EXP-029",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UND-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-REC-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-LOC-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "FAIL",
+          "message": "Timeout: Exact full-document preview Ready/current source/pixels",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-013",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-KEY-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MAC-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MAC-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MAC-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-RACE-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-011",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-VIS-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-010",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-014",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-015",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-016",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-017",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-019",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-024",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-028",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-029",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-032",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-034",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-035",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-036",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-MSK-038",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-PRG-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-PRG-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-PRG-008",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-PRG-009",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-ZOM-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-ZOM-003",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-ZOM-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-ZOM-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P06-ZOM-012",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P08-MRG-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P08-PAN-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P08-ALG-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-META-002",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-META-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-XMP-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-XMP-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-BKP-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-BKP-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-RLK-004",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-P09-RLK-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        }
+      ]
+    },
+    "unchanged_oracle_diagnostic": {
+      "file": {
+        "path": "build-verify/ux-upd001-diagnostic-20261026/UX_REPORT.json",
+        "sha256": "bafbc8f913e400dc5baec6d8f72b3c993017d87474e5440b21cae7b7b6a9c585"
+      },
+      "summary": {
+        "PASS": 1
+      },
+      "source_consistency": "PASS",
+      "original_hashes": "PASS",
+      "source": {
+        "commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "source_tree_sha256": "d867f1d153a0dc065b5a7f909671f78f205046cb8dae53a4fe6b1727eddd7c3d",
+        "test_executable_sha256": "af8bb080262e17531a20bea4cb03e9db7aa9d25f942a036bf2ad1c6603f6fad6",
+        "worktree_dirty": true
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "reason": ""
+      },
+      "results": [
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        }
+      ]
+    },
+    "unchanged_oracle_repeats": {
+      "file": {
+        "path": "build-verify/ux-upd001-diagnostic-repeats-20261026/UX_REPORT.json",
+        "sha256": "dd4a92e9a72228e82280f4c842ec90546f12f3e05b461b1eca4a49e518555dc8"
+      },
+      "summary": {
+        "FAIL": 2,
+        "PASS": 1
+      },
+      "source_consistency": "PASS",
+      "original_hashes": "PASS",
+      "source": {
+        "commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "source_tree_sha256": "d867f1d153a0dc065b5a7f909671f78f205046cb8dae53a4fe6b1727eddd7c3d",
+        "test_executable_sha256": "af8bb080262e17531a20bea4cb03e9db7aa9d25f942a036bf2ad1c6603f6fad6",
+        "worktree_dirty": true
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "reason": ""
+      },
+      "results": [
+        {
+          "id": "UX-UPD-001",
+          "status": "FAIL",
+          "message": "Timeout: Exact full-document preview Ready/current source/pixels",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "FAIL",
+          "message": "Timeout: Exact full-document preview Ready/current source/pixels",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        }
+      ]
+    },
+    "fixed_native": {
+      "file": {
+        "path": "build-verify/ux-upd001-fixed-native-20261026/UX_REPORT.json",
+        "sha256": "e41f8271653ae5f21260e99ec09b7fab42d8e2f254a9aad2a3b679a576a787ab"
+      },
+      "summary": {
+        "PASS": 12
+      },
+      "source_consistency": "PASS",
+      "original_hashes": "PASS",
+      "source": {
+        "commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "source_tree_sha256": "f82a48d757fe650043bf54e82a9d6125a0d79063a28cc29b655bcd4e44b618e7",
+        "test_executable_sha256": "4fc6d7f6605d46de61e498387923510f1524f8ba474d487c931931d092ebde1b",
+        "worktree_dirty": true
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "reason": ""
+      },
+      "results": [
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "cocoa",
+          "graphics_api": "metal",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        }
+      ]
+    },
+    "fixed_offscreen": {
+      "file": {
+        "path": "build-verify/ux-upd001-fixed-offscreen-20261026/UX_REPORT.json",
+        "sha256": "01caa599ef7bc385b971d62a6048aadc9cf644833902c92ca0922f67ce64b6b9"
+      },
+      "summary": {
+        "PASS": 12
+      },
+      "source_consistency": "PASS",
+      "original_hashes": "PASS",
+      "source": {
+        "commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "source_tree_sha256": "f82a48d757fe650043bf54e82a9d6125a0d79063a28cc29b655bcd4e44b618e7",
+        "test_executable_sha256": "4fc6d7f6605d46de61e498387923510f1524f8ba474d487c931931d092ebde1b",
+        "worktree_dirty": true
+      },
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "reason": ""
+      },
+      "results": [
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-BAT-007",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-001",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-005",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        },
+        {
+          "id": "UX-UPD-006",
+          "status": "PASS",
+          "message": "",
+          "platform": "offscreen",
+          "graphics_api": "software",
+          "catalog_integrity": "PASS",
+          "original_integrity": "PASS"
+        }
+      ]
+    }
+  },
+  "preview_diagnosis": {
+    "first_failure_lacks_pixel_capture": true,
+    "reproduction_analysis": {
+      "actual_size": [
+        256,
+        192
+      ],
+      "expected_size": [
+        256,
+        192
+      ],
+      "different_pixels": 1,
+      "differences": [
+        [
+          235,
+          148,
+          [
+            255,
+            92,
+            182,
+            255
+          ],
+          [
+            255,
+            93,
+            182,
+            255
+          ]
+        ]
+      ],
+      "channel_max": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "files": {
+        "actual-preview.png": "9ef34081becabcc665db7c286a0e8e464c30b29a9f6e8050a05f83ef5b7c9f0d",
+        "expected-preview.png": "f2833c19f221eea2000ca196e01c9b35dd6e1e6a60445879a7ac15568251ad45",
+        "batch-update-preview-state.json": "fc81baf1983f269beae64a1a460d04c8366f14bafaf7ac26d728559321825541",
+        "preview-pixel-difference.json": "e985c413ab377bd37090db9f0e519dc8d3df716efd5d2b865b56abbc50f7eff3"
+      }
+    },
+    "fix": "Reuse existing Metal-eligible RGB <= 1 oracle with exact alpha/geometry/format/color-space/DPR; exact CPU. Negative controls invoked. No product change or timeout extension.",
+    "diagnostic_failures": [
+      {
+        "state": {
+          "busy": false,
+          "error": "",
+          "expected_document": true,
+          "image_source": "image://preview/current?v=15",
+          "metal_preview": true,
+          "preview_url": "image://preview/current?v=15",
+          "status": 1,
+          "visible": true
+        },
+        "pixels": {
+          "actual_height": 192,
+          "actual_width": 256,
+          "asset_id": "ca5aaf69-da08-4599-84af-aac6d07ee33b",
+          "different_channels": 1,
+          "expected_height": 192,
+          "expected_width": 256,
+          "maximum_channel_difference": 1,
+          "mean_channel_difference": 5.086263020833333e-06,
+          "preview_url": "image://preview/current?v=15",
+          "reason": "Batch/update preview did not settle",
+          "source": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/public-fixtures/Photo-0000.png"
+        },
+        "files": [
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-1/actual-preview.png",
+            "sha256": "9ef34081becabcc665db7c286a0e8e464c30b29a9f6e8050a05f83ef5b7c9f0d"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-1/expected-preview.png",
+            "sha256": "f2833c19f221eea2000ca196e01c9b35dd6e1e6a60445879a7ac15568251ad45"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-1/batch-update-preview-state.json",
+            "sha256": "fc81baf1983f269beae64a1a460d04c8366f14bafaf7ac26d728559321825541"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-1/preview-pixel-difference.json",
+            "sha256": "e985c413ab377bd37090db9f0e519dc8d3df716efd5d2b865b56abbc50f7eff3"
+          }
+        ]
+      },
+      {
+        "state": {
+          "busy": false,
+          "error": "",
+          "expected_document": true,
+          "image_source": "image://preview/current?v=14",
+          "metal_preview": true,
+          "preview_url": "image://preview/current?v=14",
+          "status": 1,
+          "visible": true
+        },
+        "pixels": {
+          "actual_height": 192,
+          "actual_width": 256,
+          "asset_id": "baee108b-bd4e-4e5c-91cb-9163735b9623",
+          "different_channels": 1,
+          "expected_height": 192,
+          "expected_width": 256,
+          "maximum_channel_difference": 1,
+          "mean_channel_difference": 5.086263020833333e-06,
+          "preview_url": "image://preview/current?v=14",
+          "reason": "Batch/update preview did not settle",
+          "source": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-artifacts/public-fixtures/Photo-0000.png"
+        },
+        "files": [
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-3/actual-preview.png",
+            "sha256": "9ef34081becabcc665db7c286a0e8e464c30b29a9f6e8050a05f83ef5b7c9f0d"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-3/expected-preview.png",
+            "sha256": "f2833c19f221eea2000ca196e01c9b35dd6e1e6a60445879a7ac15568251ad45"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-3/batch-update-preview-state.json",
+            "sha256": "5bc2a906034c35182f1e2684cd770c4382fb3694b88b390570a73297980430d7"
+          },
+          {
+            "path": "build-verify/ux-artifacts/20261026T103716Z-19430/UX-UPD-001/repeat-3/preview-pixel-difference.json",
+            "sha256": "928e9958b0a7350a65985a8a00c9b0bf6c65e3fd5afed36b7802aea2352e33ea"
+          }
+        ]
+      }
+    ]
+  },
+  "gate_accounting": {
+    "before": {
+      "issue": "Applicable nonblocking NOT_IMPLEMENTED row can qualify full release",
+      "through": "1.0",
+      "requested": true,
+      "inventory": [
+        {
+          "id": "GOLDEN",
+          "scope": "CURRENT",
+          "mode": "BLOCKING"
+        },
+        {
+          "id": "FUTURE_CHECK",
+          "scope": "1.0",
+          "mode": "REGRESSION"
+        }
+      ],
+      "results": [
+        {
+          "id": "GOLDEN",
+          "status": "PASS"
+        },
+        {
+          "id": "GOLDEN",
+          "status": "PASS"
+        },
+        {
+          "id": "GOLDEN",
+          "status": "PASS"
+        },
+        {
+          "id": "FUTURE_CHECK",
+          "scope": "1.0",
+          "mode": "REGRESSION",
+          "status": "NOT_IMPLEMENTED"
+        }
+      ],
+      "observed": [
+        "PASS",
+        []
+      ],
+      "expected": "FAIL",
+      "no_child_or_UI_started": true
+    },
+    "after": [
+      "FAIL",
+      []
+    ]
+  },
+  "conditional_case": {
+    "id": "UX-MSK-005",
+    "condition": "duplicate mask if supported",
+    "capability": "mask_duplicate",
+    "manifest_value": false,
+    "status": "SKIPPED",
+    "skip_reason": "unsupported_capability",
+    "false_boolean_required": true
+  },
+  "validation": {
+    "unit": "51 PASS",
+    "affected_ctest": "8 PASS",
+    "metal_develop_equivalence": "1 PASS",
+    "build": "PASS",
+    "affected_mandatory_tidy": "PASS (existing nonfatal header warnings)",
+    "files": [
+      {
+        "path": ".tools/gate-accounting-before-20261026.log",
+        "sha256": "62aa422e96b8bd976f7300ca61d3c9d0957bc3d8358cc8928cb27d2151ef98be"
+      },
+      {
+        "path": ".tools/gate-accounting-after-20261026.log",
+        "sha256": "425231ba921c1e4ff64467a78017a28c03e95f9cea6b4cc535e4a5a24aa6ec20"
+      },
+      {
+        "path": ".tools/upd001-gate-fix-20261026-build.log",
+        "sha256": "58e4b1c54af6371ecfc90ae7b6dec9de79575ef3f4a93733dbf79bd8ddd685e1"
+      },
+      {
+        "path": ".tools/upd001-gate-fix-20261026-tidy.log",
+        "sha256": "3094fef41b10d9f761638f7c1bca5c73f30db221fc1177bd3f5a847f7468e6b1"
+      },
+      {
+        "path": ".tools/upd001-gate-fix-20261026-ctest.log",
+        "sha256": "111402c5bc58125c240176977b2ec447a61fdbdfb2bcaa29219cc35251e4cd68"
+      },
+      {
+        "path": ".tools/upd001-metal-equivalence-20261026.log",
+        "sha256": "f1a33321160f847b7f9ae27bf5c045f259d55e60943bff0efc673fd785d8b96c"
+      }
+    ]
+  },
+  "ci_latest": {
+    "checked_at": "2026-10-26T10:42:43.678611+00:00",
+    "runs": [
+      {
+        "id": 40289122021,
+        "status": "completed",
+        "conclusion": "failure",
+        "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "url": "https://github.com/yakut-sekonts/Luma/actions/runs/40289122021",
+        "jobs": [
+          {
+            "id": 121459757764,
+            "name": "signing-configuration",
+            "status": "completed",
+            "conclusion": "success",
+            "started_at": "2026-10-26T07:58:38Z",
+            "active": [],
+            "failed": []
+          },
+          {
+            "id": 121459786126,
+            "name": "build-package",
+            "status": "completed",
+            "conclusion": "failure",
+            "started_at": "2026-10-26T07:58:43Z",
+            "active": [],
+            "failed": [
+              "Implemented stress workloads"
+            ]
+          },
+          {
+            "id": 121524247388,
+            "name": "publish",
+            "status": "completed",
+            "conclusion": "skipped",
+            "started_at": "2026-10-26T10:36:30Z",
+            "active": [],
+            "failed": []
+          }
+        ]
+      },
+      {
+        "id": 40303514001,
+        "status": "in_progress",
+        "conclusion": null,
+        "head_sha": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "url": "https://github.com/yakut-sekonts/Luma/actions/runs/40303514001",
+        "jobs": [
+          {
+            "id": 121506942604,
+            "name": "build-test",
+            "status": "in_progress",
+            "conclusion": null,
+            "started_at": "2026-10-26T09:57:03Z",
+            "active": [
+              "Bounded functional blocking UX checks"
+            ],
+            "failed": []
+          }
+        ]
+      },
+      {
+        "id": 40303524488,
+        "status": "in_progress",
+        "conclusion": null,
+        "head_sha": "a66ebf43ee0e79e30759d13bbecd9bac0afbe7bc",
+        "url": "https://github.com/yakut-sekonts/Luma/actions/runs/40303524488",
+        "jobs": [
+          {
+            "id": 121513426152,
+            "name": "build-test",
+            "status": "in_progress",
+            "conclusion": null,
+            "started_at": "2026-10-26T10:11:49Z",
+            "active": [
+              "Bounded functional blocking UX checks"
+            ],
+            "failed": []
+          }
+        ]
+      }
+    ]
+  },
+  "release_candidate_failure": {
+    "run_id": 40289122021,
+    "job_id": 121459786126,
+    "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+    "lines": [
+      "2026-10-26T09:46:52.1932160Z {\"summary\": {\"SKIPPED\": 33, \"PASS\": 366, \"NOT_IMPLEMENTED\": 31}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-report\"}",
+      "2026-10-26T09:47:10.8717210Z {\"summary\": {\"PASS\": 6}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-keyboard-report\"}",
+      "2026-10-26T09:47:38.6999760Z {\"summary\": {\"PASS\": 6}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-library-scroll-report\"}",
+      "2026-10-26T09:48:11.6782680Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-keyboard-workflow-report\"}",
+      "2026-10-26T09:51:16.1100180Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-localized-dialog-report\"}",
+      "2026-10-26T09:56:46.7841130Z {\"summary\": {\"PASS\": 6}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-mask-handles-report\"}",
+      "2026-10-26T09:57:16.0156920Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-card-flags-report\"}",
+      "2026-10-26T09:57:33.6882670Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-thumbnail-response-report\"}",
+      "2026-10-26T09:58:07.5758390Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-thumbnail-away-back-report\"}",
+      "2026-10-26T09:58:27.0413670Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-thumbnail-partial-render-report\"}",
+      "2026-10-26T09:58:42.4777840Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-thumbnail-invalidation-report\"}",
+      "2026-10-26T09:58:59.9577480Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-watermark-snapshot-report\"}",
+      "2026-10-26T09:59:59.3361820Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-export-current-filename-report\"}",
+      "2026-10-26T10:02:22.1566560Z {\"summary\": {\"PASS\": 18}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-preview-ordering-report\"}",
+      "2026-10-26T10:03:45.4297650Z {\"summary\": {\"PASS\": 12}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-viewer-input-report\"}",
+      "2026-10-26T10:04:01.0674700Z {\"summary\": {\"PASS\": 3}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-auto-transform-report\"}",
+      "2026-10-26T10:05:58.1688270Z {\"summary\": {\"PASS\": 18}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-metadata-xmp-report\"}",
+      "2026-10-26T10:06:57.3343410Z {\"summary\": {\"PASS\": 12}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-catalog-backup-report\"}",
+      "2026-10-26T10:11:02.8200200Z {\"summary\": {\"PASS\": 30}, \"release_gate\": \"NOT_QUALIFIED\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-phase-1-report\"}",
+      "2026-10-26T10:31:43.3286780Z UX-PRS-019 repeat 1: FAIL Scenario deadline exceeded; last heartbeat remained recorded",
+      "2026-10-26T10:36:07.2271280Z {\"summary\": {\"PASS\": 14, \"FAIL\": 1}, \"release_gate\": \"FAIL\", \"report\": \"/Users/runner/work/Luma/Luma/build/ux-stress-report\"}",
+      "2026-10-26T10:36:07.2420140Z ##[error]Process completed with exit code 1.",
+      "2026-10-26T10:36:24.1726650Z Artifact release-ux-blocking-evidence.zip successfully finalized. Artifact ID 12643588437",
+      "2026-10-26T10:36:24.1729210Z Artifact release-ux-blocking-evidence has been successfully uploaded! Final size is 15075934 bytes. Artifact ID is 12643588437"
+    ]
+  },
+  "remaining": {
+    "missing_applicable_adapters": 302,
+    "blocking_missing_adapters": 20,
+    "manual_minimize": "Observation discrepancy remains open; no new click requested",
+    "BUG045": "Open; original cause not established",
+    "publication": "No release/tag/appcast changed"
+  }
+}

@@ -1,3 +1,4 @@
+#include "core/render/DevelopPipeline.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UpdaterProbe.h"
 #include "tests/ux/UxContext.h"
@@ -161,16 +162,36 @@ Documents expectedPreset(Context &c, const Documents &before) {
     return expected;
 }
 void rendered(Context &c, const Document &expected) {
+    checkPreviewPixelOracle();
     const auto pixels = fixtureReference(c, expected, c.editor.sourcePath());
-    c.driver->wait(
-        [&] {
-            auto *image = c.driver->item("develop.preview");
-            return !c.editor.busy() && image->isVisible() &&
-                   image->property("status").toInt() == 1 &&
-                   image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                   c.provider->requestImage({}, nullptr, {}) == pixels;
-        },
-        "Exact full-document preview Ready/current source/pixels");
+    const bool metalEligible =
+        c.editor.metalPreview() && luma::DevelopPipeline(expected).gpuCompatible();
+    try {
+        c.driver->wait(
+            [&] {
+                auto *image = c.driver->item("develop.preview");
+                return !c.editor.busy() && image->isVisible() &&
+                       image->property("status").toInt() == 1 &&
+                       image->property("source").toUrl().toString() == c.editor.previewUrl() &&
+                       previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), pixels,
+                                          metalEligible);
+            },
+            "Full-document preview Ready/current source/independent CPU pixels");
+    } catch (...) {
+        auto *image = c.driver->item("develop.preview");
+        writeJson(c.root + "/batch-update-preview-state.json",
+                  {{"busy", c.editor.busy()},
+                   {"visible", image->isVisible()},
+                   {"status", image->property("status").toInt()},
+                   {"image_source", image->property("source").toUrl().toString()},
+                   {"preview_url", c.editor.previewUrl()},
+                   {"expected_document", c.editor.currentSettings() == expected},
+                   {"metal_preview", c.editor.metalPreview()},
+                   {"metal_eligible", metalEligible},
+                   {"error", c.editor.error()}});
+        recordPreviewDifference(c, pixels, "Batch/update preview did not settle");
+        throw;
+    }
     require(c.editor.currentSettings() == expected && c.editor.error().isEmpty(),
             "Preview changed the expected full document");
     c.driver->frame();

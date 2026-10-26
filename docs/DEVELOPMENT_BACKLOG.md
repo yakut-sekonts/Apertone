@@ -969,3 +969,26 @@ and exact coverage limits:
 - Build and mandatory affected analysis pass. No timing extension, simulated
   state, acceptance relaxation or production change was introduced.
 - Evidence: [manual minimize observation](qualification/2026-10-26/manual-minimize-observation.json).
+
+### LUMA-QA-093 — Batch/update preview oracle required bit-exact Metal output
+
+- Status: **corrected; 12 native and 12 offscreen repeats pass**.
+- A complete 277-ID native regression retains 276 PASS and one UPD001 FAIL.
+  Diagnostic repetitions retain two failures with matching ready/source/full
+  document state and exactly one green channel differing by one level.
+- Reuse the established Metal-eligible RGB <= 1 oracle and its negative controls;
+  CPU, alpha, geometry, format, color space and DPR stay exact. No rendering or
+  deadline change. Original failure had no pixel capture and remains retained.
+
+### LUMA-QA-094 — Applicable NOT_IMPLEMENTED could qualify a release
+
+- Status: **corrected; 51 runner unit tests and eight affected CTests pass**.
+- An isolated complete-gate reproduction incorrectly returned PASS for an
+  applicable nonblocking NOT_IMPLEMENTED row. It now returns FAIL; CLI execution
+  is INCOMPLETE. Out-of-scope future checks remain outside qualification.
+- MSK005 explicitly says "if supported". Its false mask_duplicate capability
+  now produces SKIPPED/unsupported_capability, never PASS. Missing, true or
+  malformed declarations do not grant this narrow exception.
+- Current missing adapter count is 20 blocking / 302 total.
+- Evidence for QA093–094 and retained CI stress failure:
+  [native regression and accounting](qualification/2026-10-26/native-regression-and-gate-accounting.json).

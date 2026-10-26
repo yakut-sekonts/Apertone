@@ -275,6 +275,16 @@ def capability_implemented(scope, identifier):
             or identifier in MANIFEST.get('implemented_scenarios', ()))
 
 
+def unsupported_capability(identifier):
+    # Only specification checks explicitly conditional on a product capability
+    # may be excluded. Missing or malformed capability declarations fail closed.
+    conditional = {'UX-MSK-005': 'mask_duplicate'}
+    capability = conditional.get(identifier)
+    if capability and MANIFEST.get('capabilities', {}).get(capability) is False:
+        return capability
+    return None
+
+
 def in_scope(scope, through, identifier=None):
     scope = implemented_scope(scope, identifier)
     if scope in ('ALL', 'CURRENT'):
@@ -640,6 +650,9 @@ def qualify(results, inventory, through, requested):
     if any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') == 'unadapted'
            and in_scope(r.get('scope', 'CURRENT'), through, r['id']) for r in results):
         return 'FAIL', sorted(missing)
+    if any(r['status'] == 'NOT_IMPLEMENTED'
+           and in_scope(r.get('scope', 'CURRENT'), through, r['id']) for r in results):
+        return 'FAIL', sorted(missing)
     return ('FAIL' if missing else 'PASS'), sorted(missing)
 
 
@@ -776,6 +789,7 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
     fixture_rows = [row for row in selected_rows
                     if row['id'] in selected_executable and in_scope(row['scope'], args.through, row['id'])
                     and capability_implemented(row['scope'], row['id'])
+                    and not unsupported_capability(row['id'])
                     and not (args.quality_only and quality_skip_reason(row))
                     and not (domain == 'specification' and unsupported_backend_requirement(row['id']))]
     case_profile_rows = [row for row in fixture_rows
@@ -862,8 +876,14 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
             repetitions = repetitions_for(row, args)
             applicable = in_scope(scope, args.through, identifier)
             capable = capability_implemented(scope, identifier)
-            if not applicable or not capable or identifier == 'UX-MSK-005':
-                results.append({**row, 'status': 'NOT_IMPLEMENTED', 'notes': ['Capability absent; future phase/conditional tool']})
+            if not applicable or not capable:
+                results.append({**row, 'status': 'NOT_IMPLEMENTED', 'notes': ['Capability absent or outside selected phase scope']})
+                continue
+            conditional = unsupported_capability(identifier)
+            if conditional:
+                results.append({**row, 'status': 'SKIPPED', 'skip_reason': 'unsupported_capability',
+                                'capability': conditional,
+                                'notes': ['Specification condition does not apply: product capability explicitly disabled']})
                 continue
             policy_skip = quality_skip_reason(row) if args.quality_only else None
             if (policy_skip and policy_skip[0] == 'policy_unreviewed'
@@ -939,7 +959,10 @@ def main(*, inventory=None, executable_ids=None, fixture_factory=None,
                                                                qualification_requested(args))
         else:
             summary['release_gate'], blocking_missing = 'NOT_QUALIFIED', []
-        incomplete = any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') in ('unadapted', 'policy_unreviewed', 'unsupported_backend')
+        summary['not_implemented_applicable'] = sorted({r['id'] for r in results
+                                                       if r['status'] == 'NOT_IMPLEMENTED'
+                                                       and in_scope(r.get('scope', 'CURRENT'), args.through, r['id'])})
+        incomplete = bool(summary['not_implemented_applicable']) or any(r['status'] == 'SKIPPED' and r.get('skip_reason', 'unadapted') in ('unadapted', 'policy_unreviewed', 'unsupported_backend')
                          for r in results) or not any(r.get('child_pid') for r in results)
         summary['unadapted_applicable'] = sorted({r['id'] for r in results if r['status'] == 'SKIPPED'
                                                 and r.get('skip_reason', 'unadapted') == 'unadapted'

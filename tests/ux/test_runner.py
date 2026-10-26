@@ -123,6 +123,15 @@ class GateTests(unittest.TestCase):
         inventory = self.inventory + [{'id': 'regression', 'scope': 'CURRENT', 'mode': 'REGRESSION'}]
         self.assertEqual(runner.qualify(rows, inventory, '0.5', True)[0], 'FAIL')
 
+    def test_applicable_unimplemented_nonblocking_result_cannot_qualify(self):
+        for scope, through, expected in [('CURRENT', '0.5', 'FAIL'), ('1.0', '1.0', 'FAIL'),
+                                         ('1.0', '0.5', 'PASS'), ('TARGET', '1.0', 'PASS')]:
+            with self.subTest(scope=scope, through=through):
+                inventory = [self.inventory[0], {'id': 'future', 'scope': scope, 'mode': 'REGRESSION'}]
+                rows = [{'id': 'A', 'status': 'PASS'}] * 3
+                rows.append({**inventory[-1], 'status': 'NOT_IMPLEMENTED'})
+                self.assertEqual(runner.qualify(rows, inventory, through, True)[0], expected)
+
     def test_build_provenance_requires_both_matching_source_and_binary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -140,7 +149,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(runner.build_provenance(root, snapshot)['status'], 'UNVERIFIED')
 
     def _mocked_attestation_cli(self, flags=(), record='valid', changed_at_end=None,
-                                changed_after_setup=None):
+                                changed_after_setup=None, extra_inventory=(), capabilities=None):
         """Exercise CLI gates with real provenance JSON, without fixtures or child processes."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -164,7 +173,7 @@ class GateTests(unittest.TestCase):
             strict = '--require-build-provenance' in flags or '--release-qualification' in flags
             snapshots = [start, prepared, end] if strict else [prepared, end]
             inventory = [{'id': 'A', 'mode': 'BLOCKING', 'scope': 'CURRENT',
-                          'severity': 'P1', 'scenario': 'Mocked CLI gate'}]
+                          'severity': 'P1', 'scenario': 'Mocked CLI gate'}, *extra_inventory]
             def fake_execute(row, destination, arguments, fixture_folder):
                 destination.mkdir(parents=True)
                 return {**row, 'status': 'PASS', 'child_pid': 123, 'artifacts': str(destination)}
@@ -175,7 +184,8 @@ class GateTests(unittest.TestCase):
                   patch.object(runner, 'INVENTORY', inventory),
                   patch.object(runner, 'NATIVE', {'A'}),
                   patch.object(runner, 'GLOBAL', set()),
-                  patch.object(runner, 'MANIFEST', {'completed_phases': ['0.5']}),
+                  patch.object(runner, 'MANIFEST', {'completed_phases': ['0.5'],
+                                                    'capabilities': capabilities or {}}),
                   patch.object(runner, 'fixtures', return_value={}) as fixtures,
                   patch.object(runner, 'fingerprint', side_effect=snapshots),
                   patch.object(runner, 'execute_scenario', side_effect=fake_execute) as execute,
@@ -190,6 +200,50 @@ class GateTests(unittest.TestCase):
                 return {'code': code, 'fixtures': fixtures.call_count, 'children': execute.call_count,
                         'summary': reports.call_args.args[0] if reports.called else None,
                         'stderr': stderr.getvalue()}
+
+    def test_cli_unimplemented_in_scope_is_incomplete_including_release(self):
+        row = {'id': 'future', 'mode': 'REGRESSION', 'scope': '1.0',
+               'severity': 'P2', 'scenario': 'Required future adapter'}
+        for release in (False, True):
+            for through in ('0.5', '1.0'):
+                with self.subTest(release=release, through=through):
+                    flags = ['--through', through]
+                    if release:
+                        flags.append('--release-qualification')
+                    result = self._mocked_attestation_cli(flags, extra_inventory=[row])
+                    applicable = through == '1.0'
+                    self.assertEqual(result['children'], 3)
+                    self.assertEqual(result['code'], 1 if applicable else 0)
+                    summary = result['summary']
+                    self.assertEqual(summary['execution_status'], 'INCOMPLETE' if applicable else 'PASS')
+                    self.assertEqual(summary['not_implemented_applicable'], ['future'] if applicable else [])
+                    expected = ('FAIL' if applicable else 'PASS') if release else 'NOT_QUALIFIED'
+                    self.assertEqual(summary['release_gate'], expected)
+
+    def test_cli_conditional_mask_duplicate_requires_explicit_false_capability(self):
+        row = {'id': 'UX-MSK-005', 'mode': 'REGRESSION', 'scope': '0.5',
+               'severity': 'P2', 'scenario': 'Duplicate mask if supported'}
+        for value in (False, True, None, 'false', 0):
+            with self.subTest(capability=value):
+                capabilities = {} if value is None else {'mask_duplicate': value}
+                result = self._mocked_attestation_cli(['--release-qualification'],
+                                                     extra_inventory=[row], capabilities=capabilities)
+                supported_skip = value is False
+                self.assertEqual(result['children'], 3)
+                self.assertEqual(result['code'], 0 if supported_skip else 1)
+                summary = result['summary']
+                self.assertEqual(summary['execution_status'], 'PASS' if supported_skip else 'INCOMPLETE')
+                self.assertEqual(summary['release_gate'], 'PASS' if supported_skip else 'FAIL')
+                result_row = next(r for r in summary['results'] if r['id'] == row['id'])
+                self.assertEqual(result_row['status'], 'SKIPPED')
+                self.assertEqual(result_row['skip_reason'], 'unsupported_capability' if supported_skip else 'unadapted')
+                if supported_skip:
+                    self.assertEqual(result_row['capability'], 'mask_duplicate')
+
+    def test_conditional_capability_exemption_is_narrow(self):
+        with patch.object(runner, 'MANIFEST', {'capabilities': {'mask_duplicate': False}}):
+            self.assertEqual(runner.unsupported_capability('UX-MSK-005'), 'mask_duplicate')
+            self.assertIsNone(runner.unsupported_capability('UX-MSK-004'))
 
     def test_cli_matching_provenance_accepts_adhoc_explicit_and_release_modes(self):
         for flags in ((), ('--require-build-provenance',), ('--release-qualification',)):
