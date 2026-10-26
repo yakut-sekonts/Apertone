@@ -222,6 +222,7 @@ jobs:
             build/ux-artifacts/20*/**/chaos-execution.jsonl
             build/ux-artifacts/20*/**/panel-stress-failure.json
             build/ux-artifacts/20*/**/metrics.json
+            build/ux-artifacts/20*/**/heartbeat.json
             build/ux-artifacts/20*/**/actions.jsonl
             build/ux-artifacts/20*/**/keyboard-activation.json
             build/ux-artifacts/20*/**/library-selection-scroll.json
@@ -249,6 +250,7 @@ jobs:
             build/ux-artifacts/20*/**/app.log
             build/ux-artifacts/20*/**/model-resets.jsonl
             build/ux-artifacts/20*/**/preview-pixel-difference.json
+            build/ux-artifacts/20*/**/batch-update-preview-state.json
             build/ux-artifacts/20*/**/zoom-*-sample.png
             build/ux-artifacts/20*/**/zoom-1600-scene.png
             build/ux-artifacts/20*/**/expected-preview.png

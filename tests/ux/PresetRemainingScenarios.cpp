@@ -721,31 +721,48 @@ bool presetRemainingScenario(Context &c, const QString &id) {
     require(id == "UX-PRS-019", "Unknown remaining preset case");
     // 333 actual UI create -> rename -> delete triplets = 999 store mutations;
     // one final create makes exactly 1000. All user actions traverse QML handlers.
+    // Keep the dialog's full-capture default for this storage workload. Selecting
+    // Light alone repeats eleven unrelated group clicks and scroll animations on
+    // every create. Subset selection remains covered by the functional scenarios.
     userTab(c);
     c.metrics.reset();
     QElapsedTimer elapsed;
     elapsed.start();
     int operations = 0;
     for (int cycle = 0; cycle < 333; ++cycle) {
-        const auto presetID = create(c, QString("Stress %1").arg(cycle), 1, "Stress");
+        const auto presetID =
+            create(c, QString("Stress %1").arg(cycle), luma::allSettingsGroups, "Stress");
         ++operations;
         const auto before = c.presets.snapshot(presetID);
+        require(before.groups == luma::allSettingsGroups && before.settings == document,
+                "Stress create did not capture the full document");
+        checkStore(c, {presetID});
         openEdit(c, presetID);
-        d.type("presetName", QString("Renamed %1").arg(cycle));
+        const auto name = QString("Renamed %1").arg(cycle);
+        d.type("presetName", name);
         d.click("presetSave");
         editorClosed(c);
         ++operations;
-        require(c.presets.snapshot(presetID).settings == before.settings,
-                "Stress rename changed captured settings");
+        const auto renamed = c.presets.snapshot(presetID);
+        require(renamed.name == name && renamed.folder == before.folder &&
+                    renamed.settings == before.settings && renamed.groups == before.groups &&
+                    renamed.parameters == before.parameters,
+                "Stress rename lost its name or changed captured settings");
+        checkStore(c, {presetID});
         remove(c, presetID);
         ++operations;
         checkStore(c, {});
         if (cycle % 10 == 0)
-            d.log({{"action", "preset_stress_checkpoint"}, {"store_mutations", operations}});
+            d.log({{"action", "preset_stress_checkpoint"},
+                   {"store_mutations", operations},
+                   {"elapsed_ms", elapsed.elapsed()}});
     }
-    const auto finalID = create(c, "Final stable entry", 1, "Stress");
+    const auto finalID = create(c, "Final stable entry", luma::allSettingsGroups, "Stress");
     ++operations;
     checkStore(c, {finalID});
+    const auto finalPreset = c.presets.snapshot(finalID);
+    require(finalPreset.groups == luma::allSettingsGroups && finalPreset.settings == document,
+            "Final stress entry lost its full document");
     require(operations == 1000 && c.editor.currentSettings() == document,
             "Preset stress missed operations or changed the active document");
     writeJson(c.root + "/measurements.json", {{"kind", "preset_store_ui_stress"},

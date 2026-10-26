@@ -5,6 +5,29 @@ This document records the handoff requirements; it is not a test report, waiver
 or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
 update its Sparkle channel until the complete campaign, fixes and retests finish.
 
+### Preset storage stress CI deadline — 2026-10-26
+
+[Evidence](qualification/2026-10-26/preset-stress-ci-deadline.json): the retained
+release-candidate CI failure reached PRS019's existing 900-second deadline after
+at least 843 acknowledged store mutations. It reported a deadline rather than
+the separate heartbeat hard-hang condition. The original Actions artifact omits
+raw heartbeat; that diagnostic is now included in both current workflows.
+
+The stress adapter previously changed eleven group checkboxes and scrolled on
+every Create. It now uses the ordinary full-capture default while retaining all
+**1,000 real UI store operations**, the same deadline and data invariants. It
+additionally verifies complete capture, rename metadata/groups/parameters and
+controller/durable-store agreement after every Create and Rename, as well as
+every Delete. Subset selection remains exercised by the functional scenarios.
+
+Full follow-ups pass **offscreen in 102 seconds and native Cocoa/Metal in 87
+seconds**. Each action trace independently records 334 Create, 333 Rename and
+333 Delete operations, with exact final store state and unchanged originals.
+Build, affected mandatory analysis, preset-storage CTest and workflow YAML
+parsing pass. Hosted CI must still retest this source before packaging; local
+passes do not turn the original hosted failure into success. No product code,
+scenario deadline, public artifact or release channel changed.
+
 ### Full implemented native regression and qualification accounting — 2026-10-26
 
 [Evidence](qualification/2026-10-26/native-regression-and-gate-accounting.json):

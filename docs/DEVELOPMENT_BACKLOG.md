@@ -992,3 +992,18 @@ and exact coverage limits:
 - Current missing adapter count is 20 blocking / 302 total.
 - Evidence for QA093–094 and retained CI stress failure:
   [native regression and accounting](qualification/2026-10-26/native-regression-and-gate-accounting.json).
+
+### LUMA-QA-095 — Preset storage stress spends its CI deadline on repeated subset setup
+
+- Status: **1,000 operations pass offscreen and native; hosted retest pending**.
+- Release candidate 2156ee8 retains 14 stress PASS and PRS019's 900-second
+  deadline failure, with at least 843 acknowledged mutations. The original
+  artifact lacks raw heartbeat; current CI uploads now retain it.
+- Use the ordinary full-capture group default for this storage workload instead
+  of eleven extra group clicks and scrolling on each Create. All 1,000 actual
+  UI mutations and the deadline remain. Add exact durable store checks after
+  Create and Rename, full capture and complete rename-preservation assertions.
+- Follow-ups independently record 334 Create / 333 Rename / 333 Delete and pass
+  in 102 seconds offscreen and 87 seconds native. Build, affected mandatory
+  analysis, preset-storage CTest and workflow YAML parsing pass.
+- Evidence: [preset stress deadline](qualification/2026-10-26/preset-stress-ci-deadline.json).
