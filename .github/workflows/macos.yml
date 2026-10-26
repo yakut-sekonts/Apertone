@@ -17,10 +17,10 @@ jobs:
     # Release branches/tags retain their independent mandatory checks.
     if: github.head_ref != 'codex/1.0-development'
     runs-on: macos-15
-    # Model/build/blocking checks already take ~52 minutes. Independent UX and
-    # complete static analysis now also run after failures; allow that evidence
-    # to finish. Individual scenario deadlines and all gates stay intact.
-    timeout-minutes: 180
+    # Full model/build/UX/stress/static qualification can exceed 180 minutes on
+    # a slower hosted macOS runner. Preserve every scenario deadline and allow
+    # independent post-failure evidence collection to finish.
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4.2.2
       - uses: actions/setup-python@v5.6.0

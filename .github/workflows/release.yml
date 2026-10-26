@@ -51,9 +51,10 @@ jobs:
   build-package:
     needs: signing-configuration
     runs-on: macos-15
-    # The equivalent qualified CI run takes ~124 minutes before packaging.
-    # Keep all checks and allow room for DMG/model/signature verification.
-    timeout-minutes: 180
+    # A full hosted qualification can exceed 165 minutes before packaging when
+    # clang-tidy and the 10,000-action replay share a slower macOS runner. Keep
+    # every gate and leave deterministic room for DMG/model/signature checks.
+    timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4.2.2
         with:
