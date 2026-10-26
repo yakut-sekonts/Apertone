@@ -132,7 +132,16 @@ jobs:
       - name: Build and attest UX executable
         run: .tools/venv/bin/python tests/ux/build_ux.py --build build
       - name: Bounded functional blocking UX checks before packaging
-        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
+        run: |
+          set +e
+          .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --suite blocking --quality-only --runs 3 --require-build-provenance
+          ux_status=$?
+          set -e
+          .tools/venv/bin/python scripts/verify-owner-accepted-ux.py \
+            --report build/ux-report/UX_REPORT.json \
+            --acceptance docs/qualification/2026-10-26/release-owner-acceptance.json \
+            --runner-exit "$ux_status" \
+            --expected-commit "$GITHUB_SHA"
       - name: Preserve blocking UX summary before supplemental checks
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
