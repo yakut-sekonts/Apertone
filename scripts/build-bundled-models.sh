@@ -9,7 +9,11 @@ if ! xcrun --find coremlcompiler >/dev/null 2>&1 || ! xcodebuild -version >/dev/
     exit 1
 fi
 python3.12 -m venv .tools/model-venv
-.tools/model-venv/bin/python -m pip install --disable-pip-version-check -r scripts/model-requirements.txt
+# PyPI wheels for the pinned model toolchain are large. GitHub's macOS runners
+# occasionally deliver them below pip's short default read timeout; keep the
+# exact requirements while tolerating a bounded transient network stall.
+.tools/model-venv/bin/python -m pip install --disable-pip-version-check \
+    --retries 8 --timeout 120 -r scripts/model-requirements.txt
 .tools/model-venv/bin/python tests/models/test_denoise_conversion.py
 .tools/model-venv/bin/python tests/models/test_denoise_quality.py
 .tools/model-venv/bin/python tests/models/test_denoise_photographs.py
