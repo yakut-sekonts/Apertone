@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased / 0.6–0.9 source development
+## 1.0.0 / First open-source release
 
-No builds, tests or QA have been run for this implementation. Stable remains 0.5.1.
+Luma 1.0.0 completes the planned 0.6–1.0 source scope. The project owner approved
+publication through the GitHub open-source channel with explicitly recorded QA
+and installed-update exceptions. Those skipped checks are not reported as PASS;
+the retained evidence and release boundary are documented in
+`docs/releases/v1.0.0.md`.
 
 - Completed eight additional source workflows: Presence (Texture/Clarity/Dehaze),
   sampled Point Color with range preview, four-way Color Grading, Post Crop
@@ -61,8 +65,9 @@ No builds, tests or QA have been run for this implementation. Stable remains 0.5
 - Candidate fix for LUMA-BUG-035: avoid resetting loaded Library pages on photo
   opening and bind card focus to the clicked item before activating the view.
 
-Model conversion/qualification and final acceptance remain open. Source version
-0.9.0 is not a released or tested application. See docs/FINAL_1_0_READINESS.md.
+Publication still requires the tag-triggered release workflow to build and verify
+the exact 1.0.0 source, bundled models, DMG/ZIP identity, checksums and signed
+Sparkle appcast. See `docs/FINAL_1_0_READINESS.md`.
 
 ## 0.5.1 / Complete local masks and UX fixes
 

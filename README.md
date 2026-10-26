@@ -9,39 +9,37 @@ project name used for implementation.
 
 ![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v0.5.1
+## Release: v1.0.0
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/latest) ·
-[0.5.1 release notes / known limitations](docs/releases/v0.5.1.md)
+[1.0.0 release notes / known limitations](docs/releases/v1.0.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 0.5.1 adds complete local mask tools and
-34 reproduced UX fixes to phase 0.4 work, runtime languages, ordinary images and
-XMP preset import. Publication is approved after CI with
-[23 explicitly unqualified functional contracts](docs/releases/v0.5.1-quality.md);
-this is not a full UX qualification.
+checksums accompany the release. Version 1.0.0 includes the completed 0.6–1.0
+source scope: accelerated editing, local AI, retouching, semantic search,
+HDR/panorama, metadata/XMP, catalog recovery, relinking, versions, History,
+advanced import and creative tools. Publication is owner-approved with explicit
+[QA and installed-update exceptions](docs/releases/v1.0.0.md); skipped checks are
+not reported as PASS.
 
-Future releases, including 1.0, use the same open-source GitHub distribution:
+Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
 Sparkle-signed updates. Apple Developer Program membership is not required.
-The full pre-release QA gate remains required. See
+The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–0.5
+## Included in source: phases 0.4–1.0
 
-The `codex/1.0-qualification` branch contains **0.6–0.9 development undergoing
-final qualification**: Metal/caches, local AI/retouch/search, HDR/panorama,
+Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
 RGB/luminance Histogram with clipping overlays, Auto WB and a neutral eyedropper.
 The eight remaining functional source blocks now include Presence, Point Color,
 Color Grading, Vignette/Grain, Smart Collections, linked Compare, Auto Adjust and
 advanced import with Move, naming, presets and a second backup. See the
 [completion ledger](docs/FUNCTIONAL_COMPLETION.md) and [behavior/limits](docs/adr/0030-functional-completion.md).
-These features are not in the published
-0.5.1 installer. See [final readiness](docs/FINAL_1_0_READINESS.md) before using
-or distributing a new build. Final testing and fixes are in progress; this is
-not yet a qualified 1.0 release.
+See the [final readiness record](docs/FINAL_1_0_READINESS.md) for completed
+evidence and owner-accepted exceptions.
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.

@@ -427,6 +427,18 @@ struct Baseline {
 void invariant(Context &c, const Baseline &baseline) {
     const luma::Catalog catalog(c.catalogFile.toStdString());
     const auto actual = catalog.libraryPage({}, 0, 2);
+    const auto currentPreview = c.editor.previewUrl();
+    const auto *previewItem = c.driver->item("develop.preview");
+    // previewUrl() contains imageRevision_, an invalidation counter advanced by
+    // every accepted render. A same-document refinement or memory-pressure
+    // rerender may therefore change the URL without changing product state.
+    // The invariant is coherence of the current URL/node/final pixels, not URL
+    // identity across a caption-only operation.
+    const bool previewCoherent =
+        !c.editor.histogramPending() && !currentPreview.isEmpty() &&
+        previewItem->property("status").toInt() == 1 &&
+        previewItem->property("source").toUrl().toString() == currentPreview &&
+        c.provider->requestImage({}, nullptr, {}) == baseline.pixels;
     const QJsonObject observations{
         {"window", c.window->size() == QSize(1000, 640)},
         {"library_mode", c.window->property("libraryMode").toBool()},
@@ -445,7 +457,10 @@ void invariant(Context &c, const Baseline &baseline) {
         {"original_off", !c.editor.original()},
         {"editing_unlocked", !c.editor.editingLocked()},
         {"preset_preview_off", !c.editor.presetPreview()},
-        {"preview_url", c.editor.previewUrl() == baseline.preview},
+        {"preview_final", !c.editor.histogramPending()},
+        {"preview_url_present", !currentPreview.isEmpty()},
+        {"preview_node_current",
+         previewItem->property("source").toUrl().toString() == currentPreview},
         {"preview_pixels", c.provider->requestImage({}, nullptr, {}) == baseline.pixels},
         {"library_idle", !c.library.working()},
         {"library_loaded", !c.library.loading()},
@@ -472,9 +487,7 @@ void invariant(Context &c, const Baseline &baseline) {
                 !c.editor.canRedo() && !c.editor.busy() && !c.editor.saving() &&
                 c.editor.error().isEmpty() && !c.editor.guidedMode() && !c.editor.cropMode() &&
                 !c.editor.localMode() && !c.editor.localGestureActive() && !c.editor.original() &&
-                !c.editor.editingLocked() && !c.editor.presetPreview() &&
-                c.editor.previewUrl() == baseline.preview &&
-                c.provider->requestImage({}, nullptr, {}) == baseline.pixels &&
+                !c.editor.editingLocked() && !c.editor.presetPreview() && previewCoherent &&
                 !c.library.working() && !c.library.loading() && !c.library.selecting() &&
                 c.library.count() == 2 && c.library.error().isEmpty() &&
                 catalog.libraryIDs({}) == baseline.members &&

@@ -1,9 +1,19 @@
-# Final 1.0 readiness — NOT QUALIFIED
+# Final 1.0 readiness — OWNER ACCEPTED WITH EXCEPTIONS
 
-The human postponed all builds, tests, static analysis and QA to final preparation.
-This document records the handoff requirements; it is not a test report, waiver
-or permission to publish. The stable release remains 0.5.1. Do not tag 1.0.0 or
-update its Sparkle channel until the complete campaign, fixes and retests finish.
+On 2026-10-26 the project owner explicitly directed publication of 1.0.0 while
+skipping the remaining unadapted QA inventory and installed-app/update validation.
+These are release exceptions, not PASS results. APP016 is accepted from the
+owner's manual observation that the window minimizes correctly. BUG045 was not
+waived: its invalid preview-URL oracle was corrected while retaining final-render,
+pixel, document, history, catalog, source and selection checks.
+
+The tag-triggered workflow must still pass its build, bounded functional checks,
+implemented stress/chaos checks, static analysis, model validation, standalone
+bundle/DMG/ZIP identity checks, checksums, Sparkle signing and uploaded-asset
+verification. Publication uses the approved GitHub open-source distribution:
+ad-hoc signing without Apple notarization. Historical sections below preserve the
+state and evidence available at each checkpoint; their earlier blocking language
+is superseded only by this explicit owner acceptance.
 
 ### Preset storage stress CI deadline — 2026-10-26
 

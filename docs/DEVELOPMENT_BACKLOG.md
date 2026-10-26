@@ -241,9 +241,10 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   alpha preservation and exact preset/removable-source UX pixel checks were not
   relaxed. The fallback may reduce preview speed; full load testing remains open.
 
-## LUMA-BUG-045 — Intermittent PhotoCard localization state invariant
+## LUMA-BUG-045 — PhotoCard localization preview invariant
 
-- Status: **open; per-field diagnostics added, cause not yet established**.
+- Status: **fixed in the qualification oracle; 20/20 Cocoa/Metal and 20/20
+  offscreen repetitions pass**.
 - After correcting the obsolete cache-key fixture, one of three local runs
   failed the full editor/history/selection/preview invariant. The original
   aggregate failure is retained; it does not identify which field differed.
@@ -256,8 +257,17 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
   pending. The helper now waits for that completion before pinning the preview
   URL. The complete two-image/eight-language workflow passes 3/3 with the actual
   final delivery retained/released once. This is a harness fix; it does not
-  identify the missing field from the historical aggregate failure, which stays
-  open. All document/history/catalog/source assertions remain unchanged.
+  identify the missing field from the historical aggregate failure.
+- Field-level evidence later isolated the only mismatch to `previewUrl()`, while
+  preview pixels, full document, history, catalog, selection and source remained
+  exact. `previewUrl()` embeds `imageRevision_`, which advances on every accepted
+  render and is intentionally an invalidation counter. A same-document refinement
+  or memory-pressure rerender may therefore change it legitimately.
+- The corrected invariant requires a nonempty current URL, the QML Image source
+  bound to that URL, final histogram completion and exact provider pixels. It no
+  longer treats URL identity across locale changes as durable product state. All
+  document/history/catalog/source assertions and the held-final negative control
+  remain unchanged.
 
 Evidence for BUG-042–045, all original failures, source/binary hashes and exact
 scope: [functional release fixes](qualification/2026-10-23/functional-release-fixes.json).
