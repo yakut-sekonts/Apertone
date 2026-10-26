@@ -1,11 +1,13 @@
-// Supplemental native lifecycle regression; no official coverage alias.
+// Actual Cocoa lifecycle regression; retain the supplemental diagnostic entry point.
 #include "apps/shared/PresetStore.h"
-#include "tests/ux/NativeFinderActivation.h"
+#include "tests/ux/MemoryPressureProbe.h"
+#include "tests/ux/NativeApplicationHandoff.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QEvent>
 #include <QEventLoop>
 #include <QFile>
@@ -55,25 +57,26 @@ QJsonObject documentJSON(const Document &value) {
         QString::fromStdString(luma::encodeLocalMasks(value.localMasks));
     return result;
 }
-QJsonObject nativeJSON(const NativeFinderState &s) {
+QJsonObject nativeJSON(const NativeHandoffState &s) {
     return {{"nsapp_active", s.applicationActive},
             {"nsapp_hidden", s.applicationHidden},
             {"own_running_active", s.ownRunningActive},
-            {"finder_active", s.finderActive},
-            {"finder_terminated", s.finderTerminated},
+            {"peer_active", s.peerActive},
+            {"peer_terminated", s.peerTerminated},
             {"own_frontmost", s.ownFrontmost},
-            {"finder_frontmost", s.finderFrontmost},
+            {"peer_frontmost", s.peerFrontmost},
             {"window_key", s.windowKey},
             {"window_visible", s.windowVisible},
             {"window_miniaturized", s.windowMiniaturized},
             {"own_pid", s.ownPID},
-            {"finder_pid", s.finderPID},
+            {"peer_pid", s.peerPID},
             {"native_window_number", s.windowNumber},
             {"activation_policy", s.activationPolicy},
+            {"peer_activation_policy", s.peerActivationPolicy},
             {"app_resigned", static_cast<int>(s.appResigned)},
             {"app_activated", static_cast<int>(s.appActivated)},
             {"window_resigned_key", static_cast<int>(s.windowResignedKey)},
-            {"workspace_finder_activated", static_cast<int>(s.finderActivated)},
+            {"workspace_peer_activated", static_cast<int>(s.peerActivated)},
             {"workspace_own_activated", static_cast<int>(s.ownActivated)}};
 }
 bool sameMetadata(const luma::PhotoMetadata &a, const luma::PhotoMetadata &b) {
@@ -247,7 +250,7 @@ void nativeTransition(Action action, Predicate predicate, int deadlineMillisecon
 }
 struct Cleanup final {
     Context &c;
-    NativeFinderActivation &native;
+    NativeApplicationHandoff &native;
     bool pointerDown = false, activationAttempted = false;
     bool programmaticActivationCleanupAllowed = true;
     QPoint last{};
@@ -290,31 +293,96 @@ void exact(Context &c, const QString &id, const QString &path, const Document &e
 // Exact immutable CPU reference and actual current Ready Image. Scene capture is a
 // separate visual acknowledgement; shared CPU/ICC numerical correctness is out of scope.
 void rendered(Context &c, const Document &expected, const QString &path, const QString &tag) {
+    QObject observer;
+    QJsonArray transitions;
+    const auto observe = [&](const QString &signal) {
+        transitions.append(QJsonObject{{"signal", signal},
+                                       {"preview_url", c.editor.previewUrl()},
+                                       {"busy", c.editor.busy()},
+                                       {"histogram_pending", c.editor.histogramPending()},
+                                       {"pressure", int(MemoryPressureProbe::current(c.editor))}});
+    };
+    QObject::connect(&c.editor, &EditorController::previewChanged, &observer,
+                     [&] { observe("previewChanged"); });
+    QObject::connect(&c.editor, &EditorController::histogramChanged, &observer,
+                     [&] { observe("histogramChanged"); });
+    observe("start");
     const auto pixels = fixtureReference(c, expected, path);
     auto *image = c.driver->item("develop.preview");
     const auto ready = [&] {
-        return !c.editor.busy() && image->isVisible() && image->property("status").toInt() == 1 &&
-               !c.editor.previewUrl().isEmpty() &&
+        // Reject an in-flight result, but do not assume an idle preview can never
+        // refine again: the real timer or memory-pressure handler may rerender it.
+        return !c.editor.busy() && !c.editor.histogramPending() && image->isVisible() &&
+               image->property("status").toInt() == 1 && !c.editor.previewUrl().isEmpty() &&
                image->property("source").toUrl().toString() == c.editor.previewUrl() &&
                c.provider->requestImage({}, nullptr, {}) == pixels;
     };
-    c.driver->wait(ready, "Native deactivation current Ready/exact document pixels", 10000);
-    const auto url = image->property("source").toUrl();
-    const auto capture = image->grabToImage();
-    require(!capture.isNull(), "Actual current Image scene readback could not start");
-    c.driver->wait([&] { return !capture->image().isNull(); }, "actual Image readback", 10000);
-    require(ready() && image->property("source").toUrl() == url &&
-                c.editor.currentSettings() == expected,
-            "Preview generation changed while scene readback was pending");
-    require(capture->image().save(c.root + '/' + tag + "-preview.png"),
-            "Cannot save actual preview visual acknowledgement");
+    QElapsedTimer deadline;
+    deadline.start();
+    const auto remaining = [&] {
+        const auto milliseconds = 10000 - deadline.elapsed();
+        require(milliseconds > 0, "No stable current preview readback within ten seconds");
+        return int(milliseconds);
+    };
+    QUrl url;
+    int attempts = 0;
+    try {
+        for (;;) {
+            c.driver->wait(ready, "Native deactivation current Ready/exact document pixels",
+                           remaining());
+            require(c.editor.currentSettings() == expected && c.editor.sourcePath() == path,
+                    "Readback changed the complete document or source identity");
+            observe("ready_before_readback");
+            url = image->property("source").toUrl();
+            const auto capture = image->grabToImage();
+            ++attempts;
+            require(!capture.isNull(), "Actual current Image scene readback could not start");
+            c.driver->wait([&] { return !capture->image().isNull(); }, "actual Image readback",
+                           remaining());
+            require(c.editor.currentSettings() == expected && c.editor.sourcePath() == path,
+                    "Readback changed the complete document or source identity");
+            if (!ready() || image->property("source").toUrl() != url) {
+                // Discard this capture; never accept pixels from a superseded
+                // generation. The single shared deadline cannot be extended.
+                observe("superseded_capture_discarded");
+                continue;
+            }
+            require(capture->image().save(c.root + '/' + tag + "-preview.png"),
+                    "Cannot save actual preview visual acknowledgement");
+            writeJson(c.root + '/' + tag + "-preview-readback.json",
+                      {{"tag", tag},
+                       {"status", "PASS"},
+                       {"stable_url", url.toString()},
+                       {"attempts", attempts},
+                       {"elapsed_ms", deadline.elapsed()},
+                       {"transitions", transitions}});
+            return;
+        }
+    } catch (...) {
+        observe("readback_failure");
+        writeJson(c.root + "/deactivation-preview-readback-failure.json",
+                  {{"tag", tag},
+                   {"url_before", url.toString()},
+                   {"url_after", image->property("source").toUrl().toString()},
+                   {"editor_url", c.editor.previewUrl()},
+                   {"image_visible", image->isVisible()},
+                   {"image_status", image->property("status").toInt()},
+                   {"document_exact", c.editor.currentSettings() == expected},
+                   {"provider_exact", c.provider->requestImage({}, nullptr, {}) == pixels},
+                   {"attempts", attempts},
+                   {"transitions", transitions}});
+        recordPreviewDifference(c, pixels, "Deactivation preview readback readiness diagnostic");
+        throw;
+    }
 }
 } // namespace
 
 bool appDeactivationCandidate(Context &c, const QString &id) {
-    if (id != candidateID)
+    if (id != candidateID && id != "UX-APP-017" && id != "UX-SLD-009")
         return false;
     const auto returnMode = qEnvironmentVariable("LUMA_UX_APP_RETURN_MODE");
+    require(id == candidateID || returnMode.isEmpty(),
+            "Official deactivation scenarios require the automatic native return path");
     require(returnMode.isEmpty() || returnMode == "external-native-app-switch",
             "Unsupported supplemental-only LUMA_UX_APP_RETURN_MODE");
     const bool externalReturn = returnMode == "external-native-app-switch";
@@ -386,7 +454,11 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
     require(fixtureReference(c, neutral, path) != fixtureReference(c, exposed, path),
             "Exposure positive control has indistinguishable pixels");
     c.reveal(exposureID);
-    NativeFinderActivation native(*c.window);
+    const bool cooperativePeer = id != candidateID;
+    NativeApplicationHandoff native(
+        *c.window, cooperativePeer ? c.root + "/cooperative-peer-return.json" : QString{});
+    d.log({{"action", "native_handoff_transport"},
+           {"peer", cooperativePeer ? "owned cooperative AppKit process" : "existing Finder"}});
     QtAudit qt(c);
     Cleanup cleanup{c, native};
     cleanup.programmaticActivationCleanupAllowed = !externalReturn;
@@ -497,7 +569,7 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
         const auto before = native.state();
         require(before.applicationActive && !before.applicationHidden && before.ownRunningActive &&
                     before.ownFrontmost && before.windowKey && before.windowVisible &&
-                    !before.windowMiniaturized && !before.finderTerminated &&
+                    !before.windowMiniaturized && !before.peerTerminated &&
                     QGuiApplication::applicationState() == Qt::ApplicationActive &&
                     c.window->isActive() && c.window->isExposed(),
                 "Real foreground Cocoa/Qt baseline is unavailable");
@@ -556,16 +628,16 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
                         c.editor.currentSettings() == exposed && qt.releases == 0,
                     "Queued action lost the genuine active, held Exposure5 gesture before handoff");
                 capture("inside_action_immediately_before_native_request");
-                require(native.requestFinderActivation(),
-                        "AppKit rejected the actual Finder handoff");
+                require(native.requestPeerActivation(),
+                        "AppKit rejected the actual cross-process handoff");
             },
             [&] {
                 const auto current = native.state();
                 const bool nativeInactive =
-                    !current.applicationActive && !current.ownRunningActive &&
-                    current.finderActive && current.finderFrontmost && !current.finderTerminated &&
-                    !current.windowKey && current.appResigned > nativeBeforeRequest.appResigned &&
-                    current.finderActivated > nativeBeforeRequest.finderActivated &&
+                    !current.applicationActive && !current.ownRunningActive && current.peerActive &&
+                    current.peerFrontmost && !current.peerTerminated && !current.windowKey &&
+                    current.appResigned > nativeBeforeRequest.appResigned &&
+                    current.peerActivated > nativeBeforeRequest.peerActivated &&
                     current.windowResignedKey > nativeBeforeRequest.windowResignedKey;
                 qt.sawInactive |= nativeInactive &&
                                   QGuiApplication::applicationState() == Qt::ApplicationInactive &&
@@ -599,9 +671,9 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
                     const auto actualExecutable =
                         QFileInfo(QCoreApplication::applicationFilePath()).canonicalFilePath();
                     require(
-                        current.finderActive && current.finderFrontmost &&
-                            !current.applicationActive && !current.ownRunningActive &&
-                            !current.windowKey && !current.finderTerminated &&
+                        current.peerActive && current.peerFrontmost && !current.applicationActive &&
+                            !current.ownRunningActive && !current.windowKey &&
+                            !current.peerTerminated &&
                             QGuiApplication::applicationState() == Qt::ApplicationInactive &&
                             !c.window->isActive() && !c.editor.uxHistoryGestureActive() &&
                             !d.object(exposureID)->property("pressed").toBool() &&
@@ -647,7 +719,7 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
                         {"native_window_frame_appkit_points", rect(identity.windowFrameAppKit)},
                         {"native_screen_frame_appkit_points", rect(identity.screenFrameAppKit)},
                         {"coordinate_basis", "AppKit global points; CUA conversion not assumed"},
-                        {"finder_pid", current.finderPID},
+                        {"peer_pid", current.peerPID},
                         {"native_inactive", nativeJSON(current)},
                         {"qt_inactive", qt.json()},
                         {"uuid", assetID},
@@ -751,18 +823,19 @@ bool appDeactivationCandidate(Context &c, const QString &id) {
         require(c.editor.canUndo() && !c.editor.canRedo(), "Final exact redo stack is corrupt");
         rendered(c, next, path, "final");
         capture("accepted");
-        writeJson(
-            c.root + "/app-deactivation-summary.json",
-            {{"id", id},
-             {"scope", "bounded Slider app deactivation; no minimize/physical input"},
-             {"automatic_outcome", retained ? "finalized" : "cancelled"},
-             {"history_completion_observed_before_release", true},
-             {"native_chooser_exercised", false},
-             {"physical_os_input", false},
-             {"source_sha256", sourceSHA},
-             {"return_transport", returnMode.isEmpty() ? "original_native_request" : returnMode},
-             {"external_return_nonce", externalReturnNonce},
-             {"checkpoints", checkpoints}});
+        writeJson(c.root + "/app-deactivation-summary.json",
+                  {{"id", id},
+                   {"scope", "bounded Slider app deactivation; no minimize/physical input"},
+                   {"automatic_outcome", retained ? "finalized" : "cancelled"},
+                   {"history_completion_observed_before_release", true},
+                   {"native_chooser_exercised", false},
+                   {"physical_os_input", false},
+                   {"source_sha256", sourceSHA},
+                   {"return_transport", cooperativePeer        ? "cooperative_owned_AppKit_peer"
+                                        : returnMode.isEmpty() ? "original_native_request"
+                                                               : returnMode},
+                   {"external_return_nonce", externalReturnNonce},
+                   {"checkpoints", checkpoints}});
         return true;
     } catch (...) {
         // Snapshot is taken before the Cleanup destructor can release/reactivate anything.

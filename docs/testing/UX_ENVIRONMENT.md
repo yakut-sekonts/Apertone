@@ -186,6 +186,18 @@ input/debounce/polish boundaries; they do not measure physical scanout. PERF-006
 uses a native foreground-only local run; FLT-002 retains the separate CI functional
 path. The Qt Quick Metal UI is not the planned 0.6 GPU image-processing backend.
 
+The paragraph above records the 2026-10-16 checkpoint. The current 2026-10-26
+adapters also exercise the implemented Metal image-processing backend. Their
+provider oracle now uses the established RGB <= 1 budget only for Metal-eligible
+documents, with exact CPU, alpha, geometry, format, color-space and DPR checks.
+Two native Original failures retain matching scene dimensions and exact provider
+images but a two-level blue scene discrepancy. The scene-only oracle consequently
+uses RGB <= 2 and exact alpha, with explicit rejection controls for three levels,
+alpha, geometry, format and missing images. Qt/Metal quantization is an inference
+from those observations, not an established product defect. Final native repeats
+pass 9/9; the timing scope remains MEASURE_ONLY with readback included. See
+[retained failures and controls](../qualification/2026-10-26/native-resume-and-ci-fixes.json).
+
 ## StandardKey.Quit differs between Cocoa and offscreen
 
 Hosted PR run 38922231206 at commit 8a1efbb was cancelled at its 50-minute limit.
@@ -934,3 +946,41 @@ visible missing B pathname and both cached thumbnails. The infrastructure subset
 passed (30 runner cases plus metric accounting,6.03 seconds); format and focused
 new-helper/scenario tidy passed. The full CTest run above preceded the user's
 load deferral; no full load-bearing campaign was repeated after that direction.
+
+## Native stress and cooperative app return — 2026-10-26
+
+Final qualification now includes load work by the later user instruction. The
+native implemented-stress run retains 14 PASS / one BAT014 footprint-query FAIL;
+the independent SQLite observer correction passes three native and three software
+repeats. The 10,000-action native history baseline passes 100 durable checkpoints
+with a byte-identical replay of the original seeded schedule. These bounded
+workloads do not qualify general chaos, long soak or unavailable hardware.
+
+Finder return remains unreliable in its original candidate. APP017 and SLD009
+now use an owned cooperative AppKit peer of the exact same UX binary, with a
+distinct PID, validated parent, fresh nonce-bound request and finite lifetime.
+The peer's Accessory policy affects only that child. The main Qt app remains
+Regular. Actual AppKit/Qt loss and return, safe automatic gesture completion,
+full persistence and post-return history checks pass six repetitions, followed
+by two checks after mandatory analyzer fixes. A Regular peer's late startup
+activation failures and all earlier attempts remain retained.
+
+APP016 is still open. Public performMiniaturize and direct miniaturize did not
+produce its required native event. External button access returned
+elementHasNoFrame/timeoutReached; a separate screenshot-preparation attempt
+timed out and reset the UI tool before any coordinate click. Those are not
+successful minimize observations or evidence of a production defect. No OS
+security/activation setting, real user catalog or installed stable app changed.
+
+See [source-bound evidence and all retained attempts](../qualification/2026-10-26/native-stress-history-and-lifecycle.json).
+
+## Manual minimize discrepancy — 2026-10-26
+
+The user reports a physical yellow-button click and visible minimization in the
+prepared window. The external-input candidate retains its timeout and no actual
+NSWindow/Qt miniaturize notification. A subsequent public-action diagnostic
+records a miniaturizable window with an enabled button, no native will/did
+notification, and no minimized owned window. A hidden second owned window was
+also enumerated. Neither the human report nor this failed automation establishes
+completion of the background export/restore contract. APP016 remains open.
+See [source-bound evidence](../qualification/2026-10-26/manual-minimize-observation.json).

@@ -1,0 +1,2260 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-26T09:34:31.922951+00:00",
+  "base_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+  "release_gate": "NOT_QUALIFIED",
+  "production_behavior_changed": false,
+  "reports": {
+    "native_stress_initial": {
+      "report": {
+        "path": "build-verify/ux-native-stress-20261026/UX_REPORT.json",
+        "sha256": "32b5ddc81c7abb57d0eb4850c5a1a97c57fa04ed51198a9ecbf6734c23aedde7",
+        "bytes": 93961
+      },
+      "summary": {
+        "PASS": 14,
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T075904Z-87798",
+      "source_tree_sha256": "f407555a131af2e8e4720d0a6f558ac998c9e8e42d761cbe43a303351cfee614",
+      "test_executable_sha256": "26b63dbc0e129570577e6d566fbca133fa53e9f53ff244a1ffe5fa5973ff5677",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 15
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-005",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-IMP-019",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-013",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-PRV-008",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-ADV-013",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-TRN-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-DTL-011",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-PRS-019",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-EXP-023",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-EXP-024",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-UND-016",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-PERF-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-PERF-018",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 15
+      },
+      "catalog_integrity": {
+        "PASS": 15
+      }
+    },
+    "batch_diagnostic": {
+      "report": {
+        "path": "build-verify/ux-native-batch-diagnostic-20261026/UX_REPORT.json",
+        "sha256": "2c7a6136406449d919820a1e2bf765e3d7b0452cb209eb65d119f065f648d57b",
+        "bytes": 12364
+      },
+      "summary": {
+        "PASS": 3
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T081720Z-92294",
+      "source_tree_sha256": "aadd0245c5b461530fff8db954824328a0c693e39cf6f47984b19183852946eb",
+      "test_executable_sha256": "eb0683a7acae8ec3df43cf3bf43055ee62b51cdd901a88ede1ebd768b139face",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 3
+      },
+      "outcomes": [
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 3
+      },
+      "catalog_integrity": {
+        "PASS": 3
+      }
+    },
+    "batch_native_fixed": {
+      "report": {
+        "path": "build-verify/ux-native-batch-fixed-20261026/UX_REPORT.json",
+        "sha256": "a9ba5e753ae369598cea987d4add118ff010b9f29cbd54687ce5377eda6458b5",
+        "bytes": 12359
+      },
+      "summary": {
+        "PASS": 3
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T082210Z-93245",
+      "source_tree_sha256": "08c53ce130d9420c75c81272ce9559e28e70a9eba2e9d8778a20ef40889e4035",
+      "test_executable_sha256": "f985610e5384e34ef66fdebbcdb5cabcbb74eb9f31d2b25274d6a823817fbd4e",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 3
+      },
+      "outcomes": [
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 3
+      },
+      "catalog_integrity": {
+        "PASS": 3
+      }
+    },
+    "batch_offscreen_fixed": {
+      "report": {
+        "path": "build-verify/ux-offscreen-batch-fixed-20261026/UX_REPORT.json",
+        "sha256": "2cc79c9546cc55d8bcc88409dbd49227982caa0da0984a73b195daa6b3904c4d",
+        "bytes": 12380
+      },
+      "summary": {
+        "PASS": 3
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T082321Z-93835",
+      "source_tree_sha256": "08c53ce130d9420c75c81272ce9559e28e70a9eba2e9d8778a20ef40889e4035",
+      "test_executable_sha256": "f985610e5384e34ef66fdebbcdb5cabcbb74eb9f31d2b25274d6a823817fbd4e",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('offscreen', 'software', 1)": 3
+      },
+      "outcomes": [
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-BAT-014",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 3
+      },
+      "catalog_integrity": {
+        "PASS": 3
+      }
+    },
+    "native_history_10000": {
+      "report": {
+        "path": "build-verify/ux-native-history-chaos-20261026/UX_REPORT.json",
+        "sha256": "34fa678740903cfb3952403d91eff348b914f15ed6906a1fa5bcb5479b020e59",
+        "bytes": 31961
+      },
+      "summary": {
+        "PASS": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T082426Z-93194",
+      "source_tree_sha256": "08c53ce130d9420c75c81272ce9559e28e70a9eba2e9d8778a20ef40889e4035",
+      "test_executable_sha256": "f985610e5384e34ef66fdebbcdb5cabcbb74eb9f31d2b25274d6a823817fbd4e",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "UX-UND-017",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "minimize_public_action": {
+      "report": {
+        "path": "build-verify/ux-native-minimize-20261026/UX_REPORT.json",
+        "sha256": "b24f00ddbb3e1f415099318e664887ef55e0d5b75a3746c9c8341cd39e232860",
+        "bytes": 5087
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T083350Z-96353",
+      "source_tree_sha256": "08c53ce130d9420c75c81272ce9559e28e70a9eba2e9d8778a20ef40889e4035",
+      "test_executable_sha256": "f985610e5384e34ef66fdebbcdb5cabcbb74eb9f31d2b25274d6a823817fbd4e",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP016-MINIMIZED-EXPORT",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "deactivation_initial_readback": {
+      "report": {
+        "path": "build-verify/ux-native-deactivation-20261026/UX_REPORT.json",
+        "sha256": "88e968b26aa4bea288794cc3bf3f00e5f7f9985fa6bcc0fde14dd604b59626d0",
+        "bytes": 5253
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T083419Z-96462",
+      "source_tree_sha256": "08c53ce130d9420c75c81272ce9559e28e70a9eba2e9d8778a20ef40889e4035",
+      "test_executable_sha256": "f985610e5384e34ef66fdebbcdb5cabcbb74eb9f31d2b25274d6a823817fbd4e",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "deactivation_histogram_ready": {
+      "report": {
+        "path": "build-verify/ux-native-deactivation-ready-20261026/UX_REPORT.json",
+        "sha256": "1af0e81f9b538659dcb232e88bc7f145aae2c81a56d8490208603f55baaef127",
+        "bytes": 5151
+      },
+      "summary": {
+        "PASS": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T083704Z-96722",
+      "source_tree_sha256": "18ca6dbe56840171a80ab72881fb9c8163aa4db945ea4e5dc5edf23227790c36",
+      "test_executable_sha256": "8b54ca057926e28f76a2404fd8689a63dbae775afc79f23c369a4156182dd873",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "deactivation_initial_official": {
+      "report": {
+        "path": "build-verify/ux-native-deactivation-official-20261026/UX_REPORT.json",
+        "sha256": "956545b2251a8c38c8c46b84cb2df4e5fbc0b0410bec27707bdd5b31edad823c",
+        "bytes": 18768
+      },
+      "summary": {
+        "PASS": 3,
+        "FAIL": 3
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T084152Z-97190",
+      "source_tree_sha256": "346a7e76be73b4ba6f54c06bf3e1b27dab9f3439a67092230f6eef04376de76a",
+      "test_executable_sha256": "89c700e5ca7e310ffb7db03c86c90a842fc1b6ab70313b48729e391f58836448",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "deactivation_readback_diagnostics": {
+      "report": {
+        "path": "build-verify/ux-native-deactivation-trace-20261026/UX_REPORT.json",
+        "sha256": "9dc6d86941387cf0e89999170cb99059b78fd1c42ed1905aa8a1cfb8b539c17b",
+        "bytes": 19032
+      },
+      "summary": {
+        "FAIL": 6
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T084405Z-97497",
+      "source_tree_sha256": "d12c4517fec84848190594ca6bf7b6abdae1d06e4f45617a408565ffa7a29ff8",
+      "test_executable_sha256": "5b2590b71752aec505a4b9b0365c92a4a353971fdb0a1da057475ab4d4bf2f2a",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "deactivation_stable_readback_finder_return_failure": {
+      "report": {
+        "path": "build-verify/ux-native-deactivation-stable-20261026/UX_REPORT.json",
+        "sha256": "c04733037a9434792e5f91abb30b386c31889392d256490265d2e51621e4a509",
+        "bytes": 19193
+      },
+      "summary": {
+        "FAIL": 6
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T084801Z-97922",
+      "source_tree_sha256": "943d9ea86379420676ed3b8cb0a0dc1c2da96e4cc42c5c33811507b12d4c59c0",
+      "test_executable_sha256": "d74cc227fcf9ad83aa721d6d3a0d477e10ae3041397900858df1b44c0ba6cdfa",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "minimize_external_accessibility_attempt": {
+      "report": {
+        "path": "build-verify/ux-minimize-cua-20261026/UX_REPORT.json",
+        "sha256": "b1d97db2ed69d38c26a262e18d09ad9a379ef1ab9ef9c319392a9a0eda8f8092",
+        "bytes": 5181
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-minimize-cua-artifacts-20261026/20261026T090120Z-99541",
+      "source_tree_sha256": "c880613777a26034d954068ce750d761020062dcb3c8a6ad1b7d3d9933a6ca2d",
+      "test_executable_sha256": "77a1c436c8fab72de376362a5bb98acce3ac59b838f92310769c6e52c540b36f",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP016-MINIMIZED-EXPORT",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "cooperative_initial_launch": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-activation-20261026/UX_REPORT.json",
+        "sha256": "55c4818df75128665300c0a770bf076df68351de10d1d677194b2af67029ff49",
+        "bytes": 9969
+      },
+      "summary": {
+        "FAIL": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T091219Z-909",
+      "source_tree_sha256": "63847f227351443a7f9eeb57c717f428698b5f6dc430741bdae894af44388fe1",
+      "test_executable_sha256": "815b7406e7a319d553cf25b501339a5f382727fce20d86b968ca9b44a2ce11ce",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "cooperative_launch_diagnostic": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-diagnostic-20261026/UX_REPORT.json",
+        "sha256": "5ab77340b3d695b291e84fbc88cc1eaa3d372ba290438893df3def7ac96ac1b5",
+        "bytes": 7920
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T091340Z-1171",
+      "source_tree_sha256": "8b41d5dd785d316b5e83714044640dbffc61435fec8b996d4d3db173f643832c",
+      "test_executable_sha256": "55f6164966eb49459c9d335b820dd915319f375d8070938fc580f5fbdd6e1f01",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "cooperative_initial_return": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-initial-handoff-20261026/UX_REPORT.json",
+        "sha256": "c7d8b85ed79d2d48ea6f341a068d2577790d5252bdc46a7959be86cc1e7ce98f",
+        "bytes": 9791
+      },
+      "summary": {
+        "PASS": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T091515Z-1398",
+      "source_tree_sha256": "74dd8a6b3a3a4eea867c73a566f034cbc86942433174c8a86485ec067ae0731a",
+      "test_executable_sha256": "2653d5abda456a92be7b1ea3dbc77de11adcae4de6b11062ac893ab5a7050cb5",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "cooperative_regular_peer_repeated": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-repeated-20261026/UX_REPORT.json",
+        "sha256": "36b42b185ec4fc916e39031e7cb3164315abddee4ccba1694ca50d697bc83a8c",
+        "bytes": 17954
+      },
+      "summary": {
+        "PASS": 4,
+        "FAIL": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T091645Z-1585",
+      "source_tree_sha256": "74dd8a6b3a3a4eea867c73a566f034cbc86942433174c8a86485ec067ae0731a",
+      "test_executable_sha256": "2653d5abda456a92be7b1ea3dbc77de11adcae4de6b11062ac893ab5a7050cb5",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "cooperative_accessory_before_setup_return": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-accessory-20261026/UX_REPORT.json",
+        "sha256": "b1ac9cd3f2b6151bea519847131229bd160c0cec40d0ff543ebb7354bfd1e206",
+        "bytes": 18320
+      },
+      "summary": {
+        "FAIL": 6
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T091955Z-2046",
+      "source_tree_sha256": "8e0dcf344ebdd6794d7186b184fbeafe81e0c913bee29b1d40d1774f23d4036f",
+      "test_executable_sha256": "809ef8fc07142850c3e1a5273cf08c05cf683d09249bc5cdb2d74c0fb563d460",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "cooperative_accessory_setup_return": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-accessory-return-20261026/UX_REPORT.json",
+        "sha256": "6cdfe2ace2c6b3fe33d81542354a78d91f7e4ed6f2819196573a7c5361e2000a",
+        "bytes": 9802
+      },
+      "summary": {
+        "PASS": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T092157Z-2532",
+      "source_tree_sha256": "c21287c838695fd00e6d3ce76487f5dd3b3f086530246be115548c550c8c4ffb",
+      "test_executable_sha256": "6fe89ab900e28042aa71bcec455bc7655a0cc7a7a88245c0bd56822d6f834e36",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "cooperative_native_final": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-final-20261026/UX_REPORT.json",
+        "sha256": "bbf5f1a7de9ccfb4e6c21c203e56285ae1bebc5fb61da36ec79acf78831a3a95",
+        "bytes": 17700
+      },
+      "summary": {
+        "PASS": 6
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T092342Z-2810",
+      "source_tree_sha256": "77fc045718f263aaf348ad7e6e60752e410ba7be652993ad9432d82aabfad64e",
+      "test_executable_sha256": "acf3a8ec25a8f2983d6b335a29312526d452b8c208d03c3dd58ef1a60e4f6fe9",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 6
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 6
+      },
+      "catalog_integrity": {
+        "PASS": 6
+      }
+    },
+    "minimize_direct_action": {
+      "report": {
+        "path": "build-verify/ux-native-minimize-direct-20261026/UX_REPORT.json",
+        "sha256": "12566486fb5e9ff6bcd03ae9c632c1a8038879f3d1982402faabd2b9b115dd1c",
+        "bytes": 5084
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-artifacts/20261026T092418Z-3037",
+      "source_tree_sha256": "77fc045718f263aaf348ad7e6e60752e410ba7be652993ad9432d82aabfad64e",
+      "test_executable_sha256": "acf3a8ec25a8f2983d6b335a29312526d452b8c208d03c3dd58ef1a60e4f6fe9",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP016-MINIMIZED-EXPORT",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "minimize_external_observation_timeout": {
+      "report": {
+        "path": "build-verify/ux-minimize-cua-coordinate-20261026/UX_REPORT.json",
+        "sha256": "5f84d66c97f948c0bef0d15f34cda88dd860e35af9e5136595631e5c686bc0d6",
+        "bytes": 5220
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": "build-verify/ux-minimize-cua-coordinate-artifacts-20261026/20261026T092902Z-3617",
+      "source_tree_sha256": "46e66d2757083fd2d164bfba1c1445b73def9afec160036ece131a5e8bd4a41e",
+      "test_executable_sha256": "f047a142ad8ee4473ee7e54642809fd148975859907e1470879f5d556a8d26c0",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP016-MINIMIZED-EXPORT",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "cooperative_post_analysis_fix": {
+      "report": {
+        "path": "build-verify/ux-native-cooperative-checked-20261026/UX_REPORT.json",
+        "sha256": "c6837e1d744cad0a25e4e60ebc25c9f1df23bb140b5e86b16fe4efb07903d517",
+        "bytes": 9804
+      },
+      "summary": {
+        "PASS": 2
+      },
+      "source_consistency": "PASS",
+      "execution_status": "PASS",
+      "run_directory": "build-verify/ux-artifacts/20261026T093035Z-3843",
+      "source_tree_sha256": "46e66d2757083fd2d164bfba1c1445b73def9afec160036ece131a5e8bd4a41e",
+      "test_executable_sha256": "f047a142ad8ee4473ee7e54642809fd148975859907e1470879f5d556a8d26c0",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 2
+      },
+      "outcomes": [
+        {
+          "id": "UX-APP-017",
+          "status": "PASS",
+          "notes": []
+        },
+        {
+          "id": "UX-SLD-009",
+          "status": "PASS",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 2
+      },
+      "catalog_integrity": {
+        "PASS": 2
+      }
+    },
+    "finder_external_app_switch": {
+      "report": {
+        "path": ".tools/ux-regression/app-deactivation-cua-return-20261026-report/UX_REPORT.json",
+        "sha256": "e9a9d9f1e4cc26fa0d3123b6feae9013f26f2b9e9da385e1aab46fc723293a34",
+        "bytes": 5751
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": ".tools/ux-regression/app-deactivation-cua-return-20261026-artifacts/20261026T085550Z-98727",
+      "source_tree_sha256": "943d9ea86379420676ed3b8cb0a0dc1c2da96e4cc42c5c33811507b12d4c59c0",
+      "test_executable_sha256": "d74cc227fcf9ad83aa721d6d3a0d477e10ae3041397900858df1b44c0ba6cdfa",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    },
+    "finder_external_title_click": {
+      "report": {
+        "path": ".tools/ux-regression/app-deactivation-cua-click-20261026-report/UX_REPORT.json",
+        "sha256": "e85b2324d254d594b99aa6bbc48c872a9e0bbb5b1afdb1ece6048244294ab3fb",
+        "bytes": 5746
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "execution_status": "FAIL",
+      "run_directory": ".tools/ux-regression/app-deactivation-cua-click-20261026-artifacts/20261026T085700Z-98950",
+      "source_tree_sha256": "943d9ea86379420676ed3b8cb0a0dc1c2da96e4cc42c5c33811507b12d4c59c0",
+      "test_executable_sha256": "d74cc227fcf9ad83aa721d6d3a0d477e10ae3041397900858df1b44c0ba6cdfa",
+      "build_provenance": {
+        "status": "PASS",
+        "path": "/Users/semenkontsevoy/Documents/New project/Luma/build-verify/ux-build-provenance.json",
+        "source_commit": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+        "reason": ""
+      },
+      "runtime": {
+        "('cocoa', 'metal', 2)": 1
+      },
+      "outcomes": [
+        {
+          "id": "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION",
+          "status": "FAIL",
+          "notes": []
+        }
+      ],
+      "original_integrity": {
+        "PASS": 1
+      },
+      "catalog_integrity": {
+        "PASS": 1
+      }
+    }
+  },
+  "sqlite_evidence_race": {
+    "original_failure": "BAT014 did not report the original SQLite result code; its readable catalog has no integrity/FK error. The controlled race is consistent with that failure, not proof of its exact historical code.",
+    "library": "same built SQLite 3.50.4 static library",
+    "workload": "Four concurrent catalog-style connection open/PRAGMA/close workers; 3,000 independent PRAGMA page_count reads",
+    "no_busy_timeout": {
+      "passed": 2990,
+      "failed": 10,
+      "busy_recovery": 5,
+      "busy": 5,
+      "background_failures": 0
+    },
+    "busy_timeout_3000_ms": {
+      "passed": 3000,
+      "failed": 0,
+      "background_failures": 0
+    },
+    "fix": "Only the batch footprint observation connection receives the same 3000 ms busy timeout already used by production Catalog; SQL/result/extended error diagnostics retained.",
+    "source": {
+      "path": ".tools/batch-sqlite-open-race.cpp",
+      "sha256": "a481f6a358eb91d26bf9303ee1dd013483e4b44c4b7b4c1bc625d92928f88fcb",
+      "bytes": 2568
+    },
+    "before": {
+      "path": ".tools/batch-sqlite-zero-timeout-20261026.log",
+      "sha256": "05628a4a18c6fdbead8875912d5ab103133d3a8db2ba5879793c7bd64cc14a53",
+      "bytes": 155
+    },
+    "after": {
+      "path": ".tools/batch-sqlite-bounded-timeout-20261026.log",
+      "sha256": "80398b2d335d6ccdd08ef1a24ca119e9d95b088cf68e638d51857aa372a5894b",
+      "bytes": 76
+    },
+    "failed_catalog_audit": {
+      "path": ".tools/native-batch-snapshot-20261026.json",
+      "sha256": "79424ba3d2b00db5e81f8554cc1b2a7fcbb37e34024557f8dd23fb2e19a5445a",
+      "bytes": 1341
+    }
+  },
+  "stress_scope": "All 15 implemented stress IDs have native Cocoa/Metal passing observations across the initial campaign and fixed BAT014 checkpoint; not one final-source full campaign.",
+  "history": {
+    "actions": 10000,
+    "durable_checkpoints": 100,
+    "seed": 123456,
+    "replay": {
+      "path": "build-verify/ux-artifacts/20261026T082426Z-93194/UX-UND-017/repeat-1/replay.jsonl",
+      "sha256": "a0bc804104de4b7ff4f7f71af717617707c1885e2e67fea9b5f997e4e4fb4e4f",
+      "bytes": 2570694
+    },
+    "prior_replay": {
+      "path": "build-verify/ux-artifacts/20261024T014645Z-42771/UX-UND-017/repeat-1/replay.jsonl",
+      "sha256": "a0bc804104de4b7ff4f7f71af717617707c1885e2e67fea9b5f997e4e4fb4e4f",
+      "bytes": 2570694
+    },
+    "measurements": {
+      "path": "build-verify/ux-artifacts/20261026T082426Z-93194/UX-UND-017/repeat-1/measurements.json",
+      "sha256": "9dd4279a19bcfaad297165468fbdbe431f2f4ef9a599e2850e4404a6e0654d90",
+      "bytes": 21538
+    },
+    "limits": "Three integer sliders plus Undo/Redo; not general Chaos Monkey, one million actions, or 2/8/24-hour soak"
+  },
+  "preview_readback_fix": "A complete current provider may be refined again by the real 180 ms refinement timer or memory pressure. Trace found changed URL with exact provider and complete edit document. Readback discards superseded captures and retries only within the original single ten-second deadline; strict provider/document/source checks remain. No numeric tolerance changed; BUG045 is not closed.",
+  "cooperative_peer": {
+    "source": "tests/ux/NativeApplicationHandoff.mm",
+    "same_verified_test_binary": true,
+    "entry": "--activation-peer; parent PID, same executable, nonce and fresh owned return-request file validated",
+    "native_activation": "Public yieldActivationToApplication / activateFromApplication calls between distinct actual processes; own main app keeps Regular policy, peer has Accessory policy",
+    "public_reference": "https://developer.apple.com/documentation/appkit/nsapplication/activationpolicy-swift.enum/accessory",
+    "proof": [
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-APP-017/repeat-1/app-deactivation-summary.json",
+          "sha256": "1e25d298ab65b1e92bf529bcd49bf89e8fe5adb9e4e3e606c186863218e9af6b",
+          "bytes": 100669
+        },
+        "id": "UX-APP-017",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2823,
+            "peer_pid": 2833,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2823,
+            "peer_pid": 2833,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2823,
+            "peer_pid": 2833,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2823,
+            "peer_pid": 2833,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2823,
+            "peer_pid": 2833,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      },
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-APP-017/repeat-2/app-deactivation-summary.json",
+          "sha256": "df75801a5ca22d8215c395befa250eba322bed973d8e70f020fb6de53b805172",
+          "bytes": 100669
+        },
+        "id": "UX-APP-017",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2862,
+            "peer_pid": 2881,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2862,
+            "peer_pid": 2881,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2862,
+            "peer_pid": 2881,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2862,
+            "peer_pid": 2881,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2862,
+            "peer_pid": 2881,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      },
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-APP-017/repeat-3/app-deactivation-summary.json",
+          "sha256": "57cd5e29b7ba5dda10368c04489bfdff8ae658c9f9be8c2757c7efc6f094a7d6",
+          "bytes": 100669
+        },
+        "id": "UX-APP-017",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2898,
+            "peer_pid": 2910,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2898,
+            "peer_pid": 2910,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2898,
+            "peer_pid": 2910,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2898,
+            "peer_pid": 2910,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2898,
+            "peer_pid": 2910,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      },
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-SLD-009/repeat-1/app-deactivation-summary.json",
+          "sha256": "86aa4761859ef1a97442b4ddc3e55593d2e5d21302d8634cda9beaedc763f7cc",
+          "bytes": 100669
+        },
+        "id": "UX-SLD-009",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2932,
+            "peer_pid": 2947,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2932,
+            "peer_pid": 2947,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2932,
+            "peer_pid": 2947,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2932,
+            "peer_pid": 2947,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2932,
+            "peer_pid": 2947,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      },
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-SLD-009/repeat-2/app-deactivation-summary.json",
+          "sha256": "981f9cce785dc93c9a2b5c95a3402c55c8b7cfbe910fe54878c23d15333fbd85",
+          "bytes": 100669
+        },
+        "id": "UX-SLD-009",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2962,
+            "peer_pid": 2985,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2962,
+            "peer_pid": 2985,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2962,
+            "peer_pid": 2985,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2962,
+            "peer_pid": 2985,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2962,
+            "peer_pid": 2985,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      },
+      {
+        "evidence": {
+          "path": "build-verify/ux-artifacts/20261026T092342Z-2810/UX-SLD-009/repeat-3/app-deactivation-summary.json",
+          "sha256": "6c4f3bc64dcd34db0c7327e192d253ab5e30dc4d9e02a1467a61ae64e0c798b8",
+          "bytes": 100669
+        },
+        "id": "UX-SLD-009",
+        "automatic_outcome": "finalized",
+        "checkpoints": [
+          {
+            "label": "native_baseline",
+            "own_pid": 2999,
+            "peer_pid": 3017,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 0,
+              "history_gesture_active": false,
+              "presses": 0,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "genuine_held_exposure",
+            "own_pid": 2999,
+            "peer_pid": 3017,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "inside_action_immediately_before_native_request",
+            "own_pid": 2999,
+            "peer_pid": 3017,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 0,
+            "app_activated": 0,
+            "history_gesture_active": true,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 1,
+              "history_gesture_active": true,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": false,
+              "slider_pressed": true,
+              "window_active": true,
+              "window_deactivate_events": 0,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "cross_process_deactivate_before_any_release",
+            "own_pid": 2999,
+            "peer_pid": 3017,
+            "peer_activation_policy": 1,
+            "nsapp_active": false,
+            "peer_frontmost": true,
+            "own_frontmost": false,
+            "window_key": false,
+            "app_resigned": 1,
+            "app_activated": 0,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 2,
+              "held_moves": 1,
+              "history_gesture_active": false,
+              "presses": 1,
+              "releases": 0,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": false,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          },
+          {
+            "label": "accepted",
+            "own_pid": 2999,
+            "peer_pid": 3017,
+            "peer_activation_policy": 1,
+            "nsapp_active": true,
+            "peer_frontmost": false,
+            "own_frontmost": true,
+            "window_key": true,
+            "app_resigned": 1,
+            "app_activated": 1,
+            "history_gesture_active": false,
+            "qt": {
+              "application_state": 4,
+              "held_moves": 2,
+              "history_gesture_active": false,
+              "presses": 6,
+              "releases": 6,
+              "saw_actual_native_and_qt_inactive": true,
+              "slider_pressed": false,
+              "window_active": true,
+              "window_deactivate_events": 1,
+              "window_exposed": true
+            }
+          }
+        ]
+      }
+    ],
+    "setup_failures": "A Regular peer could reactivate after initial launch/return. Accessory policy plus a completed-startup handoff eliminates that observed preparation race in the final six repetitions and two post-analysis checks. Earlier failed attempts remain retained.",
+    "limits": "Qt synthetic held drag, real cross-process AppKit loss/return; not physical pointer input or Finder return qualification"
+  },
+  "minimize": {
+    "status": "OPEN",
+    "successful_transitions": 0,
+    "attempts": "Public performMiniaturize, direct miniaturize, accessibility button and screenshot-coordinate preparation did not establish a real miniaturize notification. CUA returned elementHasNoFrame / timeoutReached, then a 30-second kernel timeout on the separate screenshot preparation; no coordinate input was dispatched.",
+    "limits": "No production minimize defect established. Original successful human report on an independent QA window does not qualify current background export."
+  },
+  "checks": {
+    "routing_unit_cases": 13,
+    "policy_unit_cases": 12,
+    "affected_ctest_targets": 8,
+    "ctest": {
+      "path": ".tools/lifecycle-affected-20261026-ctest.log",
+      "sha256": "6c61f14ae425690673c055edff1b4f7328ce425ff0b785b195961d1dbf49d7ef",
+      "bytes": 1351
+    },
+    "initial_tidy": {
+      "path": ".tools/lifecycle-affected-20261026-tidy.log",
+      "sha256": "8c253245e338aa07b78a4beb9e731aae2afc660593b03e0c0efa76dc34aec76d",
+      "bytes": 61346
+    },
+    "tidy_corrections": "Native helper validates nullable UTF-8 strings before NSUUID and uses NSLocalizedString for its title; initial analyzer failures retained, affected native file passes rerun; other five files pass mandatory analyzer checks.",
+    "native_tidy_final": {
+      "path": ".tools/lifecycle-peer-final-20261026-tidy.log",
+      "sha256": "fee9660dcd1bab0d5d507afa76abe1d7afbe12909234e5cb2788ac469e88c832",
+      "bytes": 241
+    },
+    "last_test_build": {
+      "path": ".tools/lifecycle-pre-final-20261026-build.log",
+      "sha256": "c1a3ebb19bbac668221105cea67e280683c570fd3b94c27283d2ed2674d6d33b",
+      "bytes": 468
+    },
+    "shipping_boundary": "Actual symbol audit rejects NativeApplicationHandoff/nativeActivationPeerMain in shipping and requires peer entry in UX executable",
+    "graphify": {
+      "extract": {
+        "path": ".tools/stress-lifecycle-20261026-graph-extract.log",
+        "sha256": "de84be79cf428eb4cdd388ad03687366028cb88f29fca1fabcd10eecdbbf3560",
+        "bytes": 1544
+      },
+      "diagnose": {
+        "path": ".tools/stress-lifecycle-20261026-graph-diagnose.log",
+        "sha256": "56813f4febb0daa206ddc0b88b507cddfe1b8a89097c6d182653cd52fb46d51a",
+        "bytes": 1155
+      },
+      "nodes": 8028,
+      "edges": 21113,
+      "dangling_endpoints": 0,
+      "exact_duplicates": 0,
+      "self_loops": 11,
+      "limits": "NativeApplicationHandoff.mm and NativeWindowLifecycle.mm yielded no structural symbols; AppKit source reviewed directly. QML remains outside structural coverage. Graph diagnostics are not runtime proof."
+    },
+    "peer_negative_controls": {
+      "count": 7,
+      "status": "PASS",
+      "evidence": {
+        "path": ".tools/activation-peer-negative-20261026.json",
+        "sha256": "b3cdf0d80affe1c8bd85537e8507d9200683cd04022c78e3b225bb103b521337",
+        "bytes": 1365
+      },
+      "scope": "Malformed arguments, invalid/wrong parent PID, invalid nonce, relative/existing request path, foreign parent executable; reject with exit 64 and no request-file mutation."
+    },
+    "peer_final_tidy": {
+      "path": ".tools/lifecycle-publish-20261026-tidy.log",
+      "sha256": "fee9660dcd1bab0d5d507afa76abe1d7afbe12909234e5cb2788ac469e88c832",
+      "bytes": 241
+    },
+    "peer_final_build": {
+      "path": ".tools/lifecycle-publish-20261026-build.log",
+      "sha256": "b376f90c8ddf3c48a30de50f86196b137079a860bb70d6c3dc096800716981a2",
+      "bytes": 468
+    },
+    "shipping_isolation_followup": {
+      "path": ".tools/lifecycle-peer-checked-20261026-ctest.log",
+      "sha256": "70747abf0ad7b3d506b115541461452494ff7a88b1c378e8f366605a8889b83d",
+      "bytes": 486
+    }
+  },
+  "hosted_ci": [
+    {
+      "id": 40289129730,
+      "name": "macOS Apple Silicon",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-26T07:58:39Z",
+      "updated_at": "2026-10-26T07:58:43Z",
+      "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+      "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40289129730"
+    },
+    {
+      "id": 40289119604,
+      "name": "macOS Apple Silicon",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-26T07:58:34Z",
+      "updated_at": "2026-10-26T07:58:39Z",
+      "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+      "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40289119604"
+    },
+    {
+      "id": 40289122309,
+      "name": "macOS Apple Silicon",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-26T07:58:35Z",
+      "updated_at": "2026-10-26T07:58:39Z",
+      "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+      "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40289122309"
+    },
+    {
+      "id": 40289122021,
+      "name": "macOS Release",
+      "status": "in_progress",
+      "conclusion": null,
+      "created_at": "2026-10-26T07:58:35Z",
+      "updated_at": "2026-10-26T07:58:44Z",
+      "head_sha": "2156ee8f9d31178bbcc5ab4559390d687ffbb098",
+      "html_url": "https://github.com/yakut-sekonts/Luma/actions/runs/40289122021"
+    }
+  ],
+  "coverage": {
+    "unadapted_1_0_ids": 303,
+    "unadapted_1_0_blocking_ids": [
+      "UX-P10-DAY-001",
+      "UX-P10-DAY-002",
+      "UX-P10-DAY-008",
+      "UX-P10-DAY-014",
+      "UX-P10-DAY-015",
+      "UX-P10-INS-001",
+      "UX-P10-INS-002",
+      "UX-P10-INS-003",
+      "UX-P10-INS-004",
+      "UX-P10-INS-005",
+      "UX-P10-UPG-011",
+      "UX-P10-REL-001",
+      "UX-P10-REL-002",
+      "UX-P10-REL-003",
+      "UX-P10-REL-004",
+      "UX-P10-REL-010",
+      "UX-P10-DAT-001",
+      "UX-P10-DAT-002",
+      "UX-P10-DAT-003",
+      "UX-P10-A11Y-001"
+    ],
+    "new_native_adapters": [
+      "UX-APP-017",
+      "UX-SLD-009"
+    ],
+    "offscreen": "SKIPPED unsupported_backend; never PASS"
+  },
+  "remaining": [
+    "Minimize/restore background export",
+    "Historical BUG045",
+    "Final installation and actual Sparkle replacement/relaunch",
+    "Final published artifact identity and golden installed workflows",
+    "General chaos, long soak and hardware/display coverage",
+    "Final-source full campaign and latest hosted CI"
+  ],
+  "distribution": "Source version 0.9.0 and stable 0.5.1 unchanged; no 1.0 tag, release or public appcast published",
+  "archive": "Project/chat archive cancelled as requested; none created",
+  "hosted_ci_job_progress": [
+    {
+      "run": 40289129730,
+      "id": 121459782478,
+      "name": "build-test",
+      "status": "in_progress",
+      "conclusion": null,
+      "active": [
+        "clang-tidy"
+      ],
+      "failed": []
+    },
+    {
+      "run": 40289119604,
+      "id": 121459749537,
+      "name": "build-test",
+      "status": "in_progress",
+      "conclusion": null,
+      "active": [
+        "clang-tidy"
+      ],
+      "failed": []
+    },
+    {
+      "run": 40289122021,
+      "id": 121459757764,
+      "name": "signing-configuration",
+      "status": "completed",
+      "conclusion": "success",
+      "active": [],
+      "failed": []
+    },
+    {
+      "run": 40289122021,
+      "id": 121459786126,
+      "name": "build-package",
+      "status": "in_progress",
+      "conclusion": null,
+      "active": [
+        "Bounded functional blocking UX checks before packaging"
+      ],
+      "failed": []
+    }
+  ]
+}

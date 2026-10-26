@@ -1,8 +1,10 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/render/CpuRenderer.h"
+#include "core/render/DevelopPipeline.h"
 #include "platform/macos/DisplayProfile.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxDistribution.h"
+#include "tests/ux/UxPixels.h"
 #include <QColorSpace>
 #include <QElapsedTimer>
 #include <QGuiApplication>
@@ -26,15 +28,18 @@ QJsonObject metadata(const QString &id, const QString &scope) {
     return {{"scenario", id},
             {"mode", "MEASURE_ONLY"},
             {"scope", scope},
-            {"image_processing", "current CPU pipeline; no phase 0.6 GPU-processing claim"},
+            {"image_processing", "production preview with Metal when enabled/eligible and CPU "
+                                 "fallback; independent CPU reference"},
             {"fixture", "generated opaque 256x192 public PNG"},
-            {"acknowledgment", "QML Image Ready/current source, exact provider pixels where "
-                               "applicable, post-input polish and scene-region readback within one "
-                               "RGBA8 quantization level"},
+            {"acknowledgment", "QML Image Ready/current source, provider pixels within the "
+                               "existing renderer budget, post-input polish and scene-region "
+                               "readback within two RGB8 quantization levels, exact alpha"},
             {"readback_included", true},
             {"display_scanout_measured", false},
-            {"scene_rgba8_channel_tolerance", 1},
-            {"provider_pixels_tolerance", 0},
+            {"scene_rgb8_channel_tolerance", 2},
+            {"scene_alpha_tolerance", 0},
+            {"provider_pixels_tolerance", "RGB <= 1 only for Metal-eligible documents; CPU exact"},
+            {"provider_alpha_tolerance", 0},
             {"quantile_resolution_ms", 1},
             {"poll_interval_ms", 10},
             {"quantiles", "conservative 1 ms Distribution bins"},
@@ -56,10 +61,13 @@ QImage referenceFor(Context &c, const QString &path, const luma::EditDocument &d
 }
 bool previewReady(Context &c, const QImage &pixels) {
     auto *image = c.driver->item("develop.preview");
+    const auto document = c.editor.original() ? luma::EditDocument{} : c.editor.currentSettings();
+    const bool metalEligible =
+        c.editor.metalPreview() && luma::DevelopPipeline(document).gpuCompatible();
     return !c.window->property("libraryMode").toBool() && !c.editor.busy() && image->isVisible() &&
            image->property("status").toInt() == 1 &&
            image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-           c.provider->requestImage({}, nullptr, {}) == pixels;
+           previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), pixels, metalEligible);
 }
 QImage sceneRegion(Context &c, QQuickItem *item) {
     if (!item || !item->isVisible() || item->width() <= 0 || item->height() <= 0)
@@ -85,22 +93,46 @@ bool sceneMatches(const QImage &actual, const QImage &expected) {
         return false;
     if (actual == expected)
         return true;
-    // Metal's scaled scene readback can differ by one quantization level between
-    // otherwise identical frames. Provider pixels and EditDocument remain exact.
+    // Independent scaled Metal readbacks can differ by two RGB levels even with
+    // byte-identical provider images (retained native PRV002 evidence). This is a
+    // scene-only budget; previewReady separately checks the CPU/Metal pixel oracle.
     for (int y = 0; y < actual.height(); ++y) {
         const auto *left = actual.constScanLine(y);
         const auto *right = expected.constScanLine(y);
         for (qsizetype channel = 0; channel < static_cast<qsizetype>(actual.width()) * 4;
              ++channel) {
-            if (std::abs(static_cast<int>(left[channel]) - right[channel]) > 1)
+            if (std::abs(static_cast<int>(left[channel]) - right[channel]) >
+                (channel % 4 == 3 ? 0 : 2))
                 return false;
         }
     }
     return true;
 }
+void checkScenePixelOracle() {
+    QImage expected(2, 2, QImage::Format_RGBA8888);
+    expected.fill(QColor(100, 100, 100, 128));
+    auto actual = expected.copy();
+    require(sceneMatches(actual, expected), "Scene oracle rejected identical images");
+    actual.scanLine(0)[0] += 2;
+    require(sceneMatches(actual, expected), "Scene oracle rejected two RGB rounding levels");
+    actual.scanLine(0)[0] += 1;
+    require(!sceneMatches(actual, expected), "Scene oracle accepted three RGB levels");
+    actual = expected.copy();
+    actual.scanLine(0)[3] += 1;
+    require(!sceneMatches(actual, expected), "Scene oracle accepted altered alpha");
+    require(!sceneMatches(expected.copy(0, 0, 1, 1), expected) &&
+                !sceneMatches(expected.convertToFormat(QImage::Format_ARGB32), expected) &&
+                !sceneMatches({}, {}),
+            "Scene oracle accepted different geometry, channel layout or missing images");
+}
 void waitPreview(Context &c, const QImage &expected) {
-    c.driver->wait([&] { return previewReady(c, expected); },
-                   "performance fixture final pixels ready outside measurement");
+    try {
+        c.driver->wait([&] { return previewReady(c, expected); },
+                       "performance fixture final pixels ready outside measurement");
+    } catch (...) {
+        recordPreviewDifference(c, expected, "Native performance fixture calibration");
+        throw;
+    }
     c.driver->frame();
 }
 QQuickItem *thumbnail(QQuickItem *card) {
@@ -160,6 +192,10 @@ double measured(Context &c, const QString &operation, const std::function<void()
                        {"exposed", c.window->isExposed()},
                        {"polishes_after_input", static_cast<qint64>(c.metrics.polishes() - before)},
                        {"preview_source", c.editor.previewUrl()}});
+        const auto document =
+            c.editor.original() ? luma::EditDocument{} : c.editor.currentSettings();
+        recordPreviewDifference(c, referenceFor(c, c.editor.sourcePath(), document),
+                                "Native performance scene acknowledgment");
         expectedScene.save(c.root + "/expected-scene.png");
         if (readbackRegion && readbackRegion->isVisible())
             sceneRegion(c, readbackRegion.data()).save(c.root + "/observed-scene.png");
@@ -241,6 +277,8 @@ void originalLatency(Context &c, const QString &id) {
     d.click("develop.originalButton");
     waitPreview(c, original);
     const auto originalScene = sceneRegion(c, preview);
+    require(c.provider->requestImage({}, nullptr, {}).save(c.root + "/calibrated-original.png"),
+            "Cannot retain the original calibration provider image");
     require(!sceneMatches(originalScene, processedScene),
             "Original and Processed scene readbacks are identical");
     d.click("develop.processedButton");
@@ -369,6 +407,8 @@ bool currentPerformanceScenario(Context &c, const QString &id) {
     require(QGuiApplication::platformName() == "cocoa" &&
                 qEnvironmentVariable("GITHUB_ACTIONS") != "true",
             "PERF_LOCAL measurements require native Cocoa on an idle physical Mac");
+    checkPreviewPixelOracle();
+    checkScenePixelOracle();
     c.openFirst();
     c.saved();
     foreground(c);

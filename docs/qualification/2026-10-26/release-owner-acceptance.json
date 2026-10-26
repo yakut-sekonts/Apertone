@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "recorded_date": "2026-10-26",
+  "release": "1.0.0",
+  "decision": "OWNER_ACCEPTED_WITH_EXCEPTIONS",
+  "owner_directions": {
+    "remaining_unadapted_qa_inventory": "SKIPPED_BY_OWNER",
+    "installed_application_and_end_to_end_update_validation": "SKIPPED_BY_OWNER",
+    "APP016": "ACCEPTED_MANUAL_BEHAVIOR",
+    "BUG045": "FIX_REQUIRED"
+  },
+  "accounting": {
+    "skipped_checks_are_pass": false,
+    "automated_release_workflow_remains_required": true,
+    "distribution": "github-open-source",
+    "apple_signing": "ad-hoc",
+    "apple_notarization": false
+  },
+  "automated_gate_exception": {
+    "status": "SKIPPED_BY_OWNER",
+    "accepted_runner_exit": 1,
+    "accepted_execution_status": "INCOMPLETE",
+    "accepted_release_gate": "NOT_QUALIFIED",
+    "accepted_not_implemented_applicable": [
+      "UX-P10-A11Y-001",
+      "UX-P10-DAT-001",
+      "UX-P10-DAT-002",
+      "UX-P10-DAT-003",
+      "UX-P10-DAY-001",
+      "UX-P10-DAY-002",
+      "UX-P10-DAY-008",
+      "UX-P10-DAY-014",
+      "UX-P10-DAY-015",
+      "UX-P10-INS-001",
+      "UX-P10-INS-002",
+      "UX-P10-INS-003",
+      "UX-P10-INS-004",
+      "UX-P10-INS-005",
+      "UX-P10-REL-001",
+      "UX-P10-REL-002",
+      "UX-P10-REL-003",
+      "UX-P10-REL-004",
+      "UX-P10-REL-010",
+      "UX-P10-UPG-011"
+    ],
+    "accepted_deferred_load_implemented": [
+      "UX-APP-001",
+      "UX-APP-008",
+      "UX-APP-009",
+      "UX-APP-010",
+      "UX-BAT-001",
+      "UX-BAT-002",
+      "UX-BAT-003",
+      "UX-BAT-005",
+      "UX-BAT-006",
+      "UX-EXP-001",
+      "UX-EXP-005",
+      "UX-EXP-007",
+      "UX-EXP-008",
+      "UX-FLT-001",
+      "UX-IMP-002",
+      "UX-IMP-003",
+      "UX-IMP-004",
+      "UX-IMP-020",
+      "UX-KEY-003",
+      "UX-LIB-001",
+      "UX-LIB-010",
+      "UX-LIB-011",
+      "UX-NAV-001",
+      "UX-P06-PRG-001",
+      "UX-P09-CAT-001",
+      "UX-P09-CAT-006",
+      "UX-P09-CAT-011",
+      "UX-PRV-001",
+      "UX-PRV-006",
+      "UX-PRV-013",
+      "UX-UND-001",
+      "UX-UND-002",
+      "UX-UPD-003"
+    ],
+    "accepted_unsupported_backend": [
+      "UX-P10-A11Y-002"
+    ],
+    "accepted_unadapted_applicable": [],
+    "accepted_policy_unreviewed": [],
+    "forbidden_result_statuses": [
+      "FAIL"
+    ]
+  },
+  "APP016": {
+    "owner_observation": "Window minimized after the physical yellow-button click.",
+    "automated_observation_discrepancy_retained": true,
+    "evidence": "manual-minimize-observation.json"
+  },
+  "BUG045": {
+    "root_cause": "The regression treated previewUrl imageRevision as durable document state even though it is an invalidation counter advanced by every accepted render.",
+    "fix": "Require current QML source/URL coherence, final render completion and exact pixels while retaining full document, history, catalog, source and selection invariants.",
+    "native_cocoa_metal_repetitions": 20,
+    "offscreen_software_repetitions": 20,
+    "source_tree_sha256": "73d6f5c0d16a961ec2abd419b80b82ded38733d08d6c4347388369adeb1ae215",
+    "test_executable_sha256": "aeea720b432d0c535919d6bedf645b98fa399aa3030cd89f535ae13f4b65af39",
+    "native_report": {
+      "path": "build-verify/ux-card-flags-bug045-native-release-final-20261026/UX_REPORT.json",
+      "sha256": "825f36ca4f5bac9e349c8b1cae8a0f63e17a107d8ace2e10ad8d9c1eee540d1e"
+    },
+    "offscreen_report": {
+      "path": "build-verify/ux-card-flags-bug045-offscreen-release-final-20261026/UX_REPORT.json",
+      "sha256": "bebd805292faf51a2d57580df998e03985e3b13279515910cd708d7c2eeac5c4"
+    },
+    "note": "The supplemental runner intentionally reports NOT_QUALIFIED because this targeted regression cannot qualify the complete release inventory. Owner acceptance is recorded separately and does not rewrite that result."
+  }
+}

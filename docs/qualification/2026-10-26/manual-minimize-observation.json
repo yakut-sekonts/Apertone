@@ -1,0 +1,287 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-26T09:56:30.495599+00:00",
+  "base_commit": "8782003f3dd38e1dc904f2355f8bd10a9b4e7e50",
+  "release_gate": "NOT_QUALIFIED",
+  "reports": {
+    "manual": {
+      "report": {
+        "path": "build-verify/ux-minimize-manual-20261026/UX_REPORT.json",
+        "sha256": "f167b7c56bb7f77474a0fc72b0a8ca1ec2189bd61ad212dd95cc27d32d3dc29b"
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "source_tree_sha256": "6e21439a2458a296a64a7438d31b6ece8a567e3397bc8c9b9b7868e554088c86",
+      "test_executable_sha256": "88f7b87a1c8a17be8063845976aed26cfc578aa3d414368ee616875c0f271d99",
+      "evidence": {
+        "path": "build-verify/ux-minimize-manual-artifacts-20261026/20261026T094842Z-5154/CANDIDATE-APP016-MINIMIZED-EXPORT/repeat-1/app016-minimize-evidence.json",
+        "sha256": "e34d2e055932c1222a1c91c5a49a4b12467226df1f87e4bd22ceea137f223768"
+      },
+      "checkpoints": [
+        {
+          "completed": 0,
+          "native": {
+            "application_active": true,
+            "application_pid": 5167,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [],
+            "frontmost_bundle": "app.luma.ux-tests",
+            "frontmost_pid": 5167,
+            "key": true,
+            "miniaturized": false,
+            "qt_window_state": 0,
+            "visible": true,
+            "window_number": 88604
+          },
+          "stage": "baseline",
+          "succeeded": 0,
+          "working": false
+        },
+        {
+          "completed": 0,
+          "native": {
+            "application_active": true,
+            "application_pid": 5167,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [],
+            "frontmost_bundle": "app.luma.ux-tests",
+            "frontmost_pid": 5167,
+            "key": true,
+            "miniaturized": false,
+            "qt_window_state": 0,
+            "visible": true,
+            "window_number": 88604
+          },
+          "stage": "first_output_committed_before_minimize",
+          "succeeded": 0,
+          "working": true
+        },
+        {
+          "completed": 1,
+          "native": {
+            "application_active": false,
+            "application_pid": 5167,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [
+              {
+                "event": "NSApplicationDidResignActiveNotification",
+                "frontmost_bundle": "com.openai.codex",
+                "frontmost_pid": 6867,
+                "system_uptime": 600546.341313625
+              },
+              {
+                "event": "NSApplicationDidBecomeActiveNotification",
+                "frontmost_bundle": "app.luma.ux-tests",
+                "frontmost_pid": 5167,
+                "system_uptime": 600550.3428150833
+              },
+              {
+                "event": "NSApplicationDidResignActiveNotification",
+                "frontmost_bundle": "com.openai.codex",
+                "frontmost_pid": 6867,
+                "system_uptime": 600553.6644344584
+              }
+            ],
+            "frontmost_bundle": "com.openai.codex",
+            "frontmost_pid": 6867,
+            "key": false,
+            "miniaturized": false,
+            "qt_window_state": 0,
+            "visible": true,
+            "window_number": 88604
+          },
+          "stage": "failure_observed_native_state",
+          "succeeded": 1,
+          "working": true
+        }
+      ],
+      "result": {
+        "path": "build-verify/ux-minimize-manual-artifacts-20261026/20261026T094842Z-5154/CANDIDATE-APP016-MINIMIZED-EXPORT/repeat-1/result.json",
+        "sha256": "8a1a01e93f941c8ed548f7a121f3d7dafc3792a49fe94b4b292026020716871e"
+      }
+    },
+    "observer": {
+      "report": {
+        "path": "build-verify/ux-minimize-observer-20261026/UX_REPORT.json",
+        "sha256": "8efbb33bb518671af207b5d507b5d4e001b530028812a87b0c890c8370dd38c0"
+      },
+      "summary": {
+        "FAIL": 1
+      },
+      "source_consistency": "PASS",
+      "source_tree_sha256": "80925180d3c049ffd8be3bd420d0fccb213b19148698e5605775ad028c1905cc",
+      "test_executable_sha256": "9791efe031e0e29ca230e93046f125a24b1ab08713f8a1285c6f56cde2626b75",
+      "evidence": {
+        "path": "build-verify/ux-minimize-observer-artifacts-20261026/20261026T095345Z-5925/CANDIDATE-APP016-MINIMIZED-EXPORT/repeat-1/app016-minimize-evidence.json",
+        "sha256": "74b16969117f4995af435701f9027ccf9114c423c2ada62f5da7bfe577aceca3"
+      },
+      "checkpoints": [
+        {
+          "completed": 0,
+          "native": {
+            "application_active": true,
+            "application_pid": 5951,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [],
+            "frontmost_bundle": "app.luma.ux-tests",
+            "frontmost_pid": 5951,
+            "key": true,
+            "miniaturizable": true,
+            "miniaturized": false,
+            "minimize_button_enabled": true,
+            "occlusion": 8194,
+            "owned_windows": [
+              {
+                "key": true,
+                "miniaturized": false,
+                "title": "Luma 0.9.0 — Photo-0000.png",
+                "visible": true,
+                "window_number": 88629
+              },
+              {
+                "key": false,
+                "miniaturized": false,
+                "title": "",
+                "visible": false,
+                "window_number": 88635
+              }
+            ],
+            "qt_window_state": 0,
+            "visible": true,
+            "will_miniaturize": 0,
+            "window_events": [],
+            "window_number": 88629
+          },
+          "stage": "baseline",
+          "succeeded": 0,
+          "working": false
+        },
+        {
+          "completed": 0,
+          "native": {
+            "application_active": true,
+            "application_pid": 5951,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [],
+            "frontmost_bundle": "app.luma.ux-tests",
+            "frontmost_pid": 5951,
+            "key": true,
+            "miniaturizable": true,
+            "miniaturized": false,
+            "minimize_button_enabled": true,
+            "occlusion": 8194,
+            "owned_windows": [
+              {
+                "key": true,
+                "miniaturized": false,
+                "title": "Luma 0.9.0 — Photo-0000.png",
+                "visible": true,
+                "window_number": 88629
+              },
+              {
+                "key": false,
+                "miniaturized": false,
+                "title": "",
+                "visible": false,
+                "window_number": 88635
+              }
+            ],
+            "qt_window_state": 0,
+            "visible": true,
+            "will_miniaturize": 0,
+            "window_events": [],
+            "window_number": 88629
+          },
+          "stage": "first_output_committed_before_minimize",
+          "succeeded": 0,
+          "working": true
+        },
+        {
+          "completed": 1,
+          "native": {
+            "application_active": true,
+            "application_pid": 5951,
+            "application_running": false,
+            "did_deminiaturize": 0,
+            "did_miniaturize": 0,
+            "focus_events": [],
+            "frontmost_bundle": "app.luma.ux-tests",
+            "frontmost_pid": 5951,
+            "key": false,
+            "miniaturizable": true,
+            "miniaturized": false,
+            "minimize_button_enabled": true,
+            "occlusion": 8194,
+            "owned_windows": [
+              {
+                "key": false,
+                "miniaturized": false,
+                "title": "Luma 0.9.0 — Photo-0000.png",
+                "visible": true,
+                "window_number": 88629
+              },
+              {
+                "key": false,
+                "miniaturized": false,
+                "title": "",
+                "visible": false,
+                "window_number": 88635
+              }
+            ],
+            "qt_window_state": 0,
+            "visible": true,
+            "will_miniaturize": 0,
+            "window_events": [],
+            "window_number": 88629
+          },
+          "stage": "failure_observed_native_state",
+          "succeeded": 1,
+          "working": true
+        }
+      ],
+      "result": {
+        "path": "build-verify/ux-minimize-observer-artifacts-20261026/20261026T095345Z-5925/CANDIDATE-APP016-MINIMIZED-EXPORT/repeat-1/result.json",
+        "sha256": "10e67427eaad61bc9065718092c23336fc18856aa4c704e845cef68905951426"
+      }
+    }
+  },
+  "human_observation": {
+    "source": "explicit user reply in this chat after the ready signal",
+    "reply": "Нажал, окно свернулось",
+    "meaning": "Human confirms a physical click and visible minimization. No automated native transition, background completion or restore proof is inferred."
+  },
+  "status": "OPEN_OBSERVATION_DISCREPANCY",
+  "diagnostic_change": "Bounded passive NSWindow will/did miniaturize, deminiaturize and occlusion notifications plus every owned window identity. Original strict native/Qt transition oracle and deadlines unchanged.",
+  "findings": [
+    "The follow-up public AppKit action has a miniaturizable key window and enabled button, but no will/did notification or minimized owned window was observed.",
+    "Two owned windows were present; the second was hidden. No product root cause is established.",
+    "Both attempts leave catalog and original integrity PASS, but the intended minimized export/restore workflow remains unqualified."
+  ],
+  "validation": {
+    "build": {
+      "path": ".tools/minimize-observer-20261026-build.log",
+      "sha256": "1230338722363828e0c4142240b3535725f4ff30223e7406ebb8aa74fefd011b"
+    },
+    "mandatory_affected_tidy": {
+      "path": ".tools/minimize-observer-20261026-tidy.log",
+      "sha256": "39942304d83175163d3597c74901c984ffb9afa3af555c35fd7efc0c0c83e11d"
+    }
+  },
+  "ci": {
+    "path": ".tools/ci-2156ee8-jobs-0951.json",
+    "sha256": "54e42863a69c1fc457f190b2043090ad09a4a8817a5de56a51e570c1f5b68bcb"
+  },
+  "publication": "No release or appcast changed; qualification branch 8782003 pushed."
+}

@@ -1,3 +1,4 @@
+#include "core/render/DevelopPipeline.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UpdaterProbe.h"
 #include "tests/ux/UxContext.h"
@@ -60,6 +61,10 @@ struct Database {
             handle = nullptr;
             require(false, "Cannot open isolated batch/update evidence database");
         }
+        // Opening the WAL while background Catalog readers open/close can return
+        // BUSY (including BUSY_RECOVERY) before the first read. Use the same
+        // bounded wait as Catalog; evidence queries must not fail immediately.
+        sqlite3_busy_timeout(handle, 3000);
     }
     ~Database() {
         if (handle)
@@ -76,12 +81,20 @@ struct Database {
     }
     std::int64_t scalar(const QByteArray &sql) const {
         sqlite3_stmt *raw = nullptr;
-        require(sqlite3_prepare_v2(handle, sql.constData(), -1, &raw, nullptr) == SQLITE_OK,
-                "Cannot prepare batch footprint query");
+        const int prepared = sqlite3_prepare_v2(handle, sql.constData(), -1, &raw, nullptr);
         const std::unique_ptr<sqlite3_stmt, decltype(&sqlite3_finalize)> statement(
             raw, sqlite3_finalize);
-        require(sqlite3_step(raw) == SQLITE_ROW && sqlite3_column_type(raw, 0) == SQLITE_INTEGER,
-                "Footprint query did not return an integer");
+        require(prepared == SQLITE_OK,
+                "Cannot prepare batch footprint query [" + QString::fromUtf8(sql) +
+                    "]: code=" + QString::number(prepared) +
+                    " extended=" + QString::number(sqlite3_extended_errcode(handle)) + " " +
+                    QString::fromUtf8(sqlite3_errmsg(handle)));
+        const int stepped = sqlite3_step(raw);
+        require(stepped == SQLITE_ROW && sqlite3_column_type(raw, 0) == SQLITE_INTEGER,
+                "Footprint query did not return an integer [" + QString::fromUtf8(sql) +
+                    "]: code=" + QString::number(stepped) +
+                    " extended=" + QString::number(sqlite3_extended_errcode(handle)) + " " +
+                    QString::fromUtf8(sqlite3_errmsg(handle)));
         return sqlite3_column_int64(raw, 0);
     }
 };
@@ -149,16 +162,36 @@ Documents expectedPreset(Context &c, const Documents &before) {
     return expected;
 }
 void rendered(Context &c, const Document &expected) {
+    checkPreviewPixelOracle();
     const auto pixels = fixtureReference(c, expected, c.editor.sourcePath());
-    c.driver->wait(
-        [&] {
-            auto *image = c.driver->item("develop.preview");
-            return !c.editor.busy() && image->isVisible() &&
-                   image->property("status").toInt() == 1 &&
-                   image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                   c.provider->requestImage({}, nullptr, {}) == pixels;
-        },
-        "Exact full-document preview Ready/current source/pixels");
+    const bool metalEligible =
+        c.editor.metalPreview() && luma::DevelopPipeline(expected).gpuCompatible();
+    try {
+        c.driver->wait(
+            [&] {
+                auto *image = c.driver->item("develop.preview");
+                return !c.editor.busy() && image->isVisible() &&
+                       image->property("status").toInt() == 1 &&
+                       image->property("source").toUrl().toString() == c.editor.previewUrl() &&
+                       previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), pixels,
+                                          metalEligible);
+            },
+            "Full-document preview Ready/current source/independent CPU pixels");
+    } catch (...) {
+        auto *image = c.driver->item("develop.preview");
+        writeJson(c.root + "/batch-update-preview-state.json",
+                  {{"busy", c.editor.busy()},
+                   {"visible", image->isVisible()},
+                   {"status", image->property("status").toInt()},
+                   {"image_source", image->property("source").toUrl().toString()},
+                   {"preview_url", c.editor.previewUrl()},
+                   {"expected_document", c.editor.currentSettings() == expected},
+                   {"metal_preview", c.editor.metalPreview()},
+                   {"metal_eligible", metalEligible},
+                   {"error", c.editor.error()}});
+        recordPreviewDifference(c, pixels, "Batch/update preview did not settle");
+        throw;
+    }
     require(c.editor.currentSettings() == expected && c.editor.error().isEmpty(),
             "Preview changed the expected full document");
     c.driver->frame();

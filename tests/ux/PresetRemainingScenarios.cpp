@@ -1,8 +1,10 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "core/render/CpuRenderer.h"
+#include "core/render/DevelopPipeline.h"
 #include "platform/macos/DisplayProfile.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
+#include "tests/ux/UxPixels.h"
 #include <QCoreApplication>
 #include <QCursor>
 #include <QElapsedTimer>
@@ -14,6 +16,7 @@
 #include <QJsonDocument>
 #include <QMouseEvent>
 #include <QSet>
+#include <QSignalSpy>
 #include <QUuid>
 #include <algorithm>
 #include <cmath>
@@ -46,14 +49,7 @@ QSet<QString> identities(const QVariantList &items) {
     return result;
 }
 void groups(Context &c, std::uint32_t selected) {
-    for (int group = 0; group < 8; ++group) {
-        const auto selector = "presetGroup" + QString::number(group);
-        const bool expected = selected & (std::uint32_t{1} << group);
-        if (c.driver->object(selector)->property("checked").toBool() != expected)
-            c.driver->click(selector);
-    }
-    require(c.driver->object("presetEditor")->property("groups").toUInt() == selected,
-            "Preset dialog did not acknowledge its selected groups");
+    c.selectPresetGroups(selected);
 }
 void userTab(Context &c) {
     c.driver->click("preset.tabs.presets");
@@ -93,6 +89,26 @@ void editorClosed(Context &c) {
                    "preset metadata dialog closed");
     require(c.presets.error().isEmpty(), c.presets.error());
 }
+void enableRecapture(Context &c) {
+    auto &d = *c.driver;
+    auto *view = qobject_cast<QQuickItem *>(
+        qvariant_cast<QObject *>(d.object("preset.editorScroll")->property("contentItem")));
+    auto *capture = d.item("preset.capture");
+    require(view && !capture->property("checked").toBool(),
+            "Recapture requires an initially unchecked control in the real scroll view");
+    for (int step = 0; step < 24; ++step) {
+        d.wait([&] { return !view->property("moving").toBool(); }, "Recapture scroll settled");
+        d.frame();
+        const auto rect = capture->mapRectToItem(view, QRectF(QPointF{}, capture->size()));
+        if (rect.top() >= 0 && rect.bottom() <= view->height()) {
+            d.click("preset.capture");
+            require(capture->property("checked").toBool(), "Recapture click was not acknowledged");
+            return;
+        }
+        d.wheel("preset.editorScroll", rect.top() < 0 ? 120 : -120);
+    }
+    require(false, "Recapture control cannot be reached by actual scrolling");
+}
 QString create(Context &c, const QString &name, std::uint32_t selected = 3,
                const QString &folder = "UX presets") {
     auto &d = *c.driver;
@@ -114,7 +130,43 @@ QString create(Context &c, const QString &name, std::uint32_t selected = 3,
     return id;
 }
 void select(Context &c, const QString &id) {
+    auto *row = c.driver->item("preset." + id);
+    c.driver->wait(
+        [&] {
+            for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
+                if (parent->property("moving").toBool())
+                    return false;
+            return true;
+        },
+        "preset list and enclosing panel finished actual wheel movement");
+    c.driver->frame();
+    for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
+        if (parent->clip())
+            require(parent->contains(row->mapToItem(parent, {row->width() / 2, row->height() / 2})),
+                    "Preset click target is outside a clipped ancestor");
+    QJsonArray scrolling;
+    for (auto *parent = row->parentItem(); parent; parent = parent->parentItem()) {
+        if (parent->property("moving").isValid())
+            scrolling.append(QJsonObject{{"name", parent->objectName()},
+                                         {"class", parent->metaObject()->className()},
+                                         {"moving", parent->property("moving").toBool()},
+                                         {"content_y", parent->property("contentY").toDouble()}});
+    }
+    const auto center = row->mapToScene({row->width() / 2, row->height() / 2});
+    QSignalSpy clicks(row, SIGNAL(clicked()));
+    require(clicks.isValid(), "Preset row has no actual clicked signal");
+    c.driver->log({{"action", "preset_selection_before_click"},
+                   {"id", id},
+                   {"center_x", center.x()},
+                   {"center_y", center.y()},
+                   {"enabled", row->isEnabled()},
+                   {"scroll_ancestors", scrolling}});
     c.driver->click("preset." + id);
+    c.driver->log(
+        {{"action", "preset_selection_after_click"},
+         {"id", id},
+         {"clicks", clicks.count()},
+         {"selected", c.driver->object("presetPanel")->property("selectedId").toString()}});
     require(c.driver->object("presetPanel")->property("selectedId").toString() == id,
             "Preset row did not select its own UUID");
 }
@@ -174,7 +226,10 @@ QImage pixels(Context &c, const luma::EditDocument &document) {
         .copy();
 }
 void ready(Context &c, const luma::EditDocument &document) {
+    checkPreviewPixelOracle();
     const auto expected = pixels(c, document);
+    const bool metalEligible =
+        c.editor.metalPreview() && luma::DevelopPipeline(document).gpuCompatible();
     try {
         c.driver->wait(
             [&] {
@@ -182,10 +237,14 @@ void ready(Context &c, const luma::EditDocument &document) {
                 return !c.editor.busy() && !c.editor.previewUrl().isEmpty() && image->isVisible() &&
                        image->property("status").toInt() == 1 &&
                        image->property("source").toUrl().toString() == c.editor.previewUrl() &&
-                       c.provider->requestImage({}, nullptr, {}) == expected;
+                       previewPixelsAgree(c.provider->requestImage({}, nullptr, {}), expected,
+                                          metalEligible);
             },
             "preset fixture pixels match the current document");
     } catch (...) {
+        recordPreviewDifference(c, expected,
+                                metalEligible ? "Preset CPU reference: RGB <= 1, alpha exact"
+                                              : "Preset exact CPU reference");
         auto *image = c.driver->item("develop.preview");
         c.driver->log(
             {{"action", "preset_pixel_readiness_failure"},
@@ -202,6 +261,10 @@ void ready(Context &c, const luma::EditDocument &document) {
               c.driver->object("filter_landscape")->property("hovered").toBool()}});
         throw;
     }
+    c.driver->log({{"action", "preset_cpu_pixel_oracle"},
+                   {"metal_eligible", metalEligible},
+                   {"rgb_max_error", metalEligible ? 1 : 0},
+                   {"alpha_max_error", 0}});
 }
 class HoverTrace final : public QObject {
   public:
@@ -319,7 +382,7 @@ bool presetRemainingScenario(Context &c, const QString &id) {
                     d.item("preset.editorError")->isVisible() &&
                     bytes(storePath(c)) == beforeRefusedSave,
                 "Adding a group without explicit recapture did not fail safely");
-        d.click("preset.capture");
+        enableRecapture(c);
         d.click("presetSave");
         editorClosed(c);
         const auto recaptured = c.presets.snapshot(presetID);
@@ -401,8 +464,8 @@ bool presetRemainingScenario(Context &c, const QString &id) {
         bool acknowledgedC = false;
         bool staleAfterC = false;
         QObject observationLifetime;
-        const auto observe =
-            QObject::connect(&c.editor, &EditorController::stateChanged, &observationLifetime, [&] {
+        const auto observe = QObject::connect(
+            &c.editor, &EditorController::previewChanged, &observationLifetime, [&] {
                 const auto current = c.provider->requestImage({}, nullptr, {});
                 if (acknowledgedC && current != expectedC)
                     staleAfterC = true;
@@ -436,6 +499,14 @@ bool presetRemainingScenario(Context &c, const QString &id) {
             if (gate.failure)
                 std::rethrow_exception(gate.failure);
             d.frame();
+            const auto observedPixels = c.provider->requestImage({}, nullptr, {});
+            d.log({{"action", "hover_race_observer_diagnostic"},
+                   {"acknowledged_c", acknowledgedC},
+                   {"stale_after_c", staleAfterC},
+                   {"pixels_equal_a", observedPixels == expectedA},
+                   {"pixels_equal_b", observedPixels == expectedB},
+                   {"pixels_equal_c", observedPixels == expectedC},
+                   {"preset_preview", c.editor.presetPreview()}});
             require(acknowledgedC && !staleAfterC &&
                         c.provider->requestImage({}, nullptr, {}) == expectedC,
                     "Stale A/B render replaced the acknowledged C hover");
@@ -650,31 +721,48 @@ bool presetRemainingScenario(Context &c, const QString &id) {
     require(id == "UX-PRS-019", "Unknown remaining preset case");
     // 333 actual UI create -> rename -> delete triplets = 999 store mutations;
     // one final create makes exactly 1000. All user actions traverse QML handlers.
+    // Keep the dialog's full-capture default for this storage workload. Selecting
+    // Light alone repeats eleven unrelated group clicks and scroll animations on
+    // every create. Subset selection remains covered by the functional scenarios.
     userTab(c);
     c.metrics.reset();
     QElapsedTimer elapsed;
     elapsed.start();
     int operations = 0;
     for (int cycle = 0; cycle < 333; ++cycle) {
-        const auto presetID = create(c, QString("Stress %1").arg(cycle), 1, "Stress");
+        const auto presetID =
+            create(c, QString("Stress %1").arg(cycle), luma::allSettingsGroups, "Stress");
         ++operations;
         const auto before = c.presets.snapshot(presetID);
+        require(before.groups == luma::allSettingsGroups && before.settings == document,
+                "Stress create did not capture the full document");
+        checkStore(c, {presetID});
         openEdit(c, presetID);
-        d.type("presetName", QString("Renamed %1").arg(cycle));
+        const auto name = QString("Renamed %1").arg(cycle);
+        d.type("presetName", name);
         d.click("presetSave");
         editorClosed(c);
         ++operations;
-        require(c.presets.snapshot(presetID).settings == before.settings,
-                "Stress rename changed captured settings");
+        const auto renamed = c.presets.snapshot(presetID);
+        require(renamed.name == name && renamed.folder == before.folder &&
+                    renamed.settings == before.settings && renamed.groups == before.groups &&
+                    renamed.parameters == before.parameters,
+                "Stress rename lost its name or changed captured settings");
+        checkStore(c, {presetID});
         remove(c, presetID);
         ++operations;
         checkStore(c, {});
         if (cycle % 10 == 0)
-            d.log({{"action", "preset_stress_checkpoint"}, {"store_mutations", operations}});
+            d.log({{"action", "preset_stress_checkpoint"},
+                   {"store_mutations", operations},
+                   {"elapsed_ms", elapsed.elapsed()}});
     }
-    const auto finalID = create(c, "Final stable entry", 1, "Stress");
+    const auto finalID = create(c, "Final stable entry", luma::allSettingsGroups, "Stress");
     ++operations;
     checkStore(c, {finalID});
+    const auto finalPreset = c.presets.snapshot(finalID);
+    require(finalPreset.groups == luma::allSettingsGroups && finalPreset.settings == document,
+            "Final stress entry lost its full document");
     require(operations == 1000 && c.editor.currentSettings() == document,
             "Preset stress missed operations or changed the active document");
     writeJson(c.root + "/measurements.json", {{"kind", "preset_store_ui_stress"},

@@ -123,6 +123,15 @@ class GateTests(unittest.TestCase):
         inventory = self.inventory + [{'id': 'regression', 'scope': 'CURRENT', 'mode': 'REGRESSION'}]
         self.assertEqual(runner.qualify(rows, inventory, '0.5', True)[0], 'FAIL')
 
+    def test_applicable_unimplemented_nonblocking_result_cannot_qualify(self):
+        for scope, through, expected in [('CURRENT', '0.5', 'FAIL'), ('1.0', '1.0', 'FAIL'),
+                                         ('1.0', '0.5', 'PASS'), ('TARGET', '1.0', 'PASS')]:
+            with self.subTest(scope=scope, through=through):
+                inventory = [self.inventory[0], {'id': 'future', 'scope': scope, 'mode': 'REGRESSION'}]
+                rows = [{'id': 'A', 'status': 'PASS'}] * 3
+                rows.append({**inventory[-1], 'status': 'NOT_IMPLEMENTED'})
+                self.assertEqual(runner.qualify(rows, inventory, through, True)[0], expected)
+
     def test_build_provenance_requires_both_matching_source_and_binary(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -140,7 +149,7 @@ class GateTests(unittest.TestCase):
             self.assertEqual(runner.build_provenance(root, snapshot)['status'], 'UNVERIFIED')
 
     def _mocked_attestation_cli(self, flags=(), record='valid', changed_at_end=None,
-                                changed_after_setup=None):
+                                changed_after_setup=None, extra_inventory=(), capabilities=None):
         """Exercise CLI gates with real provenance JSON, without fixtures or child processes."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
@@ -164,7 +173,7 @@ class GateTests(unittest.TestCase):
             strict = '--require-build-provenance' in flags or '--release-qualification' in flags
             snapshots = [start, prepared, end] if strict else [prepared, end]
             inventory = [{'id': 'A', 'mode': 'BLOCKING', 'scope': 'CURRENT',
-                          'severity': 'P1', 'scenario': 'Mocked CLI gate'}]
+                          'severity': 'P1', 'scenario': 'Mocked CLI gate'}, *extra_inventory]
             def fake_execute(row, destination, arguments, fixture_folder):
                 destination.mkdir(parents=True)
                 return {**row, 'status': 'PASS', 'child_pid': 123, 'artifacts': str(destination)}
@@ -175,7 +184,8 @@ class GateTests(unittest.TestCase):
                   patch.object(runner, 'INVENTORY', inventory),
                   patch.object(runner, 'NATIVE', {'A'}),
                   patch.object(runner, 'GLOBAL', set()),
-                  patch.object(runner, 'MANIFEST', {'completed_phases': ['0.5']}),
+                  patch.object(runner, 'MANIFEST', {'completed_phases': ['0.5'],
+                                                    'capabilities': capabilities or {}}),
                   patch.object(runner, 'fixtures', return_value={}) as fixtures,
                   patch.object(runner, 'fingerprint', side_effect=snapshots),
                   patch.object(runner, 'execute_scenario', side_effect=fake_execute) as execute,
@@ -190,6 +200,50 @@ class GateTests(unittest.TestCase):
                 return {'code': code, 'fixtures': fixtures.call_count, 'children': execute.call_count,
                         'summary': reports.call_args.args[0] if reports.called else None,
                         'stderr': stderr.getvalue()}
+
+    def test_cli_unimplemented_in_scope_is_incomplete_including_release(self):
+        row = {'id': 'future', 'mode': 'REGRESSION', 'scope': '1.0',
+               'severity': 'P2', 'scenario': 'Required future adapter'}
+        for release in (False, True):
+            for through in ('0.5', '1.0'):
+                with self.subTest(release=release, through=through):
+                    flags = ['--through', through]
+                    if release:
+                        flags.append('--release-qualification')
+                    result = self._mocked_attestation_cli(flags, extra_inventory=[row])
+                    applicable = through == '1.0'
+                    self.assertEqual(result['children'], 3)
+                    self.assertEqual(result['code'], 1 if applicable else 0)
+                    summary = result['summary']
+                    self.assertEqual(summary['execution_status'], 'INCOMPLETE' if applicable else 'PASS')
+                    self.assertEqual(summary['not_implemented_applicable'], ['future'] if applicable else [])
+                    expected = ('FAIL' if applicable else 'PASS') if release else 'NOT_QUALIFIED'
+                    self.assertEqual(summary['release_gate'], expected)
+
+    def test_cli_conditional_mask_duplicate_requires_explicit_false_capability(self):
+        row = {'id': 'UX-MSK-005', 'mode': 'REGRESSION', 'scope': '0.5',
+               'severity': 'P2', 'scenario': 'Duplicate mask if supported'}
+        for value in (False, True, None, 'false', 0):
+            with self.subTest(capability=value):
+                capabilities = {} if value is None else {'mask_duplicate': value}
+                result = self._mocked_attestation_cli(['--release-qualification'],
+                                                     extra_inventory=[row], capabilities=capabilities)
+                supported_skip = value is False
+                self.assertEqual(result['children'], 3)
+                self.assertEqual(result['code'], 0 if supported_skip else 1)
+                summary = result['summary']
+                self.assertEqual(summary['execution_status'], 'PASS' if supported_skip else 'INCOMPLETE')
+                self.assertEqual(summary['release_gate'], 'PASS' if supported_skip else 'FAIL')
+                result_row = next(r for r in summary['results'] if r['id'] == row['id'])
+                self.assertEqual(result_row['status'], 'SKIPPED')
+                self.assertEqual(result_row['skip_reason'], 'unsupported_capability' if supported_skip else 'unadapted')
+                if supported_skip:
+                    self.assertEqual(result_row['capability'], 'mask_duplicate')
+
+    def test_conditional_capability_exemption_is_narrow(self):
+        with patch.object(runner, 'MANIFEST', {'capabilities': {'mask_duplicate': False}}):
+            self.assertEqual(runner.unsupported_capability('UX-MSK-005'), 'mask_duplicate')
+            self.assertIsNone(runner.unsupported_capability('UX-MSK-004'))
 
     def test_cli_matching_provenance_accepts_adhoc_explicit_and_release_modes(self):
         for flags in ((), ('--require-build-provenance',), ('--release-qualification',)):
@@ -354,6 +408,59 @@ class GateTests(unittest.TestCase):
                 with self.assertRaises(sqlite3.ProgrammingError):
                     connection.cursor()
 
+    def test_daily_restore_audits_the_opened_copy_after_child_exit(self):
+        for restored_kind, status in [('valid', 'PASS'), ('corrupt', 'FAIL'), ('missing', 'FAIL')]:
+            with self.subTest(restored_kind=restored_kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                state = root / 'state'
+                (state / 'restored').mkdir(parents=True)
+                connection = sqlite3.connect(state / 'catalog.sqlite')
+                connection.execute('CREATE TABLE original (id INTEGER PRIMARY KEY)')
+                connection.close()
+                restored = state / 'restored/catalog.sqlite'
+                if restored_kind == 'valid':
+                    connection = sqlite3.connect(restored)
+                    connection.execute('CREATE TABLE restored (id INTEGER PRIMARY KEY)')
+                    connection.close()
+                elif restored_kind == 'corrupt':
+                    restored.write_bytes(b'Corrupted restored copy, valid original remains')
+                child = root / 'luma_ux_tests'
+                child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\n(r/"result.json").write_text(json.dumps({"id":"UX-P10-DAY-010","status":"PASS"}))\n')
+                child.chmod(0o755)
+                result = runner.execute(
+                    {'id': 'UX-P10-DAY-010', 'scope': '1.0', 'mode': 'BLOCKING',
+                     'severity': 'P0', 'scenario': 'Mocked restored process audit'},
+                    root / 'result', argparse.Namespace(build=root, timeout=10,
+                                                        stage='verify', state_root=state), root)
+                self.assertEqual(result['status'], status)
+                self.assertEqual(result['catalog_audit_path'], str(restored))
+                if status == 'FAIL':
+                    self.assertIn('P0 ', result['message'])
+
+    def test_restored_data_audit_overrides_a_child_pass(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            state = root / 'state'
+            (state / 'restored').mkdir(parents=True)
+            restored = state / 'restored/catalog.sqlite'
+            database = sqlite3.connect(restored)
+            database.execute('CREATE TABLE fixture (id INTEGER PRIMARY KEY)')
+            database.close()
+            child = root / 'luma_ux_tests'
+            child.write_text('#!/usr/bin/env python3\nimport json,sys\nfrom pathlib import Path\nr=Path(sys.argv[sys.argv.index("--root")+1])\n(r/"result.json").write_text(json.dumps({"id":"UX-P10-DAT-005","status":"PASS"}))\n')
+            child.chmod(0o755)
+            with patch.object(runner, 'audit_restored_workflow', side_effect=ValueError('orphan mask')) as audit:
+                result = runner.execute(
+                    {'id': 'UX-P10-DAT-005', 'scope': '1.0', 'mode': 'BLOCKING',
+                     'severity': 'P0', 'scenario': 'Mocked restored data audit'},
+                    root / 'result', argparse.Namespace(build=root, timeout=10,
+                                                        stage='verify', state_root=state), root)
+            self.assertEqual(result['status'], 'FAIL')
+            self.assertIn('P0 restored data invariant: orphan mask', result['message'])
+            self.assertEqual(audit.call_args.args[:4], (restored, state, root, root / 'result'))
+            self.assertEqual(audit.call_args.args[4], result['child_pid'])
+            self.assertTrue((root / 'result/catalog-copy.sqlite').is_file())
+
     def test_watchdog_overrides_a_forged_pass(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -511,6 +618,47 @@ else:
             self.assertEqual(len(result['stages']), 2)
             self.assertNotEqual(result['stages'][0]['child_pid'], result['stages'][1]['child_pid'])
 
+    def test_commit_checkpoints_use_separate_state_pairs_and_propagate_failure(self):
+        row = {'id': 'UX-P09-FLT-001', 'scope': '0.9', 'mode': 'BLOCKING',
+               'severity': 'P0', 'scenario': 'Commit checkpoint supervisor accounting'}
+        for failed in (None, 'prepare', 'verify', 'prepare-committed', 'verify-committed'):
+            with self.subTest(failed=failed), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                calls = []
+                def execute(row, destination, options, fixture):
+                    calls.append((options.stage, options.state_root))
+                    return {'id': row['id'], 'status': 'FAIL' if options.stage == failed else 'PASS',
+                            'message': options.stage, 'wall_duration_ms': 1}
+                with patch.object(runner, 'execute', side_effect=execute):
+                    result = runner.execute_scenario(row, root / 'result', argparse.Namespace(), root)
+                stages = ['prepare', 'verify', 'prepare-committed', 'verify-committed']
+                required = stages if failed is None else stages[:stages.index(failed) + 1]
+                self.assertEqual([stage for stage, _ in calls], required)
+                self.assertEqual([state for _, state in calls], [root / 'result' /
+                    ('state-committed' if stage.endswith('-committed') else 'state') for stage in required])
+                self.assertEqual(result['status'], 'FAIL' if failed else 'PASS')
+                self.assertEqual(result['wall_duration_ms'], len(required))
+
+    def test_committed_checkpoint_requires_actual_sigkill(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            child = root / 'luma_ux_tests'
+            child.write_text('''#!/usr/bin/env python3
+import json,os,sys,time
+from pathlib import Path
+r=Path(sys.argv[sys.argv.index("--root")+1])
+(r/"metrics.json").write_text(json.dumps({"checkpoint_metric":42}))
+(r/"kill-ready.json").write_text(json.dumps({"id":"UX-P09-FLT-001","stage":"prepare-committed","pid":os.getpid(),"utc_ms":time.time_ns()//1000000}))
+time.sleep(30)
+''')
+            child.chmod(0o755)
+            result = runner.execute({'id':'UX-P09-FLT-001','scope':'0.9','mode':'BLOCKING',
+                                     'severity':'P0','scenario':'Fake committed checkpoint'}, root / 'result',
+                                    argparse.Namespace(build=root, timeout=10, stage='prepare-committed'), root)
+            self.assertEqual(result['status'], 'PASS')
+            self.assertEqual(result['child_returncode'], -signal.SIGKILL)
+            self.assertTrue(result['intentional_kill'])
+
     def _fake_isolated_variant_children(self, identifier, variants, failed_variant=None):
         # Infrastructure fixture only: no native application, volume or UI claim.
         with tempfile.TemporaryDirectory() as directory:
@@ -572,6 +720,24 @@ failed_variant=''' + repr(failed_variant) + '''
 
     def test_mac008_requires_both_variants_in_distinct_processes_without_shared_state(self):
         self._fake_isolated_variant_children('UX-MAC-008', ('copy', 'export'))
+
+    def test_daily_merge_requires_hdr_and_panorama_in_distinct_processes(self):
+        self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'))
+        self._fake_isolated_variant_children('UX-P10-DAY-011', ('hdr', 'panorama'), 'panorama')
+
+    def test_update_guard_requires_all_operations_including_cancelled_worker(self):
+        variants = ('save', 'import', 'export', 'batch', 'merge', 'merge-cancel')
+        self._fake_isolated_variant_children('UX-P10-UPG-012', variants)
+        self._fake_isolated_variant_children('UX-P10-UPG-012', variants, 'merge-cancel')
+
+    def test_offline_sandbox_is_scoped_to_the_actual_child_and_preserves_arguments(self):
+        command = ['/owned path/Luma UX', '--root', '/owned path/evidence', '--case', 'UX-P10-DAY-012']
+        wrapped = runner.offline_child_command('UX-P10-DAY-012', command)
+        self.assertEqual(wrapped[:3], ['/usr/bin/sandbox-exec', '-p',
+                                      '(version 1) (allow default) (deny network*)'])
+        self.assertEqual(wrapped[3:], command)
+        self.assertEqual(runner.offline_child_command('UX-P10-UPG-012', command), command)
+        self.assertEqual(command[0], '/owned path/Luma UX')
 
     def _mac008_failure_aggregation(self, failed_variant, expected_variants):
         with tempfile.TemporaryDirectory() as directory:

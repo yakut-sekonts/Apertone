@@ -3,6 +3,7 @@
 #include "tests/ux/UxContext.h"
 #include <QColorSpace>
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,6 +12,8 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSGRendererInterface>
+#include <QSaveFile>
+#include <QUuid>
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -131,6 +134,11 @@ bool minimizeExportCandidate(Context &c, const QString &id) {
     require(QGuiApplication::platformName() == "cocoa" &&
                 c.window->rendererInterface()->graphicsApi() == QSGRendererInterface::Metal,
             "APP016 candidate requires actual Cocoa/Metal; no simulated minimize fallback");
+    const auto transport = qEnvironmentVariable("LUMA_UX_WINDOW_LIFECYCLE_MODE");
+    require(transport.isEmpty() || transport == "external-native-minimize" ||
+                transport == "direct-native-minimize",
+            "Unknown native window lifecycle transport");
+    const bool externalMinimize = transport == "external-native-minimize";
     auto &d = *c.driver;
     NativeWindowLifecycle native(*c.window);
     QJsonArray checkpoints, deliveryStates;
@@ -139,6 +147,7 @@ bool minimizeExportCandidate(Context &c, const QString &id) {
                          {"fixture_chooser_result_only", true},
                          {"native_action", "NSWindow performMiniaturize; deminiaturize"},
                          {"physical_pointer_or_dock_input", false},
+                         {"minimize_transport", transport.isEmpty() ? "AppKit action" : transport},
                          {"background_operation", "real two-item PNG export queue"},
                          {"load_testing", false}};
     const auto save = [&] {
@@ -259,8 +268,34 @@ bool minimizeExportCandidate(Context &c, const QString &id) {
                 firstOutputHash = digest(outputs[0]);
                 settingsHash = digest(c.stateRoot + "/export-settings.json");
                 checkpoint("first_output_committed_before_minimize");
-                d.log({{"action", "native_perform_miniaturize"}});
-                native.minimize();
+                if (externalMinimize) {
+                    c.window->setTitle(QStringLiteral("Luma QA — экспорт и сворачивание"));
+                    const auto markerPath = c.root + "/app016-external-minimize-ready.json";
+                    require(!QFileInfo::exists(markerPath), "Minimize marker must be fresh");
+                    const auto marker = QJsonObject{
+                        {"schema", 1},
+                        {"case_id", id},
+                        {"nonce", QUuid::createUuid().toString(QUuid::WithoutBraces)},
+                        {"created_at_utc",
+                         QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
+                        {"own_pid", QCoreApplication::applicationPid()},
+                        {"canonical_executable",
+                         QFileInfo(QCoreApplication::applicationFilePath()).canonicalFilePath()},
+                        {"native", native.state()},
+                        {"window_title", c.window->title()},
+                        {"observation_deadline_ms", 45000},
+                        {"dispatch_is_not_transition_proof", true}};
+                    QSaveFile markerFile(markerPath);
+                    markerFile.setDirectWriteFallback(false);
+                    const auto data = QJsonDocument(marker).toJson(QJsonDocument::Indented);
+                    require(markerFile.open(QIODevice::WriteOnly) &&
+                                markerFile.write(data) == data.size() && markerFile.commit(),
+                            "Cannot publish owned external minimize marker");
+                    d.log({{"action", "external_native_minimize_ready"}, {"marker", markerPath}});
+                } else {
+                    d.log({{"action", "native_perform_miniaturize"}});
+                    native.minimize(transport == "direct-native-minimize");
+                }
                 d.wait(
                     [&] {
                         const auto state = native.state();
@@ -268,7 +303,8 @@ bool minimizeExportCandidate(Context &c, const QString &id) {
                                state["did_miniaturize"].toInt() == 1 &&
                                c.window->windowState() == Qt::WindowMinimized;
                     },
-                    "actual NSWindow and Qt miniaturized notification", 10000);
+                    "actual NSWindow and Qt miniaturized notification",
+                    externalMinimize ? 45000 : 10000);
                 checkpoint("minimized_before_real_completion_release");
                 require(c.exporter.completed() == 0 && !QFileInfo::exists(outputs[1]) &&
                             c.exporter.working(),

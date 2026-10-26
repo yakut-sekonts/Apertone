@@ -1,4 +1,5 @@
 #include "tests/ux/HistoryChaos.h"
+#include "tests/ux/NativeApplicationHandoff.h"
 #include "tests/ux/UxContext.h"
 #include <QCommandLineParser>
 #include <QDir>
@@ -8,6 +9,7 @@
 #include <cstdio>
 #include <iostream>
 #include <optional>
+#include <string_view>
 namespace ux {
 bool updaterScenario(Context &, const QString &, const QString &);
 bool autoTransformRaceCandidate(Context &, const QString &);
@@ -25,6 +27,11 @@ bool maskHandleTransparentCandidate(Context &, const QString &);
 bool minimizeExportCandidate(Context &, const QString &);
 bool copyDestinationScenario(Context &, const QString &, const QString &);
 bool removableDestinationScenario(Context &, const QString &, const QString &);
+bool mergeDailyScenario(Context &, const QString &);
+bool offlineDailyScenario(Context &);
+bool dailyCullingScenario(Context &);
+bool migrationDataScenario(Context &);
+void prepareOfflineModelFixture(const QString &);
 void prepareThumbnailCorruption(const QString &, const QString &);
 void prepareMissingStartupSource(const QString &, const QString &);
 } // namespace ux
@@ -38,6 +45,8 @@ struct ShutdownMarker {
 };
 } // namespace
 int main(int argc, char **argv) {
+    if (argc > 1 && std::string_view(argv[1]) == "--activation-peer")
+        return ux::nativeActivationPeerMain(argc, argv);
     ShutdownMarker applicationDestroyed{"qguiapplication.owner.destroy.end"};
     QGuiApplication app(argc, argv);
     ShutdownMarker applicationDestroying{"qguiapplication.owner.destroy.begin"};
@@ -67,6 +76,16 @@ int main(int argc, char **argv) {
     ShutdownMarker contextDestroying{"context.owner.destroy.begin"};
     try {
         const auto id = parser.value("case");
+        if (id == "UX-P10-DAY-009" || id == "UX-P10-DAY-003")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Daily workflow requires fresh owned state");
+        if (id == "UX-P10-DAY-012") {
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Offline workflow requires fresh owned state without variants");
+            ux::prepareOfflineModelFixture(root);
+        }
         std::optional<ux::HistoryChaosPlan> chaos;
         if (id == "UX-UND-017") {
             ux::require(parser.isSet("seed") && parser.isSet("actions") && !parser.isSet("stage") &&
@@ -98,6 +117,21 @@ int main(int argc, char **argv) {
             ux::require(
                 !parser.isSet("seed") && !parser.isSet("actions") && !parser.isSet("replay"),
                 "seed/actions/replay are supported only by UND-017; refusing ignored flags");
+        }
+        if (id == "UX-P10-UPG-012") {
+            const QStringList variants{"save",  "import", "export",
+                                       "batch", "merge",  "merge-cancel"};
+            ux::require(parser.values("variant").size() == 1 &&
+                            variants.contains(parser.value("variant")) && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Update guard requires one operation variant without shared state");
+        }
+        if (id == "UX-P10-DAY-011") {
+            ux::require(
+                parser.values("variant").size() == 1 &&
+                    (parser.value("variant") == "hdr" || parser.value("variant") == "panorama") &&
+                    !parser.isSet("stage") && !parser.isSet("state-root"),
+                "Daily derived workflow requires one HDR/Panorama variant without shared state");
         }
         if (id == "UX-MAC-008") {
             ux::require(
@@ -132,7 +166,8 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "VIS003 candidate forbids ignored variant/stage/state-root flags");
-        if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+        if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION" || id == "UX-APP-017" ||
+            id == "UX-SLD-009")
             ux::require(
                 !parser.isSet("variant") && !parser.isSet("stage") && !parser.isSet("state-root"),
                 "App deactivation candidate forbids ignored variant/stage/state-root flags");
@@ -156,14 +191,38 @@ int main(int argc, char **argv) {
             ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
                             !parser.isSet("state-root"),
                         "RACE005 forbids ignored variant/stage/state-root flags");
+        if (id == "CANDIDATE-LIBRARY-SELECTION-SCROLL" ||
+            id == "CANDIDATE-FILMSTRIP-SELECTION-SCROLL")
+            ux::require(!parser.isSet("variant") && !parser.isSet("stage") &&
+                            !parser.isSet("state-root"),
+                        "Library scroll regression forbids variant/stage/state-root flags");
         if (parser.value("case") == "UX-APP-004" && parser.value("stage") == "verify")
             ux::prepareMissingStartupSource(root, parser.value("state-root"));
         if (parser.value("case") == "UX-REC-009" && parser.value("stage") == "verify")
             ux::prepareThumbnailCorruption(root, parser.value("state-root"));
         const bool updaterProbe = id == "UX-UPD-005" || id == "UX-UPD-006";
+        auto stateRoot = parser.value("state-root");
+        if ((id == "UX-P10-DAY-010" || id == "UX-P10-DAT-005") &&
+            parser.value("stage") == "verify") {
+            // Open the new file produced by the actual Restore handler; never copy
+            // it over the original live catalog or silently create an empty one.
+            stateRoot += "/restored";
+            const QFileInfo restored(stateRoot + "/catalog.sqlite");
+            ux::require(restored.isFile() && !restored.isSymLink(),
+                        "Daily restore did not produce a regular catalog file");
+        }
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
-                                                parser.value("state-root"), updaterProbe);
-        if (chaos)
+                                                stateRoot, updaterProbe);
+        if (id == "UX-P10-DAT-004")
+            ux::require(ux::migrationDataScenario(*context), "Migration data workflow unavailable");
+        else if (id == "UX-P10-DAY-003")
+            ux::require(ux::dailyCullingScenario(*context), "Daily culling workflow unavailable");
+        else if (id == "UX-P10-DAY-012")
+            ux::require(ux::offlineDailyScenario(*context), "Offline daily workflow unavailable");
+        else if (id == "UX-P10-DAY-011")
+            ux::require(ux::mergeDailyScenario(*context, parser.value("variant")),
+                        "Daily derived workflow unavailable");
+        else if (chaos)
             ux::runHistoryChaos(*context, *chaos);
         else if (id == "CANDIDATE-APP016-MINIMIZED-EXPORT")
             ux::require(ux::minimizeExportCandidate(*context, id),
@@ -183,7 +242,8 @@ int main(int argc, char **argv) {
         else if (id == "CANDIDATE-LIB005-AWAY-BACK" || id == "UX-LIB-005")
             ux::require(ux::lib005ActualResponseCandidate(*context, id),
                         "Actual Library away/back thumbnail candidate unavailable");
-        else if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION")
+        else if (id == "CANDIDATE-APP017-SLD009-FINDER-DEACTIVATION" || id == "UX-APP-017" ||
+                 id == "UX-SLD-009")
             ux::require(ux::appDeactivationCandidate(*context, id),
                         "Real cross-process app deactivation candidate unavailable");
         else if (id == "CANDIDATE-RACE002-THUMBNAIL-INVALIDATION" || id == "UX-RACE-002")
