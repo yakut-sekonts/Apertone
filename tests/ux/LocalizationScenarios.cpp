@@ -229,7 +229,7 @@ bool localizationScenario(Context &c, const QString &id) {
                     translated(code, "Library"),
                 "Visible Library control was not retranslated");
         require(d.object("settingsVersion")->property("text").toString() ==
-                    "Luma " + QCoreApplication::applicationVersion(),
+                    "Apertone " + QCoreApplication::applicationVersion(),
                 "Language switch changed displayed version");
         QFile preferences(c.stateRoot + "/language.json");
         require(preferences.open(QIODevice::ReadOnly), "Language preference was not persisted");

@@ -1,4 +1,5 @@
 #pragma once
+#include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/BatchController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/ExportController.h"
@@ -37,6 +38,7 @@ class Context {
     std::unique_ptr<DiagnosticsController> diagnostics;
     QStringList warnings;
     std::unique_ptr<LocalizationController> localization;
+    std::unique_ptr<AppearanceController> appearance;
     // A failed readback stays alive past engine/window/render-thread teardown.
     // No second readback may start after this first unfinished failure.
     QSharedPointer<QQuickItemGrabResult> unfinishedItemGrab;

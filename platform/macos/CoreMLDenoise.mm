@@ -63,7 +63,8 @@ class CoreMLDenoise final : public ai::IDenoiseProvider {
                 ![metadata[@"luma.denoise.color"] isEqual:@"linear-srgb"] ||
                 (![metadata[@"luma.denoise.halo"] isEqual:@"16"] &&
                  ![metadata[@"luma.denoise.halo"] isEqual:@"64"]))
-                throw std::runtime_error("Model is missing the Luma linear RGB denoise contract.");
+                throw std::runtime_error(
+                    "Model is missing the Apertone linear RGB denoise contract.");
             halo_ = [metadata[@"luma.denoise.halo"] isEqual:@"64"] ? 64 : 16;
             NSString *modelID = metadata[@"luma.model.id"];
             if ([modelID isKindOfClass:NSString.class] && modelID.length > 0 &&

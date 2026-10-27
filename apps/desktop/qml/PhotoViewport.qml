@@ -98,6 +98,14 @@ Flickable {
         contentX = bounded(contentX + dx, contentWidth - width)
         contentY = bounded(contentY + dy, contentHeight - height)
     }
+    function preciseAnchor(point) {
+        const center = Qt.point(width / 2, height / 2)
+        // Mouse events use integer window coordinates. On an odd-sized
+        // viewport an intended center double-click is therefore half a pixel
+        // away from the geometric center; snap only that center gesture.
+        return Math.abs(point.x - center.x) <= 1 && Math.abs(point.y - center.y) <= 1
+                ? center : point
+    }
     onSourceSizeChanged: schedulePlacement()
     onZoomModeChanged: schedulePlacement()
     onEffectiveZoomChanged: schedulePlacement()
@@ -149,8 +157,10 @@ Flickable {
         onDoubleTapped: (point, button) => {
             if (viewport.controller.oneToOne)
                 viewport.controller.zoomMode = "fit"
-            else
-                viewport.requestScale(1, viewport.mapFromItem(null, point.scenePosition))
+            else {
+                const anchor = viewport.mapFromItem(null, point.scenePosition)
+                viewport.requestScale(1, viewport.preciseAnchor(anchor))
+            }
         }
     }
 }

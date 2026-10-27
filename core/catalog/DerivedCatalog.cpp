@@ -38,7 +38,7 @@ void Catalog::finishDerived(const DerivedImageRecord &record) {
         PhotoMetadata metadata;
         metadata.width = record.width;
         metadata.height = record.height;
-        metadata.camera = "Luma Linear RGB Float";
+        metadata.camera = "Apertone Linear RGB Float";
         addAssetRecord(record.path, record.checksum, metadata, false);
         discardDerived(record.path);
         execute("COMMIT;");

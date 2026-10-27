@@ -89,7 +89,7 @@ Item {
             ctx.lineTo(overlay.photoX+overlay.rawHandles[2].x*overlay.photoWidth,overlay.photoY+overlay.rawHandles[2].y*overlay.photoHeight)
             ctx.stroke();ctx.restore()
             for(const handle of overlay.handles) {
-                ctx.fillStyle = "#dfae77";ctx.strokeStyle=handle.proxy?"#dfae77":"white";ctx.lineWidth=1.5;ctx.beginPath()
+                ctx.fillStyle = Theme.accent;ctx.strokeStyle=handle.proxy?Theme.accent:"white";ctx.lineWidth=1.5;ctx.beginPath()
                 ctx.arc(handle.x*width,handle.y*height,6,0,2*Math.PI)
                 if(!handle.proxy)ctx.fill()
                 ctx.stroke()

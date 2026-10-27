@@ -16,7 +16,7 @@ from generate_dng import create_dng
 
 sdk = root / ".tools/qt/6.10.3/macos"
 hidden = sdk.with_name("macos.luma-bundle-verification")
-app = root / "dist/Luma.app"
+app = root / "dist/Apertone.app"
 with (app / "Contents/Info.plist").open("rb") as file:
     version = plistlib.load(file)["CFBundleShortVersionString"]
 info = json.loads((app / "Contents/Resources/BUILD_INFO.json").read_text())
@@ -31,7 +31,7 @@ env = os.environ.copy()
 for name in ("QT_QPA_PLATFORM", "QT_QUICK_BACKEND", "QT_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH"):
     env.pop(name, None)
 env["QT_QUICK_BACKEND"] = "software"
-executable = app / "Contents/MacOS/Luma"
+executable = app / "Contents/MacOS/Apertone"
 fixture_root = root / "dist/verification-image-fixtures"
 subprocess.run([str(root / os.environ.get("LUMA_BUILD_DIRECTORY", "build") / "luma_raster_tests"), "--fixtures", str(fixture_root)], check=True, capture_output=True)
 sdk.rename(hidden)
@@ -140,7 +140,7 @@ try:
         root_ifd = ifd(struct.unpack_from(endian + "I", data, 4)[0])
         raw_ifd = ifd(root_ifd[330][3])
         assert raw_ifd[262][3] == 34892 and raw_ifd[256][3] == 512 and raw_ifd[257][3] == 384
-        assert b"Luma Rendered Linear RGB v1" in data
+        assert b"Apertone Rendered Linear RGB v1" in data
         assert hashlib.sha256(queue_raw.read_bytes()).hexdigest() == queue_hash
         settings = json.loads((folder / "export-settings.json").read_text())
         assert settings["schema"] == 1 and settings["last"]["format"] == 4
@@ -172,7 +172,7 @@ try:
         image_run("--test-edit", image_pair / "rgba.png", "--test-export-queue", image_queue)
         assert next(image_queue.glob("*.dng")).stat().st_size > 1000
         assert all(hashlib.sha256(path.read_bytes()).hexdigest() == checksum for path, checksum in hashes.items())
-        print(f"Standalone Luma {version}: complete Brush/Erase/range/boolean masks, Library, Develop, Lens Corrections, Transform/Filter/Undo, sparse XMP import/apply/Undo/restart/export, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
+        print(f"Standalone Apertone {version}: complete Brush/Erase/range/boolean masks, Library, Develop, Lens Corrections, Transform/Filter/Undo, sparse XMP import/apply/Undo/restart/export, edited thumbnails, advanced queue/processed DNG, eight runtime languages, ordinary-image Library/alpha/HEIC/WebP/16-bit edit/export/restart/queue, export/restart and source integrity passed without Qt/Sparkle SDKs")
 finally:
     for source, destination in reversed(sparkle_sources):
         destination.rename(source)

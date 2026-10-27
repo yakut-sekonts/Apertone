@@ -1,4 +1,4 @@
-# Luma — требования к разработке
+# Apertone — требования к разработке
 
 ## 1. Цель проекта
 
@@ -14,7 +14,7 @@
 - экспорт;
 - локальная работа без обязательной облачной инфраструктуры.
 
-Рабочее название проекта: **Luma**.
+Рабочее название проекта: **Apertone**.
 
 Название, логотип, иконки, ресурсы и интерфейс Adobe Lightroom не копировать. Lightroom использовать только как функциональный ориентир.
 
@@ -336,7 +336,7 @@ LUMA_PRIVATE_TEST_ASSETS
 Пример:
 
 ```bash
-export LUMA_PRIVATE_TEST_ASSETS="$HOME/LumaTestAssets"
+export LUMA_PRIVATE_TEST_ASSETS="$HOME/ApertoneTestAssets"
 ```
 
 Если private assets отсутствуют, соответствующие integration tests должны корректно пропускаться.
@@ -2057,13 +2057,13 @@ Core не должен зависеть непосредственно от Core
 Основной артефакт:
 
 ```text
-Luma.app
+Apertone.app
 ```
 
 Позднее:
 
 ```text
-Luma.dmg
+Apertone.dmg
 ```
 
 Code signing не должен быть обязательным для debug build.
@@ -2263,7 +2263,7 @@ HEAD
 README.md должен содержать:
 
 ```text
-Luma
+Apertone
 Open-source non-destructive RAW photo editor for macOS
 ```
 

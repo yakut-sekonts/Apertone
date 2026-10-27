@@ -1,4 +1,4 @@
-# Building Luma on macOS
+# Building Apertone on macOS
 
 ## Requirements
 
@@ -18,7 +18,7 @@ export PATH="$PWD/.tools/venv/bin:$PATH"
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build --parallel 4
 ctest --test-dir build --output-on-failure
-open build/Luma.app
+open build/Apertone.app
 ```
 
 LibRaw 0.21.5, SQLite 3.50.4 and LittleCMS 2.17 source archives have mandatory
@@ -32,7 +32,7 @@ Public tests generate their own small Bayer DNG. Never copy private photos into
 the repository. Set either environment variable to an external directory:
 
 ```bash
-export LUMA_PRIVATE_TEST_ASSETS="$HOME/LumaTestAssets"
+export LUMA_PRIVATE_TEST_ASSETS="$HOME/ApertoneTestAssets"
 # PHOTON_PRIVATE_TEST_ASSETS is also accepted for compatibility with the supplied specification.
 ctest --test-dir build --output-on-failure
 ```
@@ -59,7 +59,7 @@ sources retain their upstream warnings. CI runs on macOS Apple Silicon only.
 ```
 
 This bundles the used Qt frameworks/plugins, LibRaw, LGPL notices and source
-archives, produces an ad-hoc-signed `dist/Luma.app`, and checksums `Luma-macos-arm64.zip`. Exact-version source archives are cached
+archives, produces an ad-hoc-signed `dist/Apertone.app`, and checksums `Apertone-macos-arm64.zip`. Exact-version source archives are cached
 locally after tar validation; downloads have connection/transfer timeouts.
 Unused QtSql drivers are removed from the bundle.
 The app should not depend on the developer's Qt SDK or Homebrew paths at runtime.
@@ -112,7 +112,7 @@ in `import_items`; the UI shows summary counts and a details dialog (first 100 f
 ```
 
 Release assets live under `dist/release`: versioned ZIP, DMG, BUILD_INFO.json and
-SHA256SUMS. The DMG contains Luma.app, an Applications shortcut, license and notes.
+SHA256SUMS. The DMG contains Apertone.app, an Applications shortcut, license and notes.
 BUILD_INFO.json identifies the source commit and dependencies. The ad-hoc-signed
 app is not notarized; follow the installation note in the release documentation.
 

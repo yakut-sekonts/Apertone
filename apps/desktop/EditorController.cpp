@@ -133,7 +133,7 @@ QString EditorController::camera() const {
 QString EditorController::lens() const {
     return session_ && !session_->asset.metadata.lens.empty()
                ? QString::fromStdString(session_->asset.metadata.lens)
-               : QCoreApplication::translate("Luma", "Not specified");
+               : QCoreApplication::translate("Apertone", "Not specified");
 }
 QString EditorController::iso() const {
     return session_ ? display(session_->asset.metadata.iso) : QStringLiteral("—");

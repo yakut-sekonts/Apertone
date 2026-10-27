@@ -1,4 +1,5 @@
 #include "apps/desktop/CatalogStartup.h"
+#include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/LocalizationController.h"
 #include "core/catalog/Catalog.h"
 #include "core/image/Bayer.h"
@@ -69,8 +70,8 @@ void CatalogStartup::acquire(const QString &path) {
     auto next = std::make_unique<QLockFile>(canonical + QStringLiteral(".desktop.lock"));
     next->setStaleLockTime(0);
     if (!next->tryLock())
-        throw std::runtime_error(
-            "This catalog is already open in another Luma window, or its folder is not writable.");
+        throw std::runtime_error("This catalog is already open in another Apertone window, or its "
+                                 "folder is not writable.");
     catalogPath_ = canonical;
     markerPath_ = canonical + QStringLiteral(".running.json");
     lock_ = std::move(next);
@@ -99,13 +100,17 @@ bool CatalogStartup::prepare(const QString &path, bool allowCreate, bool interac
         }
     } policy{application, quitOnLastWindow};
     std::unique_ptr<LocalizationController> localization;
+    std::unique_ptr<AppearanceController> appearance;
     QQmlApplicationEngine engine;
     localization = std::make_unique<LocalizationController>(
         QFileInfo(path).absolutePath() + QStringLiteral("/language.json"), engine);
     engine.rootContext()->setContextProperty(QStringLiteral("startup"), this);
-    engine.loadFromModule(QStringLiteral("Luma.Desktop"), QStringLiteral("CatalogStartup"));
+    appearance = std::make_unique<AppearanceController>(QFileInfo(path).absolutePath() +
+                                                        QStringLiteral("/appearance.json"));
+    engine.rootContext()->setContextProperty(QStringLiteral("appearance"), appearance.get());
+    engine.loadFromModule(QStringLiteral("Apertone.Desktop"), QStringLiteral("CatalogStartup"));
     if (engine.rootObjects().isEmpty()) {
-        luma::macos::showApplicationError("Luma", "Cannot load the catalog recovery window.");
+        luma::macos::showApplicationError("Apertone", "Cannot load the catalog recovery window.");
         return false;
     }
     QEventLoop loop;

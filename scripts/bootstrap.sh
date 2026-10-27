@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
-    echo "Luma requires macOS Apple Silicon." >&2
+    echo "Apertone requires macOS Apple Silicon." >&2
     exit 1
 fi
 python3 -m venv .tools/venv

@@ -294,7 +294,7 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
             continue;
         result.unsupported.append(it.key());
     }
-    require(!preset.parameters.empty(), "XMP preset has no settings supported by Luma.");
+    require(!preset.parameters.empty(), "XMP preset has no settings supported by Apertone.");
     preset.groups = parameterSelectionGroups(preset.parameters);
     preset.validate();
     return result;

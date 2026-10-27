@@ -2,14 +2,14 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Button {
+ApertoneButton {
     id: bell
     objectName: "updates.bell"
     implicitWidth: 40
     implicitHeight: 36
-    Accessible.name: updates.availableVersion.length ? qsTranslate("Luma", "Luma update available ")
+    Accessible.name: updates.availableVersion.length ? qsTranslate("Apertone", "Apertone update available ")
                                                        + updates.availableVersion :
-                                                       qsTranslate("Luma", "Luma updates")
+                                                       qsTranslate("Apertone", "Apertone updates")
     ToolTip.visible: hovered
     ToolTip.text: Accessible.name
     onClicked: notifications.open()
@@ -21,7 +21,7 @@ Button {
             onPaint: {
                 const c = getContext("2d");
                 c.clearRect(0, 0, width, height);
-                c.strokeStyle = "#e3e5e9";
+                c.strokeStyle = Theme.text;
                 c.lineWidth = 1.6;
                 c.beginPath();
                 c.moveTo(3, 18);
@@ -43,7 +43,7 @@ Button {
             width: 8
             height: 8
             radius: 4
-            color: "#dfae77"
+            color: Theme.accent
             anchors.right: parent.right
             anchors.top: parent.top
         }
@@ -61,25 +61,25 @@ Button {
             width: parent.width
             spacing: 12
             Label {
-                text: qsTranslate("Luma", "Updates")
+                text: qsTranslate("Apertone", "Updates")
                 font.pixelSize: 17
                 font.bold: true
             }
             Label {
                 visible: updates.availableVersion.length > 0
-                text: "Luma " + updates.availableVersion
-                color: "#dfae77"
+                text: "Apertone " + updates.availableVersion
+                color: Theme.accent
                 font.pixelSize: 15
             }
             Label {
                 objectName: "updates.message"
-                text: qsTranslate("Luma", updates.message)
+                text: qsTranslate("Apertone", updates.message)
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
-            Button {
+            ApertoneButton {
                 visible: updates.availableVersion.length > 0
-                text: qsTranslate("Luma", "Install update…")
+                text: qsTranslate("Apertone", "Install update…")
                 enabled: !updates.restartPending
                 Layout.fillWidth: true
                 onClicked: {
@@ -87,15 +87,15 @@ Button {
                     updates.install();
                 }
             }
-            Button {
+            ApertoneButton {
                 objectName: "updates.check"
-                text: updates.checking ? qsTranslate("Luma", "Checking…") : qsTranslate("Luma", "Check for updates")
+                text: updates.checking ? qsTranslate("Apertone", "Checking…") : qsTranslate("Apertone", "Check for updates")
                 enabled: updates.canCheck && !updates.checking
                 Layout.fillWidth: true
                 onClicked: updates.check()
             }
             CheckBox {
-                text: qsTranslate("Luma", "Check automatically")
+                text: qsTranslate("Apertone", "Check automatically")
                 checked: updates.automatic
                 onClicked: updates.automatic = checked
             }

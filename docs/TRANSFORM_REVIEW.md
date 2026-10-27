@@ -1,6 +1,6 @@
 # Perspective Transform — 0.4.7 development
 
-[Issue #24](https://github.com/yakut-sekonts/Luma/issues/24) implements §26.
+[Issue #24](https://github.com/yakut-sekonts/Apertone/issues/24) implements §26.
 Develop adds Rotate, Horizontal/Vertical, Aspect, Scale, X/Y Offset and Constrain
 Crop. Guided mode accepts two vertical lines, two horizontal lines, or both;
 endpoints are transient and only the solved homography is persisted. Auto runs

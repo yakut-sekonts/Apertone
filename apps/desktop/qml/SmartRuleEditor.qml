@@ -15,7 +15,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth:true
-        ComboBox {
+        ApertoneComboBox {
             visible:root.rule.kind!=="condition"
             model:["AND","OR","NOT"]
             currentIndex:root.rule.kind==="all"?0:root.rule.kind==="any"?1:2
@@ -24,29 +24,29 @@ ColumnLayout {
                 if(next.kind==="not")next.children=next.children.slice(0,1)
                 root.edited(next)
             }
-            Accessible.name:qsTranslate("Luma","Rule group")
+            Accessible.name:qsTranslate("Apertone","Rule group")
         }
-        ComboBox {
+        ApertoneComboBox {
             visible:root.rule.kind==="condition";Layout.fillWidth:true
             property var keys:["rating","flag","iso","camera","lens","filename","captureDate","label","keyword","width","height"]
-            model:[qsTranslate("Luma","Rating"),qsTranslate("Luma","Flag"),"ISO",qsTranslate("Luma","Camera"),qsTranslate("Luma","Lens"),qsTranslate("Luma","Filename"),qsTranslate("Luma","Capture date"),qsTranslate("Luma","Color label"),qsTranslate("Luma","Keyword"),qsTranslate("Luma","Width"),qsTranslate("Luma","Height")]
+            model:[qsTranslate("Apertone","Rating"),qsTranslate("Apertone","Flag"),"ISO",qsTranslate("Apertone","Camera"),qsTranslate("Apertone","Lens"),qsTranslate("Apertone","Filename"),qsTranslate("Apertone","Capture date"),qsTranslate("Apertone","Color label"),qsTranslate("Apertone","Keyword"),qsTranslate("Apertone","Width"),qsTranslate("Apertone","Height")]
             currentIndex:Math.max(0,keys.indexOf(root.rule.field))
             onActivated:root.change("field",keys[currentIndex])
-            Accessible.name:qsTranslate("Luma","Rule field")
+            Accessible.name:qsTranslate("Apertone","Rule field")
         }
-        ComboBox {
+        ApertoneComboBox {
             visible:root.rule.kind==="condition"
             property var keys:["eq","ne","ge","gt","le","lt","contains"]
-            model:["=","≠","≥",">","≤","<",qsTranslate("Luma","Contains")]
+            model:["=","≠","≥",">","≤","<",qsTranslate("Apertone","Contains")]
             currentIndex:Math.max(0,keys.indexOf(root.rule.operation))
             onActivated:root.change("operation",keys[currentIndex])
-            Accessible.name:qsTranslate("Luma","Rule comparison")
+            Accessible.name:qsTranslate("Apertone","Rule comparison")
         }
-        TextField {
+        ApertoneTextField {
             visible:root.rule.kind==="condition";Layout.fillWidth:true;Layout.minimumWidth:50
             text:String(root.rule.value??"");maximumLength:1024;selectByMouse:true
             onEditingFinished:if(text!==String(root.rule.value))root.change("value",text)
-            Accessible.name:qsTranslate("Luma","Rule value")
+            Accessible.name:qsTranslate("Apertone","Rule value")
         }
     }
     Repeater {
@@ -60,13 +60,13 @@ ColumnLayout {
                 Component.onCompleted:setSource("SmartRuleEditor.qml",{rule:modelData,depth:root.depth+1})
                 onLoaded: {item.edited.connect(function(next){root.replaceChild(index,next)})}
             }
-            Button {text:"−";enabled:root.rule.children.length>1;onClicked:root.removeChild(index);Accessible.name:qsTranslate("Luma","Remove rule")}
+            ApertoneButton {text:"−";enabled:root.rule.children.length>1;onClicked:root.removeChild(index);Accessible.name:qsTranslate("Apertone","Remove rule")}
         }
     }
     RowLayout {
         visible:root.rule.kind!=="condition" && root.rule.kind!=="not"
         enabled:root.rule.kind!=="condition" && root.depth<7 && root.rule.children.length<16
-        Button {text:qsTranslate("Luma","Add condition");onClicked:root.addChild(false)}
-        Button {text:qsTranslate("Luma","Add group");onClicked:root.addChild(true)}
+        ApertoneButton {text:qsTranslate("Apertone","Add condition");onClicked:root.addChild(false)}
+        ApertoneButton {text:qsTranslate("Apertone","Add group");onClicked:root.addChild(true)}
     }
 }

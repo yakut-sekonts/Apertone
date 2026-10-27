@@ -37,7 +37,7 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
         [](std::span<const float> source, std::span<float> destination) {
             std::copy(source.begin(), source.end(), destination.begin());
         },
-        temporary, "Luma Linear sRGB", bytes, stop, progress, DngSamples::floating32);
+        temporary, "Apertone Linear sRGB", bytes, stop, progress, DngSamples::floating32);
     const int input = ::open(temporary.c_str(), O_RDONLY);
     if (input < 0)
         throw std::runtime_error("Cannot reopen derived image.");

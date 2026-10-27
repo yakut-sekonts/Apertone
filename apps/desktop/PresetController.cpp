@@ -121,13 +121,13 @@ bool PresetController::importPreset(const QUrl &url) {
         importedId_ = id;
         if (imported.xmp) {
             importNotice_ =
-                LocalizedText(QStringLiteral("XMP imported. Luma rendering may differ from "
+                LocalizedText(QStringLiteral("XMP imported. Apertone rendering may differ from "
                                              "Lightroom. Absent settings are preserved."));
             if (!imported.unsupported.isEmpty())
                 importNotice_ =
-                    LocalizedText(
-                        QStringLiteral("XMP imported with partial compatibility. Luma rendering "
-                                       "may differ from Lightroom. Unsupported settings: %1"))
+                    LocalizedText(QStringLiteral(
+                                      "XMP imported with partial compatibility. Apertone rendering "
+                                      "may differ from Lightroom. Unsupported settings: %1"))
                         .arg(imported.unsupported.size());
             importUnsupported_ = imported.unsupported;
         }

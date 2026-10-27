@@ -23,7 +23,7 @@ def make_bundle(build):
     executable.write_bytes(b'owned fake executable, never executed\n')
     executable.chmod(0o755)
     values = {'CFBundleIdentifier': 'app.luma.ux-tests', 'CFBundleExecutable': 'luma_ux_tests',
-              'CFBundleName': 'LumaUXTests', 'CFBundleDisplayName': 'LumaUXTests',
+              'CFBundleName': 'ApertoneUXTests', 'CFBundleDisplayName': 'ApertoneUXTests',
               'CFBundlePackageType': 'APPL', 'CFBundleVersion': '0.5.1'}
     plist = directory / 'Contents/Info.plist'
     plist.write_bytes(plistlib.dumps(values))

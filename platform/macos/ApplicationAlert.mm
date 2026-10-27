@@ -8,7 +8,8 @@ void showApplicationError(const std::string &title, const std::string &message) 
         alert.alertStyle = NSAlertStyleCritical;
         NSString *titleText = [NSString stringWithUTF8String:title.c_str()];
         NSString *messageText = [NSString stringWithUTF8String:message.c_str()];
-        alert.messageText = titleText ? titleText : NSLocalizedString(@"Luma", @"Application name");
+        alert.messageText =
+            titleText ? titleText : NSLocalizedString(@"Apertone", @"Application name");
         alert.informativeText = messageText ? messageText : @"";
         [NSApp activate];
         [alert runModal];

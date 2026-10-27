@@ -12,8 +12,8 @@ does not qualify real sensor noise or the complete 1.0 release.
 
 ## Runtime
 
-The app resolves `Contents/Resources/Models/LumaDenoise.mlmodelc` and
-`LumaSky.mlmodelc` relative to its own executable. The first launch needs neither
+The app resolves the legacy-compatible `Contents/Resources/Models/LumaDenoise.mlmodelc`
+and `LumaSky.mlmodelc` filenames relative to its own executable. The first launch needs neither
 a download nor manual model configuration. Models and photographs stay local.
 Settings exposes a custom compiled model override and a return to the included
 model, translated into all eight languages. Only custom paths are persisted;
@@ -27,7 +27,7 @@ Prediction falls back from available compute units to CPU on supported failures.
 
 `resources/models/sources.json` pins both upstream revisions, source bytes,
 license hashes and model contracts. `resources/models/NOTICE.md` documents
-upstream attribution and Luma's changes. Both notices and full upstream licenses
+upstream attribution and Apertone's changes. Both notices and full upstream licenses
 travel with the compiled artifacts.
 
 - DRUNet color: MIT, 512×512 Float32 tensors
@@ -71,7 +71,7 @@ Core ML compiler and atomically installs a complete artifact directory. Changed
 weights/recipe/license files require rebuilding models. Existing outputs are
 never silently overwritten; use a fresh output directory for a new recipe.
 
-CMake's default build installs the verified artifact directory into `Luma.app`.
+CMake's default build installs the verified artifact directory into `Apertone.app`.
 Configuring version 1.0 or later without model artifacts fails. `package.sh`
 requires both models and copies them before signing; `BUILD_INFO.json` records
 their identities and manifest hash. A custom artifact root can be selected with

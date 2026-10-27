@@ -16,16 +16,16 @@ class DmgRecoveryTests(unittest.TestCase):
             (root / "scripts").mkdir()
             shutil.copyfile(Path(__file__).resolve().parents[2] / "scripts/package-dmg.sh",
                             root / "scripts/package-dmg.sh")
-            contents = root / "dist/Luma.app/Contents"
+            contents = root / "dist/Apertone.app/Contents"
             contents.mkdir(parents=True)
             with (contents / "Info.plist").open("wb") as file:
                 plistlib.dump({"CFBundleShortVersionString": "0.3.0"}, file)
             (contents / "Resources").mkdir()
-            (contents / "Resources/Luma.icns").write_bytes(b"synthetic icon")
+            (contents / "Resources/Apertone.icns").write_bytes(b"synthetic icon")
             (root / "docs/releases").mkdir(parents=True)
             (root / "docs/releases/v0.3.0.md").write_text("Release notes")
             (root / "LICENSE").write_text("License")
-            output = root / "dist/Luma-0.3.0-macos-arm64.dmg"
+            output = root / "dist/Apertone-0.3.0-macos-arm64.dmg"
             output.write_bytes(b"previous verified image")
             binaries = root / "bin"
             binaries.mkdir()

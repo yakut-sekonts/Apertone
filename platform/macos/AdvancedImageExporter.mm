@@ -136,8 +136,8 @@ void writeAdvancedImage(const DecodedRaw &decoded, const EditDocument &edits,
             exportMetadata(metadataSource, options, surface.width, surface.height, metadataOverlay);
         if (options.format == ExportFormat::dng) {
             const auto xmp = metadataXMP(metadata.get(), options.metadata);
-            const std::array names{"Luma rendered sRGB", "Luma rendered Display P3",
-                                   "Luma rendered Adobe RGB", "Luma rendered ProPhoto RGB"};
+            const std::array names{"Apertone rendered sRGB", "Apertone rendered Display P3",
+                                   "Apertone rendered Adobe RGB", "Apertone rendered ProPhoto RGB"};
             writeLinearDNG(
                 surface, color.colorants(),
                 [&](auto input, auto result) { color.convert(input, result, true); },

@@ -6,7 +6,7 @@ Item {
     property real hue: editor.parameters["grading."+channel+".hue"]
     property real saturation: editor.parameters["grading."+channel+".saturation"]
     implicitWidth: 170; implicitHeight: 170
-    Accessible.name: qsTranslate("Luma", "Color wheel")
+    Accessible.name: qsTranslate("Apertone", "Color wheel")
     Canvas {
         id: disc; anchors.fill: parent
         onPaint: {
@@ -15,7 +15,7 @@ Item {
             for(let angle=0;angle<360;angle+=2) {
                 const a=(angle-90)*Math.PI/180,b=(angle-88)*Math.PI/180
                 const gradient=ctx.createRadialGradient(cx,cy,0,cx,cy,radius)
-                gradient.addColorStop(0,"#b8b8b8");gradient.addColorStop(1,Qt.hsla(angle/360,1,.5,1))
+                gradient.addColorStop(0,Theme.muted);gradient.addColorStop(1,Qt.hsla(angle/360,1,.5,1))
                 ctx.fillStyle=gradient;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,radius,a,b);ctx.closePath();ctx.fill()
             }
             const theta=(wheel.hue-90)*Math.PI/180, r=radius*wheel.saturation/100

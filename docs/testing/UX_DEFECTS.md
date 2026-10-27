@@ -677,7 +677,7 @@ are tracked separately and are not counted as application failures or hidden ret
 - Original evidence: `card-flags-original-first-local-software-report`, run
   `20261019T103306Z-67607`. English and Russian JSON/screenshots are preserved
   before the failure. No native original was run: IOConsoleLocked was true.
-- Fix: use the existing Luma Pick/Reject translation keys in PhotoCard. Stars,
+- Fix: use the existing Apertone Pick/Reject translation keys in PhotoCard. Stars,
   rating/flag semantics, spacing, colors and visibility are unchanged.
 - Focused software evidence: `card-lib004-fixed-first-card-local-software-report`,
   run `20261019T103951Z-68921`. All eight actual language choices match independent

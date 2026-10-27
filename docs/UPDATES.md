@@ -1,6 +1,6 @@
 # macOS updates
 
-Luma uses pinned Sparkle 2.10.0 with an Ed25519 public key in Info.plist.
+Apertone uses pinned Sparkle 2.10.0 with an Ed25519 public key in Info.plist.
 The bell presents scheduled checks without interrupting editing. Clicking Install
 opens Sparkle's standard UI with release information, download and installation.
 Checks run daily and can be disabled in the bell. Automatic background installation
@@ -14,20 +14,24 @@ the application bundle; Sparkle replaces only the application.
 
 ## Release setup
 
-The project's key was created under Keychain account `yakut-sekonts.Luma` using
-Sparkle's generate_keys. The private key is not in the repository. Keep this key:
-future archives must validate against the already installed public key.
+The project's key was created before the rename under the Keychain account
+`yakut-sekonts.Luma` using Sparkle's generate_keys. The local signing script keeps
+that account as its compatibility default; `APERTONE_SPARKLE_ACCOUNT` may select a
+different account containing the same key. The private key is not in the
+repository. Keep this key: future archives must validate against the already
+installed public key.
 
 Before tagging an updater-enabled release, add repository Actions secret
 `SPARKLE_PRIVATE_KEY` at
-[repository secrets](https://github.com/yakut-sekonts/Luma/settings/secrets/actions).
+[repository secrets](https://github.com/yakut-sekonts/Apertone/settings/secrets/actions).
 Its value is the private seed from the project's Sparkle Keychain item, not a
 GitHub token. Transfer it yourself using Keychain Access or Sparkle's export tool;
 never put it into an Issue, PR, tracked file or command argument.
 
-The repository's existing `LUMA_SECRET` is supported as an alias. If both secrets
-are set, `SPARKLE_PRIVATE_KEY` takes precedence. The workflow passes only the chosen
-value to the signing step under the internal `SPARKLE_PRIVATE_KEY` environment name.
+`APERTONE_SECRET` and the repository's existing `LUMA_SECRET` are supported as
+aliases. `SPARKLE_PRIVATE_KEY` takes precedence, followed by `APERTONE_SECRET` and
+then `LUMA_SECRET`. The workflow passes only the chosen value to the signing step
+under the internal `SPARKLE_PRIVATE_KEY` environment name.
 
 Release candidate branches report whether the signing secret is configured.
 When it is present, a temporary public probe is signed and independently verified
@@ -64,7 +68,7 @@ Development and CI acceptance flags disable real network update checks.
 
 EdDSA archive signing does not provide Developer ID signing or notarization.
 Those remain part of macOS distribution hardening. A release is not automatically
-rolled back by Luma if its catalog migration is incompatible with old binaries;
+rolled back by Apertone if its catalog migration is incompatible with old binaries;
 keep catalog backups when testing development versions.
 
 Implementation follows Sparkle's [programmatic setup](https://sparkle-project.org/documentation/programmatic-setup/)

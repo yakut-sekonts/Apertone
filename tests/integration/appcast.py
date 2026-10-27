@@ -33,9 +33,9 @@ class AppcastTests(unittest.TestCase):
         shutil.copy(ROOT / "scripts/verify-update-signature.swift", self.root / "scripts")
         with (self.root / "platform/macos/Info.plist.in").open("wb") as file:
             plistlib.dump({"SUPublicEDKey": PUBLIC}, file)
-        self.archive = self.root / "Luma-0.4.0-macos-arm64.zip"
+        self.archive = self.root / "Apertone-0.4.0-macos-arm64.zip"
         self.archive.write_bytes(b"")
-        (self.root / "Luma-0.4.0-macos-arm64.dmg").write_bytes(b"fixture")
+        (self.root / "Apertone-0.4.0-macos-arm64.dmg").write_bytes(b"fixture")
         (self.root / "BUILD_INFO.json").write_text(json.dumps({"version": "0.4.0", "source_commit": "a" * 40}))
         self.manifest()
         self.calls = []
@@ -43,7 +43,7 @@ class AppcastTests(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
     def manifest(self):
-        paths = [self.archive, self.root / "Luma-0.4.0-macos-arm64.dmg", self.root / "BUILD_INFO.json"]
+        paths = [self.archive, self.root / "Apertone-0.4.0-macos-arm64.dmg", self.root / "BUILD_INFO.json"]
         (self.root / "SHA256SUMS").write_text("".join(
             f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in paths))
     def run_command(self, command, **kwargs):
@@ -60,7 +60,7 @@ class AppcastTests(unittest.TestCase):
         enclosure = item.find("enclosure")
         self.assertEqual(enclosure.get(f"{{{appcast.NAMESPACE}}}edSignature"), SIGNATURE)
         self.assertEqual(enclosure.get("length"), "0")
-        self.assertEqual(enclosure.get("url"), "https://github.com/yakut-sekonts/Luma/releases/download/v0.4.0/Luma-0.4.0-macos-arm64.zip")
+        self.assertEqual(enclosure.get("url"), "https://github.com/yakut-sekonts/Apertone/releases/download/v0.4.0/Apertone-0.4.0-macos-arm64.zip")
         self.assertIn("appcast.xml", (self.root / "SHA256SUMS").read_text())
     def test_tampered_archive_rejected_before_signing(self):
         self.archive.write_bytes(b"tampered")

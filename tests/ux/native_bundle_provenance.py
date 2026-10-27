@@ -6,7 +6,7 @@ from xml.parsers.expat import ExpatError
 
 EXECUTABLE_NAME = 'luma_ux_tests'
 BUNDLE_IDENTIFIER = 'app.luma.ux-tests'
-BUNDLE_NAME = 'LumaUXTests'
+BUNDLE_NAME = 'ApertoneUXTests'
 
 
 def native_bundle_info(build):

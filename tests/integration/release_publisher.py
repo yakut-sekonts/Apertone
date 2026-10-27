@@ -23,7 +23,7 @@ class ReleasePublisherTests(unittest.TestCase):
             assets = root / "dist/release"
             assets.mkdir(parents=True)
             for suffix in ("zip", "dmg"):
-                (assets / f"Luma-{version}-macos-arm64.{suffix}").write_bytes(b"synthetic archive")
+                (assets / f"Apertone-{version}-macos-arm64.{suffix}").write_bytes(b"synthetic archive")
             info = {"version": version, "source_commit": "a" * 40}
             if int(version.split(".")[0]) >= 1:
                 # Structural package fixtures only, not executable Core ML models.
@@ -35,8 +35,8 @@ class ReleasePublisherTests(unittest.TestCase):
                             "files": {name: {"size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
                                       for name, data in files.items()}}
                 raw = json.dumps(manifest).encode()
-                with zipfile.ZipFile(assets / f"Luma-{version}-macos-arm64.zip", "w") as archive:
-                    prefix = "Luma.app/Contents/Resources/Models/"
+                with zipfile.ZipFile(assets / f"Apertone-{version}-macos-arm64.zip", "w") as archive:
+                    prefix = "Apertone.app/Contents/Resources/Models/"
                     archive.writestr(prefix + "manifest.json", raw)
                     for name, data in files.items():
                         archive.writestr(prefix + name, data)
@@ -50,7 +50,7 @@ class ReleasePublisherTests(unittest.TestCase):
                 if embedded.get("signing") == "developer-id":
                     embedded.pop("notarized", None)
                     embedded.pop("notarization", None)
-                plist = {"CFBundleIdentifier": "app.luma.desktop", "CFBundleExecutable": "Luma",
+                plist = {"CFBundleIdentifier": "app.luma.desktop", "CFBundleExecutable": "Apertone",
                          "CFBundleShortVersionString": version, "CFBundleVersion": version}
                 if archive_mode == "stale-source": embedded["source_commit"] = "c" * 40
                 if archive_mode == "stale-version": embedded["version"] = "0.9.0"
@@ -60,15 +60,15 @@ class ReleasePublisherTests(unittest.TestCase):
                 if archive_mode == "wrong-plist-build": plist["CFBundleVersion"] = "0.9.0"
                 if archive_mode == "wrong-app-id": plist["CFBundleIdentifier"] = "app.other.desktop"
                 if archive_mode == "wrong-executable": plist["CFBundleExecutable"] = "Other"
-                with zipfile.ZipFile(assets / f"Luma-{version}-macos-arm64.zip", "a") as archive:
+                with zipfile.ZipFile(assets / f"Apertone-{version}-macos-arm64.zip", "a") as archive:
                     if archive_mode != "missing-build-info":
-                        archive.writestr("Luma.app/Contents/Resources/BUILD_INFO.json", json.dumps(embedded))
-                    archive.writestr("Luma.app/Contents/Info.plist", plistlib.dumps(plist))
-                    archive.writestr("Luma.app/Contents/MacOS/Luma", b"synthetic executable fixture")
+                        archive.writestr("Apertone.app/Contents/Resources/BUILD_INFO.json", json.dumps(embedded))
+                    archive.writestr("Apertone.app/Contents/Info.plist", plistlib.dumps(plist))
+                    archive.writestr("Apertone.app/Contents/MacOS/Apertone", b"synthetic executable fixture")
             if info.get("dependencies", {}).get("Sparkle") and mode != "signed-missing":
                 signature = base64.b64encode(bytes(64)).decode()
                 feed_version = "0.2.0" if mode == "signed-wrong-version" else version
-                (assets / "appcast.xml").write_text(f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><enclosure url="https://github.com/yakut-sekonts/Luma/releases/download/v{version}/Luma-{version}-macos-arm64.zip" length="{(assets / f'Luma-{version}-macos-arm64.zip').stat().st_size}" sparkle:version="{feed_version}" sparkle:edSignature="{signature}" /></item></channel></rss>')
+                (assets / "appcast.xml").write_text(f'<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"><channel><item><enclosure url="https://github.com/yakut-sekonts/Apertone/releases/download/v{version}/Apertone-{version}-macos-arm64.zip" length="{(assets / f'Apertone-{version}-macos-arm64.zip').stat().st_size}" sparkle:version="{feed_version}" sparkle:edSignature="{signature}" /></item></channel></rss>')
             (assets / "BUILD_INFO.json").write_text(json.dumps(info))
             entries = []
             for path in sorted(assets.iterdir()):
@@ -90,17 +90,17 @@ if args[:2] == ["release", "create"]:
     pathlib.Path("created").touch()
 if args[0] == "api":
     # The production bug: a draft is unavailable through releases/tags/<tag>.
-    if args[1] != "repos/yakut-sekonts/Luma/releases/123": sys.exit(1)
+    if args[1] != "repos/yakut-sekonts/Apertone/releases/123": sys.exit(1)
     assets = []
     for path in pathlib.Path("dist/release").iterdir():
         assets.append({"name":path.name,"state":"uploaded","size":path.stat().st_size,
             "digest":"sha256:"+hashlib.sha256(path.read_bytes()).hexdigest()})
     if mode == "bad-digest": assets[0]["digest"] = "sha256:wrong"
     if mode == "incomplete": assets.pop()
-    print(json.dumps({"html_url":"https://github.com/yakut-sekonts/Luma/releases/tag/v" + version,"assets":assets}))
+    print(json.dumps({"html_url":"https://github.com/yakut-sekonts/Apertone/releases/tag/v" + version,"assets":assets}))
 ''')
             fake.chmod(0o755)
-            env = {**os.environ, "PATH":str(root)+os.pathsep+str(Path(sys.executable).parent)+os.pathsep+os.environ["PATH"], "GITHUB_REPOSITORY":"yakut-sekonts/Luma", "GITHUB_REF_NAME":"v"+version, "GITHUB_SHA":"a"*40, "MOCK_MODE":mode, "MOCK_VERSION":version}
+            env = {**os.environ, "PATH":str(root)+os.pathsep+str(Path(sys.executable).parent)+os.pathsep+os.environ["PATH"], "GITHUB_REPOSITORY":"yakut-sekonts/Apertone", "GITHUB_REF_NAME":"v"+version, "GITHUB_SHA":"a"*40, "MOCK_MODE":mode, "MOCK_VERSION":version}
             if mode == "wrong-commit": env["GITHUB_SHA"] = "b"*40
             if mode == "wrong-repo": env["GITHUB_REPOSITORY"] = "other/repo"
             result = subprocess.run([sys.executable,str(publisher)],cwd=root,env=env,capture_output=True,text=True,timeout=20)
@@ -111,9 +111,9 @@ if args[0] == "api":
     def test_complete_draft_publishes_last(self):
         result,calls = self.run_case("valid")
         self.assertEqual(result.returncode,0,result.stderr)
-        self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['release','view'],['api','repos/yakut-sekonts/Luma/releases/123'],['release','edit']])
+        self.assertEqual([call[:2] for call in calls],[['release','view'],['release','create'],['release','upload'],['release','view'],['api','repos/yakut-sekonts/Apertone/releases/123'],['release','edit']])
         self.assertIn("--draft",calls[1])
-        self.assertEqual(calls[1][calls[1].index("--title") + 1], "Luma 0.3.0")
+        self.assertEqual(calls[1][calls[1].index("--title") + 1], "Apertone 0.3.0")
         self.assertIn("--draft=false",calls[-1])
 
     def test_existing_draft_resumes_without_creating_another_release(self):
@@ -134,7 +134,7 @@ if args[0] == "api":
         self.assertEqual(calls[-1][:2], ["release", "edit"])
         upload = next(call for call in calls if call[:2] == ["release", "upload"])
         self.assertIn("dist/release/appcast.xml", upload)
-        self.assertIn("dist/release/Luma-1.0.0-macos-arm64.dmg", upload)
+        self.assertIn("dist/release/Apertone-1.0.0-macos-arm64.dmg", upload)
 
     def test_1_0_refuses_false_signing_claims_and_missing_distribution(self):
         overrides = [

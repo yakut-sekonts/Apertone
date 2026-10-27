@@ -3,8 +3,8 @@
 <plist version="1.0"><dict>
   <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
   <key>CFBundleIdentifier</key><string>app.luma.ux-tests</string>
-  <key>CFBundleName</key><string>LumaUXTests</string>
-  <key>CFBundleDisplayName</key><string>LumaUXTests</string>
+  <key>CFBundleName</key><string>ApertoneUXTests</string>
+  <key>CFBundleDisplayName</key><string>ApertoneUXTests</string>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundlePackageType</key><string>APPL</string>

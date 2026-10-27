@@ -6,7 +6,7 @@ import QtQuick.Dialogs
 Dialog {
     id: panel
     objectName: "preferencesPanel"
-    title: qsTranslate("Luma", "Settings")
+    title: qsTranslate("Apertone", "Settings")
     modal: true
     anchors.centerIn: parent
     width: Math.min(parent.width - 60, 440)
@@ -16,13 +16,13 @@ Dialog {
     DiagnosticsDialog { id: diagnosticDialog; parent: Overlay.overlay }
     FileDialog {
         id: denoiseModelDialog
-        title: qsTranslate("Luma", "Choose local denoise model")
+        title: qsTranslate("Apertone", "Choose local denoise model")
         nameFilters: ["Core ML (*.mlmodelc)"]
         onAccepted: editor.setDenoiseModel(selectedFile)
     }
     FileDialog {
         id: skyModelDialog
-        title: qsTranslate("Luma", "Choose local Sky model")
+        title: qsTranslate("Apertone", "Choose local Sky model")
         nameFilters: ["Core ML (*.mlmodelc)"]
         onAccepted: editor.setSkyModel(selectedFile)
     }
@@ -30,10 +30,21 @@ Dialog {
       clip: true; contentWidth: availableWidth
       ColumnLayout {
         width: parent.width
-        spacing: 14
-        Label { objectName: "settingsVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 20; font.weight: Font.DemiBold; Layout.fillWidth: true }
-        Label { objectName: "settingsLanguageLabel"; text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
-        ComboBox {
+        spacing: 10
+        Label { objectName: "settingsVersion"; text: "Apertone " + Qt.application.version; font.pixelSize: 20; font.weight: Font.DemiBold; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "Appearance"); Layout.fillWidth: true }
+        ApertoneComboBox {
+            id: appearanceChoice
+            objectName: "appearanceChoice"
+            Layout.fillWidth: true
+            model: [qsTranslate("Apertone", "Follow system"), qsTranslate("Apertone", "Day"), qsTranslate("Apertone", "Night")]
+            currentIndex: appearance.mode === "day" ? 1 : appearance.mode === "night" ? 2 : 0
+            onActivated: appearance.selectMode(["system", "day", "night"][currentIndex])
+            Accessible.name: qsTranslate("Apertone", "Appearance")
+        }
+        Label { text: qsTranslate("Apertone", appearance.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { objectName: "settingsLanguageLabel"; text: qsTranslate("Apertone", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        ApertoneComboBox {
             id: languageChoice
             objectName: "languageChoice"
             Layout.fillWidth: true
@@ -46,55 +57,55 @@ Dialog {
                 return 0
             }
             onActivated: localization.selectLanguage(model[currentIndex].code)
-            Accessible.name: qsTranslate("Luma", "Interface language")
+            Accessible.name: qsTranslate("Apertone", "Interface language")
         }
-        Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Button { objectName: "settings.catalogMaintenance"; text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
-        Button { text: qsTranslate("Luma", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
-        Label { text: qsTranslate("Luma", "Preview cache (MiB)"); Layout.fillWidth: true }
-        SpinBox {
+        Label { objectName: "settingsEffect"; text: qsTranslate("Apertone", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
+        ApertoneButton { objectName: "settings.catalogMaintenance"; text: qsTranslate("Apertone", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
+        ApertoneButton { text: qsTranslate("Apertone", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "Preview cache (MiB)"); Layout.fillWidth: true }
+        ApertoneSpinBox {
             objectName: "settings.previewCache"
             Layout.fillWidth: true
             from: 64; to: 2048; stepSize: 64
             value: editor.previewCacheMiB
             editable: true
             onValueModified: editor.previewCacheMiB = value
-            Accessible.name: qsTranslate("Luma", "Preview cache (MiB)")
+            Accessible.name: qsTranslate("Apertone", "Preview cache (MiB)")
         }
-        Button {
+        ApertoneButton {
             objectName: "settings.clearPreviewCache"
-            text: qsTranslate("Luma", "Clear preview cache")
+            text: qsTranslate("Apertone", "Clear preview cache")
             onClicked: editor.clearPreviewCache()
         }
         CheckBox {
             objectName: "settings.metalPreview"
-            text: qsTranslate("Luma", "Use Metal for photo previews")
+            text: qsTranslate("Apertone", "Use Metal for photo previews")
             checked: editor.metalPreview
             onToggled: editor.metalPreview = checked
         }
         Label {
-            text: qsTranslate("Luma", "Local AI Denoise model") + ": " +
-                  (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Luma", "Not configured")) +
-                  (editor.denoiseModelBundled ? " · " + qsTranslate("Luma", "Included with Luma") : "")
+            text: qsTranslate("Apertone", "Local AI Denoise model") + ": " +
+                  (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Apertone", "Not configured")) +
+                  (editor.denoiseModelBundled ? " · " + qsTranslate("Apertone", "Included with Apertone") : "")
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
+            ApertoneButton { text: qsTranslate("Apertone", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
+            ApertoneButton { text: qsTranslate("Apertone", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
         }
-        Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: qsTranslate("Apertone", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label {
-            text: qsTranslate("Luma", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Luma", "Not configured")) +
-                  (editor.skyModelBundled ? " · " + qsTranslate("Luma", "Included with Luma") : "")
+            text: qsTranslate("Apertone", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Apertone", "Not configured")) +
+                  (editor.skyModelBundled ? " · " + qsTranslate("Apertone", "Included with Apertone") : "")
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
+            ApertoneButton { text: qsTranslate("Apertone", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
+            ApertoneButton { text: qsTranslate("Apertone", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
         }
-        Label { text: qsTranslate("Luma", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }
     }
 }

@@ -90,7 +90,7 @@ void ExportController::writeStore() {
         throw std::runtime_error("Export settings are in use by another instance.");
     if (readFile(storePath_) != storeBytes_)
         throw std::runtime_error(
-            "Export settings changed in another instance. Reopen Luma before saving.");
+            "Export settings changed in another instance. Reopen Apertone before saving.");
     const auto bytes =
         QJsonDocument(
             QJsonObject{{"schema", 1}, {"last", settings_.json()}, {"profiles", savedProfiles_}})

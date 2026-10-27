@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/yakut-sekonts/Luma/blob/main/tests/ux/performance-baseline.schema.json",
-  "title": "Luma measured performance baseline candidate",
+  "$id": "https://github.com/yakut-sekonts/Apertone/blob/main/tests/ux/performance-baseline.schema.json",
+  "title": "Apertone measured performance baseline candidate",
   "type": "object",
   "additionalProperties": false,
   "required": [

@@ -1,10 +1,10 @@
 #include "apps/desktop/UpdateController.h"
 #import <Sparkle/Sparkle.h>
 
-@interface LumaUpdateDelegate : NSObject <SPUUpdaterDelegate, SPUStandardUserDriverDelegate>
+@interface ApertoneUpdateDelegate : NSObject <SPUUpdaterDelegate, SPUStandardUserDriverDelegate>
 @property(nonatomic) UpdateCallbacks callbacks;
 @end
-@implementation LumaUpdateDelegate
+@implementation ApertoneUpdateDelegate
 - (void)observeValueForKeyPath:(NSString *)keyPath
                       ofObject:(id)object
                         change:(NSDictionary<NSKeyValueChangeKey, id> *)change
@@ -22,7 +22,7 @@
                                          andInImmediateFocus:(BOOL)focus {
     (void)item;
     (void)focus;
-    return NO; // Scheduled reminders live in Luma's bell, including at launch.
+    return NO; // Scheduled reminders live in Apertone's bell, including at launch.
 }
 - (void)standardUserDriverWillHandleShowingUpdate:(BOOL)show
                                         forUpdate:(SUAppcastItem *)item
@@ -43,7 +43,7 @@
 - (void)updater:(SPUUpdater *)updater didFindValidUpdate:(SUAppcastItem *)item {
     (void)updater;
     self.callbacks.found(QString::fromUtf8(item.displayVersionString.UTF8String));
-    self.callbacks.status(false, QStringLiteral("A new version of Luma is available"));
+    self.callbacks.status(false, QStringLiteral("A new version of Apertone is available"));
 }
 - (void)updater:(SPUUpdater *)updater
     didFinishUpdateCycleForUpdateCheck:(SPUUpdateCheck)check
@@ -56,7 +56,7 @@
         self.callbacks.status(false, QStringLiteral("No updates available"));
     } else if (error && error.code != SUInstallationCanceledError) {
         self.callbacks.failed();
-        self.callbacks.status(false, QStringLiteral("Could not update Luma: ") +
+        self.callbacks.status(false, QStringLiteral("Could not update Apertone: ") +
                                          QString::fromUtf8(error.localizedDescription.UTF8String));
     } else {
         if (error)
@@ -79,12 +79,12 @@
 @end
 
 class SparkleUpdater final : public NativeUpdater {
-    LumaUpdateDelegate *delegate_;
+    ApertoneUpdateDelegate *delegate_;
     SPUStandardUpdaterController *controller_;
 
   public:
     explicit SparkleUpdater(UpdateCallbacks callbacks) {
-        delegate_ = [LumaUpdateDelegate new];
+        delegate_ = [ApertoneUpdateDelegate new];
         delegate_.callbacks = std::move(callbacks);
         controller_ = [[SPUStandardUpdaterController alloc] initWithStartingUpdater:NO
                                                                     updaterDelegate:delegate_

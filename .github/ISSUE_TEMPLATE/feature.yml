@@ -1,5 +1,5 @@
 name: Feature
-description: A scoped feature following the Luma roadmap
+description: A scoped feature following the Apertone roadmap
 body:
   - type: textarea
     id: workflow

@@ -8,9 +8,9 @@ QVariantMap EditorController::lensState() const {
     const auto &settings = history_.current().lens;
     const auto resolved = luma::resolveLens(session_->asset.metadata, settings);
     const auto translate = [](const char *value) {
-        return QCoreApplication::translate("Luma", value);
+        return QCoreApplication::translate("Apertone", value);
     };
-    auto status = QCoreApplication::translate("Luma", resolved.status.c_str());
+    auto status = QCoreApplication::translate("Apertone", resolved.status.c_str());
     if (resolved.status.starts_with("Lensfun 0.3.4")) {
         status = QStringLiteral("Lensfun 0.3.4 · ") + translate("Distortion") +
                  (resolved.distortion ? QStringLiteral(" ✓")

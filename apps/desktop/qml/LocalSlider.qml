@@ -13,8 +13,8 @@ ColumnLayout {
     spacing: 2
     RowLayout {
         Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width
-        Label { text: control.label; wrapMode: Text.Wrap; color: "#d7dce3"; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width; font.pixelSize: 12 }
-        Label { text: Number(editor.localState[control.parameter] ?? 0).toFixed(control.step < 1 ? 2 : 0); color: "#dfae77"; font.pixelSize: 12 }
+        Label { text: control.label; wrapMode: Text.Wrap; color: Theme.text; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width; font.pixelSize: 12 }
+        Label { text: Number(editor.localState[control.parameter] ?? 0).toFixed(control.step < 1 ? 2 : 0); color: Theme.accent; font.pixelSize: 12 }
     }
     Slider {
         objectName: "local_" + control.parameter

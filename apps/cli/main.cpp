@@ -123,7 +123,7 @@ int main(int argc, char **argv) {
             }
         }
         if (arguments.empty() || arguments[0] == "--help") {
-            std::cout << "Luma Library and Develop\nUsage: luma open RAW --catalog FILE\n"
+            std::cout << "Apertone Library and Develop\nUsage: luma open RAW --catalog FILE\n"
                       << "       luma exposure EV --catalog FILE\n"
                       << "       luma restore --catalog FILE\n"
                       << "       luma lens profiles | lens profile auto|ID --catalog FILE\n"
@@ -342,7 +342,7 @@ int main(int argc, char **argv) {
         }
         return 0;
     } catch (const std::exception &error) {
-        std::cerr << "Luma: " << error.what() << '\n';
+        std::cerr << "Apertone: " << error.what() << '\n';
         return 1;
     }
 }

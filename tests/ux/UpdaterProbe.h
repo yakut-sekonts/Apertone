@@ -38,11 +38,12 @@ class NativeUpdaterProbe final : public NativeUpdater {
         // Delivery context is destroyed before callbacks_, cancelling pending delivery.
         QTimer::singleShot(0, &delivery_, [this] {
             checking_ = false;
-            // Match LumaUpdateDelegate::didFinishUpdateCycleForUpdateCheck:error:
+            // Match ApertoneUpdateDelegate::didFinishUpdateCycleForUpdateCheck:error:
             // for an actual non-cancellation error: failed(), then status(false,...).
             callbacks_.failed();
             callbacks_.status(
-                false, QStringLiteral("Could not update Luma: UX controlled SDK check failure"));
+                false,
+                QStringLiteral("Could not update Apertone: UX controlled SDK check failure"));
             ++failuresDelivered;
         });
     }

@@ -196,11 +196,12 @@ void completeLocalEditorTests(const QString &source, const QString &root, const 
                 "Cannot switch local mask locale.");
         QCoreApplication::processEvents();
         require(child("localPanelToggle")->property("text").toString() ==
-                    QCoreApplication::translate("Luma", "Local adjustments"),
+                    QCoreApplication::translate("Apertone", "Local adjustments"),
                 "Mask panel title did not retranslate.");
         const auto choices = child("localNewKind")->property("model").toStringList();
-        require(choices.size() == 5 && choices[2] == QCoreApplication::translate("Luma", "Brush") &&
-                    choices[4] == QCoreApplication::translate("Luma", "Color range"),
+        require(choices.size() == 5 &&
+                    choices[2] == QCoreApplication::translate("Apertone", "Brush") &&
+                    choices[4] == QCoreApplication::translate("Apertone", "Color range"),
                 "Mask type choices did not retranslate.");
         require(editor.currentSettings() == saved, "Language switch changed user mask data.");
     }

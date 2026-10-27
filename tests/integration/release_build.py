@@ -51,7 +51,7 @@ else: sys.exit(2)
             fake.chmod(0o755)
             output = root / "output"
             env = {**os.environ, "PATH": f"{root}:{Path(sys.executable).parent}:{os.environ['PATH']}",
-                   "GITHUB_REPOSITORY": "yakut-sekonts/Luma", "LUMA_RELEASE_TAG": "v0.3.0",
+                   "GITHUB_REPOSITORY": "yakut-sekonts/Apertone", "LUMA_RELEASE_TAG": "v0.3.0",
                    "LUMA_BUILD_RUN_ID": "123", "GITHUB_OUTPUT": str(output), "MOCK_MODE": mode}
             result = subprocess.run([sys.executable, str(verifier)], cwd=root, env=env,
                                     capture_output=True, text=True, timeout=20)

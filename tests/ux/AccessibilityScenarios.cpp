@@ -112,7 +112,7 @@ bool accessibilityScenario(Context &c, const QString &id) {
     }
     const QMap<QString, QString> names{
         {"main.libraryButton", "Library"}, {"main.developButton", "Develop"},
-        {"settingsButton", "Settings"},    {"updates.bell", "Luma updates"},
+        {"settingsButton", "Settings"},    {"updates.bell", "Apertone updates"},
         {"main.undoButton", "Undo"},       {"main.redoButton", "Redo"},
         {"exportButton", "Export"},        {"openPhotoButton", "+  Open photo"}};
     const auto primary = names.keys();

@@ -615,10 +615,10 @@ def row_selected(row, arguments):
 
 
 def source_phase():
-    match = re.search(r'project\(Luma VERSION (\d+)\.(\d+)\.\d+ LANGUAGES',
+    match = re.search(r'project\(Apertone VERSION (\d+)\.(\d+)\.\d+ LANGUAGES',
                       (ROOT / 'CMakeLists.txt').read_text())
     if not match:
-        raise ValueError('Cannot determine current Luma source phase')
+        raise ValueError('Cannot determine current Apertone source phase')
     return '.'.join(match.groups())
 
 

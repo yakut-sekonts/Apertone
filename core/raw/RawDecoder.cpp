@@ -25,10 +25,12 @@ int cancelRaw(void *context, enum LibRaw_progress, int, int) {
     return static_cast<luma::CancellationToken *>(context)->isCancelled() ? 1 : 0;
 }
 bool lumaLinearDNG(const libraw_data_t &data) {
+    const auto make = text(data.idata.make);
     const auto model = text(data.idata.model);
     return data.idata.dng_version != 0 && data.idata.filters == 0 && data.idata.colors == 3 &&
-           text(data.idata.make) == "Luma" &&
+           (make == "Apertone" || make == "Luma") &&
            (model.starts_with("Rendered Linear RGB") ||
+            model.starts_with("Apertone Rendered Linear RGB") ||
             model.starts_with("Luma Rendered Linear RGB"));
 }
 RawColorCalibration linearCalibration(const libraw_data_t &data) {

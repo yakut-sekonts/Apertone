@@ -125,8 +125,9 @@ QString EditorController::addLocalMask(const QString &shape) {
         mask.id = luma::newID();
         const std::array<const char *, 5> names{"Linear gradient", "Radial gradient", "Brush",
                                                 "Luminance range", "Color range"};
-        mask.name = QCoreApplication::translate("Luma", names[static_cast<std::size_t>(mask.shape)])
-                        .toStdString();
+        mask.name =
+            QCoreApplication::translate("Apertone", names[static_cast<std::size_t>(mask.shape)])
+                .toStdString();
         next.localMasks.push_back(mask);
         next.validate();
         localSelected_ = QString::fromStdString(mask.id);

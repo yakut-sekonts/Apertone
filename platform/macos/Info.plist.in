@@ -3,17 +3,18 @@
 <plist version="1.0"><dict>
   <key>CFBundleExecutable</key><string>${MACOSX_BUNDLE_EXECUTABLE_NAME}</string>
   <key>CFBundleIdentifier</key><string>app.luma.desktop</string>
-  <key>CFBundleName</key><string>Luma</string>
+  <key>CFBundleName</key><string>Apertone</string>
+  <key>CFBundleDisplayName</key><string>Apertone</string>
   <key>CFBundleDevelopmentRegion</key><string>en</string>
   <key>CFBundleLocalizations</key><array><string>en</string><string>ru</string><string>zh_CN</string><string>hy</string><string>de</string><string>es</string><string>it</string><string>fr</string></array>
-  <key>CFBundleIconFile</key><string>Luma.icns</string>
+  <key>CFBundleIconFile</key><string>Apertone.icns</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${PROJECT_VERSION}</string>
   <key>CFBundleVersion</key><string>${PROJECT_VERSION}</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
-  <key>SUFeedURL</key><string>https://github.com/yakut-sekonts/Luma/releases/latest/download/appcast.xml</string>
+  <key>SUFeedURL</key><string>https://github.com/yakut-sekonts/Apertone/releases/latest/download/appcast.xml</string>
   <key>SUPublicEDKey</key><string>yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI=</string>
   <key>SUEnableAutomaticChecks</key><true/>
   <key>SUAllowsAutomaticUpdates</key><false/>

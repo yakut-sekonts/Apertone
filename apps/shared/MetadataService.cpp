@@ -214,8 +214,9 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id,
     // A previous file install can survive a crash before its DB commit. An
     // identical desired packet may be acknowledged without rewriting the file.
     if (oldHash != snapshot.sidecarHash && bytes != output)
-        throw std::runtime_error("XMP changed outside Luma. Import its metadata before writing; "
-                                 "catalog edits are preserved.");
+        throw std::runtime_error(
+            "XMP changed outside Apertone. Import its metadata before writing; "
+            "catalog edits are preserved.");
     Temporary staged(path.parent_path(), output, stop);
     const auto hash = macos::sha256File(staged.path, stop);
     if (!bytes.empty()) {

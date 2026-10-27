@@ -44,10 +44,10 @@ Rectangle {
         card.openFromKeyboard(event)
     }
     onThumbnailURLChanged: retryCount = 0
-    color: selected ? "#393027" : "#1b1e24"
+    color: selected ? Theme.accentSoft : Theme.panelRaised
     radius: 6
     border.width: selected || activePhoto || activeFocus ? 2 : 1
-    border.color: selected ? "#dfae77" : activePhoto || activeFocus ? "#859ec1" : "#2a2f38"
+    border.color: selected ? Theme.accent : activePhoto || activeFocus ? Theme.muted : Theme.divider
     Image {
         id: thumbnail
         objectName: "photoThumbnail"
@@ -63,13 +63,13 @@ Rectangle {
         interval: 1500; running: thumbnail.status === Image.Error && card.retryCount < 2; repeat: false
         onTriggered: card.retryCount++
     }
-    Label { objectName: (card.compact ? "filmstrip.availability." : "library.availability.") + card.assetID; anchors.centerIn: thumbnail; visible: card.sourceMissing || thumbnail.status !== Image.Ready; text: card.sourceMissing ? qsTranslate("Luma", "Missing") : thumbnail.status === Image.Error ? qsTranslate("Luma", "No preview") : "…"; color: "#68717f"; font.pixelSize: 11 }
+    Label { objectName: (card.compact ? "filmstrip.availability." : "library.availability.") + card.assetID; anchors.centerIn: thumbnail; visible: card.sourceMissing || thumbnail.status !== Image.Ready; text: card.sourceMissing ? qsTranslate("Apertone", "Missing") : thumbnail.status === Image.Error ? qsTranslate("Apertone", "No preview") : "…"; color: Theme.faint; font.pixelSize: 11 }
     Column {
         id: caption
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10 }
         spacing: 3
-        Label { objectName: (card.compact ? "filmstrip.filename." : "library.filename.") + card.assetID; width: parent.width; text: card.filename || "…"; color: "#dce0e8"; elide: Text.ElideMiddle; font.pixelSize: card.compact ? 10 : 12 }
-        Label { objectName: (card.compact ? "filmstrip.flagStatus." : "library.flagStatus.") + card.assetID; visible: !card.compact; text: (card.rating ? "★".repeat(card.rating) : "☆☆☆☆☆") + (card.flagValue === 1 ? "  " + qsTranslate("Luma", "Pick") : card.flagValue === -1 ? "  " + qsTranslate("Luma", "Reject") : ""); color: card.rating ? "#dfae77" : "#626c7b"; font.pixelSize: 12 }
+        Label { objectName: (card.compact ? "filmstrip.filename." : "library.filename.") + card.assetID; width: parent.width; text: card.filename || "…"; color: Theme.text; elide: Text.ElideMiddle; font.pixelSize: card.compact ? 10 : 12 }
+        Label { objectName: (card.compact ? "filmstrip.flagStatus." : "library.flagStatus.") + card.assetID; visible: !card.compact; text: (card.rating ? "★".repeat(card.rating) : "☆☆☆☆☆") + (card.flagValue === 1 ? "  " + qsTranslate("Apertone", "Pick") : card.flagValue === -1 ? "  " + qsTranslate("Apertone", "Reject") : ""); color: card.rating ? Theme.accent : Theme.faint; font.pixelSize: 12 }
     }
     Rectangle {
         visible: card.colorLabel.length > 0

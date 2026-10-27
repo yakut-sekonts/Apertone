@@ -14,7 +14,7 @@ from release_identity import verify_bundle_matches_zip
 
 root = Path(__file__).resolve().parents[1]
 image = Path(sys.argv[1]).resolve()
-version = image.name.removeprefix("Luma-").removesuffix("-macos-arm64.dmg")
+version = image.name.removeprefix("Apertone-").removesuffix("-macos-arm64.dmg")
 
 def run(*args, **kwargs):
     result = subprocess.run(list(map(str, args)), capture_output=True,
@@ -30,13 +30,13 @@ try:
     run("hdiutil", "verify", image)
     run("hdiutil", "attach", "-readonly", "-nobrowse", "-noautoopen", "-mountpoint", mountpoint, image)
     mounted = True
-    app = mountpoint / "Luma.app"
+    app = mountpoint / "Apertone.app"
     with (app / "Contents/Info.plist").open("rb") as file:
         info = plistlib.load(file)
     assert info["CFBundleShortVersionString"] == info["CFBundleVersion"] == version
-    assert info["CFBundleIconFile"] == "Luma.icns"
-    icon = app / "Contents/Resources/Luma.icns"
-    assert icon.read_bytes() == (root / "resources/branding/Luma.icns").read_bytes()
+    assert info["CFBundleIconFile"] == "Apertone.icns"
+    icon = app / "Contents/Resources/Apertone.icns"
+    assert icon.read_bytes() == (root / "resources/branding/Apertone.icns").read_bytes()
     assert (mountpoint / ".VolumeIcon.icns").read_bytes() == icon.read_bytes()
     assert "C" in run("xcrun", "GetFileInfo", "-a", mountpoint).stdout.strip()
     assert (mountpoint / "Applications").is_symlink()
@@ -54,12 +54,12 @@ try:
         identity = verify_bundle_matches_zip(app, archive, release_info)
     print("Installer/archive identity: " + json.dumps(identity, sort_keys=True))
     run("codesign", "--verify", "--deep", "--strict", app)
-    executable = app / "Contents/MacOS/Luma"
+    executable = app / "Contents/MacOS/Apertone"
     env = os.environ.copy()
     for name in ("QT_QPA_PLATFORM", "QT_PLUGIN_PATH", "QML_IMPORT_PATH", "QML2_IMPORT_PATH", "DYLD_LIBRARY_PATH", "DYLD_FRAMEWORK_PATH"):
         env.pop(name, None)
     env["QT_QUICK_BACKEND"] = "software"
-    assert run(executable, "--version", env=env).stdout.strip() == f"Luma {version}"
+    assert run(executable, "--version", env=env).stdout.strip() == f"Apertone {version}"
     run(executable, "--smoke-test", "--catalog", directory / "catalog.sqlite", env=env)
     print(f"DMG {version}: read-only mount, custom volume/app icons, Applications link, notes, source commit, strict signature and actual binary version/startup passed")
 finally:

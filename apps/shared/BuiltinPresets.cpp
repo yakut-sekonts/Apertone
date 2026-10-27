@@ -91,7 +91,7 @@ const std::vector<StoredPreset> &builtinPresets() {
         for (const auto &look : looks) {
             DevelopPreset preset;
             preset.name = QString::fromUtf8(look.name);
-            preset.folder = QStringLiteral("Luma");
+            preset.folder = QStringLiteral("Apertone");
             preset.groups = 4 | 8;
             preset.settings.curves = look.curves;
             preset.settings.hsl = look.hsl;

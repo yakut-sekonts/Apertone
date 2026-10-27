@@ -88,7 +88,7 @@ All runtime and photographic qualification is deferred.
 `DiagnosticSession` owns a private, unique process directory and a bounded
 asynchronous JSONL writer. Its API accepts event/level enums and boolean state,
 never free-form errors, photo names, paths or credentials. Log rotation is per
-process; retention only visits recognized inactive sessions under Luma's own
+process; retention only visits recognized inactive sessions under Apertone's own
 diagnostics root while holding their session locks. Acceptance launches do not
 start capture or modify the user's diagnostic history.
 
@@ -369,7 +369,7 @@ admission and disk budgets remain; phase-0.6 optimization is separate.
 shares developed/corrected geometry, alpha-aware resize and output sharpening.
 macOS adapters handle ICC output, photographic metadata filtering, CoreText/image
 watermarks and ImageIO encoders. An original DNG writer streams calibrated 16-bit
-LinearRaw samples; the narrowly identified Luma DNG reader uses D50 forward
+LinearRaw samples; the narrowly identified Apertone DNG reader uses D50 forward
 calibration explicitly. No Adobe SDK or general RAW color-profile expansion.
 
 `ExportSettings` validates a versioned JSON representation for desktop profiles.

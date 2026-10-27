@@ -38,6 +38,7 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
           updaterProbe),
       metrics(root + "/heartbeat.json") {
     localization = std::make_unique<LocalizationController>(stateRoot + "/language.json", engine);
+    appearance = std::make_unique<AppearanceController>(stateRoot + "/appearance.json");
     // Match unattended production startup: the real controller is present,
     // while persistent diagnostics/crash capture stay disabled for UX fixtures.
     diagnosticSession = std::make_unique<luma::desktop::DiagnosticSession>(false);
@@ -51,6 +52,7 @@ Context::Context(QString rootPath, QString fixturePath, const QString &qml, QStr
     engine.rootContext()->setContextProperty("exporter", &exporter);
     engine.rootContext()->setContextProperty("updates", &updates);
     engine.rootContext()->setContextProperty("localization", localization.get());
+    engine.rootContext()->setContextProperty("appearance", appearance.get());
     engine.addImageProvider("preview", provider);
     engine.addImageProvider("thumbnail", new ThumbnailProvider(catalogFile.toStdString()));
     QObject::connect(&updates, &UpdateController::preparingRestart, &editor,

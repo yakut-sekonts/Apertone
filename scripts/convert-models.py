@@ -125,6 +125,8 @@ def convert_model(model, weights, work):
         minimum_deployment_target=ct.target.macOS14, compute_precision=ct.precision.FLOAT32,
         inputs=[ct.TensorType(name=model["input"], shape=sample.shape, dtype=np.float32)],
         outputs=[ct.TensorType(name=model["output"], dtype=np.float32)], skip_model_load=True)
+    # This legacy value is part of the compiled model recipe used by Luma 1.0.
+    # Keep it stable so the Apertone rebrand does not require new model bytes.
     converted.author = "Luma adaptation; see bundled upstream license and model notice"
     converted.license = model["license"]
     converted.short_description = model["display_name"]

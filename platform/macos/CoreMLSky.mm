@@ -49,7 +49,8 @@ class CoreMLSky final : public ai::ISegmentationProvider {
             if (![metadata[@"luma.sky.schema"] isEqual:@"1"] ||
                 ![metadata[@"luma.sky.color"] isEqual:@"srgb"] ||
                 ![metadata[@"luma.sky.resize"] isEqual:@"stretch"])
-                throw std::runtime_error("Model is missing the Luma Sky segmentation contract.");
+                throw std::runtime_error(
+                    "Model is missing the Apertone Sky segmentation contract.");
             const auto inputs = model_.modelDescription.inputDescriptionsByName,
                        outputs = model_.modelDescription.outputDescriptionsByName;
             if (inputs.count != 1 || outputs.count != 1 || !inputs[@"image"] || !outputs[@"sky"])

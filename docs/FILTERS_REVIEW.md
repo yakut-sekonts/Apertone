@@ -1,6 +1,6 @@
 # Ready-made filters — 0.4.8 development
 
-[Issue #26](https://github.com/yakut-sekonts/Luma/issues/26) adds Natural, Soft
+[Issue #26](https://github.com/yakut-sekonts/Apertone/issues/26) adds Natural, Soft
 Portrait, Landscape, Warm Film, Cool Cinema, Matte, Vintage and Crisp. Each is an
 original declarative Curve/HSL preset; there is no extra rendering pass or opaque
 LUT. Applied values are visible and editable. Looks replace Curve/HSL, so repeated

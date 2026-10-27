@@ -173,7 +173,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                         : selection == luma::ai::Selection::sky      ? "Sky"
                                                                                      : "Subject";
                                     mask.name =
-                                        QCoreApplication::translate("Luma", name).toStdString();
+                                        QCoreApplication::translate("Apertone", name).toStdString();
                                     mask.shape = luma::MaskShape::bitmap;
                                     mask.bitmap = anchored;
                                     next.localMasks.push_back(mask);

@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 version="${1:?Specify release version}"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid release version" >&2; exit 1; }
-app="$PWD/dist/Luma.app"
+app="$PWD/dist/Apertone.app"
 actual=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
 [[ "$actual" == "$version" ]] || { echo "Bundle/release version mismatch" >&2; exit 1; }
 codesign --verify --deep --strict "$app"
@@ -23,8 +23,8 @@ cleanup() {
 trap cleanup EXIT
 staging="$workspace/contents"
 mkdir "$staging"
-ditto "$app" "$staging/Luma.app"
-cp "$app/Contents/Resources/Luma.icns" "$staging/.VolumeIcon.icns"
+ditto "$app" "$staging/Apertone.app"
+cp "$app/Contents/Resources/Apertone.icns" "$staging/.VolumeIcon.icns"
 ln -s /Applications "$staging/Applications"
 cp LICENSE "$staging/LICENSE.txt"
 cp "docs/releases/v$version.md" "$staging/READ_ME.md"
@@ -35,7 +35,7 @@ touch "$staging/.metadata_never_index"
 # https://github.com/create-dmg/create-dmg/issues/190
 for attempt in 1 2 3 4; do
     image="$workspace/attempt-$attempt.dmg"
-    if LC_ALL=C hdiutil create -volname "Luma $version" -srcfolder "$staging" \
+    if LC_ALL=C hdiutil create -volname "Apertone $version" -srcfolder "$staging" \
         -fs HFS+ -format UDRW "$image" >"$workspace/create.log" 2>&1; then
         cat "$workspace/create.log"
         break
@@ -58,4 +58,4 @@ hdiutil detach "$mountpoint"
 mounted=0
 hdiutil convert "$image" -format UDZO -o "$workspace/final.dmg"
 hdiutil verify "$workspace/final.dmg"
-mv -f "$workspace/final.dmg" "$PWD/dist/Luma-$version-macos-arm64.dmg"
+mv -f "$workspace/final.dmg" "$PWD/dist/Apertone-$version-macos-arm64.dmg"

@@ -66,7 +66,7 @@ def sign_app(app, identity, profile, report):
                     code.add(path)
     for path in sorted(code, key=lambda item: (-len(item.parts), str(item))):
         arguments = ["codesign", "--force", "--sign", identity, "--timestamp", "--options", "runtime"]
-        if path == app or path == app / "Contents/MacOS/Luma":
+        if path == app or path == app / "Contents/MacOS/Apertone":
             arguments += ["--entitlements", str(entitlements)]
         elif "Downloader.xpc" in path.parts:
             # Sparkle's Downloader may carry its own sandbox configuration.
@@ -85,7 +85,7 @@ def sign_app(app, identity, profile, report):
 
 def sign_dmg(path, identity, profile, report):
     record = json.loads(report.read_text())
-    if record.get("app", {}).get("status") != "Accepted" or path.name != f"Luma-{record['version']}-macos-arm64.dmg":
+    if record.get("app", {}).get("status") != "Accepted" or path.name != f"Apertone-{record['version']}-macos-arm64.dmg":
         raise SystemExit("DMG notarization requires this version's accepted app.")
     record.pop("dmg", None)
     report.write_text(json.dumps(record, indent=2) + "\n")

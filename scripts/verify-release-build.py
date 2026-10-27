@@ -8,7 +8,7 @@ import subprocess
 repository = os.environ["GITHUB_REPOSITORY"]
 tag = os.environ["LUMA_RELEASE_TAG"]
 run_id = os.environ["LUMA_BUILD_RUN_ID"]
-if repository != "yakut-sekonts/Luma" or not re.fullmatch(r"v\d+\.\d+\.\d+", tag) or not re.fullmatch(r"[1-9]\d*", run_id):
+if repository != "yakut-sekonts/Apertone" or not re.fullmatch(r"v\d+\.\d+\.\d+", tag) or not re.fullmatch(r"[1-9]\d*", run_id):
     raise SystemExit("Invalid release repository, tag or build run.")
 
 def api(endpoint):
