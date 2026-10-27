@@ -29,7 +29,7 @@ exact restart and original hashes. Standalone packaging and exact-head macOS CI
 are required integration gates.
 
 DNG stores applied edits in 16-bit LinearRaw samples; it is not sensor archival.
-Only Luma's identified rendered RGB DNG calibration is added to ingestion; general
+Only Apertone's identified rendered RGB DNG calibration is added to ingestion; general
 RGB/float DNG remains unsupported. Available photographic metadata excludes opaque
 MakerNotes, embedded previews, sensor layout and source encoding/develop recipes.
 Queue history is session-local. Development packaging remains ad-hoc signed and

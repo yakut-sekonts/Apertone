@@ -19,7 +19,7 @@ jobs:
       - name: Check signing availability without exposing the key
         id: configuration
         env:
-          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' || secrets.LUMA_SECRET != '' }}
+          SIGNING_CONFIGURED: ${{ secrets.SPARKLE_PRIVATE_KEY != '' || secrets.APERTONE_SECRET != '' || secrets.LUMA_SECRET != '' }}
         run: echo "configured=$SIGNING_CONFIGURED" >> "$GITHUB_OUTPUT"
       - name: Sparkle signing key is configured
         if: steps.configuration.outputs.configured == 'true'
@@ -44,10 +44,10 @@ jobs:
           RELEASE_REF: ${{ github.ref }}
         run: |
           if [[ "$RELEASE_REF" == refs/tags/* ]]; then
-            echo 'Configure repository secret SPARKLE_PRIVATE_KEY (or LUMA_SECRET) before publishing updater-enabled releases.' >&2
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY, APERTONE_SECRET or the legacy LUMA_SECRET before publishing updater-enabled releases.' >&2
             exit 1
           fi
-          echo '::notice::Candidate QA can continue, but publication requires SPARKLE_PRIVATE_KEY or LUMA_SECRET.'
+          echo '::notice::Candidate QA can continue, but publication requires a Sparkle private-key secret.'
   build-package:
     needs: signing-configuration
     runs-on: macos-15
@@ -95,7 +95,7 @@ jobs:
       - name: Validate signing key before building
         if: needs.signing-configuration.outputs.configured == 'true'
         env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.APERTONE_SECRET || secrets.LUMA_SECRET }}
         run: .tools/venv/bin/python scripts/create-appcast.py --check-key --signer build/_deps/sparkle-src/bin/sign_update
       - name: Build
         run: .tools/venv/bin/cmake --build build --parallel 3
@@ -289,15 +289,15 @@ jobs:
         run: .tools/venv/bin/python scripts/verify-bundle.py
       - name: Verify mounted installer and version
         run: |
-          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Luma.app/Contents/Info.plist)
-          .tools/venv/bin/python scripts/verify-dmg.py "dist/release/Luma-$version-macos-arm64.dmg"
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Apertone.app/Contents/Info.plist)
+          .tools/venv/bin/python scripts/verify-dmg.py "dist/release/Apertone-$version-macos-arm64.dmg"
       - name: Sign update archive and prepare appcast
         if: needs.signing-configuration.outputs.configured == 'true'
         env:
-          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.LUMA_SECRET }}
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY || secrets.APERTONE_SECRET || secrets.LUMA_SECRET }}
         run: |
           if [[ -z "$SPARKLE_PRIVATE_KEY" ]]; then
-            echo 'Configure repository secret SPARKLE_PRIVATE_KEY (or LUMA_SECRET) before publishing updater-enabled releases.' >&2
+            echo 'Configure repository secret SPARKLE_PRIVATE_KEY, APERTONE_SECRET or the legacy LUMA_SECRET before publishing updater-enabled releases.' >&2
             exit 1
           fi
           .tools/venv/bin/python scripts/create-appcast.py --signer build/_deps/sparkle-src/bin/sign_update

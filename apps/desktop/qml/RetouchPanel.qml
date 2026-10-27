@@ -6,9 +6,9 @@ ColumnLayout {
     id: panel
     Layout.fillWidth: true
     Layout.minimumWidth: 0
-    LumaButton {
+    ApertoneButton {
         objectName: "retouch.toggle"
-        text: qsTranslate("Luma", "Retouch")
+        text: qsTranslate("Apertone", "Retouch")
         checkable: true
         checked: editor.retouchMode !== "off"
         enabled: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original
@@ -22,10 +22,10 @@ ColumnLayout {
         RowLayout {
             Layout.fillWidth: true
             Repeater {
-                model: [{key: "clone", title: qsTranslate("Luma", "Clone")},
-                        {key: "heal", title: qsTranslate("Luma", "Heal")},
-                        {key: "remove", title: qsTranslate("Luma", "Remove")}]
-                LumaButton {
+                model: [{key: "clone", title: qsTranslate("Apertone", "Clone")},
+                        {key: "heal", title: qsTranslate("Apertone", "Heal")},
+                        {key: "remove", title: qsTranslate("Apertone", "Remove")}]
+                ApertoneButton {
                     required property var modelData
                     objectName: "retouch.mode." + modelData.key
                     text: modelData.title
@@ -38,15 +38,15 @@ ColumnLayout {
         }
         Label {
             text: editor.retouchMode === "remove"
-                ? qsTranslate("Luma", "Paint over a small object to find a replacement area.")
-                : qsTranslate("Luma", "Option-click a source area, then paint over the target.")
+                ? qsTranslate("Apertone", "Paint over a small object to find a replacement area.")
+                : qsTranslate("Apertone", "Option-click a source area, then paint over the target.")
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         Repeater {
-            model: [{key: "radius", title: qsTranslate("Luma", "Size"), min: .1, max: 25},
-                    {key: "feather", title: qsTranslate("Luma", "Feather"), min: 0, max: 100},
-                    {key: "opacity", title: qsTranslate("Luma", "Opacity"), min: 0, max: 100}]
+            model: [{key: "radius", title: qsTranslate("Apertone", "Size"), min: .1, max: 25},
+                    {key: "feather", title: qsTranslate("Apertone", "Feather"), min: 0, max: 100},
+                    {key: "opacity", title: qsTranslate("Apertone", "Opacity"), min: 0, max: 100}]
             ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
@@ -62,12 +62,12 @@ ColumnLayout {
                 }
             }
         }
-        LumaComboBox {
+        ApertoneComboBox {
             id: strokes
             Layout.fillWidth: true
             model: editor.retouchItems
             textRole: "number"
-            Accessible.name: qsTranslate("Luma", "Retouch stroke")
+            Accessible.name: qsTranslate("Apertone", "Retouch stroke")
             currentIndex: {
                 for (let i = 0; i < model.length; ++i)
                     if (model[i].id === editor.retouchState.selected) return i
@@ -77,9 +77,9 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            LumaButton { text: qsTranslate("Luma", "New stroke"); onClicked: editor.selectRetouch(""); Layout.fillWidth: true }
-            LumaButton {
-                text: qsTranslate("Luma", "Delete")
+            ApertoneButton { text: qsTranslate("Apertone", "New stroke"); onClicked: editor.selectRetouch(""); Layout.fillWidth: true }
+            ApertoneButton {
+                text: qsTranslate("Apertone", "Delete")
                 enabled: editor.retouchState.selected.length > 0
                 onClicked: editor.removeRetouch()
                 Layout.fillWidth: true
@@ -87,21 +87,21 @@ ColumnLayout {
         }
         CheckBox {
             visible: editor.retouchState.selected.length > 0
-            text: qsTranslate("Luma", "Enabled")
+            text: qsTranslate("Apertone", "Enabled")
             checked: editor.retouchState.enabled
             onToggled: editor.setRetouchEnabled(checked)
         }
         Label {
             visible: editor.retouchState.selected.length > 0
-            text: qsTranslate("Luma", "Option-click to reposition the selected source.")
+            text: qsTranslate("Apertone", "Option-click to reposition the selected source.")
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         ProgressBar { objectName: "retouch.progress"; visible: editor.retouchBusy; indeterminate: true; Layout.fillWidth: true }
-        LumaButton {
+        ApertoneButton {
             objectName: "retouch.cancel"
             visible: editor.retouchBusy || editor.retouchState.drawing
-            text: qsTranslate("Luma", "Cancel")
+            text: qsTranslate("Apertone", "Cancel")
             onClicked: editor.cancelRetouch()
             Layout.fillWidth: true
         }

@@ -51,8 +51,8 @@ int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     ShutdownMarker applicationDestroying{"qguiapplication.owner.destroy.begin"};
     app.setQuitOnLastWindowClosed(false);
-    app.setApplicationName("Luma UX");
-    app.setApplicationVersion(LUMA_VERSION);
+    app.setApplicationName("Apertone UX");
+    app.setApplicationVersion(APERTONE_VERSION);
     QQuickStyle::setStyle("Basic");
     QCommandLineParser parser;
     parser.addOption({"root", "Isolated public fixture evidence directory", "directory"});

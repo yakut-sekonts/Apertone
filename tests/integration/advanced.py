@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "assets"))
 from generate_dng import create_dng
 
 cli = Path(sys.argv[1])
-gui = cli.parent.parent / "Luma.app/Contents/MacOS/Luma"
+gui = cli.parent.parent / "Apertone.app/Contents/MacOS/Apertone"
 with tempfile.TemporaryDirectory(prefix="luma-advanced-") as temporary:
     root = Path(temporary)
     source = root / "Advanced RAW.DNG"

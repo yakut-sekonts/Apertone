@@ -6,12 +6,12 @@ All deferred checks and fixes must be covered in the final pre-release campaign.
 Final qualification started on 2026-10-21; newly reproduced failures below retain
 their actual execution status rather than the earlier development-only status.
 The 23 accepted 0.5.1 qualification gaps remain tracked in
-[Issue #48](https://github.com/yakut-sekonts/Luma/issues/48) and
+[Issue #48](https://github.com/yakut-sekonts/Apertone/issues/48) and
 [the release record](releases/v0.5.1-quality.md).
 
 ## LUMA-BUG-035 — Filmstrip/Library scroll returns on photo selection
 
-- GitHub: [Issue #49](https://github.com/yakut-sekonts/Luma/issues/49).
+- GitHub: [Issue #49](https://github.com/yakut-sekonts/Apertone/issues/49).
 - Status: **bounded grid and filmstrip regressions pass offscreen/native; broader qualification remains open**.
 - Reported: 2026-10-20, after installation of the 0.5.1 release.
   The recording displays 0.5.1; the exact executable identity is unavailable.
@@ -81,7 +81,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 ### Follow-up — 2026-10-21
 
 - The same v1 recipe on macOS 15.7.9 / Xcode 16.4 passed the ordinary gradient
-  and HDR cases, but still failed black. Evidence: [CI run](https://github.com/yakut-sekonts/Luma/actions/runs/39608476171)
+  and HDR cases, but still failed black. Evidence: [CI run](https://github.com/yakut-sekonts/Apertone/actions/runs/39608476171)
   and [its report](qualification/2026-10-21/model-numerics-ci-v1.json).
 - On macOS 27, an isolated 32→64 channel 2×2/stride-2 convolution reproduced the
   boundary error (max 0.03495), independently of the rest of NAFNet. Adaptation
@@ -123,7 +123,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 ## LUMA-BUG-038 — Diagnostic writer prevents the supported CI build
 
 - Status: **closed for the reported build failure — local and Xcode 16.4 CI PASS**.
-- [CI run](https://github.com/yakut-sekonts/Luma/actions/runs/39612524379) fails
+- [CI run](https://github.com/yakut-sekonts/Apertone/actions/runs/39612524379) fails
   compiling `DiagnosticSession`: Xcode 16.4's libc++ has no `std::jthread` or
   `std::stop_token`. Local Xcode 27 builds did not expose this incompatibility.
 - Replaced the writer with `std::thread` and a stop flag protected by the same
@@ -147,7 +147,7 @@ The 23 accepted 0.5.1 qualification gaps remain tracked in
 - The replacement resolves these exact synthetic reproductions only. Real
   camera noise, fine texture, color and per-tile estimate consistency still
   require photographic/runtime qualification; ALL does not prove device placement.
-- BUG-038: [CI run 39616268298](https://github.com/yakut-sekonts/Luma/actions/runs/39616268298)
+- BUG-038: [CI run 39616268298](https://github.com/yakut-sekonts/Apertone/actions/runs/39616268298)
   built successfully with Xcode 16.4 and passed the diagnostic lifecycle test
   as part of unit/integration. This does not qualify all crash-reporter paths.
 
@@ -422,7 +422,7 @@ supplemental sequence, while retaining the complete later evidence archive.
 - Status: **fixed; LibraryModel integration and bounded manual-backup UX PASS**.
 - `cancelImport()` cancelled a token later reused by backup/restore, XMP and
   relink. Backup worked before Cancel Import and then failed with
-  `Operation cancelled.` until another import reset the source or Luma restarted.
+  `Operation cancelled.` until another import reset the source or Apertone restarted.
 - Separate import and maintenance cancellation lifetimes. Request Close and
   destruction still cancel both; finishing/cancelling import does not stop later
   maintenance. Existing transaction, atomic-file and original protections remain.
@@ -440,7 +440,7 @@ supplemental sequence, while retaining the complete later evidence archive.
 ## LUMA-BUG-055 — ImageIO XMP lists reject valid creator and keyword entries
 
 - Status: **fixed; native unit regression and six bounded UX scenarios PASS**.
-- Valid external XMP and Luma-written sidecars fail with `XMP list must contain
+- Valid external XMP and Apertone-written sidecars fail with `XMP list must contain
   text.` because ImageIO array entries are string-valued `CGImageMetadataTag`
   objects. The decoder assumed bare `CFString` values. An actual native type
   probe and pre-fix unit/UX failures retain this evidence.
@@ -785,7 +785,7 @@ qualification and the latest local fixes still require the remaining campaign.
 - New DAT004 migration passes three offscreen repetitions, including independent
   post-exit preservation/backup audits and exact 0.5.1 output in both processes.
 - Native migration and an independent startup control stop before the scenario at
-  `native window active`. Passive AppKit snapshot shows the Luma window visible,
+  `native window active`. Passive AppKit snapshot shows the Apertone window visible,
   not minimized and capable of becoming key; foreground PID belongs to
   `com.apple.UserNotificationCenter`.
 - The native UI tool refuses that system application for safety. Do not bypass
@@ -956,7 +956,7 @@ status and signed local candidate:
   AppKit handoff in both directions. The parent PID, executable and one-time
   return request are pinned. The peer uses Accessory policy and finishes its
   startup handoff before the held gesture, avoiding observed late Regular-app
-  activation. Luma retains its normal policy; no global OS setting changes.
+  activation. Apertone retains its normal policy; no global OS setting changes.
 - Native/Qt transitions, no injected release before completion, exact durable
   documents, a clean new gesture and complete Undo/Redo checks are required.
   Offscreen routes skip explicitly; the helper is excluded from shipping symbols.
@@ -970,7 +970,7 @@ and exact coverage limits:
 ### LUMA-QA-092 — Human minimize observation differs from native test evidence
 
 - Status: **open observation discrepancy; no product defect established**.
-- The user confirms clicking the yellow button and seeing the prepared Luma QA
+- The user confirms clicking the yellow button and seeing the prepared Apertone QA
   window minimize. The automated candidate observed no matching NSWindow/Qt
   transition during its original 45-second external-input window.
 - Preserve both observations. A passive diagnostic now records bounded native

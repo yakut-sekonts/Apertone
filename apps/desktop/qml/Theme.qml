@@ -2,7 +2,10 @@ pragma Singleton
 import QtQuick
 
 QtObject {
-    readonly property bool dark: appearance.dark
+    // Standalone component tests and reusable dialogs do not always provide an
+    // appearance controller. Application roots bind this fallback to the
+    // persisted controller when they own one.
+    property bool dark: true
 
     readonly property color window: dark ? "#171719" : "#e8eeed"
     readonly property color panel: dark ? "#131217" : "#ffffff"

@@ -1,6 +1,6 @@
 # Crop and Straighten — 0.4.5 development
 
-[Issue #20](https://github.com/yakut-sekonts/Luma/issues/20) implements requirements
+[Issue #20](https://github.com/yakut-sekonts/Apertone/issues/20) implements requirements
 §27. Crop has free/original/fixed/custom locked ratios, aspect orientation swap,
 quarter turns, ±45° straighten, horizontal/vertical flips, movable frame and eight
 resize grips. Thirds/grid/diagonal/golden-ratio guides are display-only state.

@@ -58,7 +58,7 @@ Catalog schema 11 stores a mandatory version-2 `edit_local_masks` child per phot
 global edit schema remains 8. Migration 9→10 adds neutral gradients; 10→11
 validates and upgrades all legacy documents atomically, preserving global
 settings/revisions. Corruption rolls the entire migration back. Original files
-are never modified. Older Luma versions refuse catalog 11: back up the catalog
+are never modified. Older Apertone versions refuse catalog 11: back up the catalog
 before upgrading if rollback is needed. Automatic catalog backup/recovery remains
 phase 0.9.
 

@@ -13,7 +13,7 @@ autosave and export always refer to applied edits.
 
 Select a preset and use the menu to rename, move, change included groups, explicitly
 replace settings from the active photo, export JSON or delete. Import validates a
-Luma JSON preset and assigns a new local ID. Import/export work without a photo.
+Apertone JSON preset and assigns a new local ID. Import/export work without a photo.
 Copy selects groups; Paste applies the in-memory snapshot to the current photo
 as one Undo, including after switching photos. The system clipboard is untouched.
 

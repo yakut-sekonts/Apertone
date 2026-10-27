@@ -17,8 +17,8 @@ from model_assets import describe_models, verify_zip
 from release_identity import verify_zip_identity
 
 repository = os.environ.get("GITHUB_REPOSITORY")
-if repository != "yakut-sekonts/Luma":
-    raise SystemExit("This publisher is scoped to yakut-sekonts/Luma.")
+if repository != "yakut-sekonts/Apertone":
+    raise SystemExit("This publisher is scoped to yakut-sekonts/Apertone.")
 parser = argparse.ArgumentParser()
 parser.add_argument("--tag", default=os.environ.get("GITHUB_REF_NAME", ""))
 parser.add_argument("--source-commit", default=os.environ.get("GITHUB_SHA", ""))
@@ -35,9 +35,9 @@ if info["version"] != version or info["source_commit"] != arguments.source_commi
     raise SystemExit("Asset version/source commit does not match the release tag.")
 if int(version.split(".")[0]) >= 1:
     if not info.get("dependencies", {}).get("Sparkle"):
-        raise SystemExit("Luma 1.0 and later require the signed Sparkle update channel.")
+        raise SystemExit("Apertone 1.0 and later require the signed Sparkle update channel.")
     if info.get("distribution") != "github-open-source":
-        raise SystemExit("Luma 1.0 and later require the explicit GitHub open-source distribution policy.")
+        raise SystemExit("Apertone 1.0 and later require the explicit GitHub open-source distribution policy.")
     if info.get("signing") == "ad-hoc":
         if info.get("notarized") is not False or info.get("notarization"):
             raise SystemExit("Ad-hoc artifacts must explicitly declare that Apple notarization is absent.")
@@ -50,14 +50,14 @@ if int(version.split(".")[0]) >= 1:
             raise SystemExit("Developer ID artifacts require accepted app/DMG notarization.")
     else:
         raise SystemExit("Unsupported release signing mode.")
-paths = [folder / f"Luma-{version}-macos-arm64.zip", folder / f"Luma-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
+paths = [folder / f"Apertone-{version}-macos-arm64.zip", folder / f"Apertone-{version}-macos-arm64.dmg", folder / "BUILD_INFO.json", folder / "SHA256SUMS"]
 if info.get("dependencies", {}).get("Sparkle"):
     ns = "http://www.andymatuschak.org/xml-namespaces/sparkle"
     items = ET.parse(folder / "appcast.xml").findall("./channel/item")
     if len(items) != 1:
         raise SystemExit("Update feed must contain exactly this release.")
     enclosure = items[0].find("enclosure")
-    if enclosure is None or enclosure.get(f"{{{ns}}}version") != version or enclosure.get("url") != f"https://github.com/{repository}/releases/download/{tag}/Luma-{version}-macos-arm64.zip" or enclosure.get("length") != str(paths[0].stat().st_size):
+    if enclosure is None or enclosure.get(f"{{{ns}}}version") != version or enclosure.get("url") != f"https://github.com/{repository}/releases/download/{tag}/Apertone-{version}-macos-arm64.zip" or enclosure.get("length") != str(paths[0].stat().st_size):
         raise SystemExit("Update feed does not match the verified release ZIP.")
     if len(base64.b64decode(enclosure.get(f"{{{ns}}}edSignature", ""), validate=True)) != 64:
         raise SystemExit("Update feed requires an EdDSA signature.")
@@ -92,7 +92,7 @@ existing = gh("release", "view", tag, "--json", "isDraft", check=False)
 if existing.returncode == 0 and not json.loads(existing.stdout)["isDraft"]:
     raise SystemExit("Release is already published; immutable assets will not be replaced.")
 if existing.returncode:
-    gh("release", "create", tag, "--verify-tag", "--draft", "--title", f"Luma {version}", "--notes-file", f"docs/releases/{tag}.md")
+    gh("release", "create", tag, "--verify-tag", "--draft", "--title", f"Apertone {version}", "--notes-file", f"docs/releases/{tag}.md")
 gh("release", "upload", tag, *map(str, paths), "--clobber")
 # The tag endpoint can return 404 for drafts. gh resolves drafts through the
 # release list; use the resolved numeric ID for the asset REST request.

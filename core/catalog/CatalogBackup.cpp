@@ -53,7 +53,7 @@ void verifyBackupDatabase(sqlite3 *db, CancellationToken stop) {
     detail::Statement schema(db,
                              "SELECT 1 FROM sqlite_master WHERE type='table' AND name='assets'");
     if (!schema.row())
-        throw std::runtime_error("The file is not a Luma catalog.");
+        throw std::runtime_error("The file is not a Apertone catalog.");
 }
 void snapshot(sqlite3 *source, const std::filesystem::path &destination, CancellationToken stop,
               const std::function<void(double)> &progress) {

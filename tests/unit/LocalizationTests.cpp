@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
                 ("import QtQuick\nimport QtQuick.Controls\nimport \"" +
                  QUrl::fromLocalFile(QString::fromUtf8(argv[1])).toString() +
                  "\"\nApplicationWindow { width: 700; height: 550; visible: true; Text { "
-                 "objectName: \"translatedCaption\"; text: qsTranslate(\"Luma\", \"Export\") } "
+                 "objectName: \"translatedCaption\"; text: qsTranslate(\"Apertone\", \"Export\") } "
                  "PreferencesPanel { id: settings; Component.onCompleted: open() } }")
                     .toUtf8(),
                 QUrl());
@@ -109,7 +109,8 @@ int main(int argc, char **argv) {
             auto *choice = window->findChild<QObject *>("languageChoice");
             auto *appearanceChoice = window->findChild<QObject *>("appearanceChoice");
             require(caption && choice && appearanceChoice, "Preference controls are missing.");
-            require(appearance->mode() == QStringLiteral("system") && !QFile::exists(appearancePath),
+            require(appearance->mode() == QStringLiteral("system") &&
+                        !QFile::exists(appearancePath),
                     "Appearance must follow the system without a startup write.");
             require(appearanceChoice->setProperty("currentIndex", 1) &&
                         QMetaObject::invokeMethod(appearanceChoice, "activated", Q_ARG(int, 1)) &&
@@ -160,7 +161,8 @@ int main(int argc, char **argv) {
             QQmlEngine engine;
             LocalizationController restored(path, engine);
             require(restored.language() == QStringLiteral("fr") &&
-                        QCoreApplication::translate("Luma", "Export") == QStringLiteral("Exporter"),
+                        QCoreApplication::translate("Apertone", "Export") ==
+                            QStringLiteral("Exporter"),
                     "Language did not survive restart.");
         }
         {

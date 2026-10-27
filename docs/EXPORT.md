@@ -16,8 +16,8 @@ flatten transparent Transform corners and source-image transparency against blac
 PNG/TIFF preserve coverage. These exports also accept ordinary image sources in
 0.4.12; see [image support](IMAGE_SUPPORT.md).
 DNG is uncompressed 16-bit LinearRaw with edits baked into samples. It is not a
-copy of camera sensor data, does not retain an editable Luma adjustment stack,
-and is not an archival replacement for the original. Luma reimports its own
+copy of camera sensor data, does not retain an editable Apertone adjustment stack,
+and is not an archival replacement for the original. Apertone reimports its own
 identified DNG calibration; general RGB/float or multi-illuminant DNG remains
 unsupported. DNG requires at least 22 px on each side for the LibRaw roundtrip,
 and its unpacked dimensions must fit 512 MB including LibRaw's allocation border.
@@ -34,7 +34,7 @@ Matte, Glossy, each Low/Standard/High. Off is an exact bypass.
 
 All copies available photographic EXIF/IPTC/XMP fields. Geometry, color and file
 encoding declarations are regenerated for the output. Opaque MakerNotes, embedded
-previews, sensor-layout fields and camera/Luma processing instructions are excluded.
+previews, sensor-layout fields and camera/Apertone processing instructions are excluded.
 Copyright Only uses an attribution allowlist. Remove Location removes GPS and
 location-bearing IPTC/XMP fields, including structured LocationCreated/LocationShown.
 It does not inspect free-text captions for locations. None transfers no source
@@ -79,7 +79,7 @@ verification. This is local export, without cloud publishing or later phase mask
 ## CLI
 
 ```sh
-build/bin/luma export /absolute/output.tif --catalog /absolute/catalog.sqlite \
+build/bin/apertone export /absolute/output.tif --catalog /absolute/catalog.sqlite \
   --format tiff16 --compression zip --color-space prophoto \
   --resize long --size 3000 --output-sharpen matte --output-amount standard \
   --metadata remove-location --watermark-text '© Author' --watermark-anchor 8

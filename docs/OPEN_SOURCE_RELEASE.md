@@ -1,7 +1,7 @@
 # GitHub open-source distribution
 
-Owner decision, 2026-10-22: a full Luma release is publication in
-[yakut-sekonts/Luma Releases](https://github.com/yakut-sekonts/Luma/releases).
+Owner decision, 2026-10-22: a full Apertone release is publication in
+[yakut-sekonts/Apertone Releases](https://github.com/yakut-sekonts/Apertone/releases).
 Apple Developer Program membership, Developer ID and Apple notarization are not
 required. The repository's existing license and third-party notices remain in force.
 
@@ -26,13 +26,13 @@ selected, accepted application and DMG notarization receipts are required.
 ## First launch on macOS
 
 Download from the repository's Releases page, verify SHA256SUMS, open the DMG and
-copy Luma.app to Applications. Attempt to open that copy. If macOS reports that
+copy Apertone.app to Applications. Attempt to open that copy. If macOS reports that
 Apple cannot verify the developer/application, dismiss the alert, then use
-System Settings → Privacy & Security → Open Anyway for Luma and confirm the
+System Settings → Privacy & Security → Open Anyway for Apertone and confirm the
 per-app exception. Only approve a download whose source you trust.
 See [Apple's first-launch guidance](https://support.apple.com/102445).
 
 This is a per-app approval, not a requirement to disable Gatekeeper globally.
 Neither the installer nor updater changes system security settings. A Sparkle
-signature verifies the update against Luma's key; it does not provide Apple
+signature verifies the update against Apertone's key; it does not provide Apple
 notarization or remove the need to test the actual download/upgrade path.

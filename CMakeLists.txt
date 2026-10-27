@@ -2,10 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Luma VERSION 1.1.0 LANGUAGES C CXX OBJCXX)
+project(Apertone VERSION 1.1.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
-    message(FATAL_ERROR "Luma currently supports macOS Apple Silicon only.")
+    message(FATAL_ERROR "Apertone currently supports macOS Apple Silicon only.")
 endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -83,7 +83,7 @@ qt_add_resources(luma_localization luma_languages PREFIX "/luma/i18n" BASE "reso
     FILES resources/i18n/en.json resources/i18n/ru.json resources/i18n/zh_CN.json resources/i18n/hy.json
           resources/i18n/de.json resources/i18n/es.json resources/i18n/it.json resources/i18n/fr.json)
 
-qt_add_executable(Luma MACOSX_BUNDLE
+qt_add_executable(Apertone MACOSX_BUNDLE
     apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h
     apps/desktop/DiagnosticSession.cpp apps/desktop/DiagnosticSession.h platform/macos/CrashCapture.mm
     apps/desktop/CatalogStartup.cpp apps/desktop/CatalogStartup.h
@@ -94,30 +94,30 @@ qt_add_executable(Luma MACOSX_BUNDLE
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-qt_add_qml_module(Luma URI Luma.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/LumaButton.qml apps/desktop/qml/LumaComboBox.qml apps/desktop/qml/LumaTextField.qml apps/desktop/qml/LumaSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
-target_link_libraries(Luma PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
-target_link_libraries(Luma PRIVATE luma_crashreporter "-framework Foundation" "-framework CoreServices")
-target_link_options(Luma PRIVATE -ObjC)
+qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
+    QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
+target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
+target_link_libraries(Apertone PRIVATE luma_crashreporter "-framework Foundation" "-framework CoreServices")
+target_link_options(Apertone PRIVATE -ObjC)
 set_source_files_properties(platform/macos/CrashCapture.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_source_files_properties(platform/macos/Updater.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-set_property(TARGET Luma APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
-add_custom_command(TARGET Luma POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Luma>/Contents/Frameworks"
+set_property(TARGET Apertone APPEND PROPERTY BUILD_RPATH "${sparkle_SOURCE_DIR}")
+add_custom_command(TARGET Apertone POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Frameworks"
     COMMAND /usr/bin/ditto "${sparkle_SOURCE_DIR}/Sparkle.framework"
-        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Frameworks/Sparkle.framework"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Frameworks/Sparkle.framework"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty"
     COMMAND ${CMAKE_COMMAND} -E copy "${sparkle_SOURCE_DIR}/LICENSE"
-        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt"
     COMMAND ${CMAKE_COMMAND} -E copy "${plcrashreporter_SOURCE_DIR}/LICENSE"
-        "$<TARGET_BUNDLE_DIR:Luma>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt")
-target_compile_definitions(Luma PRIVATE LUMA_VERSION="${PROJECT_VERSION}")
-set_source_files_properties(resources/branding/Luma.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-target_sources(Luma PRIVATE resources/branding/Luma.icns)
-target_compile_options(Luma PRIVATE -Wall -Wextra -Wpedantic -Werror)
-set_target_properties(Luma PROPERTIES
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt")
+target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
+set_source_files_properties(resources/branding/Apertone.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+target_sources(Apertone PRIVATE resources/branding/Apertone.icns)
+target_compile_options(Apertone PRIVATE -Wall -Wextra -Wpedantic -Werror)
+set_target_properties(Apertone PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.desktop"
-    MACOSX_BUNDLE_BUNDLE_NAME Luma
+    MACOSX_BUNDLE_BUNDLE_NAME Apertone
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION}
     MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/platform/macos/Info.plist.in")
@@ -127,19 +127,19 @@ if(EXISTS "${LUMA_BUNDLED_MODELS_DIR}/manifest.json")
     if(Python3_VERSION VERSION_LESS "3.11")
         message(FATAL_ERROR "Bundled model manifests require Python 3.11 or later; use the Python 3.12 build environment.")
     endif()
-    # Run even when Luma itself did not relink, so a changed model recipe cannot
+    # Run even when Apertone itself did not relink, so a changed model recipe cannot
     # leave stale resources in a previously generated app bundle.
     add_custom_target(luma_bundled_models ALL
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/install-bundled-models.py"
-            "${LUMA_BUNDLED_MODELS_DIR}" "$<TARGET_BUNDLE_DIR:Luma>"
-        DEPENDS Luma
+            "${LUMA_BUNDLED_MODELS_DIR}" "$<TARGET_BUNDLE_DIR:Apertone>"
+        DEPENDS Apertone
         VERBATIM)
 elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
-    message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Luma 1.0.")
+    message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Apertone 1.0.")
 endif()
 
 add_executable(luma_cli apps/cli/main.cpp apps/cli/LibraryCommands.cpp)
-set_target_properties(luma_cli PROPERTIES OUTPUT_NAME luma
+set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 target_link_libraries(luma_cli PRIVATE luma_services)
 target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -252,7 +252,7 @@ if(BUILD_TESTING)
     target_link_options(luma_ux_tests PRIVATE -ObjC)
     set_target_properties(luma_ux_tests PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.ux-tests"
-        MACOSX_BUNDLE_BUNDLE_NAME "LumaUXTests"
+        MACOSX_BUNDLE_BUNDLE_NAME "ApertoneUXTests"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_SOURCE_DIR}/tests/ux/Info.plist.in")
@@ -324,7 +324,7 @@ if(BUILD_TESTING)
     set_tests_properties(ux-thumbnail-partial-render-fixture-accounting PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
     add_test(NAME ux-cpu-probe-shipping-isolation COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/ux/check_renderer_symbol_isolation.py"
-        --shipping "$<TARGET_FILE:Luma>" --ux "$<TARGET_FILE:luma_ux_tests>")
+        --shipping "$<TARGET_FILE:Apertone>" --ux "$<TARGET_FILE:luma_ux_tests>")
     set_tests_properties(ux-cpu-probe-shipping-isolation PROPERTIES TIMEOUT 30 LABELS "ux;infrastructure")
     target_sources(luma_ux_tests PRIVATE tests/ux/ThumbnailResponseTrace.cpp
         tests/ux/ThumbnailCpuRenderProbe.cpp $<TARGET_OBJECTS:luma_ux_cpu_row_renderer>)
@@ -343,7 +343,7 @@ if(BUILD_TESTING)
     set_source_files_properties(tests/ux/NativeApplicationHandoff.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_HISTORY_READBACK=1)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_THUMBNAIL_TRACE=1)
-    target_compile_definitions(luma_ux_tests PRIVATE LUMA_VERSION="${PROJECT_VERSION}")
+    target_compile_definitions(luma_ux_tests PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
     target_compile_options(luma_ux_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     qt_add_executable(luma_localization_tests tests/unit/LocalizationTests.cpp apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h)
     target_include_directories(luma_localization_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -444,15 +444,18 @@ if(BUILD_TESTING)
     target_sources(luma_library_tests PRIVATE apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
     target_link_libraries(luma_library_tests PRIVATE luma_services Qt6::Core)
     target_compile_options(luma_library_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    add_test(NAME qml-shell COMMAND Luma --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
+    add_test(NAME qml-shell COMMAND Apertone --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
     set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    add_test(NAME common-image-workflow COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/images.py" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Luma>" "$<TARGET_FILE:luma_raster_tests>")
+    add_test(NAME common-image-workflow COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/images.py" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Apertone>" "$<TARGET_FILE:luma_raster_tests>")
     set_tests_properties(common-image-workflow PROPERTIES TIMEOUT 180)
-    add_test(NAME language-native-ui COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/languages.py" "$<TARGET_FILE:Luma>")
+    add_test(NAME language-native-ui COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/languages.py" "$<TARGET_FILE:Apertone>")
     set_tests_properties(language-native-ui PROPERTIES TIMEOUT 180)
     add_test(NAME language-catalog-coverage COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/scripts/check-translations.py")
-    add_test(NAME export-settings-immutable-queue COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/export_queue.py" "$<TARGET_FILE:luma_batch_tests>" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Luma>")
+    add_test(NAME apertone-rebrand-compatibility COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/rebrand.py")
+    set_tests_properties(apertone-rebrand-compatibility PROPERTIES LABELS "unit;release")
+    add_test(NAME export-settings-immutable-queue COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/export_queue.py" "$<TARGET_FILE:luma_batch_tests>" "$<TARGET_FILE:luma_cli>" "$<TARGET_FILE:Apertone>")
     set_tests_properties(export-settings-immutable-queue PROPERTIES TIMEOUT 180)
     add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/batch.py" "$<TARGET_FILE:luma_batch_tests>")
@@ -487,10 +490,10 @@ if(BUILD_TESTING)
     add_test(NAME develop-export-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/develop.py" "$<TARGET_FILE:luma_cli>")
     add_test(NAME complete-mask-native-restart COMMAND ${Python3_EXECUTABLE}
-        "${CMAKE_SOURCE_DIR}/tests/integration/complete_masks.py" "$<TARGET_FILE:Luma>")
+        "${CMAKE_SOURCE_DIR}/tests/integration/complete_masks.py" "$<TARGET_FILE:Apertone>")
     set_tests_properties(complete-mask-native-restart PROPERTIES TIMEOUT 240)
     add_test(NAME local-mask-native-restart COMMAND ${Python3_EXECUTABLE}
-        "${CMAKE_SOURCE_DIR}/tests/integration/local_masks.py" "$<TARGET_FILE:Luma>")
+        "${CMAKE_SOURCE_DIR}/tests/integration/local_masks.py" "$<TARGET_FILE:Apertone>")
     set_tests_properties(local-mask-native-restart PROPERTIES TIMEOUT 240)
     add_test(NAME transform-export-migration COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/transform.py" "$<TARGET_FILE:luma_cli>")

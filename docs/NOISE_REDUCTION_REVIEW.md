@@ -1,6 +1,6 @@
 # Manual noise reduction — 0.4.4 development
 
-[Issue #18](https://github.com/yakut-sekonts/Luma/issues/18) implements the second
+[Issue #18](https://github.com/yakut-sekonts/Apertone/issues/18) implements the second
 Detail substage from requirements §23. All six 0–100 controls, independent enable
 states, gesture Undo/Redo and autosave are included. Luminance Amount and Color
 Amount default to zero, preserving the preceding pixels without spatial buffers.

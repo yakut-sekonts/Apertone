@@ -103,7 +103,7 @@ void DiagnosticsController::collect(const QString &destination) {
             report = {{"reportSchema", 1},
                       {"collectedAtUtc", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)},
                       {"applicationVersion", version},
-                      {"imageEngine", QStringLiteral("Luma scene-linear RGB")},
+                      {"imageEngine", QStringLiteral("Apertone scene-linear RGB")},
                       {"qtVersion", QString::fromLatin1(qVersion())},
                       {"sqliteVersion", QString::fromUtf8(sqlite3_libversion())},
                       {"catalogSchema", schemaVersion(catalog)},

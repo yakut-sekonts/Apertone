@@ -22,10 +22,10 @@ LocalCheckBox 1.0 LocalCheckBox.qml
 LocalOverlay 1.0 LocalOverlay.qml
 LocalPanel 1.0 LocalPanel.qml
 LocalSlider 1.0 LocalSlider.qml
-LumaButton 1.0 LumaButton.qml
-LumaComboBox 1.0 LumaComboBox.qml
-LumaSpinBox 1.0 LumaSpinBox.qml
-LumaTextField 1.0 LumaTextField.qml
+ApertoneButton 1.0 ApertoneButton.qml
+ApertoneComboBox 1.0 ApertoneComboBox.qml
+ApertoneSpinBox 1.0 ApertoneSpinBox.qml
+ApertoneTextField 1.0 ApertoneTextField.qml
 Main 1.0 Main.qml
 MetadataRow 1.0 MetadataRow.qml
 PhotoCard 1.0 PhotoCard.qml

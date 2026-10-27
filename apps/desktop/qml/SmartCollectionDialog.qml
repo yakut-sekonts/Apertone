@@ -5,7 +5,7 @@ Dialog {
     id: dialog
     parent:Overlay.overlay;anchors.centerIn:parent;modal:true
     width:Math.min(parent.width-40,760);height:Math.min(parent.height-40,640)
-    title:qsTranslate("Luma","Smart Collection")
+    title:qsTranslate("Apertone","Smart Collection")
     property string collectionID:""
     property string revision:"0"
     property var rule:({kind:"all",children:[{kind:"condition",field:"rating",operation:"ge",value:4}]})
@@ -16,18 +16,18 @@ Dialog {
     }
     ColumnLayout {
         anchors.fill:parent
-        LumaTextField {id:name;Layout.fillWidth:true;maximumLength:128;placeholderText:qsTranslate("Luma","Collection name");selectByMouse:true}
-        Label {text:qsTranslate("Luma","Membership updates automatically. Date values use YYYY-MM-DD.");wrapMode:Text.Wrap;Layout.fillWidth:true}
+        ApertoneTextField {id:name;Layout.fillWidth:true;maximumLength:128;placeholderText:qsTranslate("Apertone","Collection name");selectByMouse:true}
+        Label {text:qsTranslate("Apertone","Membership updates automatically. Date values use YYYY-MM-DD.");wrapMode:Text.Wrap;Layout.fillWidth:true}
         ScrollView {
             id:rulesScroll
             Layout.fillWidth:true;Layout.fillHeight:true;clip:true;contentWidth:availableWidth
             SmartRuleEditor {width:rulesScroll.availableWidth;rule:dialog.rule;onEdited:function(next){dialog.rule=next}}
         }
-        Label {visible:library.error.length>0;text:qsTranslate("Luma",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:Theme.negative}
+        Label {visible:library.error.length>0;text:qsTranslate("Apertone",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:Theme.negative}
     }
     footer:DialogButtonBox {
-        LumaButton {text:qsTranslate("Luma","Cancel");onClicked:dialog.close()}
-        LumaButton {text:qsTranslate("Luma","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule)}}
+        ApertoneButton {text:qsTranslate("Apertone","Cancel");onClicked:dialog.close()}
+        ApertoneButton {text:qsTranslate("Apertone","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule)}}
     }
     Connections {target:library;function onStateChanged(){if(dialog.visible&&!library.working&&dialog.saving){dialog.saving=false;if(library.error.length===0)dialog.close()}}}
     property bool saving:false

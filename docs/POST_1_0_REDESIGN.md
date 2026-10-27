@@ -1,6 +1,6 @@
 # Frontend redesign after 1.0
 
-User decision, 2026-10-17: redesign Luma's frontend after the qualified 1.0 release.
+User decision, 2026-10-17: redesign Apertone's frontend after the qualified 1.0 release.
 
 Use these sources when that stage begins:
 
@@ -9,7 +9,7 @@ Use these sources when that stage begins:
   localization resilience and a final visual review.
 - [Taste Skill](https://github.com/Leonxlnx/taste-skill): reference-led art
   direction and iterative visual review. Its existing-project redesign and
-  product-interface guidance are relevant to Luma; the default public marketing
+  product-interface guidance are relevant to Apertone; the default public marketing
   page workflow is not a specification for the photo editor.
 
 Apply the design principles to the existing Qt/QML macOS application. These

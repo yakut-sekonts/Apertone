@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Dialog {
     id: dialog
     objectName: "history.dialog"
-    title: qsTranslate("Luma", "History")
+    title: qsTranslate("Apertone", "History")
     modal: true
     anchors.centerIn: parent
     width: Math.min(parent.width - 40, 660)
@@ -65,7 +65,7 @@ Dialog {
     Dialog {
         id: clearConfirmation
         objectName: "history.clearConfirmation"
-        title: qsTranslate("Luma", "Clear history?")
+        title: qsTranslate("Apertone", "Clear history?")
         modal: true
         anchors.centerIn: parent
         width: Math.min(dialog.width - 30, 500)
@@ -78,7 +78,7 @@ Dialog {
             contentWidth: availableWidth
             Label {
                 width: clearWarning.availableWidth
-                text: qsTranslate("Luma", "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.")
+                text: qsTranslate("Apertone", "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.")
                 wrapMode: Text.Wrap
             }
         }
@@ -93,21 +93,21 @@ Dialog {
             spacing: 10
             Label { text: editor.filename; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
             Label {
-                text: qsTranslate("Luma", "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.")
+                text: qsTranslate("Apertone", "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.")
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             RowLayout {
                 Layout.fillWidth: true
-                LumaButton {
+                ApertoneButton {
                     objectName: "history.undo"
-                    text: qsTranslate("Luma", "Undo")
+                    text: qsTranslate("Apertone", "Undo")
                     enabled: !editor.busy && !editor.editingLocked && editor.canUndo
                     Layout.fillWidth: true
                     onClicked: editor.undo()
                 }
-                LumaButton {
+                ApertoneButton {
                     objectName: "history.redo"
-                    text: qsTranslate("Luma", "Redo")
+                    text: qsTranslate("Apertone", "Redo")
                     enabled: !editor.busy && !editor.editingLocked && editor.canRedo
                     Layout.fillWidth: true
                     onClicked: editor.redo()
@@ -134,11 +134,11 @@ Dialog {
                     width: ListView.view.width
                     highlighted: dialog.selectedID === modelData.id
                     enabled: !editor.busy && !editor.editingLocked
-                    Accessible.name: modelData.title + (modelData.current ? " · " + qsTranslate("Luma", "Current state") : "")
+                    Accessible.name: modelData.title + (modelData.current ? " · " + qsTranslate("Apertone", "Current state") : "")
                     contentItem: ColumnLayout {
                         Label { text: modelData.title; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideRight; Layout.fillWidth: true }
                         Label {
-                            text: modelData.current ? qsTranslate("Luma", "Current state") : (modelData.redo ? qsTranslate("Luma", "Available through Redo") : "")
+                            text: modelData.current ? qsTranslate("Apertone", "Current state") : (modelData.redo ? qsTranslate("Apertone", "Available through Redo") : "")
                             visible: text.length > 0
                             font.pixelSize: 10
                             wrapMode: Text.Wrap
@@ -155,40 +155,40 @@ Dialog {
                 wrapMode: Text.WrapAnywhere
                 Layout.fillWidth: true
             }
-            LumaButton {
+            ApertoneButton {
                 objectName: "history.jump"
-                text: qsTranslate("Luma", "Go to selected state")
+                text: qsTranslate("Apertone", "Go to selected state")
                 enabled: !editor.busy && !editor.editingLocked && dialog.selected() !== null
                 Layout.fillWidth: true
                 onClicked: editor.jumpToHistory(dialog.selectedID)
             }
             Label {
-                text: qsTranslate("Luma", "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.")
+                text: qsTranslate("Apertone", "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.")
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
-            LumaTextField {
+            ApertoneTextField {
                 id: nameField
                 objectName: "history.versionName"
-                placeholderText: qsTranslate("Luma", "Version name")
-                Accessible.name: qsTranslate("Luma", "Version name")
+                placeholderText: qsTranslate("Apertone", "Version name")
+                Accessible.name: qsTranslate("Apertone", "Version name")
                 maximumLength: 512
                 enabled: !editor.busy
                 Layout.fillWidth: true
             }
-            LumaButton {
+            ApertoneButton {
                 objectName: "history.saveVersion"
-                text: qsTranslate("Luma", "Save selected state as version")
+                text: qsTranslate("Apertone", "Save selected state as version")
                 enabled: !editor.busy && !editor.editingLocked && dialog.selected() !== null && nameField.text.trim().length > 0
                 Layout.fillWidth: true
                 onClicked: editor.saveHistoryVersion(dialog.selectedID, nameField.text)
             }
             ProgressBar { indeterminate: true; visible: editor.versionsBusy; Layout.fillWidth: true }
             Label { text: editor.versionsStatus; textFormat: Text.PlainText; visible: text.length > 0; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.historyError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            LumaButton {
+            Label { text: qsTranslate("Apertone", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", editor.historyError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            ApertoneButton {
                 objectName: "history.clear"
-                text: qsTranslate("Luma", "Clear history")
+                text: qsTranslate("Apertone", "Clear history")
                 enabled: !editor.busy && !editor.editingLocked && (editor.canUndo || editor.canRedo)
                 Layout.fillWidth: true
                 onClicked: { clearConfirmation.revision = editor.historyRevision; clearConfirmation.open() }

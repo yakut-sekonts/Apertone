@@ -34,7 +34,7 @@ around native decode and during pixel conversion.
 
 RAW sensor development stays in LibRaw. Recognized RAW TIFF containers always use
 that path, including unsupported sensors which must fail rather than substitute
-an embedded preview. Supported RAW layouts remain integer Bayer and Luma's own
+an embedded preview. Supported RAW layouts remain integer Bayer and Apertone's own
 identified processed Linear RGB DNG; this change does not expand camera support.
 
 Tests include owned synthetic fixtures, all eight EXIF orientations, ICC reference

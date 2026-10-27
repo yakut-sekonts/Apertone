@@ -19,16 +19,16 @@ class ReleaseIdentityTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory(prefix='luma-identity-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.app = self.root / 'Luma.app'
+        self.app = self.root / 'Apertone.app'
         self.info = {'version': '1.0.0', 'source_commit': 'a' * 40,
                      'distribution': 'github-open-source', 'signing': 'ad-hoc',
                      'notarized': False, 'dependencies': {'Sparkle': '2.10.0'}}
         self.plist = {'CFBundleVersion': '1.0.0', 'CFBundleShortVersionString': '1.0.0',
-                      'CFBundleIdentifier': 'app.luma.desktop', 'CFBundleExecutable': 'Luma'}
+                      'CFBundleIdentifier': 'app.luma.desktop', 'CFBundleExecutable': 'Apertone'}
         self.write('Contents/Resources/BUILD_INFO.json', json.dumps(self.info).encode())
         self.write('Contents/Info.plist', plistlib.dumps(self.plist))
-        self.write('Contents/MacOS/Luma', b'structural fixture, not an executable')
-        (self.app / 'Contents/MacOS/Luma').chmod(0o755)
+        self.write('Contents/MacOS/Apertone', b'structural fixture, not an executable')
+        (self.app / 'Contents/MacOS/Apertone').chmod(0o755)
         self.write('Contents/Frameworks/Example.framework/Versions/A/Example', b'framework bytes')
         self.link = self.app / 'Contents/Frameworks/Example.framework/Versions/Current'
         self.link.symlink_to('A')
@@ -47,7 +47,7 @@ class ReleaseIdentityTests(unittest.TestCase):
                     path = Path(directory) / name
                     if path.is_dir() and not path.is_symlink():
                         continue
-                    entry = zipfile.ZipInfo('Luma.app/' + path.relative_to(self.app).as_posix())
+                    entry = zipfile.ZipInfo('Apertone.app/' + path.relative_to(self.app).as_posix())
                     entry.create_system = 3
                     entry.external_attr = path.lstat().st_mode << 16
                     archive.writestr(entry, os.fsencode(os.readlink(path)) if path.is_symlink()
@@ -74,12 +74,12 @@ class ReleaseIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'members differ'):
             self.verify()
         extra.unlink()
-        (self.app / 'Contents/MacOS/Luma').unlink()
+        (self.app / 'Contents/MacOS/Apertone').unlink()
         with self.assertRaisesRegex(ValueError, 'members differ'):
             self.verify()
 
     def test_changed_executable_permissions_rejected(self):
-        (self.app / 'Contents/MacOS/Luma').chmod(0o644)
+        (self.app / 'Contents/MacOS/Apertone').chmod(0o644)
         with self.assertRaisesRegex(ValueError, 'metadata differ'):
             self.verify()
 
@@ -94,8 +94,8 @@ class ReleaseIdentityTests(unittest.TestCase):
             self.verify()
 
     def test_duplicate_and_unsafe_zip_paths_rejected(self):
-        for name in ('Luma.app/Contents/Info.plist', 'Luma.app/../outside', '/absolute',
-                     'Luma.app//Contents/extra', 'Unexpected.app/file'):
+        for name in ('Apertone.app/Contents/Info.plist', 'Apertone.app/../outside', '/absolute',
+                     'Apertone.app//Contents/extra', 'Unexpected.app/file'):
             with self.subTest(name=name):
                 self.pack()
                 with warnings.catch_warnings(), zipfile.ZipFile(self.archive, 'a') as archive:

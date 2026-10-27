@@ -41,11 +41,10 @@ AppearanceController::AppearanceController(QString preferences, QObject *parent)
         error_ = QString::fromUtf8(exception.what());
     }
     applyColorScheme();
-    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this,
-            [this] {
-                if (mode_ == QLatin1String("system"))
-                    emit changed();
-            });
+    connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, this, [this] {
+        if (mode_ == QLatin1String("system"))
+            emit changed();
+    });
 }
 bool AppearanceController::dark() const {
     if (mode_ == QLatin1String("night"))
@@ -85,8 +84,8 @@ bool AppearanceController::selectMode(const QString &mode) {
         return false;
     }
     QSaveFile file(path_);
-    const auto document = QJsonDocument(
-        QJsonObject{{QStringLiteral("schema"), 1}, {QStringLiteral("mode"), mode}});
+    const auto document =
+        QJsonDocument(QJsonObject{{QStringLiteral("schema"), 1}, {QStringLiteral("mode"), mode}});
     const auto bytes = document.toJson(QJsonDocument::Compact);
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
         error_ = QStringLiteral("Cannot save appearance preferences.");

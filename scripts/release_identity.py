@@ -9,10 +9,10 @@ from pathlib import Path, PurePosixPath
 import plistlib
 import stat
 
-PREFIX = 'Luma.app/'
+PREFIX = 'Apertone.app/'
 BUILD_INFO = PREFIX + 'Contents/Resources/BUILD_INFO.json'
 PLIST = PREFIX + 'Contents/Info.plist'
-EXECUTABLE = PREFIX + 'Contents/MacOS/Luma'
+EXECUTABLE = PREFIX + 'Contents/MacOS/Apertone'
 
 
 def bundle_members(archive):
@@ -28,7 +28,7 @@ def bundle_members(archive):
         # ditto may include AppleDouble metadata outside the application tree.
         if path.parts[0] == '__MACOSX':
             continue
-        if name == 'Luma.app' and entry.is_dir():
+        if name == 'Apertone.app' and entry.is_dir():
             continue
         if not name.startswith(PREFIX):
             raise ValueError('Release ZIP contains an unexpected top-level member')
@@ -72,7 +72,7 @@ def verify_zip_identity(archive, release_info):
             or plist.get('CFBundleShortVersionString') != version
             or plist.get('CFBundleVersion') != version
             or plist.get('CFBundleIdentifier') != 'app.luma.desktop'
-            or plist.get('CFBundleExecutable') != 'Luma'):
+            or plist.get('CFBundleExecutable') != 'Apertone'):
         raise ValueError('ZIP Info.plist differs from the release app identity')
     return members
 

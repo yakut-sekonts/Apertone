@@ -70,7 +70,7 @@ std::vector<std::uint8_t> outputProfile() {
         cmsCloseProfile(profile);
         throw std::runtime_error("Cannot allocate ICC description.");
     }
-    const bool described = cmsMLUsetASCII(description, "en", "US", "Luma sRGB IEC 61966-2.1") &&
+    const bool described = cmsMLUsetASCII(description, "en", "US", "Apertone sRGB IEC 61966-2.1") &&
                            cmsWriteTag(profile, cmsSigProfileDescriptionTag, description);
     cmsMLUfree(description);
     cmsUInt32Number size = 0;

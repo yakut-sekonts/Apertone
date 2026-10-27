@@ -1,6 +1,6 @@
 # Lens Corrections — 0.4.6 development
 
-[Issue #22](https://github.com/yakut-sekonts/Luma/issues/22) implements §25.
+[Issue #22](https://github.com/yakut-sekonts/Apertone/issues/22) implements §25.
 Develop adds a searchable manual lens list, conservative Auto identification,
 profile enable, Distortion/Vignetting amounts (0–200, calibrated at 100), lateral
 Chromatic Aberration switch and per-effect availability. Unknown or ambiguous
@@ -11,7 +11,7 @@ The Lensfun v0.3.4 XML database is SHA256-pinned. A deterministic build-time
 conversion creates typed arrays with stable profile IDs; only rectilinear
 poly3/poly5/PTLens distortion, linear/poly3 TCA and PA vignetting are supported.
 The original XML and generated adaptation retain CC BY-SA 3.0 attribution and
-are distributed with their notices in the app. Luma uses original mathematics
+are distributed with their notices in the app. Apertone uses original mathematics
 and profile handling; Lensfun library/application/build code is not compiled.
 No GLib or new dynamic runtime dependency is added. See ADR 0014.
 

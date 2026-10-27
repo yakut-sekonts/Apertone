@@ -6,7 +6,7 @@ Item {
     property real hue: editor.parameters["grading."+channel+".hue"]
     property real saturation: editor.parameters["grading."+channel+".saturation"]
     implicitWidth: 170; implicitHeight: 170
-    Accessible.name: qsTranslate("Luma", "Color wheel")
+    Accessible.name: qsTranslate("Apertone", "Color wheel")
     Canvas {
         id: disc; anchors.fill: parent
         onPaint: {

@@ -31,7 +31,11 @@ def sign_archive(archive, signer):
             raise ValueError("Unsupported Sparkle signing key")
         command += ["--ed-key-file", "-"]
     else:
-        command += ["--account", "yakut-sekonts.Luma"]
+        # Keep the existing Keychain account usable across the 1.1 rebrand.
+        # The account label is local metadata; the embedded public key remains
+        # the authority for every generated signature.
+        command += ["--account", os.environ.get("APERTONE_SPARKLE_ACCOUNT",
+                                                "yakut-sekonts.Luma")]
     command.append(str(archive.resolve()))
     safe_env = {key: value for key, value in os.environ.items() if key != "SPARKLE_PRIVATE_KEY"}
     result = subprocess.run(command, input=secret, capture_output=True, text=True,
@@ -44,16 +48,16 @@ def sign_archive(archive, signer):
     verification = subprocess.run(["swift", str(ROOT / "scripts/verify-update-signature.swift"),
         str(archive.resolve()), public_key, signature], capture_output=True, env=safe_env, timeout=120)
     if verification.returncode:
-        raise RuntimeError("Signature does not match Luma's embedded public key")
+        raise RuntimeError("Signature does not match Apertone's embedded public key")
     return signature
 
 def check_key(signer):
     # A public, empty probe uses the same signer and verifier as release ZIPs.
-    with tempfile.TemporaryDirectory(prefix="luma-signing-check-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="apertone-signing-check-") as temporary:
         probe = Path(temporary) / "probe"
         probe.write_bytes(b"")
         sign_archive(probe, signer)
-    print("Signing key matches Luma's embedded public key")
+    print("Signing key matches Apertone's embedded public key")
 
 def create(folder, signer):
     info = json.loads((folder / "BUILD_INFO.json").read_text())
@@ -62,8 +66,8 @@ def create(folder, signer):
         raise ValueError("A stable semantic version is required")
     if not re.fullmatch(r"[0-9a-f]{40}", info["source_commit"]):
         raise ValueError("A full source commit is required")
-    archive = folder / f"Luma-{version}-macos-arm64.zip"
-    expected = {archive.name, f"Luma-{version}-macos-arm64.dmg", "BUILD_INFO.json"}
+    archive = folder / f"Apertone-{version}-macos-arm64.zip"
+    expected = {archive.name, f"Apertone-{version}-macos-arm64.dmg", "BUILD_INFO.json"}
     manifest = {}
     for line in (folder / "SHA256SUMS").read_text().splitlines():
         digest, name = line.split("  ", 1)
@@ -79,15 +83,15 @@ def create(folder, signer):
     signature = sign_archive(archive, signer)
     rss = ET.Element("rss", {"version": "2.0"})
     channel = ET.SubElement(rss, "channel")
-    ET.SubElement(channel, "title").text = "Luma updates"
+    ET.SubElement(channel, "title").text = "Apertone updates"
     item = ET.SubElement(channel, "item")
-    ET.SubElement(item, "title").text = f"Luma {version}"
+    ET.SubElement(item, "title").text = f"Apertone {version}"
     ET.SubElement(item, "pubDate").text = email.utils.format_datetime(datetime.now(timezone.utc))
     ET.SubElement(item, f"{{{NAMESPACE}}}minimumSystemVersion").text = "14.0"
     ET.SubElement(item, f"{{{NAMESPACE}}}releaseNotesLink").text = (
-        f"https://github.com/yakut-sekonts/Luma/releases/tag/v{version}")
+        f"https://github.com/yakut-sekonts/Apertone/releases/tag/v{version}")
     ET.SubElement(item, "enclosure", {
-        "url": f"https://github.com/yakut-sekonts/Luma/releases/download/v{version}/{archive.name}",
+        "url": f"https://github.com/yakut-sekonts/Apertone/releases/download/v{version}/{archive.name}",
         "length": str(archive.stat().st_size), "type": "application/octet-stream",
         f"{{{NAMESPACE}}}version": version, f"{{{NAMESPACE}}}shortVersionString": version,
         f"{{{NAMESPACE}}}edSignature": signature,
@@ -99,7 +103,7 @@ def create(folder, signer):
     temporary.replace(feed)
     manifest[feed.name] = hashlib.sha256(feed.read_bytes()).hexdigest()
     (folder / "SHA256SUMS").write_text("".join(f"{digest}  {name}\n" for name, digest in sorted(manifest.items())))
-    print(f"Signed Sparkle feed prepared for Luma {version}")
+    print(f"Signed Sparkle feed prepared for Apertone {version}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -1,6 +1,6 @@
 # Detail sharpening — 0.4.3 development
 
-[Issue #16](https://github.com/yakut-sekonts/Luma/issues/16) implements the first
+[Issue #16](https://github.com/yakut-sekonts/Apertone/issues/16) implements the first
 Detail substage from requirements §23. Develop exposes Amount, Radius, Detail
 and Masking, a single enabled-state switch, gesture Undo/Redo and autosave.
 
@@ -21,7 +21,7 @@ transitions and export preparation restore the normal preview.
 Catalog migration 4→5 upgrades edit schema 3→4 with neutral parameters. It preserves
 Curve/HSL children, previous correction flags, selection, metadata and revision/
 timestamp. Invalid old rows abort the entire migration; unsupported future
-catalogs are refused. Older Luma builds cannot open the upgraded catalog.
+catalogs are refused. Older Apertone builds cannot open the upgraded catalog.
 
 Detail is the fifth subset for preset/Copy/Paste/Sync. Preset/collection schema 2
 reads schema 1 while rejecting future versions and unknown fields. Old presets do

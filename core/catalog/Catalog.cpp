@@ -198,7 +198,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         if (current == 21)
             return;
         if (current > 21)
-            throw std::runtime_error("Catalog was created by a newer version of Luma.");
+            throw std::runtime_error("Catalog was created by a newer version of Apertone.");
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
             // Failure leaves the old schema intact; never migrate without a backup.
@@ -209,7 +209,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
         if (current > 21) {
-            throw std::runtime_error("Catalog was created by a newer version of Luma.");
+            throw std::runtime_error("Catalog was created by a newer version of Apertone.");
         }
         if (current == 0) {
             execute(R"sql(

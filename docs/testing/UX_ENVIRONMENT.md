@@ -92,7 +92,7 @@ the CLI test also checks that it does not retain screen ownership after returnin
 `native-cancel-input-report` retain unsuccessful harness experiments for NAV-004.
 The panel is an own-process NSOpenPanel with NSRemoteView as first responder;
 synthetic NSEvent dispatch did not dismiss it. Its public accessibilityCancelButton
-was unavailable. This is not evidence that a real Cancel click fails in Luma.
+was unavailable. This is not evidence that a real Cancel click fails in Apertone.
 No direct cancel:/reject call is counted as native user input. NAV-004 remains
 unadapted, and the experimental helper is not linked into the application or tests.
 The native opening check KEY-001 still uses reject only for fixture cleanup.

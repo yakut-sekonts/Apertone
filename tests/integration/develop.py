@@ -51,7 +51,7 @@ def tiff_info(path):
 
 def main():
     cli = Path(sys.argv[1])
-    gui = cli.parent.parent / "Luma.app/Contents/MacOS/Luma"
+    gui = cli.parent.parent / "Apertone.app/Contents/MacOS/Apertone"
     with tempfile.TemporaryDirectory(prefix="luma-develop-") as temporary:
         directory = Path(temporary)
         source = directory / "Мой RAW.DNG"

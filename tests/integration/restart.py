@@ -14,7 +14,7 @@ from generate_dng import create_dng
 
 def main():
     cli, mode = Path(sys.argv[1]), sys.argv[2]
-    gui = cli.parent.parent / "Luma.app/Contents/MacOS/Luma"
+    gui = cli.parent.parent / "Apertone.app/Contents/MacOS/Apertone"
     with tempfile.TemporaryDirectory(prefix="luma-acceptance-") as temporary:
         directory = Path(temporary)
         catalog = directory / "catalog.sqlite"

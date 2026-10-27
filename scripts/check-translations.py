@@ -18,7 +18,7 @@ for code in codes:
             assert sorted(re.findall(pattern, key)) == sorted(re.findall(pattern, value)), (code, key)
         assert len(value.splitlines()) == len(key.splitlines()), (code, key)
 for path in (root / "apps/desktop/qml").glob("*.qml"):
-    for key in re.findall(r'qsTranslate\("Luma",\s*("(?:[^"\\]|\\.)*")\)', path.read_text()):
+    for key in re.findall(r'qsTranslate\("Apertone",\s*("(?:[^"\\]|\\.)*")\)', path.read_text()):
         assert not json.loads(key) or json.loads(key) in source, (path, key)
     assert not re.search("[А-Яа-яЁё]", path.read_text()), f"Unmarked Russian source: {path}"
 print(f"Eight catalogs: {len(source)} entries each; source coverage, placeholders and file tokens passed")

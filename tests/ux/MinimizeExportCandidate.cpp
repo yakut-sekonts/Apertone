@@ -269,7 +269,7 @@ bool minimizeExportCandidate(Context &c, const QString &id) {
                 settingsHash = digest(c.stateRoot + "/export-settings.json");
                 checkpoint("first_output_committed_before_minimize");
                 if (externalMinimize) {
-                    c.window->setTitle(QStringLiteral("Luma QA — экспорт и сворачивание"));
+                    c.window->setTitle(QStringLiteral("Apertone QA — экспорт и сворачивание"));
                     const auto markerPath = c.root + "/app016-external-minimize-ready.json";
                     require(!QFileInfo::exists(markerPath), "Minimize marker must be fresh");
                     const auto marker = QJsonObject{

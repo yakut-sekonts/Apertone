@@ -9,7 +9,7 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
             return;
         restartTimer_.stop();
         auto action = std::exchange(install_, {});
-        message_ = QStringLiteral("Installing update and restarting Luma…");
+        message_ = QStringLiteral("Installing update and restarting Apertone…");
         emit changed();
         action();
     });
@@ -20,7 +20,7 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
     native_ = makeNativeUpdater(
         {[this](QString version) {
              version_ = std::move(version);
-             message_ = QStringLiteral("A new version of Luma is available");
+             message_ = QStringLiteral("A new version of Apertone is available");
              emit changed();
          },
          [this](bool checking, QString message) {

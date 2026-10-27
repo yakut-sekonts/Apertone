@@ -2,6 +2,11 @@
 
 ## 1.1.0 / Unreleased
 
+- Renamed the public product, application bundle, executable, release artifacts
+  and GitHub repository to Apertone, with an original split-tone aperture icon.
+  The existing `app.luma.desktop` bundle identifier, Sparkle public key and Qt
+  storage identity remain stable so Luma 1.0 updates and user data continue in
+  place. New DNG output uses Apertone metadata; old Luma DNG output remains readable.
 - Rebuilt the desktop UI around two coordinated appearances: Framed Sheet for
   Day and Data Terminal for Night. System, Day and Night selection is available
   in Settings and is persisted per catalog.

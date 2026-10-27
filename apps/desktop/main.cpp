@@ -1,5 +1,5 @@
-#include "apps/desktop/BatchController.h"
 #include "apps/desktop/AppearanceController.h"
+#include "apps/desktop/BatchController.h"
 #include "apps/desktop/CatalogStartup.h"
 #include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/DiagnosticsController.h"
@@ -28,12 +28,13 @@
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
-    app.setApplicationName(QStringLiteral("Luma"));
-    app.setApplicationVersion(QStringLiteral(LUMA_VERSION));
+    app.setApplicationName(QStringLiteral("Apertone"));
+    app.setApplicationDisplayName(QStringLiteral("Apertone"));
+    app.setApplicationVersion(QStringLiteral(APERTONE_VERSION));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        QStringLiteral("Luma — non-destructive photo editor for macOS"));
+        QStringLiteral("Apertone — non-destructive photo editor for macOS"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption(
@@ -88,6 +89,11 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-close-import"),
                       QStringLiteral("Integration test: close during import")});
     parser.process(app);
+    // Preserve the existing Luma application-data and QSettings locations so the
+    // 1.1 rebrand upgrades catalogs and preferences in place. The display name
+    // remains Apertone in Finder, menus and application windows.
+    app.setApplicationName(QStringLiteral("Luma"));
+    app.setApplicationDisplayName(QStringLiteral("Apertone"));
     const auto options = parser.optionNames();
     const bool unattended = std::any_of(options.begin(), options.end(), [](const QString &option) {
         return option.startsWith(QStringLiteral("test-")) || option == QStringLiteral("smoke-test");
@@ -167,10 +173,9 @@ int main(int argc, char **argv) {
         QFileInfo(catalog).absolutePath() + QStringLiteral("/language.json"), engine);
     auto &localization = *localizationOwner;
     engine.rootContext()->setContextProperty(QStringLiteral("localization"), &localization);
-    appearanceOwner = std::make_unique<AppearanceController>(
-        QFileInfo(catalog).absolutePath() + QStringLiteral("/appearance.json"));
-    engine.rootContext()->setContextProperty(QStringLiteral("appearance"),
-                                             appearanceOwner.get());
+    appearanceOwner = std::make_unique<AppearanceController>(QFileInfo(catalog).absolutePath() +
+                                                             QStringLiteral("/appearance.json"));
+    engine.rootContext()->setContextProperty(QStringLiteral("appearance"), appearanceOwner.get());
     if (parser.isSet(QStringLiteral("test-language")) &&
         (!parser.isSet(QStringLiteral("smoke-test")) ||
          !localization.selectLanguage(parser.value(QStringLiteral("test-language"))))) {
@@ -191,7 +196,7 @@ int main(int argc, char **argv) {
     QObject::connect(
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(1); }, Qt::QueuedConnection);
-    engine.loadFromModule(QStringLiteral("Luma.Desktop"), QStringLiteral("Main"));
+    engine.loadFromModule(QStringLiteral("Apertone.Desktop"), QStringLiteral("Main"));
     if (engine.rootObjects().isEmpty()) {
         return 1;
     }
@@ -224,7 +229,7 @@ int main(int argc, char **argv) {
                 for (const auto &language : {QStringLiteral("en"), code}) {
                     if (!localization.selectLanguage(language) ||
                         button->property("text").toString() !=
-                            QCoreApplication::translate("Luma", "Export")) {
+                            QCoreApplication::translate("Apertone", "Export")) {
                         std::cerr << "Main UI did not retranslate\n";
                         app.exit(1);
                         return;
@@ -310,7 +315,7 @@ int main(int argc, char **argv) {
                              settings["resizeValue"] = 512;
                              settings["metadata"] = 3;
                              settings["watermarkKind"] = 1;
-                             settings["watermarkText"] = QStringLiteral("Luma QA · ©");
+                             settings["watermarkText"] = QStringLiteral("Apertone QA · ©");
                              if (!exporter.configure(settings)) {
                                  std::cerr << exporter.error().toStdString() << '\n';
                                  app.exit(1);

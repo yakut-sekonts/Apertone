@@ -4,25 +4,25 @@ cd "$(dirname "$0")/.."
 build_directory="${1:-build}"
 sdk="$PWD/.tools/qt/6.10.3/macos"
 output="$PWD/dist"
-version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$build_directory/Luma.app/Contents/Info.plist")
+version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$build_directory/Apertone.app/Contents/Info.plist")
 if [[ -n "${LUMA_SIGNING_IDENTITY:-}" && -z "${LUMA_NOTARY_PROFILE:-}" ]]; then
     echo 'Developer ID packaging requires LUMA_NOTARY_PROFILE.' >&2
     exit 1
 fi
 mkdir -p "$output"
 # Only generated output in dist is replaced; sources and catalogs are untouched.
-if [[ -d "$output/Luma.app" ]]; then
-    mv "$output/Luma.app" "$output/Luma.previous.$(date +%s).app"
+if [[ -d "$output/Apertone.app" ]]; then
+    mv "$output/Apertone.app" "$output/Apertone.previous.$(date +%s).app"
 fi
-ditto "$build_directory/Luma.app" "$output/Luma.app"
+ditto "$build_directory/Apertone.app" "$output/Apertone.app"
 .tools/venv/bin/python scripts/install-bundled-models.py \
-    "${LUMA_BUNDLED_MODELS_DIR:-$build_directory/models}" "$output/Luma.app"
-mkdir -p "$output/Luma.app/Contents/Frameworks"
-cp "$build_directory/libluma_raw.dylib" "$output/Luma.app/Contents/Frameworks/"
+    "${LUMA_BUNDLED_MODELS_DIR:-$build_directory/models}" "$output/Apertone.app"
+mkdir -p "$output/Apertone.app/Contents/Frameworks"
+cp "$build_directory/libluma_raw.dylib" "$output/Apertone.app/Contents/Frameworks/"
 # Exclude Qt's optional PostgreSQL/ODBC drivers and their external dependencies.
-# Luma uses the pinned SQLite C API, not those drivers.
-"$sdk/bin/macdeployqt" "$output/Luma.app" -qmldir="$PWD/apps/desktop/qml" -always-overwrite -no-strip -appstore-compliant
-notices="$output/Luma.app/Contents/Resources/ThirdParty"
+# Apertone uses the pinned SQLite C API, not those drivers.
+"$sdk/bin/macdeployqt" "$output/Apertone.app" -qmldir="$PWD/apps/desktop/qml" -always-overwrite -no-strip -appstore-compliant
+notices="$output/Apertone.app/Contents/Resources/ThirdParty"
 mkdir -p "$notices/sources"
 cp LICENSE THIRD_PARTY_LICENSES.md "$notices/"
 cp "$build_directory/_deps/libraw-src/LICENSE.LGPL" "$notices/LibRaw-LGPL.txt"
@@ -58,11 +58,11 @@ for module in qtbase qtdeclarative qtsvg; do
     .tools/venv/bin/python scripts/extract-qt-notices.py "$notices/sources/$archive" "$notices/$module"
 done
 # Optional QML modules cause macdeployqt to copy QtSql drivers, including drivers
-# for external DB vendors. Luma uses SQLite's C API and has no QtSql driver usage.
-rm -rf "$output/Luma.app/Contents/PlugIns/sqldrivers"
+# for external DB vendors. Apertone uses SQLite's C API and has no QtSql driver usage.
+rm -rf "$output/Apertone.app/Contents/PlugIns/sqldrivers"
 # macdeployqt leaves the build-only Sparkle search path in the main executable.
 # All runtime frameworks are already in the bundle; remove absolute build paths.
-.tools/venv/bin/python - "$output/Luma.app/Contents/MacOS/Luma" <<'PYTHON'
+.tools/venv/bin/python - "$output/Apertone.app/Contents/MacOS/Apertone" <<'PYTHON'
 from pathlib import Path
 import re, subprocess, sys
 executable = sys.argv[1]
@@ -71,7 +71,7 @@ for path in re.findall(r"cmd LC_RPATH\s+cmdsize \d+\s+path (.*?) \(offset", comm
     if Path(path).is_absolute():
         subprocess.run(["install_name_tool", "-delete_rpath", path, executable], check=True)
 PYTHON
-.tools/venv/bin/python - "$output/Luma.app" <<'PYTHON'
+.tools/venv/bin/python - "$output/Apertone.app" <<'PYTHON'
 import hashlib, json, os, plistlib, subprocess, sys
 from pathlib import Path
 app = Path(sys.argv[1])
@@ -93,11 +93,11 @@ else:
 (app / "Contents/Resources/BUILD_INFO.json").write_text(json.dumps(info, indent=2) + "\n")
 PYTHON
 if [[ -n "${LUMA_SIGNING_IDENTITY:-}" ]]; then
-    .tools/venv/bin/python scripts/sign-app.py app "$output/Luma.app"
+    .tools/venv/bin/python scripts/sign-app.py app "$output/Apertone.app"
 else
-    codesign --force --deep --sign - "$output/Luma.app"
+    codesign --force --deep --sign - "$output/Apertone.app"
 fi
-codesign --verify --deep --strict "$output/Luma.app"
-ditto -c -k --sequesterRsrc --keepParent "$output/Luma.app" "$output/Luma-macos-arm64.zip"
-(cd "$output" && shasum -a 256 Luma-macos-arm64.zip > SHA256SUMS)
-echo "Packaged: $output/Luma.app"
+codesign --verify --deep --strict "$output/Apertone.app"
+ditto -c -k --sequesterRsrc --keepParent "$output/Apertone.app" "$output/Apertone-macos-arm64.zip"
+(cd "$output" && shasum -a 256 Apertone-macos-arm64.zip > SHA256SUMS)
+echo "Packaged: $output/Apertone.app"

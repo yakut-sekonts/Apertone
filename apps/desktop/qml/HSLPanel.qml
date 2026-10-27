@@ -18,10 +18,10 @@ ColumnLayout {
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("hsl", checked)
             padding: 0
-            Accessible.name: qsTranslate("Luma", "Enable HSL")
+            Accessible.name: qsTranslate("Apertone", "Enable HSL")
         }
         Label {
-            text: qsTranslate("Luma", "HSL / COLOR MIXER")
+            text: qsTranslate("Apertone", "HSL / COLOR MIXER")
             color: Theme.muted
             font.pixelSize: 9
             font.letterSpacing: 1
@@ -33,7 +33,7 @@ ColumnLayout {
         spacing: 3
         Repeater {
             model: 8
-            LumaButton {
+            ApertoneButton {
                 id: bandButton
                 required property int index
                 objectName: "hsl.band." + panel.bands[index]
@@ -62,37 +62,37 @@ ColumnLayout {
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".hue"
-        label: qsTranslate("Luma", "Hue")
+        label: qsTranslate("Apertone", "Hue")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".saturation"
-        label: qsTranslate("Luma", "Saturation")
+        label: qsTranslate("Apertone", "Saturation")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
     }
     DevelopSlider {
         parameter: "hsl." + panel.band + ".luminance"
-        label: qsTranslate("Luma", "Luminance")
+        label: qsTranslate("Apertone", "Luminance")
         correction: "hsl"
         allowDisable: false
         Layout.fillWidth: true
     }
     RowLayout {
-        LumaComboBox {
+        ApertoneComboBox {
             id: targetMode
             objectName: "hsl.targetMode"
-            model: [qsTranslate("Luma", "Hue"), qsTranslate("Luma", "Saturation"), qsTranslate("Luma", "Luminance")]
+            model: [qsTranslate("Apertone", "Hue"), qsTranslate("Apertone", "Saturation"), qsTranslate("Apertone", "Luminance")]
             Layout.fillWidth: true
             enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.hsl
             onActivated: if (editor.targetedTool.startsWith("hsl."))
                              editor.targetedTool = "hsl." + panel.parameters[currentIndex]
-            Accessible.name: qsTranslate("Luma", "Targeted HSL parameter")
+            Accessible.name: qsTranslate("Apertone", "Targeted HSL parameter")
         }
-        LumaButton {
+        ApertoneButton {
             objectName: "hsl.target"
             text: "◎"
             checkable: true
@@ -102,9 +102,9 @@ ColumnLayout {
             onClicked: editor.targetedTool = checked ? "hsl."
                                                        + panel.parameters[targetMode.currentIndex] :
                                                        "none"
-            Accessible.name: qsTranslate("Luma", "Targeted HSL")
+            Accessible.name: qsTranslate("Apertone", "Targeted HSL")
             ToolTip.visible: hovered
-            ToolTip.text: qsTranslate("Luma", "Adjust color with a photo gesture")
+            ToolTip.text: qsTranslate("Apertone", "Adjust color with a photo gesture")
         }
     }
 }

@@ -8,9 +8,9 @@ New user-reported defects are recorded in
 
 Status: **full qualification incomplete; 0.5.1 publication authorized after CI
 with explicitly accepted coverage gaps**.
-Work is tracked in [PR #47](https://github.com/yakut-sekonts/Luma/pull/47),
-linked to [Issue #46](https://github.com/yakut-sekonts/Luma/issues/46);
-remaining qualification continues in [Issue #48](https://github.com/yakut-sekonts/Luma/issues/48).
+Work is tracked in [PR #47](https://github.com/yakut-sekonts/Apertone/pull/47),
+linked to [Issue #46](https://github.com/yakut-sekonts/Apertone/issues/46);
+remaining qualification continues in [Issue #48](https://github.com/yakut-sekonts/Apertone/issues/48).
 Source/release scope is 0.5.1. The latest GitHub Release remains authoritative
 for publication status.
 
@@ -848,7 +848,7 @@ preserves a distinct45s external return FAIL: one CUA Finder Cmd+Tab dispatch di
 not yield actual own activation. The unique-name capability run
 `app-deactivation-external-unique-name-native-report` also fails; CUA returned
 `Invalid app: luma_ux_tests` for the live unbundled process. Native bundle ID is
-empty; no installed Luma was selected. Every accepted deactivation observation
+empty; no installed Apertone was selected. Every accepted deactivation observation
 still precedes release and naturally preserves Exposure5/revision1, but return,
 new gesture, Undo/Redo depth and post-return pixels remain unqualified. These are
 test transport gaps, not demonstrated product defects or official APP017/SLD009
@@ -1137,7 +1137,7 @@ for actual minimization. `app016-eventloop-first-report` also failed at that
 boundary despite using a bounded QEventLoop/NSApplication event loop. That
 experiment was removed; the original state assertions remain unchanged.
 
-Independent owned AppKit-only windows, with no Qt or Luma production code,
+Independent owned AppKit-only windows, with no Qt or Apertone production code,
 reproduced the minimization timeout through `performMiniaturize`, both when
 spawned directly and when packaged/launched through Launch Services. A separate
 `miniaturize` probe also timed out. Each ran an actual NSApplication main loop,
@@ -1243,7 +1243,7 @@ After the user confirmed readiness for a manual click, the owned
 or DidDeminiaturize. The retained result is
 `app016-human-result-20261020T105026Z.json`. Whether the user actually clicked
 remains unconfirmed at this checkpoint; this is not evidence of a failed
-human-input action. No Luma product defect, globally broken Dock, native lifecycle
+human-input action. No Apertone product defect, globally broken Dock, native lifecycle
 PASS or release qualification follows. The separately deferred APP017/SLD009
 manual check is unchanged.
 
@@ -1251,8 +1251,8 @@ The user's subsequent answer confirms that the diagnostic window minimized.
 This is a positive human observation, retained separately from the instrumented
 timeout; the original report remains unchanged. The discrepancy between the
 visible result and the probe's notification/state log is unresolved. It does
-not qualify the complete Luma APP016 export/minimize/restore scenario or justify
-attributing the timeout to a Luma defect. No repeat manual action is requested.
+not qualify the complete Apertone APP016 export/minimize/restore scenario or justify
+attributing the timeout to a Apertone defect. No repeat manual action is requested.
 
 ## Localized preset dialogs, 2026-10-20
 

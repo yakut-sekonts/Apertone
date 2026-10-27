@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Dialog {
     id: dialog
     objectName: "semantic.dialog"
-    title: qsTranslate("Luma", "Search by description")
+    title: qsTranslate("Apertone", "Search by description")
     modal: true
     anchors.centerIn: parent
     width: Math.min(parent.width - 40, 900)
@@ -15,50 +15,50 @@ Dialog {
         anchors.fill: parent
         spacing: 10
         Label {
-            text: qsTranslate("Luma", "Local search uses recognized objects and scenes. Enter a description in English.")
+            text: qsTranslate("Apertone", "Local search uses recognized objects and scenes. Enter a description in English.")
             wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
-            LumaButton {
+            ApertoneButton {
                 objectName: "semantic.build"
-                text: library.semanticEnabled ? qsTranslate("Luma", "Update local index") : qsTranslate("Luma", "Enable and build index")
+                text: library.semanticEnabled ? qsTranslate("Apertone", "Update local index") : qsTranslate("Apertone", "Enable and build index")
                 enabled: !library.working
                 onClicked: library.buildSemanticIndex()
             }
-            LumaButton {
+            ApertoneButton {
                 objectName: "semantic.disable"
-                text: qsTranslate("Luma", "Disable and delete index")
+                text: qsTranslate("Apertone", "Disable and delete index")
                 enabled: library.semanticEnabled
                 onClicked: library.disableSemantic()
             }
-            LumaButton {
+            ApertoneButton {
                 visible: library.semanticBusy && library.semanticEnabled
-                text: qsTranslate("Luma", "Cancel")
+                text: qsTranslate("Apertone", "Cancel")
                 onClicked: library.cancelSemantic()
             }
         }
         RowLayout {
             Layout.fillWidth: true
-            LumaTextField {
+            ApertoneTextField {
                 id: query
                 objectName: "semantic.query"
-                placeholderText: qsTranslate("Luma", "Describe a photo in English")
+                placeholderText: qsTranslate("Apertone", "Describe a photo in English")
                 maximumLength: 512; selectByMouse: true
                 Layout.fillWidth: true
                 enabled: library.semanticEnabled && !library.semanticBusy
                 onAccepted: library.searchSemantic(text)
             }
-            LumaButton {
+            ApertoneButton {
                 objectName: "semantic.search"
-                text: qsTranslate("Luma", "Search")
+                text: qsTranslate("Apertone", "Search")
                 enabled: library.semanticEnabled && !library.semanticBusy && query.text.trim().length > 0
                 onClicked: library.searchSemantic(query.text)
             }
         }
         ProgressBar { visible: library.semanticBusy; value: library.semanticProgress; Layout.fillWidth: true }
         Label { text: library.semanticStatus; textFormat: Text.PlainText; Layout.fillWidth: true }
-        Label { text: qsTranslate("Luma", library.semanticError); visible: text.length > 0; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: Theme.negative; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", library.semanticError); visible: text.length > 0; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: Theme.negative; Layout.fillWidth: true }
         GridView {
             id: results
             model: library.semanticResults
@@ -71,7 +71,7 @@ Dialog {
             delegate: Item {
                 required property var modelData
                 width: results.cellWidth; height: results.cellHeight
-                LumaButton {
+                ApertoneButton {
                     objectName: "semantic.result." + modelData.id
                     anchors.fill: parent; anchors.margins: 5
                     Accessible.name: modelData.filename

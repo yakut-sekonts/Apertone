@@ -26,7 +26,7 @@ class LocalizedText {
     }
     QString text() const {
         const auto bytes = source_.toUtf8();
-        const auto translated = QCoreApplication::translate("Luma", bytes.constData());
+        const auto translated = QCoreApplication::translate("Apertone", bytes.constData());
         QString result;
         qsizetype end = 0;
         auto matches = QRegularExpression(QStringLiteral("%([1-9][0-9]*)")).globalMatch(translated);

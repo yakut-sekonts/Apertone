@@ -1,6 +1,6 @@
 #pragma once
-#include "apps/desktop/BatchController.h"
 #include "apps/desktop/AppearanceController.h"
+#include "apps/desktop/BatchController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/LibraryModel.h"

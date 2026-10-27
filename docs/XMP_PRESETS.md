@@ -6,7 +6,7 @@ the open photo. Hover previews it; apply is one Undo/Redo operation. The filenam
 is used when the XMP has no name; localized Camera Raw Name/Group uses x-default,
 then English, then the first available entry. Upper-case `.XMP` is accepted.
 
-Luma imports a compatible subset of Lightroom / Camera Raw settings. Its image
+Apertone imports a compatible subset of Lightroom / Camera Raw settings. Its image
 processing differs from Adobe's: a preset does not guarantee identical pixels.
 The import notice and **XMP compatibility** dialog list skipped properties.
 
@@ -34,9 +34,9 @@ Profiles and embedded looks/LUTs, masks/local adjustments, calibration, geometry
 lens corrections, Texture, Clarity, Dehaze and AI settings are not converted.
 An XMP containing only unsupported settings is rejected instead of adding an
 empty preset. This feature imports presets; it is not photo-sidecar synchronization
-or XMP metadata export. Native export remains Luma JSON.
+or XMP metadata export. Native export remains Apertone JSON.
 
-Numeric values must fit Luma's control ranges and are never silently clamped.
+Numeric values must fit Apertone's control ranges and are never silently clamped.
 Point curves require 2–32 points with integer coordinates in 0–255, strictly
 increasing x, and endpoints at x=0 and x=255. Malformed, out-of-range or
 unrepresentable supported settings reject the entire import before storage writes.
@@ -47,7 +47,7 @@ forms, and limits each file to 1 MiB, 4096 nodes and depth 32. It rejects DTD/en
 declarations, duplicate Camera Raw properties and multiple Camera Raw descriptions.
 It never downloads profiles, resolves external resources or modifies source files.
 
-Sparse presets and collections containing them use preset schema 7. Older Luma
+Sparse presets and collections containing them use preset schema 7. Older Apertone
 versions refuse that collection rather than dropping parameter selections. Back
 up `presets.json` before downgrading. Whole-group presets retain schema 6; earlier
 schemas remain readable. No catalog/edit migration is introduced.

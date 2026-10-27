@@ -1,27 +1,25 @@
-# Luma
+# Apertone
 
 Open-source non-destructive photo editor for macOS.
 
-Luma is a local-first photo workspace for Apple Silicon, built with C++20,
+Apertone is a local-first photo workspace for Apple Silicon, built with C++20,
 Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
-The product requirements originated under the working name Photon; Luma is the
+The product requirements originated under the working name Photon; Apertone is the
 project name used for implementation.
 
-![Luma Develop viewer with a project-generated test DNG](docs/screenshot.png)
+![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.0.0
+## Release: v1.1.0
 
-[Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Luma/releases/latest) ·
-[1.0.0 release notes / known limitations](docs/releases/v1.0.0.md)
+[Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
+[1.1.0 release notes](docs/releases/v1.1.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.0.0 includes the completed 0.6–1.0
-source scope: accelerated editing, local AI, retouching, semantic search,
-HDR/panorama, metadata/XMP, catalog recovery, relinking, versions, History,
-advanced import and creative tools. Publication is owner-approved with explicit
-[QA and installed-update exceptions](docs/releases/v1.0.0.md); skipped checks are
-not reported as PASS.
+checksums accompany the release. Version 1.1.0 renames the application to
+Apertone and introduces compact Day and Night desktop appearances while retaining
+the full 1.0 editing scope. Existing Luma 1.0 catalogs, settings, DNG output and
+Sparkle update installations are upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
@@ -29,7 +27,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.0
+## Included in source: phases 0.4–1.1
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -75,7 +73,7 @@ Linux are outside the current scope.
 
 ### Image support
 
-Luma develops **integer Bayer RAW**, including Nikon NEF and Bayer DNG, and
+Apertone develops **integer Bayer RAW**, including Nikon NEF and Bayer DNG, and
 reimports its own processed Linear RGB DNG output.
 LibRaw can decode other Bayer camera formats, but those are not claimed as
 verified until they have acceptance coverage. X-Trans, monochrome RAW,
@@ -92,20 +90,20 @@ reconstruction and production camera profiles remain planned.
 ## Build and run
 
 ```bash
-git clone --branch v0.4.13 https://github.com/yakut-sekonts/Luma.git
-cd Luma
+git clone --branch v1.1.0 https://github.com/yakut-sekonts/Apertone.git
+cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build
 ctest --test-dir build --output-on-failure
-open build/Luma.app
+open build/Apertone.app
 ```
 
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
-M0 is in [PR #2](https://github.com/yakut-sekonts/Luma/pull/2), Develop Core in
-[PR #4](https://github.com/yakut-sekonts/Luma/pull/4), Library in
-[PR #6](https://github.com/yakut-sekonts/Luma/pull/6). the first release includes all three stages.
+M0 is in [PR #2](https://github.com/yakut-sekonts/Apertone/pull/2), Develop Core in
+[PR #4](https://github.com/yakut-sekonts/Apertone/pull/4), Library in
+[PR #6](https://github.com/yakut-sekonts/Apertone/pull/6). the first release includes all three stages.
 The commands above select the immutable release tag.
 Use `--catalog /path/to/catalog.sqlite` to select an isolated catalog. Without
 this option, the app uses its macOS application-data directory. Add keeps original image files
@@ -113,12 +111,12 @@ at their original paths; Copy registers verified copies in the chosen destinatio
 it is local user data and must not be committed.
 
 ```bash
-build/bin/luma open /path/to/photo.NEF --catalog /path/to/catalog.sqlite
-build/bin/luma exposure 1.25 --catalog /path/to/catalog.sqlite
-build/bin/luma develop temperature=5350 tint=12 highlights=-35 vibrance=20 --catalog /path/to/catalog.sqlite
-build/bin/luma export /path/to/output.tif --catalog /path/to/catalog.sqlite
-build/bin/luma restore --catalog /path/to/catalog.sqlite
-build/bin/luma catalog verify --catalog /path/to/catalog.sqlite
+build/bin/apertone open /path/to/photo.NEF --catalog /path/to/catalog.sqlite
+build/bin/apertone exposure 1.25 --catalog /path/to/catalog.sqlite
+build/bin/apertone develop temperature=5350 tint=12 highlights=-35 vibrance=20 --catalog /path/to/catalog.sqlite
+build/bin/apertone export /path/to/output.tif --catalog /path/to/catalog.sqlite
+build/bin/apertone restore --catalog /path/to/catalog.sqlite
+build/bin/apertone catalog verify --catalog /path/to/catalog.sqlite
 ```
 
 ## Development
@@ -174,13 +172,13 @@ metadata fixture verifies bounded paging and selection, not performance of
 backup templates, keywords, photo-sidecar XMP sync and missing-file relinking remain later work.
 
 ```bash
-build/bin/luma import add /path/to/raw-folder --catalog /path/to/catalog.sqlite
-build/bin/luma import copy /path/to/destination /path/to/raw-folder --catalog /path/to/catalog.sqlite
-build/bin/luma library --rating 4 --flag 1 --catalog /path/to/catalog.sqlite
-build/bin/luma collections --catalog /path/to/catalog.sqlite
+build/bin/apertone import add /path/to/raw-folder --catalog /path/to/catalog.sqlite
+build/bin/apertone import copy /path/to/destination /path/to/raw-folder --catalog /path/to/catalog.sqlite
+build/bin/apertone library --rating 4 --flag 1 --catalog /path/to/catalog.sqlite
+build/bin/apertone collections --catalog /path/to/catalog.sqlite
 ```
 
-![Luma Library with project-generated test DNGs](docs/library.png)
+![Apertone Library with project-generated test DNGs](docs/library.png)
 
 ## Included: Curves, HSL and macOS updates
 
@@ -192,7 +190,7 @@ the preceding Develop output. Sharpening and Noise Reduction are described below
 
 A bell in the toolbar shows scheduled update reminders. Check manually or opt out
 of daily checks in its popover. Install opens Sparkle's native release/install UI;
-Sparkle verifies the signed ZIP, replaces the app and relaunches it. Luma waits
+Sparkle verifies the signed ZIP, replaces the app and relaunches it. Apertone waits
 for successful autosave and ongoing imports/exports before allowing relaunch.
 Update checks send no photo/catalog data or system profiling payload.
 
@@ -205,7 +203,7 @@ repository signing secret; see [macOS updates](docs/UPDATES.md).
 Develop's left panel saves subsets of Light, Color, Curve and HSL, including each
 selected group's enabled state and As Shot/custom WB mode. Hover renders a
 preview without changing edits or autosave; click applies it with one Undo. The
-menu edits/renames/moves/deletes presets and exports validated Luma JSON. Import
+menu edits/renames/moves/deletes presets and exports validated Apertone JSON. Import
 assigns a new local ID. Flat folder names organize the list.
 
 Presets live in `presets.json` beside the selected catalog; catalogs in the same
@@ -220,7 +218,7 @@ Presets and the subsequent phase 0.4 features are included in release 0.4.13.
 
 ## Included: XMP preset import / 0.4.14
 
-Develop → Presets → Import accepts Lightroom / Camera Raw `.xmp` alongside Luma
+Develop → Presets → Import accepts Lightroom / Camera Raw `.xmp` alongside Apertone
 JSON. Recognized Light/Color/Curves/HSL/Detail parameters remain sparse: absent
 controls keep their existing values. Hover, one-step Undo/Redo, batch, restart and
 JSON export/reimport preserve this behavior. Import reports unsupported settings;
@@ -255,7 +253,7 @@ normal preview. Diagnostics do not change saved edits, history or exported pixel
 Preview, PNG/JPEG and TIFF16 use the same luminance sharpening stage. Preview
 scales Radius for its reduced resolution; Fit is not a substitute for 1:1
 inspection. Detail adjusts a soft residual threshold; Masking reduces sharpening
-in flat areas. This is Luma's own algorithm. Manual noise reduction is described below; true 1:1 viewing and
+in flat areas. This is Apertone's own algorithm. Manual noise reduction is described below; true 1:1 viewing and
 export-specific output sharpening remain separate work.
 
 Catalog 4→5 upgrades edit schema 3→4 with neutral sharpening while preserving
@@ -321,7 +319,7 @@ Metal remain separate work. Crop is included in release 0.4.13.
 
 ## Included: Lens Corrections / 0.4.6
 
-Optics uses a SHA256-pinned Lensfun v0.3.4 database and Luma's independent
+Optics uses a SHA256-pinned Lensfun v0.3.4 database and Apertone's independent
 profile layer. Known camera/lens aliases resolve conservatively within
 compatible mounts; ambiguous or unknown lenses require manual selection.
 A searchable lens list shows profiles compatible with the detected camera.
@@ -443,12 +441,12 @@ These requested pre-phase-0.5 extensions are included in release 0.4.13.
 The complete local mask workflow is implemented in the 0.5.1 source; see below.
 
 
-## macOS installer and version / 0.4.13
+## macOS installer and version
 
-The application and mounted DMG use the original Luma half-disc logo. Settings,
+The application and mounted DMG use Apertone's split-tone aperture logo. Settings,
 window title, status bar, Finder and --version share CMake's release version.
 The latest GitHub Release provides a matching DMG, ZIP, SHA256SUMS, BUILD_INFO.json
-and signed Sparkle appcast. See [release notes](docs/releases/v0.4.13.md).
+and signed Sparkle appcast. See [release notes](docs/releases/v1.1.0.md).
 
 ## Local adjustments / 0.5.1 source
 

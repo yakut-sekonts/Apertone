@@ -520,7 +520,7 @@ void checkFailure(Context &c) {
                 !c.updates.checking() && !c.updates.restartPending() && c.updates.canCheck() &&
                 c.driver->item("updates.message")->isVisible() &&
                 c.driver->object("updates.message")->property("text").toString() ==
-                    "Could not update Luma: UX controlled SDK check failure" &&
+                    "Could not update Apertone: UX controlled SDK check failure" &&
                 c.editor.currentSettings() == before && revisions(c) == originalRevisions &&
                 documents(c) == originalDocuments && c.editor.photoID() == originalPhoto &&
                 c.editor.sourcePath() == originalSource,

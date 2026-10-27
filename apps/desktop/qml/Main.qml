@@ -11,7 +11,7 @@ ApplicationWindow {
     height: 840
     minimumWidth: 1000
     minimumHeight: 640
-    title: "Luma " + Qt.application.version + (editor.hasPhoto ? " — " + editor.filename : "")
+    title: "Apertone " + Qt.application.version + (editor.hasPhoto ? " — " + editor.filename : "")
     color: Theme.window
     palette.window: Theme.window
     palette.base: Theme.panel
@@ -28,6 +28,7 @@ ApplicationWindow {
     palette.light: Theme.panelRaised
     font.family: "Avenir Next"
     font.pixelSize: 12
+    Binding { target: Theme; property: "dark"; value: appearance.dark }
     onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
@@ -70,31 +71,31 @@ ApplicationWindow {
     }
     Dialog {
         id: restartWait; objectName: "restart.wait"
-        title: qsTranslate("Luma", "Preparing update")
+        title: qsTranslate("Apertone", "Preparing update")
         modal: true
         closePolicy: Popup.NoAutoClose
         anchors.centerIn: parent
         width: 430
         ColumnLayout {
             width: parent.width
-            Label { text: qsTranslate("Luma", updates.message); wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { visible: editor.error.length > 0; text: qsTranslate("Luma", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            LumaButton { visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
-            LumaButton { visible: editor.exporting; text: qsTranslate("Luma", "Cancel export"); onClicked: editor.cancelExport() }
-            LumaButton { objectName: "restart.cancelImport"; visible: library.importing; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
+            Label { text: qsTranslate("Apertone", updates.message); wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: editor.error.length > 0; text: qsTranslate("Apertone", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ApertoneButton { visible: editor.saving && !editor.busy; text: qsTranslate("Apertone", "Retry save"); onClicked: editor.retrySave() }
+            ApertoneButton { visible: editor.exporting; text: qsTranslate("Apertone", "Cancel export"); onClicked: editor.cancelExport() }
+            ApertoneButton { objectName: "restart.cancelImport"; visible: library.importing; text: qsTranslate("Apertone", "Cancel import"); onClicked: library.cancelImport() }
         }
     }
     Connections { target: batch; function onChanged() { if (batch.working) batchWait.open(); else batchWait.close() } }
     Dialog {
-        id: batchWait; objectName: "batch.wait"; title: qsTranslate("Luma", "Batch processing"); modal: true
+        id: batchWait; objectName: "batch.wait"; title: qsTranslate("Apertone", "Batch processing"); modal: true
         closePolicy: Popup.NoAutoClose; anchors.centerIn: parent; width: 450; implicitWidth: 450
         ColumnLayout {
             width: parent.width
-            Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", batch.status); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ProgressBar { value: batch.progress; indeterminate: batch.waitingForSave; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.error); textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            LumaButton { text: qsTranslate("Luma", "Retry save"); visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
-            LumaButton { objectName: "batch.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: batch.cancel() }
+            Label { text: qsTranslate("Apertone", editor.error); textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ApertoneButton { text: qsTranslate("Apertone", "Retry save"); visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
+            ApertoneButton { objectName: "batch.cancel"; text: qsTranslate("Apertone", "Cancel"); onClicked: batch.cancel() }
         }
     }
     onClosing: function(close) { const d = exporter.requestClose(); const c = batch.requestClose(); const b = editor.requestClose(); const a = d && c && b ? library.requestClose() : false; close.accepted = a && b && c && d }
@@ -120,8 +121,8 @@ ApplicationWindow {
     FileDialog {
         id: fileDialog
         objectName: "main.openDialog"
-        title: qsTranslate("Luma", "Open photo")
-        nameFilters: [qsTranslate("Luma", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Luma", "All files (*)")]
+        title: qsTranslate("Apertone", "Open photo")
+        nameFilters: [qsTranslate("Apertone", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Apertone", "All files (*)")]
         onAccepted: editor.openFile(selectedFile)
     }
     PreferencesPanel { id: preferences }
@@ -148,15 +149,15 @@ ApplicationWindow {
                     Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
                 }
                 Label { text: "luma"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
-                LumaButton { objectName: "main.libraryButton"; text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
-                LumaButton { objectName: "main.developButton"; text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
+                ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
+                ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
-                LumaButton { objectName: "settingsButton"; text: qsTranslate("Luma", "Settings"); Accessible.name: text; onClicked: preferences.open() }
+                ApertoneButton { objectName: "settingsButton"; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
                 UpdateBell {}
-                LumaButton { objectName: "main.undoButton"; text: qsTranslate("Luma", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
-                LumaButton { objectName: "main.redoButton"; text: qsTranslate("Luma", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
-                LumaButton { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
-                LumaButton { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "+  Open photo"); highlighted: true; enabled: !editor.busy; onClicked: fileDialog.open() }
+                ApertoneButton { objectName: "main.undoButton"; text: qsTranslate("Apertone", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
+                ApertoneButton { objectName: "main.redoButton"; text: qsTranslate("Apertone", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
+                ApertoneButton { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                ApertoneButton { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "+  Open photo"); highlighted: true; enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
         Rectangle {
@@ -164,38 +165,38 @@ ApplicationWindow {
             Layout.fillWidth: true; Layout.preferredHeight: visible ? errorLayout.implicitHeight + 24 : 0; color: Theme.errorSurface
             RowLayout {
                 id: errorLayout; anchors.fill: parent; anchors.margins: 12
-                Label { objectName: "main.editorError"; text: qsTranslate("Luma", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
-                LumaButton { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+                Label { objectName: "main.editorError"; text: qsTranslate("Apertone", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
+                ApertoneButton { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Apertone", "Retry save"); onClicked: editor.retrySave() }
             }
         }
         RowLayout {
             visible: editor.exporting
             Layout.fillWidth: true; Layout.margins: visible ? 10 : 0
-            Label { text: qsTranslate("Luma", "Export"); color: Theme.accent }
+            Label { text: qsTranslate("Apertone", "Export"); color: Theme.accent }
             ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
-            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelExport() }
+            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelExport() }
         }
         ColumnLayout {
             visible: exporter.working || exporter.status.length > 0 || exporter.error.length > 0
             Layout.fillWidth: true; Layout.margins: 10
             RowLayout {
-                Label { text: qsTranslate("Luma", exporter.status); textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
+                Label { text: qsTranslate("Apertone", exporter.status); textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
                 Label { text: exporter.completed + " / " + exporter.total }
-                LumaButton { objectName: "export.pause"; visible: exporter.working && !exporter.paused; text: exporter.pausePending ? qsTranslate("Luma", "Pause after this file…") : qsTranslate("Luma", "Pause"); enabled: !exporter.pausePending; onClicked: exporter.pause() }
-                LumaButton { objectName: "export.resume"; visible: exporter.paused; text: qsTranslate("Luma", "Resume"); onClicked: exporter.resume() }
-                LumaButton { objectName: "export.cancel"; visible: exporter.working; text: qsTranslate("Luma", "Cancel"); onClicked: exporter.cancel() }
-                LumaButton { text: qsTranslate("Luma", "Settings / errors"); onClicked: exportSettings.open() }
+                ApertoneButton { objectName: "export.pause"; visible: exporter.working && !exporter.paused; text: exporter.pausePending ? qsTranslate("Apertone", "Pause after this file…") : qsTranslate("Apertone", "Pause"); enabled: !exporter.pausePending; onClicked: exporter.pause() }
+                ApertoneButton { objectName: "export.resume"; visible: exporter.paused; text: qsTranslate("Apertone", "Resume"); onClicked: exporter.resume() }
+                ApertoneButton { objectName: "export.cancel"; visible: exporter.working; text: qsTranslate("Apertone", "Cancel"); onClicked: exporter.cancel() }
+                ApertoneButton { text: qsTranslate("Apertone", "Settings / errors"); onClicked: exportSettings.open() }
             }
             Label { objectName: "export.currentFilename"; visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
             ProgressBar { objectName: "export.progress"; visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
-            Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: exporter.error.length > 0; text: qsTranslate("Apertone", exporter.error); textFormat: Text.PlainText; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ScrollView {
                 objectName: "export.failuresScroll"
                 visible: exporter.failures.length > 0
                 Layout.fillWidth: true; Layout.preferredHeight: 65
                 TextArea { objectName: "export.failures"; readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: Theme.negative }
             }
-            LumaButton { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+            ApertoneButton { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Apertone", "Retry save"); onClicked: editor.retrySave() }
         }
         LibraryPane { objectName: "library.pane"; visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {
@@ -221,31 +222,31 @@ ApplicationWindow {
                         width: presetsScroll.availableWidth
                         height: Math.max(implicitHeight, presetsScroll.availableHeight)
                         spacing: 12
-                        Label { text: qsTranslate("Luma", "WORKSPACE"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
+                        Label { text: qsTranslate("Apertone", "WORKSPACE"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: 30; radius: Theme.radius; color: Theme.accentSoft
-                            Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: Theme.accent; font.pixelSize: 12 }
+                            Label { anchors.centerIn: parent; text: qsTranslate("Apertone", "Photo development"); color: Theme.accent; font.pixelSize: 12 }
                         }
-                        Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
-                        Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: Theme.text; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Label { text: qsTranslate("Apertone", "SOURCE PHOTO"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
+                        Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Apertone", "No photo selected"); color: Theme.text; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Label { text: editor.dimensions; color: Theme.faint; font.pixelSize: 11 }
-                        Label { text: qsTranslate("Luma", "Original unchanged"); color: Theme.muted; font.pixelSize: 10; visible: editor.hasPhoto }
-                        LumaButton {
+                        Label { text: qsTranslate("Apertone", "Original unchanged"); color: Theme.muted; font.pixelSize: 10; visible: editor.hasPhoto }
+                        ApertoneButton {
                             objectName: "develop.history"
-                            text: qsTranslate("Luma", "History")
+                            text: qsTranslate("Apertone", "History")
                             enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
                             Layout.fillWidth: true
                             onClicked: processingHistory.open()
                         }
-                        LumaButton {
+                        ApertoneButton {
                             objectName: "develop.versions"
-                            text: qsTranslate("Luma", "Processing versions")
+                            text: qsTranslate("Apertone", "Processing versions")
                             enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
                             Layout.fillWidth: true
                             onClicked: processingVersions.open()
                         }
                         PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
-                        Label { text: qsTranslate("Luma", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
+                        Label { text: qsTranslate("Apertone", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: Theme.faint; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                         Label { text: "LUMA / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }
                     }
@@ -258,28 +259,28 @@ ApplicationWindow {
                     anchors.fill: parent; anchors.margins: 10; spacing: 8
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
-                        LumaButton {
+                        Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Apertone", editor.detailDiagnostic) : editor.original ? qsTranslate("Apertone", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Apertone", "PRESET PREVIEW") : qsTranslate("Apertone", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
+                        ApertoneButton {
                             objectName: "develop.fit"
-                            text: qsTranslate("Luma", "FIT")
+                            text: qsTranslate("Apertone", "FIT")
                             checkable: true; checked: editor.zoomMode === "fit"
                             enabled: editor.hasPhoto && !editor.busy
                             onClicked: editor.zoomMode = "fit"
                         }
-                        LumaButton {
+                        ApertoneButton {
                             objectName: "develop.fill"
-                            text: qsTranslate("Luma", "FILL")
+                            text: qsTranslate("Apertone", "FILL")
                             checkable: true; checked: editor.zoomMode === "fill"
                             enabled: editor.zoomAvailable
                             onClicked: editor.zoomMode = "fill"
                         }
-                        LumaTextField {
+                        ApertoneTextField {
                             id: zoomPercent
                             objectName: "develop.zoomPercent"
                             Layout.preferredWidth: 64; Layout.minimumWidth: 64
                             enabled: editor.zoomAvailable
                             horizontalAlignment: Text.AlignRight
-                            Accessible.name: qsTranslate("Luma", "Zoom") + " %"
+                            Accessible.name: qsTranslate("Apertone", "Zoom") + " %"
                             property bool modified: false
                             validator: DoubleValidator { bottom: editor.minimumZoomFactor * 100; top: editor.maximumZoomFactor * 100; decimals: 2; notation: DoubleValidator.StandardNotation; locale: "C" }
                             Binding {
@@ -297,10 +298,10 @@ ApplicationWindow {
                             Keys.onEscapePressed: { modified = false; previewViewport.forceActiveFocus() }
                         }
                         Label { text: "%"; color: Theme.canvasMuted }
-                        LumaButton {
+                        ApertoneButton {
                             objectName: "develop.actualPixels"
                             text: "100%"
-                            Accessible.name: qsTranslate("Luma", "Zoom") + " 100%"
+                            Accessible.name: qsTranslate("Apertone", "Zoom") + " 100%"
                             checkable: true; checked: editor.oneToOne
                             enabled: editor.zoomAvailable
                             onClicked: editor.oneToOne = true
@@ -424,32 +425,32 @@ ApplicationWindow {
                                 Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 2; border.color: Theme.canvasText }
                                 Rectangle { width: 16; height: 30; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 8; color: Theme.accent }
                             }
-                            Label { text: qsTranslate("Luma", "It starts with a photo."); color: Theme.canvasText; font.pixelSize: 22; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "Open a photo. Find your light."); color: Theme.canvasMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
-                            LumaButton { text: qsTranslate("Luma", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
-                            Label { text: qsTranslate("Luma", "RAW and common images"); color: Theme.canvasMuted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Apertone", "It starts with a photo."); color: Theme.canvasText; font.pixelSize: 22; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Apertone", "Open a photo. Find your light."); color: Theme.canvasMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
+                            ApertoneButton { text: qsTranslate("Apertone", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
+                            Label { text: qsTranslate("Apertone", "RAW and common images"); color: Theme.canvasMuted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; visible: editor.busy; spacing: 16; width: Math.min(parent.width - 60, 300)
                             BusyIndicator { running: editor.busy; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "Decoding image pixels"); color: Theme.canvasText; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Apertone", "Decoding image pixels"); color: Theme.canvasText; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
                             ProgressBar { value: editor.progress; Layout.fillWidth: true }
-                            LumaButton { objectName: "editor.cancelLoad"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
+                            ApertoneButton { objectName: "editor.cancelLoad"; text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
                         }
                     }
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter; spacing: 8
-                        LumaButton { objectName: "develop.processedButton"; text: qsTranslate("Luma", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
-                        LumaButton { objectName: "develop.originalButton"; text: qsTranslate("Luma", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
+                        ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
+                        ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                     }
                     Label {
                         visible: editor.whiteBalancePicking
-                        text: qsTranslate("Luma", "Click a neutral gray area. Escape cancels the eyedropper.")
+                        text: qsTranslate("Apertone", "Click a neutral gray area. Escape cancels the eyedropper.")
                         color: Theme.accent; font.pixelSize: 11
                         wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
                         Layout.fillWidth: true
                     }
-                    Label { visible:editor.targetedTool!=="none";text:qsTranslate("Luma", "Click a tone or color and drag up / down");color:Theme.accent;font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
+                    Label { visible:editor.targetedTool!=="none";text:qsTranslate("Apertone", "Click a tone or color and drag up / down");color:Theme.accent;font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
                 }
             }
             Rectangle {
@@ -469,37 +470,37 @@ ApplicationWindow {
                         HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
                         CreativePanel { Layout.fillWidth: true }
-                        Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: Theme.text }
+                        Label { text: qsTranslate("Apertone", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: Theme.text }
                         RowLayout {
-                            CheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Luma", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
-                            Label { text: qsTranslate("Luma", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
+                            CheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Apertone", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
+                            Label { text: qsTranslate("Apertone", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
                         }
-                        LumaComboBox {
+                        ApertoneComboBox {
                             objectName: "develop.whiteBalance.preset"
                             Layout.fillWidth: true
                             textRole: "label"
-                            model: [{ value: "As Shot", label: qsTranslate("Luma", "As Shot") },{ value: "Daylight", label: qsTranslate("Luma", "Daylight") },{ value: "Cloudy", label: qsTranslate("Luma", "Cloudy") },{ value: "Shade", label: qsTranslate("Luma", "Shade") },{ value: "Tungsten", label: qsTranslate("Luma", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Luma", "Fluorescent") },{ value: "Custom", label: qsTranslate("Luma", "Custom") }]
+                            model: [{ value: "As Shot", label: qsTranslate("Apertone", "As Shot") },{ value: "Daylight", label: qsTranslate("Apertone", "Daylight") },{ value: "Cloudy", label: qsTranslate("Apertone", "Cloudy") },{ value: "Shade", label: qsTranslate("Apertone", "Shade") },{ value: "Tungsten", label: qsTranslate("Apertone", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Apertone", "Fluorescent") },{ value: "Custom", label: qsTranslate("Apertone", "Custom") }]
                             currentIndex: editor.customWhiteBalance ? 6 : 0
                             enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
                             onActivated: editor.setWhiteBalancePreset(model[currentIndex].value)
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            LumaButton {
+                            ApertoneButton {
                                 objectName: "develop.whiteBalance.auto"
-                                text: qsTranslate("Luma", "Auto")
-                                Accessible.name: qsTranslate("Luma", "Auto white balance")
+                                text: qsTranslate("Apertone", "Auto")
+                                Accessible.name: qsTranslate("Apertone", "Auto white balance")
                                 Layout.fillWidth: true
                                 enabled: editor.hasPhoto && !editor.busy && !editor.original &&
                                          !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
                                 onClicked: editor.autoWhiteBalance()
                                 ToolTip.visible: hovered
-                                ToolTip.text: qsTranslate("Luma", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
+                                ToolTip.text: qsTranslate("Apertone", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
                             }
-                            LumaButton {
+                            ApertoneButton {
                                 objectName: "develop.whiteBalance.eyedropper"
-                                text: qsTranslate("Luma", "Eyedropper")
-                                Accessible.name: qsTranslate("Luma", "White balance eyedropper")
+                                text: qsTranslate("Apertone", "Eyedropper")
+                                Accessible.name: qsTranslate("Apertone", "White balance eyedropper")
                                 Layout.fillWidth: true
                                 checkable: true; checked: editor.whiteBalancePicking
                                 enabled: editor.hasPhoto && !editor.busy && !editor.original &&
@@ -512,31 +513,31 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             BusyIndicator { running: editor.whiteBalanceBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
                             Label {
-                                text: editor.whiteBalanceBusy ? qsTranslate("Luma", "Estimating white balance…") : qsTranslate("Luma", "Select a neutral area")
+                                text: editor.whiteBalanceBusy ? qsTranslate("Apertone", "Estimating white balance…") : qsTranslate("Apertone", "Select a neutral area")
                                 Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
                             }
-                            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelWhiteBalance() }
+                            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelWhiteBalance() }
                         }
                         Label {
                             objectName: "develop.whiteBalance.message"
                             visible: text.length > 0; text: editor.whiteBalanceMessage
                             Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.accent
                         }
-                        DevelopSlider { parameter: "temperature"; label: qsTranslate("Luma", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "tint"; label: qsTranslate("Luma", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "temperature"; label: qsTranslate("Apertone", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "tint"; label: qsTranslate("Apertone", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Apertone", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                        Label { text: qsTranslate("Luma", "LIGHT"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "exposure"; label: qsTranslate("Luma", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "contrast"; label: qsTranslate("Luma", "Contrast"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "highlights"; label: qsTranslate("Luma", "Highlights"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "shadows"; label: qsTranslate("Luma", "Shadows"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "whites"; label: qsTranslate("Luma", "Whites"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "blacks"; label: qsTranslate("Luma", "Blacks"); Layout.fillWidth: true }
+                        Label { text: qsTranslate("Apertone", "LIGHT"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "exposure"; label: qsTranslate("Apertone", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
+                        DevelopSlider { parameter: "contrast"; label: qsTranslate("Apertone", "Contrast"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "highlights"; label: qsTranslate("Apertone", "Highlights"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "shadows"; label: qsTranslate("Apertone", "Shadows"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "whites"; label: qsTranslate("Apertone", "Whites"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "blacks"; label: qsTranslate("Apertone", "Blacks"); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                        Label { text: qsTranslate("Luma", "COLOR"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "vibrance"; label: qsTranslate("Luma", "Vibrance"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "saturation"; label: qsTranslate("Luma", "Saturation"); Layout.fillWidth: true }
+                        Label { text: qsTranslate("Apertone", "COLOR"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
+                        DevelopSlider { parameter: "vibrance"; label: qsTranslate("Apertone", "Vibrance"); Layout.fillWidth: true }
+                        DevelopSlider { parameter: "saturation"; label: qsTranslate("Apertone", "Saturation"); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
                         CurvesPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
@@ -547,16 +548,16 @@ ApplicationWindow {
                         LensPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         DetailPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         RetouchPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        LumaButton { objectName: "develop.resetButton"; text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
+                        ApertoneButton { objectName: "develop.resetButton"; text: qsTranslate("Apertone", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                        Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1.5 }
-                        MetadataRow { objectName: "develop.metadata.camera"; label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
-                        MetadataRow { objectName: "develop.metadata.lens"; label: qsTranslate("Luma", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
+                        Label { text: qsTranslate("Apertone", "CAPTURE DATA"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1.5 }
+                        MetadataRow { objectName: "develop.metadata.camera"; label: qsTranslate("Apertone", "Camera"); value: editor.camera; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.lens"; label: qsTranslate("Apertone", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.iso"; label: "ISO"; value: editor.iso; Layout.fillWidth: true }
-                        MetadataRow { objectName: "develop.metadata.shutter"; label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
-                        MetadataRow { objectName: "develop.metadata.aperture"; label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
-                        MetadataRow { objectName: "develop.metadata.focalLength"; label: qsTranslate("Luma", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
-                        Label { text: editor.saving ? qsTranslate("Luma", "Saving changes…") : qsTranslate("Luma", "Changes are saved automatically"); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.shutter"; label: qsTranslate("Apertone", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.aperture"; label: qsTranslate("Apertone", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
+                        MetadataRow { objectName: "develop.metadata.focalLength"; label: qsTranslate("Apertone", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
+                        Label { text: editor.saving ? qsTranslate("Apertone", "Saving changes…") : qsTranslate("Apertone", "Changes are saved automatically"); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     }
                 }
             }
@@ -586,10 +587,10 @@ ApplicationWindow {
             Layout.fillWidth: true; implicitHeight: Theme.footerHeight; color: Theme.panel
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
-                Label { objectName: "applicationVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
+                Label { objectName: "applicationVersion"; text: "Apertone " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? Theme.accent : Theme.positive }
-                Label { objectName: "main.editorStatus"; text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: Theme.faint; font.pixelSize: 10 }
+                Label { objectName: "main.editorStatus"; text: qsTranslate("Apertone", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: qsTranslate("Apertone", "Edits do not change the original image"); color: Theme.faint; font.pixelSize: 10 }
             }
         }
     }

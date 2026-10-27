@@ -1,6 +1,6 @@
 # Roadmap
 
-This follows the supplied requirements, renamed from Photon to Luma. Each stage
+This follows the supplied requirements, renamed from Photon to Apertone. Each stage
 implements an end-to-end workflow with persistent data and error handling.
 No dates are promised before measuring scope and performance.
 
@@ -17,8 +17,8 @@ remain open for that final campaign. Track new reports in
 
 ## M0 — RAW Vertical Slice / 0.1 Foundation
 
-[Issue #1](https://github.com/yakut-sekonts/Luma/issues/1) ·
-[Implementation PR #2](https://github.com/yakut-sekonts/Luma/pull/2)
+[Issue #1](https://github.com/yakut-sekonts/Apertone/issues/1) ·
+[Implementation PR #2](https://github.com/yakut-sekonts/Apertone/pull/2)
 
 ✅ Implemented; PR ready for review. Public repository, Apache-2.0, pinned dependencies, macOS CI,
 Qt/QML shell, SQLite migration, real Nikon NEF sensor decode, EXIF, CPU Exposure,
@@ -39,8 +39,8 @@ Auto/eyedropper WB, persistent history, advanced export options and DNG remain l
 
 ## 0.3 — Library
 
-[Issue #5](https://github.com/yakut-sekonts/Luma/issues/5) ·
-[Implementation PR #6](https://github.com/yakut-sekonts/Luma/pull/6)
+[Issue #5](https://github.com/yakut-sekonts/Apertone/issues/5) ·
+[Implementation PR #6](https://github.com/yakut-sekonts/Apertone/pull/6)
 
 ✅ Implemented. Add/Copy import of files/folders, per-file transactional checkpoints,
 SHA-256/size duplicate detection, cancellation and dead-owner journal recovery;
@@ -118,7 +118,7 @@ complete mask document. Global presets and batch operations preserve target
 masks. See [phase acceptance](docs/PHASE5_ACCEPTANCE.md),
 [workflow and limits](docs/LOCAL_ADJUSTMENTS.md),
 [ADR 0024](docs/adr/0024-complete-local-masks.md) and
-[Issue #44](https://github.com/yakut-sekonts/Luma/issues/44).
+[Issue #44](https://github.com/yakut-sekonts/Apertone/issues/44).
 
 Depth Range is conditional on an actual source depth channel; the current
 pipeline has none, so no synthetic Depth control is exposed. Metal and AI remain

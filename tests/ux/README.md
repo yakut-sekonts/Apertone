@@ -365,7 +365,7 @@ Python infrastructure checks pass. Run the bounded official case with:
 ```
 
 On macOS the UX executable is a build-only `luma_ux_tests.app` with the unique
-`app.luma.ux-tests` identity and `LumaUXTests` display name. The existing CLI path
+`app.luma.ux-tests` identity and `ApertoneUXTests` display name. The existing CLI path
 is an absolute symlink to its canonical executable; the launcher executes that
 canonical path. Provenance includes exact generated plist identity/SHA and binary
 SHA and fails closed for changed or aliased bundle metadata. This is not a

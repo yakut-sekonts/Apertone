@@ -10,7 +10,7 @@ ColumnLayout {
     readonly property var histogramData: editor.histogram
     readonly property bool available: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original && !editor.exporting
     readonly property var parameters: ["blacks", "shadows", "exposure", "highlights", "whites"]
-    readonly property var labels: [qsTranslate("Luma", "Blacks"), qsTranslate("Luma", "Shadows"), qsTranslate("Luma", "Exposure"), qsTranslate("Luma", "Highlights"), qsTranslate("Luma", "Whites")]
+    readonly property var labels: [qsTranslate("Apertone", "Blacks"), qsTranslate("Apertone", "Shadows"), qsTranslate("Apertone", "Exposure"), qsTranslate("Apertone", "Highlights"), qsTranslate("Apertone", "Whites")]
     property int selectedZone: 2
     readonly property string parameter: parameters[selectedZone]
     readonly property bool controlEnabled: available && (editor.correctionStates[parameter] ?? false)
@@ -33,29 +33,29 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
-        Label { text: qsTranslate("Luma", "HISTOGRAM"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "HISTOGRAM"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1; Layout.fillWidth: true }
         ToolButton {
             id: helpToggle
             objectName: "histogram.help"
             text: "?"; checkable: true
-            Accessible.name: qsTranslate("Luma", "Histogram help")
+            Accessible.name: qsTranslate("Apertone", "Histogram help")
         }
     }
     RowLayout {
         Layout.fillWidth: true
-        LumaComboBox {
+        ApertoneComboBox {
             id: mode
             objectName: "histogram.mode"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
-            model: ["RGB", qsTranslate("Luma", "Luminance")]
-            Accessible.name: qsTranslate("Luma", "Histogram channels")
+            model: ["RGB", qsTranslate("Apertone", "Luminance")]
+            Accessible.name: qsTranslate("Apertone", "Histogram channels")
             onCurrentIndexChanged: { if (graph) graph.requestPaint() }
         }
         CheckBox {
             id: logarithmic
             objectName: "histogram.logScale"
-            text: qsTranslate("Luma", "Log scale")
+            text: qsTranslate("Apertone", "Log scale")
             onCheckedChanged: { if (graph) graph.requestPaint() }
         }
     }
@@ -66,8 +66,8 @@ ColumnLayout {
         Layout.minimumWidth: 0
         Layout.preferredHeight: 110
         activeFocusOnTab: true
-        Accessible.name: qsTranslate("Luma", "Histogram")
-        Accessible.description: qsTranslate("Luma", "Use the tone selector and minus/plus buttons, or Left/Right keys, to adjust tones.")
+        Accessible.name: qsTranslate("Apertone", "Histogram")
+        Accessible.description: qsTranslate("Apertone", "Use the tone selector and minus/plus buttons, or Left/Right keys, to adjust tones.")
         onWidthChanged: requestPaint()
         onHeightChanged: requestPaint()
         Keys.onLeftPressed: function(event) { panel.nudge(event.modifiers & Qt.ShiftModifier ? -10 : -1); event.accepted = true }
@@ -112,7 +112,7 @@ ColumnLayout {
         Label {
             anchors.centerIn: parent
             width: parent.width - 16
-            text: editor.histogramPending ? qsTranslate("Luma", "Updating histogram…") : qsTranslate("Luma", "No histogram samples")
+            text: editor.histogramPending ? qsTranslate("Apertone", "Updating histogram…") : qsTranslate("Apertone", "No histogram samples")
             visible: !(panel.histogramData.weight > 0)
             wrapMode: Text.Wrap
             horizontalAlignment: Text.AlignHCenter
@@ -145,41 +145,41 @@ ColumnLayout {
         }
     }
     Label {
-        text: editor.histogramPending ? qsTranslate("Luma", "Updating histogram…") : qsTranslate("Luma", "Sampled preview · sRGB")
+        text: editor.histogramPending ? qsTranslate("Apertone", "Updating histogram…") : qsTranslate("Apertone", "Sampled preview · sRGB")
         font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
-        text: qsTranslate("Luma", "Drag left/right in a tone zone. Zones run from Blacks to Whites.")
+        text: qsTranslate("Apertone", "Drag left/right in a tone zone. Zones run from Blacks to Whites.")
         visible: helpToggle.checked
         font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     RowLayout {
         Layout.fillWidth: true
-        LumaComboBox {
+        ApertoneComboBox {
             objectName: "histogram.tone"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
             model: panel.labels
             currentIndex: panel.selectedZone
             onActivated: { panel.finishGesture(); panel.selectedZone = currentIndex }
-            Accessible.name: qsTranslate("Luma", "Histogram tone control")
+            Accessible.name: qsTranslate("Apertone", "Histogram tone control")
         }
         Label {
             text: Number(editor.parameters[panel.parameter] ?? 0).toFixed(panel.parameter === "exposure" ? 2 : 0)
             color: Theme.accent; textFormat: Text.PlainText
         }
-        LumaButton {
+        ApertoneButton {
             objectName: "histogram.decrease"
             text: "−"; implicitWidth: 32
             enabled: panel.controlEnabled
-            Accessible.name: qsTranslate("Luma", "Decrease %1").arg(panel.labels[panel.selectedZone])
+            Accessible.name: qsTranslate("Apertone", "Decrease %1").arg(panel.labels[panel.selectedZone])
             onClicked: panel.nudge(-1)
         }
-        LumaButton {
+        ApertoneButton {
             objectName: "histogram.increase"
             text: "+"; implicitWidth: 32
             enabled: panel.controlEnabled
-            Accessible.name: qsTranslate("Luma", "Increase %1").arg(panel.labels[panel.selectedZone])
+            Accessible.name: qsTranslate("Apertone", "Increase %1").arg(panel.labels[panel.selectedZone])
             onClicked: panel.nudge(1)
         }
     }
@@ -188,8 +188,8 @@ ColumnLayout {
         spacing: 0
         CheckBox {
             objectName: "histogram.shadowClipping"
-            text: qsTranslate("Luma", "Shadows")
-            Accessible.name: qsTranslate("Luma", "Shadow clipping")
+            text: qsTranslate("Apertone", "Shadows")
+            Accessible.name: qsTranslate("Apertone", "Shadow clipping")
             checked: editor.shadowClipping
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.shadowClipping = checked
@@ -197,8 +197,8 @@ ColumnLayout {
         }
         CheckBox {
             objectName: "histogram.highlightClipping"
-            text: qsTranslate("Luma", "Highlights")
-            Accessible.name: qsTranslate("Luma", "Highlight clipping")
+            text: qsTranslate("Apertone", "Highlights")
+            Accessible.name: qsTranslate("Apertone", "Highlight clipping")
             checked: editor.highlightClipping
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.highlightClipping = checked
@@ -206,24 +206,24 @@ ColumnLayout {
         }
     }
     Label {
-        text: qsTranslate("Luma", "Shadows ≈ %1% · Highlights ≈ %2%")
+        text: qsTranslate("Apertone", "Shadows ≈ %1% · Highlights ≈ %2%")
             .arg(Number(panel.histogramData.shadowsPercent ?? 0).toLocaleString(Qt.locale(), 'f', 2))
             .arg(Number(panel.histogramData.highlightsPercent ?? 0).toLocaleString(Qt.locale(), 'f', 2))
         visible: panel.histogramData.weight > 0
         font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
-        text: qsTranslate("Luma", "Red marks clipped highlights; blue marks clipped shadows. Hold Option while adjusting Whites or Blacks for a temporary overlay.")
+        text: qsTranslate("Apertone", "Red marks clipped highlights; blue marks clipped shadows. Hold Option while adjusting Whites or Blacks for a temporary overlay.")
         visible: helpToggle.checked || editor.previewClipping !== 0
         font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
-        text: qsTranslate("Luma", "Clipping is measured against sRGB output, not RAW sensor saturation. Transparent areas are excluded; overlays are never exported.")
+        text: qsTranslate("Apertone", "Clipping is measured against sRGB output, not RAW sensor saturation. Transparent areas are excluded; overlays are never exported.")
         visible: helpToggle.checked
         font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
-        text: qsTranslate("Luma", "Histogram and clipping overlays are unavailable in Detail diagnostic views.")
+        text: qsTranslate("Apertone", "Histogram and clipping overlays are unavailable in Detail diagnostic views.")
         visible: editor.detailDiagnostic.length > 0
         font.pixelSize: 10; color: Theme.accent; wrapMode: Text.Wrap; Layout.fillWidth: true
     }

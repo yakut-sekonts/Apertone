@@ -5,7 +5,7 @@
 
 namespace {
 QString describe(const luma::EditHistoryChange &change) {
-    auto label = QCoreApplication::translate("Luma", change.label.c_str());
+    auto label = QCoreApplication::translate("Apertone", change.label.c_str());
     if (change.value) {
         const bool exposure = change.label == "Exposure";
         const bool temperature = change.label == "Temperature";
@@ -48,10 +48,10 @@ QVariantList EditorController::processingHistory() const {
             changes.append(describe(change));
         const bool singleChange = entry.action.empty() && changes.size() == 1;
         const auto title =
-            singleChange
-                ? changes.front()
-                : QCoreApplication::translate("Luma", entry.action.empty() ? "Processing settings"
-                                                                           : entry.action.c_str());
+            singleChange ? changes.front()
+                         : QCoreApplication::translate("Apertone", entry.action.empty()
+                                                                       ? "Processing settings"
+                                                                       : entry.action.c_str());
         rows.append(
             QVariantMap{{"id", historyHandle(entry.id)},
                         {"title", title},

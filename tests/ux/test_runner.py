@@ -90,7 +90,7 @@ class GateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             configuration = root / 'CMakeLists.txt'
-            configuration.write_text('project(Luma VERSION 0.10.7 LANGUAGES C CXX OBJCXX)')
+            configuration.write_text('project(Apertone VERSION 0.10.7 LANGUAGES C CXX OBJCXX)')
             with patch.object(runner, 'ROOT', root):
                 self.assertEqual(runner.source_phase(), '0.10')
                 configuration.write_text('project(Unknown LANGUAGES CXX)')
@@ -731,13 +731,13 @@ failed_variant=''' + repr(failed_variant) + '''
         self._fake_isolated_variant_children('UX-P10-UPG-012', variants, 'merge-cancel')
 
     def test_offline_sandbox_is_scoped_to_the_actual_child_and_preserves_arguments(self):
-        command = ['/owned path/Luma UX', '--root', '/owned path/evidence', '--case', 'UX-P10-DAY-012']
+        command = ['/owned path/Apertone UX', '--root', '/owned path/evidence', '--case', 'UX-P10-DAY-012']
         wrapped = runner.offline_child_command('UX-P10-DAY-012', command)
         self.assertEqual(wrapped[:3], ['/usr/bin/sandbox-exec', '-p',
                                       '(version 1) (allow default) (deny network*)'])
         self.assertEqual(wrapped[3:], command)
         self.assertEqual(runner.offline_child_command('UX-P10-UPG-012', command), command)
-        self.assertEqual(command[0], '/owned path/Luma UX')
+        self.assertEqual(command[0], '/owned path/Apertone UX')
 
     def _mac008_failure_aggregation(self, failed_variant, expected_variants):
         with tempfile.TemporaryDirectory() as directory:

@@ -1,6 +1,6 @@
 # Edited thumbnails — 0.4.9 development
 
-[Issue #27](https://github.com/yakut-sekonts/Luma/issues/27) replaces original-camera
+[Issue #27](https://github.com/yakut-sekonts/Apertone/issues/27) replaces original-camera
 thumbnail previews with saved-edit renders. The shared calibrated CPU path applies
 Develop, Curve/HSL, Noise/Sharpening, Optics, Transform, EXIF and Crop with Detail
 preview scale. Grid/filmstrip update after successful autosave and batch apply/

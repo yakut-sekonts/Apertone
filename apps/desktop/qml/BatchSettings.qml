@@ -12,7 +12,7 @@ GridLayout {
     Layout.fillWidth: true
     property bool ready: library.selectedCount > 0 && !library.working && !library.selecting && !editor.busy && !editor.exporting
     property var availablePresets: presets.builtinItems.concat(presets.items)
-    LumaComboBox {
+    ApertoneComboBox {
         Layout.minimumWidth: 0;
         id: presetChoice; objectName: "batchPresetChoice"
         model: row.availablePresets; textRole: "name"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
@@ -24,23 +24,23 @@ GridLayout {
         }
         contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
     }
-    LumaButton { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
-    LumaButton { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
-    LumaButton { objectName: "batchSync"; Layout.minimumWidth: 0; Layout.maximumWidth: 200; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Sync Settings…"); enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
-    LumaButton { objectName: "batchUndo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Undo batch"); enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.undo() }
-    LumaButton { objectName: "batchRedo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Redo batch"); enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.redo() }
+    ApertoneButton { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
+    ApertoneButton { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
+    ApertoneButton { objectName: "batchSync"; Layout.minimumWidth: 0; Layout.maximumWidth: 200; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Sync Settings…"); enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
+    ApertoneButton { objectName: "batchUndo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Undo batch"); enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.undo() }
+    ApertoneButton { objectName: "batchRedo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Redo batch"); enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.redo() }
     Dialog {
         id: syncDialog; objectName: "batchSyncDialog"
         parent: Overlay.overlay; anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
-        title: qsTranslate("Luma", "Sync Settings")
+        title: qsTranslate("Apertone", "Sync Settings")
         property int groups: 4095
         ColumnLayout {
             width: parent.width
-            Label { text: qsTranslate("Luma", "Source: ") + editor.filename; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", "Selected photos: ") + library.selectedCount + qsTranslate("Luma", ". Only the selected groups will change."); wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", "Source: ") + editor.filename; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", "Selected photos: ") + library.selectedCount + qsTranslate("Apertone", ". Only the selected groups will change."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             Repeater {
-                model: [qsTranslate("Luma", "Light"), qsTranslate("Luma", "Color"), qsTranslate("Luma", "Curve"), "HSL", qsTranslate("Luma", "Detail"), qsTranslate("Luma", "Crop"), qsTranslate("Luma", "Optics"), qsTranslate("Luma", "Geometry"),qsTranslate("Luma","Presence"),qsTranslate("Luma","Point Color"),qsTranslate("Luma","Color Grading"),qsTranslate("Luma","Effects")]
+                model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"),qsTranslate("Apertone","Presence"),qsTranslate("Apertone","Point Color"),qsTranslate("Apertone","Color Grading"),qsTranslate("Apertone","Effects")]
                 CheckBox {
                     required property string modelData
                     required property int index
@@ -50,8 +50,8 @@ GridLayout {
             }
         }
         footer: DialogButtonBox {
-            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: syncDialog.close(); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-            LumaButton { objectName: "batchSyncConfirm"; text: qsTranslate("Luma", "Apply to selection"); enabled: syncDialog.groups !== 0 && row.ready; DialogButtonBox.buttonRole: DialogButtonBox.ActionRole; onClicked: { batch.sync(syncDialog.groups); syncDialog.close() } }
+            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: syncDialog.close(); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+            ApertoneButton { objectName: "batchSyncConfirm"; text: qsTranslate("Apertone", "Apply to selection"); enabled: syncDialog.groups !== 0 && row.ready; DialogButtonBox.buttonRole: DialogButtonBox.ActionRole; onClicked: { batch.sync(syncDialog.groups); syncDialog.close() } }
         }
     }
 }

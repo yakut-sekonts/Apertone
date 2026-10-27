@@ -474,7 +474,7 @@ bool metadataScenario(Context &c, const QString &id) {
         if (conflict) {
             click(c, "metadata.write");
             idle(c);
-            require(c.library.error().contains("XMP changed outside Luma") &&
+            require(c.library.error().contains("XMP changed outside Apertone") &&
                         c.library.error().contains("Import its metadata before writing"),
                     "Changed external XMP did not produce explicit conflict/recovery instructions");
         } else {

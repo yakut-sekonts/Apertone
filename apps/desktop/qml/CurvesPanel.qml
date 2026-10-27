@@ -50,28 +50,28 @@ ColumnLayout {
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("curves", checked)
             padding: 0
-            Accessible.name: qsTranslate("Luma", "Enable curves")
+            Accessible.name: qsTranslate("Apertone", "Enable curves")
         }
         Label {
-            text: qsTranslate("Luma", "CURVES")
+            text: qsTranslate("Apertone", "CURVES")
             color: Theme.muted
             font.pixelSize: 9
             font.letterSpacing: 2
             Layout.fillWidth: true
         }
     }
-    LumaComboBox {
+    ApertoneComboBox {
         id: mode
         objectName: "curves.mode"
-        model: [qsTranslate("Luma", "Point"), qsTranslate("Luma", "Parametric")]
+        model: [qsTranslate("Apertone", "Point"), qsTranslate("Apertone", "Parametric")]
         Layout.fillWidth: true
         enabled: panel.available
         onActivated: panel.refresh()
-        Accessible.name: qsTranslate("Luma", "Curve mode")
+        Accessible.name: qsTranslate("Apertone", "Curve mode")
     }
     RowLayout {
         visible: mode.currentIndex === 0
-        LumaComboBox {
+        ApertoneComboBox {
             id: channels
             objectName: "curves.channel"
             Layout.fillWidth: true
@@ -84,39 +84,39 @@ ColumnLayout {
                     value: "rgb"
                 },
                 {
-                    label: qsTranslate("Luma", "Red"),
+                    label: qsTranslate("Apertone", "Red"),
                     value: "red"
                 },
                 {
-                    label: qsTranslate("Luma", "Green"),
+                    label: qsTranslate("Apertone", "Green"),
                     value: "green"
                 },
                 {
-                    label: qsTranslate("Luma", "Blue"),
+                    label: qsTranslate("Apertone", "Blue"),
                     value: "blue"
                 }
             ]
-            Accessible.name: qsTranslate("Luma", "Curve channel")
+            Accessible.name: qsTranslate("Apertone", "Curve channel")
         }
-        LumaButton {
+        ApertoneButton {
             objectName: "curves.target"
             text: "◎"
             checkable: true
             checked: editor.targetedTool === "curve." + panel.channel
             enabled: panel.available && !editor.original
             onClicked: editor.targetedTool = checked ? "curve." + panel.channel : "none"
-            Accessible.name: qsTranslate("Luma", "Targeted Curve")
+            Accessible.name: qsTranslate("Apertone", "Targeted Curve")
             ToolTip.visible: hovered
-            ToolTip.text: qsTranslate("Luma", "Adjust tone with a photo gesture")
+            ToolTip.text: qsTranslate("Apertone", "Adjust tone with a photo gesture")
         }
-        LumaButton {
-            text: qsTranslate("Luma", "Reset")
+        ApertoneButton {
+            text: qsTranslate("Apertone", "Reset")
             enabled: panel.available
             onClicked: {
                 panel.selected = -1;
                 editor.resetCurve(panel.channel);
             }
-            Accessible.name: qsTranslate("Luma", "Reset channel curve")
+            Accessible.name: qsTranslate("Apertone", "Reset channel curve")
         }
     }
     Canvas {
@@ -231,13 +231,13 @@ ColumnLayout {
     RowLayout {
         visible: mode.currentIndex === 0
         Label {
-            text: qsTranslate("Luma", "Click to add a point; drag to adjust")
+            text: qsTranslate("Apertone", "Click to add a point; drag to adjust")
             font.pixelSize: 10
             color: Theme.muted
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
-        LumaButton {
+        ApertoneButton {
             text: "−"
             enabled: panel.available && panel.selected > 0 && panel.selected < panel.points.length
                      - 1
@@ -247,7 +247,7 @@ ColumnLayout {
                 panel.selected = -1;
                 graph.requestPaint();
             }
-            Accessible.name: qsTranslate("Luma", "Delete curve point")
+            Accessible.name: qsTranslate("Apertone", "Delete curve point")
         }
     }
     ColumnLayout {
@@ -255,28 +255,28 @@ ColumnLayout {
         Layout.fillWidth: true
         DevelopSlider {
             parameter: "curve.highlights"
-            label: qsTranslate("Luma", "Highlights")
+            label: qsTranslate("Apertone", "Highlights")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.lights"
-            label: qsTranslate("Luma", "Lights")
+            label: qsTranslate("Apertone", "Lights")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.darks"
-            label: qsTranslate("Luma", "Darks")
+            label: qsTranslate("Apertone", "Darks")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true
         }
         DevelopSlider {
             parameter: "curve.shadows"
-            label: qsTranslate("Luma", "Shadows")
+            label: qsTranslate("Apertone", "Shadows")
             correction: "curves"
             allowDisable: false
             Layout.fillWidth: true

@@ -90,7 +90,7 @@ def verify_artifacts(folder):
 
 def verify_zip(archive, expected_manifest_digest):
     """Read the final update ZIP without extracting or trusting member paths."""
-    prefix = "Luma.app/Contents/Resources/Models/"
+    prefix = "Apertone.app/Contents/Resources/Models/"
     names = [item.filename for item in archive.infolist()]
     if len(names) != len(set(names)):
         raise ValueError("Duplicate files in release ZIP.")

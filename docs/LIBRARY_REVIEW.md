@@ -1,10 +1,10 @@
 # 0.3 — Library review
 
-Issue: https://github.com/yakut-sekonts/Luma/issues/5
-PR: https://github.com/yakut-sekonts/Luma/pull/6
+Issue: https://github.com/yakut-sekonts/Apertone/issues/5
+PR: https://github.com/yakut-sekonts/Apertone/pull/6
 Base: `codex/develop-core`; implementation: `codex/library`.
 
-Luma previously opened one RAW at a time. This stage adds a persistent photo
+Apertone previously opened one RAW at a time. This stage adds a persistent photo
 Library: Add/Copy import, browsing/filtering/selection, metadata organization and
 manual collections, with sensor-decoded Develop opening and preserved edits.
 
