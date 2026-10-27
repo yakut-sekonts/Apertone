@@ -22,6 +22,7 @@ QtObject {
     readonly property color positive: dark ? "#5fc39c" : "#277853"
     readonly property color negative: dark ? "#e56a72" : "#b93636"
     readonly property color warning: dark ? "#d9a441" : "#a86f0c"
+    readonly property color cropHandle: "#dfae77"
     readonly property color errorSurface: dark ? "#2c1a20" : "#ffedea"
     readonly property color canvas: "#0b0c0e"
     readonly property color canvasRaised: "#101114"

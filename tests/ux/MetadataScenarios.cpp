@@ -32,7 +32,11 @@ void reveal(Context &c, const QString &id) {
     for (int attempt = 0; attempt < 80; ++attempt) {
         d.wait([&] { return !view->property("moving").toBool(); }, "Metadata wheel settled");
         d.frame();
-        const auto rect = target->mapRectToItem(view, target->boundingRect());
+        // QQuickControl::boundingRect() can describe only its styled content.
+        // Reveal the full interactive item so a click at its center cannot land
+        // below the ScrollView clip after compact controls change their style.
+        const auto rect =
+            target->mapRectToItem(view, QRectF(0, 0, target->width(), target->height()));
         if (target->isVisible() && rect.top() >= 0 && rect.bottom() <= view->height())
             return;
         d.wheel("metadata.scroll", rect.top() < 0 ? 120 : -120);
