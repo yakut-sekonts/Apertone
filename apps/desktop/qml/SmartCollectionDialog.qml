@@ -16,18 +16,18 @@ Dialog {
     }
     ColumnLayout {
         anchors.fill:parent
-        TextField {id:name;Layout.fillWidth:true;maximumLength:128;placeholderText:qsTranslate("Luma","Collection name");selectByMouse:true}
+        LumaTextField {id:name;Layout.fillWidth:true;maximumLength:128;placeholderText:qsTranslate("Luma","Collection name");selectByMouse:true}
         Label {text:qsTranslate("Luma","Membership updates automatically. Date values use YYYY-MM-DD.");wrapMode:Text.Wrap;Layout.fillWidth:true}
         ScrollView {
             id:rulesScroll
             Layout.fillWidth:true;Layout.fillHeight:true;clip:true;contentWidth:availableWidth
             SmartRuleEditor {width:rulesScroll.availableWidth;rule:dialog.rule;onEdited:function(next){dialog.rule=next}}
         }
-        Label {visible:library.error.length>0;text:qsTranslate("Luma",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:"#ffc1bc"}
+        Label {visible:library.error.length>0;text:qsTranslate("Luma",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:Theme.negative}
     }
     footer:DialogButtonBox {
-        Button {text:qsTranslate("Luma","Cancel");onClicked:dialog.close()}
-        Button {text:qsTranslate("Luma","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule)}}
+        LumaButton {text:qsTranslate("Luma","Cancel");onClicked:dialog.close()}
+        LumaButton {text:qsTranslate("Luma","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule)}}
     }
     Connections {target:library;function onStateChanged(){if(dialog.visible&&!library.working&&dialog.saving){dialog.saving=false;if(library.error.length===0)dialog.close()}}}
     property bool saving:false

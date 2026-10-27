@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0 / Unreleased
+
+- Rebuilt the desktop UI around two coordinated appearances: Framed Sheet for
+  Day and Data Terminal for Night. System, Day and Night selection is available
+  in Settings and is persisted per catalog.
+- Added shared color, density and geometry tokens plus compact Button, ComboBox,
+  TextField and SpinBox controls across the application. The photo canvas stays
+  dark in both appearances for stable image perception.
+- Reduced toolbar, sidebar, inspector and filmstrip density while preserving
+  object names, keyboard behavior and accessibility labels used by automation.
+- Localized the appearance controls and persistence errors in all eight language
+  packs.
+
 ## 1.0.0 / First open-source release
 
 Luma 1.0.0 completes the planned 0.6–1.0 source scope. The project owner approved

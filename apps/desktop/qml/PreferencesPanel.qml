@@ -30,10 +30,21 @@ Dialog {
       clip: true; contentWidth: availableWidth
       ColumnLayout {
         width: parent.width
-        spacing: 14
+        spacing: 10
         Label { objectName: "settingsVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 20; font.weight: Font.DemiBold; Layout.fillWidth: true }
+        Label { text: qsTranslate("Luma", "Appearance"); Layout.fillWidth: true }
+        LumaComboBox {
+            id: appearanceChoice
+            objectName: "appearanceChoice"
+            Layout.fillWidth: true
+            model: [qsTranslate("Luma", "Follow system"), qsTranslate("Luma", "Day"), qsTranslate("Luma", "Night")]
+            currentIndex: appearance.mode === "day" ? 1 : appearance.mode === "night" ? 2 : 0
+            onActivated: appearance.selectMode(["system", "day", "night"][currentIndex])
+            Accessible.name: qsTranslate("Luma", "Appearance")
+        }
+        Label { text: qsTranslate("Luma", appearance.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label { objectName: "settingsLanguageLabel"; text: qsTranslate("Luma", "Interface language"); Layout.fillWidth: true; wrapMode: Text.Wrap }
-        ComboBox {
+        LumaComboBox {
             id: languageChoice
             objectName: "languageChoice"
             Layout.fillWidth: true
@@ -49,10 +60,10 @@ Dialog {
             Accessible.name: qsTranslate("Luma", "Interface language")
         }
         Label { objectName: "settingsEffect"; text: qsTranslate("Luma", "Changes take effect immediately."); Layout.fillWidth: true; wrapMode: Text.Wrap }
-        Button { objectName: "settings.catalogMaintenance"; text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
-        Button { text: qsTranslate("Luma", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
+        LumaButton { objectName: "settings.catalogMaintenance"; text: qsTranslate("Luma", "Catalog and backups"); onClicked: catalogMaintenance.open(); Layout.fillWidth: true }
+        LumaButton { text: qsTranslate("Luma", "Diagnostics"); onClicked: diagnosticDialog.open(); Layout.fillWidth: true }
         Label { text: qsTranslate("Luma", "Preview cache (MiB)"); Layout.fillWidth: true }
-        SpinBox {
+        LumaSpinBox {
             objectName: "settings.previewCache"
             Layout.fillWidth: true
             from: 64; to: 2048; stepSize: 64
@@ -61,7 +72,7 @@ Dialog {
             onValueModified: editor.previewCacheMiB = value
             Accessible.name: qsTranslate("Luma", "Preview cache (MiB)")
         }
-        Button {
+        LumaButton {
             objectName: "settings.clearPreviewCache"
             text: qsTranslate("Luma", "Clear preview cache")
             onClicked: editor.clearPreviewCache()
@@ -80,10 +91,10 @@ Dialog {
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
         }
-        Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        Label { text: qsTranslate("Luma", localization.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; Layout.fillWidth: true; wrapMode: Text.Wrap }
         Label {
             text: qsTranslate("Luma", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Luma", "Not configured")) +
                   (editor.skyModelBundled ? " · " + qsTranslate("Luma", "Included with Luma") : "")
@@ -91,8 +102,8 @@ Dialog {
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
         }
         Label { text: qsTranslate("Luma", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }

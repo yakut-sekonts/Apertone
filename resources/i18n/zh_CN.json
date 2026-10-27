@@ -800,6 +800,15 @@
     "Aligning originals…": "正在对齐原片…",
     "Merging frames…": "正在合并图像…",
     "Writing Float DNG…": "正在写入 Float DNG…",
-    "Align frames": "对齐图像"
+    "Align frames": "对齐图像",
+    "Appearance": "外观",
+    "Follow system": "跟随系统",
+    "Day": "日间",
+    "Night": "夜间",
+    "Unsupported appearance mode.": "不支持的外观模式。",
+    "Appearance preferences are busy.": "外观设置正忙。",
+    "Cannot save appearance preferences.": "无法保存外观设置。",
+    "Cannot read appearance preferences.": "无法读取外观设置。",
+    "Invalid appearance preferences; system theme is active.": "外观设置无效；已启用系统主题。"
   }
 }

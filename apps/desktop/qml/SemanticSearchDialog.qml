@@ -20,19 +20,19 @@ Dialog {
         }
         RowLayout {
             Layout.fillWidth: true
-            Button {
+            LumaButton {
                 objectName: "semantic.build"
                 text: library.semanticEnabled ? qsTranslate("Luma", "Update local index") : qsTranslate("Luma", "Enable and build index")
                 enabled: !library.working
                 onClicked: library.buildSemanticIndex()
             }
-            Button {
+            LumaButton {
                 objectName: "semantic.disable"
                 text: qsTranslate("Luma", "Disable and delete index")
                 enabled: library.semanticEnabled
                 onClicked: library.disableSemantic()
             }
-            Button {
+            LumaButton {
                 visible: library.semanticBusy && library.semanticEnabled
                 text: qsTranslate("Luma", "Cancel")
                 onClicked: library.cancelSemantic()
@@ -40,7 +40,7 @@ Dialog {
         }
         RowLayout {
             Layout.fillWidth: true
-            TextField {
+            LumaTextField {
                 id: query
                 objectName: "semantic.query"
                 placeholderText: qsTranslate("Luma", "Describe a photo in English")
@@ -49,7 +49,7 @@ Dialog {
                 enabled: library.semanticEnabled && !library.semanticBusy
                 onAccepted: library.searchSemantic(text)
             }
-            Button {
+            LumaButton {
                 objectName: "semantic.search"
                 text: qsTranslate("Luma", "Search")
                 enabled: library.semanticEnabled && !library.semanticBusy && query.text.trim().length > 0
@@ -58,7 +58,7 @@ Dialog {
         }
         ProgressBar { visible: library.semanticBusy; value: library.semanticProgress; Layout.fillWidth: true }
         Label { text: library.semanticStatus; textFormat: Text.PlainText; Layout.fillWidth: true }
-        Label { text: qsTranslate("Luma", library.semanticError); visible: text.length > 0; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: "#ffc1bc"; Layout.fillWidth: true }
+        Label { text: qsTranslate("Luma", library.semanticError); visible: text.length > 0; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: Theme.negative; Layout.fillWidth: true }
         GridView {
             id: results
             model: library.semanticResults
@@ -71,7 +71,7 @@ Dialog {
             delegate: Item {
                 required property var modelData
                 width: results.cellWidth; height: results.cellHeight
-                Button {
+                LumaButton {
                     objectName: "semantic.result." + modelData.id
                     anchors.fill: parent; anchors.margins: 5
                     Accessible.name: modelData.filename

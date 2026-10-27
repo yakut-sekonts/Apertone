@@ -14,12 +14,12 @@ Dialog {
     ColumnLayout {
         anchors.fill:parent
         RowLayout {
-            Button {text:qsTranslate("Luma","Fit");onClicked:{zoomControl.value=1;dialog.centerX=0.5;dialog.centerY=0.5;if(editor.comparison.fullResolution)editor.prepareCompare(editor.comparison.ids,false)}}
-            Button {text:"100%";Accessible.name:qsTranslate("Luma","Zoom")+" 100%";enabled:!editor.comparison.busy;onClicked:{zoomControl.value=1;editor.prepareCompare(editor.comparison.ids,true)}}
+            LumaButton {text:qsTranslate("Luma","Fit");onClicked:{zoomControl.value=1;dialog.centerX=0.5;dialog.centerY=0.5;if(editor.comparison.fullResolution)editor.prepareCompare(editor.comparison.ids,false)}}
+            LumaButton {text:"100%";Accessible.name:qsTranslate("Luma","Zoom")+" 100%";enabled:!editor.comparison.busy;onClicked:{zoomControl.value=1;editor.prepareCompare(editor.comparison.ids,true)}}
             Label {text:qsTranslate("Luma","Linked zoom and pan")}
             Slider {id:zoomControl;from:1;to:4;value:1;Layout.fillWidth:true;enabled:editor.comparison.ready;Accessible.name:qsTranslate("Luma","Zoom")}
-            Button {text:qsTranslate("Luma","Swap");enabled:editor.comparison.ready;onClicked:dialog.swapped=!dialog.swapped}
-            Button {text:qsTranslate("Luma","Close");onClicked:dialog.close()}
+            LumaButton {text:qsTranslate("Luma","Swap");enabled:editor.comparison.ready;onClicked:dialog.swapped=!dialog.swapped}
+            LumaButton {text:qsTranslate("Luma","Close");onClicked:dialog.close()}
         }
         BusyIndicator {running:editor.comparison.busy;visible:running;Layout.alignment:Qt.AlignHCenter}
         Label {visible:editor.comparison.error.length>0;text:qsTranslate("Luma",editor.comparison.error);wrapMode:Text.Wrap;Layout.fillWidth:true}

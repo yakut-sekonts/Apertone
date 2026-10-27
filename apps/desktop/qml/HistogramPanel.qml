@@ -33,7 +33,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
-        Label { text: qsTranslate("Luma", "HISTOGRAM"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1; Layout.fillWidth: true }
+        Label { text: qsTranslate("Luma", "HISTOGRAM"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1; Layout.fillWidth: true }
         ToolButton {
             id: helpToggle
             objectName: "histogram.help"
@@ -43,7 +43,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
-        ComboBox {
+        LumaComboBox {
             id: mode
             objectName: "histogram.mode"
             Layout.fillWidth: true
@@ -75,19 +75,19 @@ ColumnLayout {
         onPaint: {
             const ctx = getContext("2d")
             ctx.clearRect(0, 0, width, height)
-            ctx.fillStyle = "#111318"
+            ctx.fillStyle = Theme.panel
             ctx.fillRect(0, 0, width, height)
-            ctx.fillStyle = "#242b35"
+            ctx.fillStyle = Theme.dividerSoft
             ctx.fillRect(panel.selectedZone * width / 5, 0, width / 5, height)
             ctx.lineWidth = 1
-            ctx.strokeStyle = activeFocus ? "#dfae77" : "#39414c"
+            ctx.strokeStyle = activeFocus ? Theme.accent : Theme.divider
             ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
             for (let i = 1; i < 5; ++i) {
                 ctx.beginPath(); ctx.moveTo(i * width / 5, 0); ctx.lineTo(i * width / 5, height); ctx.stroke()
             }
             if (!(panel.histogramData.weight > 0)) return
             const names = mode.currentIndex === 0 ? ["red", "green", "blue"] : ["luminance"]
-            const colors = mode.currentIndex === 0 ? ["#ff7c78", "#83d18b", "#78aaff"] : ["#d9dce2"]
+            const colors = mode.currentIndex === 0 ? ["#ff7c78", "#83d18b", "#78aaff"] : [Theme.text]
             let peak = 0
             for (let c = 0; c < names.length; ++c) {
                 const values = panel.histogramData[names[c]] || []
@@ -146,16 +146,16 @@ ColumnLayout {
     }
     Label {
         text: editor.histogramPending ? qsTranslate("Luma", "Updating histogram…") : qsTranslate("Luma", "Sampled preview · sRGB")
-        font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true
+        font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
         text: qsTranslate("Luma", "Drag left/right in a tone zone. Zones run from Blacks to Whites.")
         visible: helpToggle.checked
-        font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true
+        font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     RowLayout {
         Layout.fillWidth: true
-        ComboBox {
+        LumaComboBox {
             objectName: "histogram.tone"
             Layout.fillWidth: true
             Layout.minimumWidth: 0
@@ -166,16 +166,16 @@ ColumnLayout {
         }
         Label {
             text: Number(editor.parameters[panel.parameter] ?? 0).toFixed(panel.parameter === "exposure" ? 2 : 0)
-            color: "#dfae77"; textFormat: Text.PlainText
+            color: Theme.accent; textFormat: Text.PlainText
         }
-        Button {
+        LumaButton {
             objectName: "histogram.decrease"
             text: "−"; implicitWidth: 32
             enabled: panel.controlEnabled
             Accessible.name: qsTranslate("Luma", "Decrease %1").arg(panel.labels[panel.selectedZone])
             onClicked: panel.nudge(-1)
         }
-        Button {
+        LumaButton {
             objectName: "histogram.increase"
             text: "+"; implicitWidth: 32
             enabled: panel.controlEnabled
@@ -215,16 +215,16 @@ ColumnLayout {
     Label {
         text: qsTranslate("Luma", "Red marks clipped highlights; blue marks clipped shadows. Hold Option while adjusting Whites or Blacks for a temporary overlay.")
         visible: helpToggle.checked || editor.previewClipping !== 0
-        font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true
+        font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
         text: qsTranslate("Luma", "Clipping is measured against sRGB output, not RAW sensor saturation. Transparent areas are excluded; overlays are never exported.")
         visible: helpToggle.checked
-        font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true
+        font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
         text: qsTranslate("Luma", "Histogram and clipping overlays are unavailable in Detail diagnostic views.")
         visible: editor.detailDiagnostic.length > 0
-        font.pixelSize: 10; color: "#dfae77"; wrapMode: Text.Wrap; Layout.fillWidth: true
+        font.pixelSize: 10; color: Theme.accent; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
 }

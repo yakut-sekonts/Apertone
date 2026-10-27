@@ -12,16 +12,22 @@ ApplicationWindow {
     minimumWidth: 1000
     minimumHeight: 640
     title: "Luma " + Qt.application.version + (editor.hasPhoto ? " — " + editor.filename : "")
-    color: "#111318"
-    palette.window: "#111318"
-    palette.base: "#1b1e24"
-    palette.text: "#e3e5e9"
-    palette.windowText: "#e3e5e9"
-    palette.placeholderText: "#858c97"
-    palette.buttonText: "#e3e5e9"
-    palette.highlight: "#dfae77"
-    palette.button: "#252a32"
-    font.family: "Helvetica Neue"
+    color: Theme.window
+    palette.window: Theme.window
+    palette.base: Theme.panel
+    palette.alternateBase: Theme.panelRaised
+    palette.text: Theme.text
+    palette.windowText: Theme.text
+    palette.placeholderText: Theme.faint
+    palette.buttonText: Theme.text
+    palette.highlight: Theme.accent
+    palette.highlightedText: Theme.dark ? Theme.text : "#ffffff"
+    palette.button: Theme.control
+    palette.mid: Theme.divider
+    palette.dark: Theme.divider
+    palette.light: Theme.panelRaised
+    font.family: "Avenir Next"
+    font.pixelSize: 12
     onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
@@ -72,10 +78,10 @@ ApplicationWindow {
         ColumnLayout {
             width: parent.width
             Label { text: qsTranslate("Luma", updates.message); wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { visible: editor.error.length > 0; text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Button { visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
-            Button { visible: editor.exporting; text: qsTranslate("Luma", "Cancel export"); onClicked: editor.cancelExport() }
-            Button { objectName: "restart.cancelImport"; visible: library.importing; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
+            Label { visible: editor.error.length > 0; text: qsTranslate("Luma", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            LumaButton { visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+            LumaButton { visible: editor.exporting; text: qsTranslate("Luma", "Cancel export"); onClicked: editor.cancelExport() }
+            LumaButton { objectName: "restart.cancelImport"; visible: library.importing; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
         }
     }
     Connections { target: batch; function onChanged() { if (batch.working) batchWait.open(); else batchWait.close() } }
@@ -86,9 +92,9 @@ ApplicationWindow {
             width: parent.width
             Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ProgressBar { value: batch.progress; indeterminate: batch.waitingForSave; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.error); textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Retry save"); visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
-            Button { objectName: "batch.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: batch.cancel() }
+            Label { text: qsTranslate("Luma", editor.error); textFormat: Text.PlainText; visible: batch.waitingForSave && text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Retry save"); visible: batch.waitingForSave && editor.saving && !editor.busy; onClicked: editor.retrySave() }
+            LumaButton { objectName: "batch.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: batch.cancel() }
         }
     }
     onClosing: function(close) { const d = exporter.requestClose(); const c = batch.requestClose(); const b = editor.requestClose(); const a = d && c && b ? library.requestClose() : false; close.accepted = a && b && c && d }
@@ -133,39 +139,41 @@ ApplicationWindow {
         spacing: 0
         Rectangle {
             objectName: "main.toolbar"
-            Layout.fillWidth: true; Layout.preferredHeight: 64; color: "#191c22"
+            Layout.fillWidth: true; Layout.preferredHeight: Theme.toolbarHeight; color: Theme.panel
             RowLayout {
-                anchors.fill: parent; anchors.margins: 20; spacing: root.width < 1200 ? 8 : 18
-                Label { text: "◐"; color: "#dfae77"; font.pixelSize: 28 }
-                Label { text: "luma"; color: "#f0f1f3"; font.pixelSize: 24; font.weight: Font.DemiBold; font.letterSpacing: 2 }
-                Label { visible: root.width > 1450; text: qsTranslate("Luma", "PHOTO WORKSPACE"); color: "#747b88"; font.pixelSize: 10; font.letterSpacing: 2 }
-                Button { objectName: "main.libraryButton"; text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
-                Button { objectName: "main.developButton"; text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
-                Item { Layout.fillWidth: true }
-                Button { objectName: "settingsButton"; implicitWidth: 36; text: "⚙"; Accessible.name: qsTranslate("Luma", "Settings"); onClicked: preferences.open() }
+                anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: root.width < 1200 ? 6 : 10
+                Item {
+                    implicitWidth: 19; implicitHeight: 19
+                    Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 1; border.color: Theme.text }
+                    Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
+                }
+                Label { text: "luma"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
+                LumaButton { objectName: "main.libraryButton"; text: qsTranslate("Luma", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
+                LumaButton { objectName: "main.developButton"; text: qsTranslate("Luma", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
+                Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
+                LumaButton { objectName: "settingsButton"; text: qsTranslate("Luma", "Settings"); Accessible.name: text; onClicked: preferences.open() }
                 UpdateBell {}
-                Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: "#989fab"; font.pixelSize: 12; elide: Text.ElideMiddle; Layout.maximumWidth: 350 }
-                Button { objectName: "main.undoButton"; text: "↶"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: qsTranslate("Luma", "Undo") }
-                Button { objectName: "main.redoButton"; text: "↷"; implicitWidth: 36; enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: qsTranslate("Luma", "Redo") }
-                Button { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
-                Button { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "+  Open photo"); enabled: !editor.busy; onClicked: fileDialog.open() }
+                LumaButton { objectName: "main.undoButton"; text: qsTranslate("Luma", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
+                LumaButton { objectName: "main.redoButton"; text: qsTranslate("Luma", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
+                LumaButton { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                LumaButton { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "+  Open photo"); highlighted: true; enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
         Rectangle {
             visible: editor.error.length > 0
-            Layout.fillWidth: true; Layout.preferredHeight: visible ? errorLayout.implicitHeight + 24 : 0; color: "#42282a"
+            Layout.fillWidth: true; Layout.preferredHeight: visible ? errorLayout.implicitHeight + 24 : 0; color: Theme.errorSurface
             RowLayout {
                 id: errorLayout; anchors.fill: parent; anchors.margins: 12
-                Label { objectName: "main.editorError"; text: qsTranslate("Luma", editor.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
-                Button { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+                Label { objectName: "main.editorError"; text: qsTranslate("Luma", editor.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
+                LumaButton { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
             }
         }
         RowLayout {
             visible: editor.exporting
             Layout.fillWidth: true; Layout.margins: visible ? 10 : 0
-            Label { text: qsTranslate("Luma", "Export"); color: "#dfae77" }
+            Label { text: qsTranslate("Luma", "Export"); color: Theme.accent }
             ProgressBar { value: editor.exportProgress; Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelExport() }
+            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelExport() }
         }
         ColumnLayout {
             visible: exporter.working || exporter.status.length > 0 || exporter.error.length > 0
@@ -173,21 +181,21 @@ ApplicationWindow {
             RowLayout {
                 Label { text: qsTranslate("Luma", exporter.status); textFormat: Text.PlainText; elide: Text.ElideRight; Layout.fillWidth: true }
                 Label { text: exporter.completed + " / " + exporter.total }
-                Button { objectName: "export.pause"; visible: exporter.working && !exporter.paused; text: exporter.pausePending ? qsTranslate("Luma", "Pause after this file…") : qsTranslate("Luma", "Pause"); enabled: !exporter.pausePending; onClicked: exporter.pause() }
-                Button { objectName: "export.resume"; visible: exporter.paused; text: qsTranslate("Luma", "Resume"); onClicked: exporter.resume() }
-                Button { objectName: "export.cancel"; visible: exporter.working; text: qsTranslate("Luma", "Cancel"); onClicked: exporter.cancel() }
-                Button { text: qsTranslate("Luma", "Settings / errors"); onClicked: exportSettings.open() }
+                LumaButton { objectName: "export.pause"; visible: exporter.working && !exporter.paused; text: exporter.pausePending ? qsTranslate("Luma", "Pause after this file…") : qsTranslate("Luma", "Pause"); enabled: !exporter.pausePending; onClicked: exporter.pause() }
+                LumaButton { objectName: "export.resume"; visible: exporter.paused; text: qsTranslate("Luma", "Resume"); onClicked: exporter.resume() }
+                LumaButton { objectName: "export.cancel"; visible: exporter.working; text: qsTranslate("Luma", "Cancel"); onClicked: exporter.cancel() }
+                LumaButton { text: qsTranslate("Luma", "Settings / errors"); onClicked: exportSettings.open() }
             }
             Label { objectName: "export.currentFilename"; visible: exporter.working; text: exporter.currentFile; textFormat: Text.PlainText; elide: Text.ElideMiddle; Layout.fillWidth: true }
             ProgressBar { objectName: "export.progress"; visible: exporter.working; value: exporter.progress; indeterminate: exporter.waitingForSave; Layout.fillWidth: true }
-            Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: exporter.error.length > 0; text: qsTranslate("Luma", exporter.error); textFormat: Text.PlainText; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ScrollView {
                 objectName: "export.failuresScroll"
                 visible: exporter.failures.length > 0
                 Layout.fillWidth: true; Layout.preferredHeight: 65
-                TextArea { objectName: "export.failures"; readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: "#ffc1bc" }
+                TextArea { objectName: "export.failures"; readOnly: true; text: exporter.failures.join("\n"); textFormat: TextEdit.PlainText; wrapMode: TextEdit.Wrap; color: Theme.negative }
             }
-            Button { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
+            LumaButton { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Luma", "Retry save"); onClicked: editor.retrySave() }
         }
         LibraryPane { objectName: "library.pane"; visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
         SplitView {
@@ -196,40 +204,40 @@ ApplicationWindow {
             objectName: "develop.panels"
             Layout.fillWidth: true; Layout.fillHeight: true
             orientation: Qt.Horizontal
-            handle: Rectangle { implicitWidth: 1; color: "#30343b" }
+            handle: Rectangle { implicitWidth: 1; color: Theme.divider }
             Rectangle {
                 objectName: "develop.presetsPane"
-                SplitView.preferredWidth: 214; SplitView.minimumWidth: 170; SplitView.maximumWidth: 350; color: "#191c22"
+                SplitView.preferredWidth: Theme.sidebarWidth; SplitView.minimumWidth: 170; SplitView.maximumWidth: 320; color: Theme.panel
                 ScrollView {
                     id: presetsScroll
                     objectName: "develop.presetsScroll"
                     Component.onCompleted: ScrollBar.vertical.objectName = "develop.presetsBar"
                     anchors.fill: parent
-                    anchors.margins: 20
+                    anchors.margins: Theme.panelPadding
                     clip: true
                     rightPadding: effectiveScrollBarWidth
                     contentWidth: availableWidth
                     ColumnLayout {
                         width: presetsScroll.availableWidth
                         height: Math.max(implicitHeight, presetsScroll.availableHeight)
-                        spacing: 18
-                        Label { text: qsTranslate("Luma", "WORKSPACE"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
+                        spacing: 12
+                        Label { text: qsTranslate("Luma", "WORKSPACE"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Rectangle {
-                            Layout.fillWidth: true; implicitHeight: 42; radius: 6; color: "#302a25"
-                            Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: "#dfae77"; font.pixelSize: 12 }
+                            Layout.fillWidth: true; implicitHeight: 30; radius: Theme.radius; color: Theme.accentSoft
+                            Label { anchors.centerIn: parent; text: qsTranslate("Luma", "Photo development"); color: Theme.accent; font.pixelSize: 12 }
                         }
-                        Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
-                        Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: "#d5d8de"; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                        Label { text: editor.dimensions; color: "#777f8b"; font.pixelSize: 11 }
-                        Label { text: qsTranslate("Luma", "Original unchanged"); color: "#858c97"; font.pixelSize: 10; visible: editor.hasPhoto }
-                        Button {
+                        Label { text: qsTranslate("Luma", "SOURCE PHOTO"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
+                        Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Luma", "No photo selected"); color: Theme.text; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Label { text: editor.dimensions; color: Theme.faint; font.pixelSize: 11 }
+                        Label { text: qsTranslate("Luma", "Original unchanged"); color: Theme.muted; font.pixelSize: 10; visible: editor.hasPhoto }
+                        LumaButton {
                             objectName: "develop.history"
                             text: qsTranslate("Luma", "History")
                             enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
                             Layout.fillWidth: true
                             onClicked: processingHistory.open()
                         }
-                        Button {
+                        LumaButton {
                             objectName: "develop.versions"
                             text: qsTranslate("Luma", "Processing versions")
                             enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
@@ -237,35 +245,35 @@ ApplicationWindow {
                             onClicked: processingVersions.open()
                         }
                         PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
-                        Label { text: qsTranslate("Luma", "CATALOG"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 1 }
-                        Label { text: editor.catalogPath; color: "#777f8b"; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                        Label { text: "LUMA / DEVELOP CORE"; color: "#a28a70"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: qsTranslate("Luma", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
+                        Label { text: editor.catalogPath; color: Theme.faint; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+                        Label { text: "LUMA / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }
                     }
                 }
             }
             Rectangle {
                 objectName: "develop.canvasPane"
-                SplitView.fillWidth: true; SplitView.minimumWidth: 360; color: "#111318"
+                SplitView.fillWidth: true; SplitView.minimumWidth: 360; color: Theme.canvas
                 ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 24; spacing: 18
+                    anchors.fill: parent; anchors.margins: 10; spacing: 8
                     RowLayout {
                         Layout.fillWidth: true
-                        Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: "#777f8b"; font.pixelSize: 9; font.letterSpacing: 2 }
-                        Button {
+                        Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Luma", editor.detailDiagnostic) : editor.original ? qsTranslate("Luma", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Luma", "PRESET PREVIEW") : qsTranslate("Luma", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
+                        LumaButton {
                             objectName: "develop.fit"
                             text: qsTranslate("Luma", "FIT")
                             checkable: true; checked: editor.zoomMode === "fit"
                             enabled: editor.hasPhoto && !editor.busy
                             onClicked: editor.zoomMode = "fit"
                         }
-                        Button {
+                        LumaButton {
                             objectName: "develop.fill"
                             text: qsTranslate("Luma", "FILL")
                             checkable: true; checked: editor.zoomMode === "fill"
                             enabled: editor.zoomAvailable
                             onClicked: editor.zoomMode = "fill"
                         }
-                        TextField {
+                        LumaTextField {
                             id: zoomPercent
                             objectName: "develop.zoomPercent"
                             Layout.preferredWidth: 64; Layout.minimumWidth: 64
@@ -288,8 +296,8 @@ ApplicationWindow {
                             onEditingFinished: commitZoom()
                             Keys.onEscapePressed: { modified = false; previewViewport.forceActiveFocus() }
                         }
-                        Label { text: "%" }
-                        Button {
+                        Label { text: "%"; color: Theme.canvasMuted }
+                        LumaButton {
                             objectName: "develop.actualPixels"
                             text: "100%"
                             Accessible.name: qsTranslate("Luma", "Zoom") + " 100%"
@@ -410,59 +418,63 @@ ApplicationWindow {
                         }
                         }
                         ColumnLayout {
-                            anchors.centerIn: parent; spacing: 18; visible: !editor.hasPhoto && !editor.busy
-                            Label { text: "◉"; font.pixelSize: 72; color: "#dfae77"; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "It starts with a photo."); color: "#ece8e2"; font.pixelSize: 25; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "Open a photo. Find your light."); color: "#858c98"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
-                            Button { text: qsTranslate("Luma", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
-                            Label { text: qsTranslate("Luma", "RAW and common images"); color: "#777f8b"; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
+                            anchors.centerIn: parent; spacing: 12; visible: !editor.hasPhoto && !editor.busy
+                            Item {
+                                Layout.preferredWidth: 44; Layout.preferredHeight: 44; Layout.alignment: Qt.AlignHCenter
+                                Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 2; border.color: Theme.canvasText }
+                                Rectangle { width: 16; height: 30; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 8; color: Theme.accent }
+                            }
+                            Label { text: qsTranslate("Luma", "It starts with a photo."); color: Theme.canvasText; font.pixelSize: 22; font.weight: Font.Light; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "Open a photo. Find your light."); color: Theme.canvasMuted; font.pixelSize: 11; Layout.alignment: Qt.AlignHCenter }
+                            LumaButton { text: qsTranslate("Luma", "Open photo"); Layout.alignment: Qt.AlignHCenter; onClicked: fileDialog.open() }
+                            Label { text: qsTranslate("Luma", "RAW and common images"); color: Theme.canvasMuted; font.pixelSize: 10; Layout.alignment: Qt.AlignHCenter }
                         }
                         ColumnLayout {
                             anchors.centerIn: parent; visible: editor.busy; spacing: 16; width: Math.min(parent.width - 60, 300)
                             BusyIndicator { running: editor.busy; Layout.alignment: Qt.AlignHCenter }
-                            Label { text: qsTranslate("Luma", "Decoding image pixels"); color: "#d4d8df"; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
+                            Label { text: qsTranslate("Luma", "Decoding image pixels"); color: Theme.canvasText; font.pixelSize: 12; Layout.alignment: Qt.AlignHCenter }
                             ProgressBar { value: editor.progress; Layout.fillWidth: true }
-                            Button { objectName: "editor.cancelLoad"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
+                            LumaButton { objectName: "editor.cancelLoad"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
                         }
                     }
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter; spacing: 8
-                        Button { objectName: "develop.processedButton"; text: qsTranslate("Luma", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
-                        Button { objectName: "develop.originalButton"; text: qsTranslate("Luma", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
+                        LumaButton { objectName: "develop.processedButton"; text: qsTranslate("Luma", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
+                        LumaButton { objectName: "develop.originalButton"; text: qsTranslate("Luma", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                     }
                     Label {
                         visible: editor.whiteBalancePicking
                         text: qsTranslate("Luma", "Click a neutral gray area. Escape cancels the eyedropper.")
-                        color: "#dfae77"; font.pixelSize: 11
+                        color: Theme.accent; font.pixelSize: 11
                         wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
                         Layout.fillWidth: true
                     }
-                    Label { visible:editor.targetedTool!=="none";text:qsTranslate("Luma", "Click a tone or color and drag up / down");color:"#dfae77";font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
+                    Label { visible:editor.targetedTool!=="none";text:qsTranslate("Luma", "Click a tone or color and drag up / down");color:Theme.accent;font.pixelSize:11;Layout.alignment:Qt.AlignHCenter }
                 }
             }
             Rectangle {
                 objectName: "develop.adjustmentsPane"
-                SplitView.preferredWidth: 290; SplitView.minimumWidth: 250; SplitView.maximumWidth: 400; color: "#191c22"
+                SplitView.preferredWidth: Theme.inspectorWidth; SplitView.minimumWidth: 250; SplitView.maximumWidth: 380; color: Theme.panel
                 ScrollView {
                     id: adjustmentsScroll
                     objectName: "develop.adjustmentsScroll"
                     Component.onCompleted: ScrollBar.vertical.objectName = "develop.adjustmentsBar"
                     anchors.fill: parent
-                    anchors.margins: 18
+                    anchors.margins: Theme.panelPadding
                     clip: true
                     contentWidth: availableWidth
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
-                        spacing: 14
+                        spacing: 9
                         HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
                         CreativePanel { Layout.fillWidth: true }
-                        Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: "#e5e7ec" }
+                        Label { text: qsTranslate("Luma", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: Theme.text }
                         RowLayout {
                             CheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Luma", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
-                            Label { text: qsTranslate("Luma", "WHITE BALANCE"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1 }
+                            Label { text: qsTranslate("Luma", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
                         }
-                        ComboBox {
+                        LumaComboBox {
                             objectName: "develop.whiteBalance.preset"
                             Layout.fillWidth: true
                             textRole: "label"
@@ -473,7 +485,7 @@ ApplicationWindow {
                         }
                         RowLayout {
                             Layout.fillWidth: true
-                            Button {
+                            LumaButton {
                                 objectName: "develop.whiteBalance.auto"
                                 text: qsTranslate("Luma", "Auto")
                                 Accessible.name: qsTranslate("Luma", "Auto white balance")
@@ -484,7 +496,7 @@ ApplicationWindow {
                                 ToolTip.visible: hovered
                                 ToolTip.text: qsTranslate("Luma", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
                             }
-                            Button {
+                            LumaButton {
                                 objectName: "develop.whiteBalance.eyedropper"
                                 text: qsTranslate("Luma", "Eyedropper")
                                 Accessible.name: qsTranslate("Luma", "White balance eyedropper")
@@ -501,50 +513,50 @@ ApplicationWindow {
                             BusyIndicator { running: editor.whiteBalanceBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
                             Label {
                                 text: editor.whiteBalanceBusy ? qsTranslate("Luma", "Estimating white balance…") : qsTranslate("Luma", "Select a neutral area")
-                                Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
+                                Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
                             }
-                            Button { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelWhiteBalance() }
+                            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelWhiteBalance() }
                         }
                         Label {
                             objectName: "develop.whiteBalance.message"
                             visible: text.length > 0; text: editor.whiteBalanceMessage
-                            Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: "#dfae77"
+                            Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.accent
                         }
                         DevelopSlider { parameter: "temperature"; label: qsTranslate("Luma", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
                         DevelopSlider { parameter: "tint"; label: qsTranslate("Luma", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: qsTranslate("Luma", "LIGHT"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Luma", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                        Label { text: qsTranslate("Luma", "LIGHT"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
                         DevelopSlider { parameter: "exposure"; label: qsTranslate("Luma", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
                         DevelopSlider { parameter: "contrast"; label: qsTranslate("Luma", "Contrast"); Layout.fillWidth: true }
                         DevelopSlider { parameter: "highlights"; label: qsTranslate("Luma", "Highlights"); Layout.fillWidth: true }
                         DevelopSlider { parameter: "shadows"; label: qsTranslate("Luma", "Shadows"); Layout.fillWidth: true }
                         DevelopSlider { parameter: "whites"; label: qsTranslate("Luma", "Whites"); Layout.fillWidth: true }
                         DevelopSlider { parameter: "blacks"; label: qsTranslate("Luma", "Blacks"); Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: qsTranslate("Luma", "COLOR"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                        Label { text: qsTranslate("Luma", "COLOR"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
                         DevelopSlider { parameter: "vibrance"; label: qsTranslate("Luma", "Vibrance"); Layout.fillWidth: true }
                         DevelopSlider { parameter: "saturation"; label: qsTranslate("Luma", "Saturation"); Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
                         CurvesPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
                         HSLPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:"#30343b" }
+                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
                         CropPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         TransformPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         LensPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         DetailPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
                         RetouchPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        Button { objectName: "develop.resetButton"; text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: "#30343b" }
-                        Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: "#858c97"; font.pixelSize: 9; font.letterSpacing: 1.5 }
+                        LumaButton { objectName: "develop.resetButton"; text: qsTranslate("Luma", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                        Label { text: qsTranslate("Luma", "CAPTURE DATA"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1.5 }
                         MetadataRow { objectName: "develop.metadata.camera"; label: qsTranslate("Luma", "Camera"); value: editor.camera; Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.lens"; label: qsTranslate("Luma", "Lens"); value: { const language = Qt.uiLanguage; return editor.lens } Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.iso"; label: "ISO"; value: editor.iso; Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.shutter"; label: qsTranslate("Luma", "Shutter speed"); value: editor.shutter; Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.aperture"; label: qsTranslate("Luma", "Aperture"); value: editor.aperture; Layout.fillWidth: true }
                         MetadataRow { objectName: "develop.metadata.focalLength"; label: qsTranslate("Luma", "Focal length"); value: editor.focalLength; Layout.fillWidth: true }
-                        Label { text: editor.saving ? qsTranslate("Luma", "Saving changes…") : qsTranslate("Luma", "Changes are saved automatically"); color: "#858c97"; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                        Label { text: editor.saving ? qsTranslate("Luma", "Saving changes…") : qsTranslate("Luma", "Changes are saved automatically"); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     }
                 }
             }
@@ -553,7 +565,7 @@ ApplicationWindow {
             id: filmstrip
             objectName: "develop.filmstrip"
             visible: !root.libraryMode && (library.count > 0 || (library.loading && editor.hasPhoto))
-            Layout.fillWidth: true; Layout.preferredHeight: visible ? 112 : 0
+            Layout.fillWidth: true; Layout.preferredHeight: visible ? Theme.filmstripHeight : 0
             orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
             function moveCurrentPhoto(direction, event) {
                 event.accepted = event.modifiers === Qt.NoModifier
@@ -571,13 +583,13 @@ ApplicationWindow {
         }
         Rectangle {
             objectName: "main.footer"
-            Layout.fillWidth: true; implicitHeight: 34; color: "#191c22"
+            Layout.fillWidth: true; implicitHeight: Theme.footerHeight; color: Theme.panel
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 20
-                Label { objectName: "applicationVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 10; color: "#a9adb5" }
-                Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? "#dfae77" : "#7bad87" }
-                Label { objectName: "main.editorStatus"; text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: "#858c97"; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: "#777f8b"; font.pixelSize: 10 }
+                Label { objectName: "applicationVersion"; text: "Luma " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
+                Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? Theme.accent : Theme.positive }
+                Label { objectName: "main.editorStatus"; text: qsTranslate("Luma", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { text: qsTranslate("Luma", "Edits do not change the original image"); color: Theme.faint; font.pixelSize: 10 }
             }
         }
     }

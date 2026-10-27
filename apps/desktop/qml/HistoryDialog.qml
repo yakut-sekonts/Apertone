@@ -98,14 +98,14 @@ Dialog {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Button {
+                LumaButton {
                     objectName: "history.undo"
                     text: qsTranslate("Luma", "Undo")
                     enabled: !editor.busy && !editor.editingLocked && editor.canUndo
                     Layout.fillWidth: true
                     onClicked: editor.undo()
                 }
-                Button {
+                LumaButton {
                     objectName: "history.redo"
                     text: qsTranslate("Luma", "Redo")
                     enabled: !editor.busy && !editor.editingLocked && editor.canRedo
@@ -155,7 +155,7 @@ Dialog {
                 wrapMode: Text.WrapAnywhere
                 Layout.fillWidth: true
             }
-            Button {
+            LumaButton {
                 objectName: "history.jump"
                 text: qsTranslate("Luma", "Go to selected state")
                 enabled: !editor.busy && !editor.editingLocked && dialog.selected() !== null
@@ -166,7 +166,7 @@ Dialog {
                 text: qsTranslate("Luma", "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.")
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
-            TextField {
+            LumaTextField {
                 id: nameField
                 objectName: "history.versionName"
                 placeholderText: qsTranslate("Luma", "Version name")
@@ -175,7 +175,7 @@ Dialog {
                 enabled: !editor.busy
                 Layout.fillWidth: true
             }
-            Button {
+            LumaButton {
                 objectName: "history.saveVersion"
                 text: qsTranslate("Luma", "Save selected state as version")
                 enabled: !editor.busy && !editor.editingLocked && dialog.selected() !== null && nameField.text.trim().length > 0
@@ -184,9 +184,9 @@ Dialog {
             }
             ProgressBar { indeterminate: true; visible: editor.versionsBusy; Layout.fillWidth: true }
             Label { text: editor.versionsStatus; textFormat: Text.PlainText; visible: text.length > 0; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.historyError); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            Button {
+            Label { text: qsTranslate("Luma", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", editor.historyError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            LumaButton {
                 objectName: "history.clear"
                 text: qsTranslate("Luma", "Clear history")
                 enabled: !editor.busy && !editor.editingLocked && (editor.canUndo || editor.canRedo)

@@ -65,15 +65,15 @@ Dialog {
                 text: qsTranslate("Luma", "Unwritten log events: %1").arg(diagnostics.snapshot.localDiagnostics ? diagnostics.snapshot.localDiagnostics.droppedLogEvents : 0)
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
-            Button { text: qsTranslate("Luma", "Open local logs and crash reports"); enabled: diagnostics.localFolder.toString().length > 0; onClicked: Qt.openUrlExternally(diagnostics.localFolder); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Open local logs and crash reports"); enabled: diagnostics.localFolder.toString().length > 0; onClicked: Qt.openUrlExternally(diagnostics.localFolder); Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Logs and crash reports stay on this Mac and are not included in the diagnostic JSON."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.fillWidth: true
-                Button { text: qsTranslate("Luma", "Refresh"); enabled: !diagnostics.busy; onClicked: diagnostics.refresh(); Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Export Diagnostic Report"); enabled: !diagnostics.busy; onClicked: destination.open(); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Refresh"); enabled: !diagnostics.busy; onClicked: diagnostics.refresh(); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Export Diagnostic Report"); enabled: !diagnostics.busy; onClicked: destination.open(); Layout.fillWidth: true }
             }
             BusyIndicator { running: diagnostics.busy; visible: running; Layout.alignment: Qt.AlignHCenter }
-            Label { text: qsTranslate("Luma", diagnostics.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", diagnostics.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
             Label { text: qsTranslate("Luma", "Report saved: %1").arg(diagnostics.savedPath); textFormat: Text.PlainText; visible: diagnostics.savedPath.length > 0; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
         }
     }

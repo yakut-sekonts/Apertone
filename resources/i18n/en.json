@@ -800,6 +800,15 @@
     "Aligning originals…": "Aligning originals…",
     "Merging frames…": "Merging frames…",
     "Writing Float DNG…": "Writing Float DNG…",
-    "Align frames": "Align frames"
+    "Align frames": "Align frames",
+    "Appearance": "Appearance",
+    "Follow system": "Follow system",
+    "Day": "Day",
+    "Night": "Night",
+    "Unsupported appearance mode.": "Unsupported appearance mode.",
+    "Appearance preferences are busy.": "Appearance preferences are busy.",
+    "Cannot save appearance preferences.": "Cannot save appearance preferences.",
+    "Cannot read appearance preferences.": "Cannot read appearance preferences.",
+    "Invalid appearance preferences; system theme is active.": "Invalid appearance preferences; system theme is active."
   }
 }

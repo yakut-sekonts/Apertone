@@ -800,6 +800,15 @@
     "Aligning originals…": "Originale ausrichten…",
     "Merging frames…": "Aufnahmen zusammenfügen…",
     "Writing Float DNG…": "Float DNG schreiben…",
-    "Align frames": "Aufnahmen ausrichten"
+    "Align frames": "Aufnahmen ausrichten",
+    "Appearance": "Erscheinungsbild",
+    "Follow system": "Systemeinstellung",
+    "Day": "Tag",
+    "Night": "Nacht",
+    "Unsupported appearance mode.": "Nicht unterstützter Darstellungsmodus.",
+    "Appearance preferences are busy.": "Die Darstellungseinstellungen sind belegt.",
+    "Cannot save appearance preferences.": "Darstellungseinstellungen können nicht gespeichert werden.",
+    "Cannot read appearance preferences.": "Darstellungseinstellungen können nicht gelesen werden.",
+    "Invalid appearance preferences; system theme is active.": "Ungültige Darstellungseinstellungen; das Systemdesign ist aktiv."
   }
 }

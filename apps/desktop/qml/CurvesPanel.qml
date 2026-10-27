@@ -54,13 +54,13 @@ ColumnLayout {
         }
         Label {
             text: qsTranslate("Luma", "CURVES")
-            color: "#858c97"
+            color: Theme.muted
             font.pixelSize: 9
             font.letterSpacing: 2
             Layout.fillWidth: true
         }
     }
-    ComboBox {
+    LumaComboBox {
         id: mode
         objectName: "curves.mode"
         model: [qsTranslate("Luma", "Point"), qsTranslate("Luma", "Parametric")]
@@ -71,7 +71,7 @@ ColumnLayout {
     }
     RowLayout {
         visible: mode.currentIndex === 0
-        ComboBox {
+        LumaComboBox {
             id: channels
             objectName: "curves.channel"
             Layout.fillWidth: true
@@ -98,7 +98,7 @@ ColumnLayout {
             ]
             Accessible.name: qsTranslate("Luma", "Curve channel")
         }
-        Button {
+        LumaButton {
             objectName: "curves.target"
             text: "◎"
             checkable: true
@@ -109,7 +109,7 @@ ColumnLayout {
             ToolTip.visible: hovered
             ToolTip.text: qsTranslate("Luma", "Adjust tone with a photo gesture")
         }
-        Button {
+        LumaButton {
             text: qsTranslate("Luma", "Reset")
             enabled: panel.available
             onClicked: {
@@ -131,9 +131,9 @@ ColumnLayout {
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
-            ctx.fillStyle = "#12151b";
+            ctx.fillStyle = Theme.canvas;
             ctx.fillRect(0, 0, width, height);
-            ctx.strokeStyle = "#2c323c";
+            ctx.strokeStyle = Theme.control;
             ctx.lineWidth = 1;
             for (let i = 1; i < 4; ++i) {
                 ctx.beginPath();
@@ -143,14 +143,14 @@ ColumnLayout {
                 ctx.lineTo(width, i * height / 4);
                 ctx.stroke();
             }
-            ctx.strokeStyle = "#424955";
+            ctx.strokeStyle = Theme.divider;
             ctx.beginPath();
             ctx.moveTo(0, height);
             ctx.lineTo(width, 0);
             ctx.stroke();
             ctx.strokeStyle = panel.channel === "red" ? "#e27272" : panel.channel === "green"
                                                         ? "#80c590" : panel.channel === "blue"
-                                                          ? "#8baff4" : "#dfae77";
+                                                          ? "#8baff4" : Theme.accent;
             ctx.lineWidth = 2;
             ctx.beginPath();
             for (let i = 0; i < panel.samples.length; ++i) {
@@ -167,7 +167,7 @@ ColumnLayout {
             if (mode.currentIndex === 0)
                 for (let i = 0; i < panel.points.length; ++i) {
                     const p = panel.points[i];
-                    ctx.fillStyle = i === panel.selected ? "#f5dab6" : "#b7bfcd";
+                    ctx.fillStyle = i === panel.selected ? "#f5dab6" : Theme.muted;
                     ctx.beginPath();
                     ctx.arc(p.x * width, (1 - p.y) * height, 4, 0, Math.PI * 2);
                     ctx.fill();
@@ -233,11 +233,11 @@ ColumnLayout {
         Label {
             text: qsTranslate("Luma", "Click to add a point; drag to adjust")
             font.pixelSize: 10
-            color: "#858c97"
+            color: Theme.muted
             Layout.fillWidth: true
             wrapMode: Text.Wrap
         }
-        Button {
+        LumaButton {
             text: "−"
             enabled: panel.available && panel.selected > 0 && panel.selected < panel.points.length
                      - 1

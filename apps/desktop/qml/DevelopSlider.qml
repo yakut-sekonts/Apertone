@@ -30,7 +30,7 @@ ColumnLayout {
             onToggled: editor.setCorrectionEnabled(control.correction, checked)
             padding: 0
         }
-        Label { text: control.label; color: "#d7dce3"; font.pixelSize: 12; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight }
+        Label { text: control.label; color: Theme.text; font.pixelSize: 12; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight }
         Label {
             objectName: "develop." + control.parameter + ".value"
             text: {
@@ -38,7 +38,7 @@ ColumnLayout {
                 const formatted = Number(editor.parameters[control.parameter]).toFixed(decimals)
                 return (Number(formatted) === 0 ? (0).toFixed(decimals) : formatted) + control.suffix
             }
-            color: "#dfae77"; font.pixelSize: 12
+            color: Theme.accent; font.pixelSize: 12
         }
     }
     Slider {

@@ -800,6 +800,15 @@
     "Aligning originals…": "Allineamento degli originali…",
     "Merging frames…": "Unione delle immagini…",
     "Writing Float DNG…": "Scrittura del Float DNG…",
-    "Align frames": "Allinea immagini"
+    "Align frames": "Allinea immagini",
+    "Appearance": "Aspetto",
+    "Follow system": "Segui il sistema",
+    "Day": "Giorno",
+    "Night": "Notte",
+    "Unsupported appearance mode.": "Modalità aspetto non supportata.",
+    "Appearance preferences are busy.": "Le preferenze dell’aspetto sono occupate.",
+    "Cannot save appearance preferences.": "Impossibile salvare le preferenze dell’aspetto.",
+    "Cannot read appearance preferences.": "Impossibile leggere le preferenze dell’aspetto.",
+    "Invalid appearance preferences; system theme is active.": "Preferenze dell’aspetto non valide; è attivo il tema di sistema."
   }
 }

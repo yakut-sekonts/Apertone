@@ -100,7 +100,7 @@ Item {
                 const positions=overlay.guide==="grid"?[0.2,0.4,0.6,0.8]:overlay.guide==="golden"?[0.381966,0.618034]:[1/3,2/3]
                 for(let i=0;i<positions.length;i++){const p=positions[i];line(p,0,p,1);line(0,p,1,p)}
             }
-            c.fillStyle="#dfae77"
+            c.fillStyle=Theme.accent
             const grips=[[0,0],[0.5,0],[1,0],[0,0.5],[1,0.5],[0,1],[0.5,1],[1,1]]
             for(let i=0;i<grips.length;i++){c.beginPath();c.arc(l+grips[i][0]*w,t+grips[i][1]*h,4,0,Math.PI*2);c.fill()}
             c.restore()

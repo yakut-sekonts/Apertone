@@ -72,9 +72,9 @@ ColumnLayout {
     RowLayout {
         visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; spacing: 4
-        Button { objectName: "presetCreate"; Accessible.name: qsTranslate("Luma", "Save current settings"); implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Luma", "Save current settings") }
-        Button { objectName: "presetImport"; text: qsTranslate("Luma", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
-        Button { objectName: "preset.actions"; Accessible.name: qsTranslate("Luma", "Preset actions"); implicitWidth: 36; text: "⋯"; onClicked: actions.open()
+        LumaButton { objectName: "presetCreate"; Accessible.name: qsTranslate("Luma", "Save current settings"); implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Luma", "Save current settings") }
+        LumaButton { objectName: "presetImport"; text: qsTranslate("Luma", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
+        LumaButton { objectName: "preset.actions"; Accessible.name: qsTranslate("Luma", "Preset actions"); implicitWidth: 36; text: "⋯"; onClicked: actions.open()
             Menu {
                 id: actions
                 objectName: "preset.actions.menu"
@@ -97,7 +97,7 @@ ColumnLayout {
             required property string section
             objectName: "presetFolderTitle"; textFormat: Text.PlainText
             text: section.length ? section : qsTranslate("Luma", "No folder")
-            color: "#858c97"; font.pixelSize: 10; height: 26; topPadding: 7
+            color: Theme.muted; font.pixelSize: 10; height: 26; topPadding: 7
         }
         delegate: ItemDelegate {
             id: presetRow
@@ -123,18 +123,18 @@ ColumnLayout {
         Label {
             anchors.centerIn: parent; width: parent.width
             visible: list.count === 0; text: qsTranslate("Luma", "Save your settings or import a JSON/XMP preset.")
-            color: "#858c97"; wrapMode: Text.Wrap; font.pixelSize: 11
+            color: Theme.muted; wrapMode: Text.Wrap; font.pixelSize: 11
         }
     }
-    Label { objectName: "preset.error"; text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
-    Label { objectName: "presetImportNotice"; text: qsTranslate("Luma", presets.importNotice); textFormat: Text.PlainText; visible: text.length > 0; color: "#dfae77"; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
-    Button { objectName: "presetImportDetails"; visible: presets.importNotice.length > 0; text: qsTranslate("Luma", "XMP compatibility"); Layout.fillWidth: true; onClicked: compatibilityDialog.open() }
+    Label { objectName: "preset.error"; text: presets.error; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
+    Label { objectName: "presetImportNotice"; text: qsTranslate("Luma", presets.importNotice); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.accent; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
+    LumaButton { objectName: "presetImportDetails"; visible: presets.importNotice.length > 0; text: qsTranslate("Luma", "XMP compatibility"); Layout.fillWidth: true; onClicked: compatibilityDialog.open() }
     RowLayout {
         Layout.fillWidth: true; spacing: 4
-        Button { objectName: "preset.copy"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Luma", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+        LumaButton { objectName: "preset.copy"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Luma", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
             onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = 4095; editDialog.open() }
         }
-        Button { objectName: "preset.paste"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Luma", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
+        LumaButton { objectName: "preset.paste"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Luma", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
     }
     Dialog {
         id: editDialog
@@ -157,9 +157,9 @@ ColumnLayout {
             ColumnLayout {
                 id: editFields
                 width: editScroll.availableWidth; spacing: 10
-                TextField { id: nameField; objectName: "presetName"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Name"); maximumLength: 80; Layout.fillWidth: true }
-                TextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Folder (optional)"); maximumLength: 80; Layout.fillWidth: true }
-                Label { text: qsTranslate("Luma", "Settings groups"); color: "#d5d8de" }
+                LumaTextField { id: nameField; objectName: "presetName"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Name"); maximumLength: 80; Layout.fillWidth: true }
+                LumaTextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Luma", "Folder (optional)"); maximumLength: 80; Layout.fillWidth: true }
+                Label { text: qsTranslate("Luma", "Settings groups"); color: Theme.text }
                 Repeater {
                     model: [qsTranslate("Luma", "Light"), qsTranslate("Luma", "Color"), qsTranslate("Luma", "Curve"), "HSL", qsTranslate("Luma", "Detail"), qsTranslate("Luma", "Crop"), qsTranslate("Luma", "Optics"), qsTranslate("Luma", "Geometry"), qsTranslate("Luma", "Presence"), qsTranslate("Luma", "Point Color"), qsTranslate("Luma", "Color Grading"), qsTranslate("Luma", "Effects")]
                     CheckBox {
@@ -184,13 +184,13 @@ ColumnLayout {
                         wrapMode: Text.Wrap
                     }
                 }
-                Label { objectName: "preset.editorHelp"; visible: !editDialog.copyMode; text: qsTranslate("Luma", "Renaming or moving preserves settings. Replace with current edits to add new groups."); color: "#858c97"; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
-                Label { objectName: "preset.editorError"; text: presets.error; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                Label { objectName: "preset.editorHelp"; visible: !editDialog.copyMode; text: qsTranslate("Luma", "Renaming or moving preserves settings. Replace with current edits to add new groups."); color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
+                Label { objectName: "preset.editorError"; text: presets.error; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             }
         }
         footer: DialogButtonBox {
-            Button { objectName: "preset.cancel"; text: qsTranslate("Luma", "Cancel"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: editDialog.close() }
-            Button {
+            LumaButton { objectName: "preset.cancel"; text: qsTranslate("Luma", "Cancel"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: editDialog.close() }
+            LumaButton {
                 objectName: "presetSave"
                 text: editDialog.copyMode ? qsTranslate("Luma", "Copy") : qsTranslate("Luma", "Save")
                 enabled: editDialog.groups !== 0 && (editDialog.copyMode || nameField.text.trim().length > 0)
@@ -215,7 +215,7 @@ ColumnLayout {
             standardButton(Dialog.Ok).objectName = "preset.deleteConfirm"
         }
         standardButtons: Dialog.Ok | Dialog.Cancel
-        Label { textFormat: Text.PlainText; text: panel.selected ? panel.selected.name : ""; color: "#d5d8de" }
+        Label { textFormat: Text.PlainText; text: panel.selected ? panel.selected.name : ""; color: Theme.text }
         onAccepted: presets.remove(presetId)
     }
     Dialog {
@@ -235,7 +235,7 @@ ColumnLayout {
             }
         }
         footer: DialogButtonBox {
-            Button { text: qsTranslate("Luma", "Close"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: compatibilityDialog.close() }
+            LumaButton { text: qsTranslate("Luma", "Close"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: compatibilityDialog.close() }
         }
     }
     FileDialog {

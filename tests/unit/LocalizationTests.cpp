@@ -1,3 +1,4 @@
+#include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/LocalizationController.h"
 #include "apps/desktop/LocalizedText.h"
 #include <QElapsedTimer>
@@ -50,11 +51,15 @@ int main(int argc, char **argv) {
         const auto path = temporary.path() + QStringLiteral("/language.json");
         QLocale::setDefault(QLocale(QStringLiteral("ru")));
         {
+            std::unique_ptr<AppearanceController> appearance;
             QQmlEngine engine;
             LocalizationController controller(path, engine);
+            const auto appearancePath = temporary.path() + QStringLiteral("/appearance.json");
+            appearance = std::make_unique<AppearanceController>(appearancePath);
             require(controller.language() == QStringLiteral("en") && !QFile::exists(path),
                     "Default must be English without startup writes.");
             engine.rootContext()->setContextProperty("localization", &controller);
+            engine.rootContext()->setContextProperty("appearance", appearance.get());
             // This test exercises language selection, not catalog/model actions.
             // Supply the read-only state consumed by the expanded preferences UI.
             QQmlPropertyMap editor, library, diagnostics;
@@ -102,7 +107,20 @@ int main(int argc, char **argv) {
             require(bool(window), "Preferences QML did not create.");
             auto *caption = window->findChild<QObject *>("translatedCaption");
             auto *choice = window->findChild<QObject *>("languageChoice");
-            require(caption && choice, "Language controls are missing.");
+            auto *appearanceChoice = window->findChild<QObject *>("appearanceChoice");
+            require(caption && choice && appearanceChoice, "Preference controls are missing.");
+            require(appearance->mode() == QStringLiteral("system") && !QFile::exists(appearancePath),
+                    "Appearance must follow the system without a startup write.");
+            require(appearanceChoice->setProperty("currentIndex", 1) &&
+                        QMetaObject::invokeMethod(appearanceChoice, "activated", Q_ARG(int, 1)) &&
+                        appearance->mode() == QStringLiteral("day") &&
+                        read(appearancePath).contains(QStringLiteral("day")),
+                    "Day appearance was not applied and persisted.");
+            require(appearanceChoice->setProperty("currentIndex", 2) &&
+                        QMetaObject::invokeMethod(appearanceChoice, "activated", Q_ARG(int, 2)) &&
+                        appearance->mode() == QStringLiteral("night") && appearance->dark() &&
+                        read(appearancePath).contains(QStringLiteral("night")),
+                    "Night appearance was not applied and persisted.");
             const auto languages = controller.languages();
             require(languages.size() == 8, "Expected eight language packs.");
             const QStringList expected{QStringLiteral("Export"),      QStringLiteral("Экспорт"),
@@ -145,6 +163,18 @@ int main(int argc, char **argv) {
                         QCoreApplication::translate("Luma", "Export") == QStringLiteral("Exporter"),
                     "Language did not survive restart.");
         }
+        {
+            const auto appearancePath = temporary.path() + QStringLiteral("/appearance.json");
+            AppearanceController restored(appearancePath);
+            require(restored.mode() == QStringLiteral("night") && restored.dark(),
+                    "Appearance did not survive restart.");
+            const auto corrupt = QByteArray("{\"schema\":2,\"mode\":\"day\"}");
+            write(appearancePath, corrupt);
+            AppearanceController invalid(appearancePath);
+            require(invalid.mode() == QStringLiteral("system") && !invalid.error().isEmpty() &&
+                        read(appearancePath).toUtf8() == corrupt,
+                    "Corrupt appearance preferences were not preserved.");
+        }
         for (const auto &bytes :
              {QByteArray("invalid"), QByteArray("{\"schema\":1,\"language\":\"invalid\"}"),
               QByteArray("{\"schema\":2,\"language\":\"ru\"}")}) {
@@ -155,8 +185,8 @@ int main(int argc, char **argv) {
                         read(path).toUtf8() == bytes,
                     "Corrupt preferences did not preserve data and fall back to English.");
         }
-        std::cout << "Eight language packs: English default, runtime QML retranslation, verbatim "
-                     "values, persistence and failure handling passed.\n";
+        std::cout << "Eight language packs and system/day/night appearance: runtime selection, "
+                     "persistence and failure handling passed.\n";
         return 0;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

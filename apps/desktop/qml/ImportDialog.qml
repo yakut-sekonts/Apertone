@@ -23,65 +23,65 @@ Dialog {
         ColumnLayout {
             width:scroll.availableWidth;spacing:10
             RowLayout {
-                Button {text:qsTranslate("Luma","Choose files");onClicked:files.open()}
-                Button {text:qsTranslate("Luma","Choose folder");onClicked:folder.open()}
+                LumaButton {text:qsTranslate("Luma","Choose files");onClicked:files.open()}
+                LumaButton {text:qsTranslate("Luma","Choose folder");onClicked:folder.open()}
             }
             Label {objectName:"library.importSources";text:dialog.sources.length?qsTranslate("Luma","Sources: ")+dialog.sources.length+" · "+dialog.sources[0]:qsTranslate("Luma","No files or folder selected");wrapMode:Text.WrapAnywhere;Layout.fillWidth:true}
-            ComboBox {
+            LumaComboBox {
                 id:mode;objectName:"library.importMode";Layout.fillWidth:true
                 model:[qsTranslate("Luma","Add · keep originals in place"),qsTranslate("Luma","Copy · copy into the selected folder"),qsTranslate("Luma","Move · transfer originals after verification")]
             }
             RowLayout {
                 visible:mode.currentIndex!==0;Layout.fillWidth:true
-                Button {text:qsTranslate("Luma","Choose destination folder");onClicked:destinationPicker.open()}
+                LumaButton {text:qsTranslate("Luma","Choose destination folder");onClicked:destinationPicker.open()}
                 Label {text:dialog.destination.toString()||qsTranslate("Luma","No folder selected");elide:Text.ElideMiddle;Layout.fillWidth:true}
             }
             CheckBox {id:dates;visible:mode.currentIndex!==0;text:qsTranslate("Luma","Date folders · YYYY/MM/DD (UTC)")}
-            TextField {id:naming;visible:mode.currentIndex!==0;text:"{name}";maximumLength:230;Layout.fillWidth:true;Accessible.name:qsTranslate("Luma","Filename template")}
+            LumaTextField {id:naming;visible:mode.currentIndex!==0;text:"{name}";maximumLength:230;Layout.fillWidth:true;Accessible.name:qsTranslate("Luma","Filename template")}
             Label {visible:mode.currentIndex!==0;text:qsTranslate("Luma","Filename tokens: {name}, {date}, {seq}. The original extension is kept. Missing capture dates use the import date.");wrapMode:Text.Wrap;Layout.fillWidth:true}
             CheckBox {id:recursive;objectName:"library.importRecursive";text:qsTranslate("Luma","Include subfolders");checked:true}
             CheckBox {id:duplicates;objectName:"library.importDuplicates";text:qsTranslate("Luma","Skip duplicates by SHA-256 and size");checked:true}
             RowLayout {
                 Layout.fillWidth:true
-                Button {text:qsTranslate("Luma","Second backup folder");onClicked:backupPicker.open()}
+                LumaButton {text:qsTranslate("Luma","Second backup folder");onClicked:backupPicker.open()}
                 Label {text:dialog.backup.toString()||qsTranslate("Luma","None");elide:Text.ElideMiddle;Layout.fillWidth:true}
-                Button {text:qsTranslate("Luma","Clear");enabled:dialog.backup.toString().length>0;onClicked:dialog.backup=""}
+                LumaButton {text:qsTranslate("Luma","Clear");enabled:dialog.backup.toString().length>0;onClicked:dialog.backup=""}
             }
             Label {text:qsTranslate("Luma","Develop preset")}
-            ComboBox {
+            LumaComboBox {
                 id:develop;Layout.fillWidth:true;textRole:"name";valueRole:"id"
                 model:[{id:"",name:qsTranslate("Luma","None")}].concat(presets.builtinItems).concat(presets.items)
             }
             Label {text:qsTranslate("Luma","Metadata preset")}
             RowLayout {
                 Layout.fillWidth:true
-                ComboBox {
+                LumaComboBox {
                     id:metadataPreset;Layout.fillWidth:true;textRole:"name"
                     model:[{name:qsTranslate("Luma","None"),values:{}}].concat(library.importMetadataPresets)
                     onActivated:{dialog.selectedMetadataPreset=currentIndex>0?model[currentIndex].name:"";dialog.useMetadata(model[currentIndex].values);presetName.text=dialog.selectedMetadataPreset}
                 }
-                Button {text:qsTranslate("Luma","Delete");enabled:dialog.selectedMetadataPreset.length>0;onClicked:if(library.removeImportMetadataPreset(dialog.selectedMetadataPreset)){dialog.selectedMetadataPreset="";metadataPreset.currentIndex=0}}
+                LumaButton {text:qsTranslate("Luma","Delete");enabled:dialog.selectedMetadataPreset.length>0;onClicked:if(library.removeImportMetadataPreset(dialog.selectedMetadataPreset)){dialog.selectedMetadataPreset="";metadataPreset.currentIndex=0}}
             }
-            TextField {id:titleField;placeholderText:qsTranslate("Luma","Title");maximumLength:1024;Layout.fillWidth:true}
-            TextField {id:caption;placeholderText:qsTranslate("Luma","Caption");maximumLength:16384;Layout.fillWidth:true}
-            TextField {id:creator;placeholderText:qsTranslate("Luma","Creator");maximumLength:1024;Layout.fillWidth:true}
-            TextField {id:copyright;placeholderText:qsTranslate("Luma","Copyright");maximumLength:2048;Layout.fillWidth:true}
-            TextField {id:location;placeholderText:qsTranslate("Luma","Location");maximumLength:2048;Layout.fillWidth:true}
-            TextField {id:keywords;placeholderText:qsTranslate("Luma","Keywords, separated by commas");maximumLength:32768;Layout.fillWidth:true}
+            LumaTextField {id:titleField;placeholderText:qsTranslate("Luma","Title");maximumLength:1024;Layout.fillWidth:true}
+            LumaTextField {id:caption;placeholderText:qsTranslate("Luma","Caption");maximumLength:16384;Layout.fillWidth:true}
+            LumaTextField {id:creator;placeholderText:qsTranslate("Luma","Creator");maximumLength:1024;Layout.fillWidth:true}
+            LumaTextField {id:copyright;placeholderText:qsTranslate("Luma","Copyright");maximumLength:2048;Layout.fillWidth:true}
+            LumaTextField {id:location;placeholderText:qsTranslate("Luma","Location");maximumLength:2048;Layout.fillWidth:true}
+            LumaTextField {id:keywords;placeholderText:qsTranslate("Luma","Keywords, separated by commas");maximumLength:32768;Layout.fillWidth:true}
             Label {text:qsTranslate("Luma","Empty metadata fields preserve existing values. Keywords are added without duplicates.");wrapMode:Text.Wrap;Layout.fillWidth:true}
             RowLayout {
                 Layout.fillWidth:true
-                TextField {id:presetName;placeholderText:qsTranslate("Luma","Metadata preset name");maximumLength:128;Layout.fillWidth:true}
-                Button {text:qsTranslate("Luma","Save preset");enabled:presetName.text.trim().length>0;onClicked:library.saveImportMetadataPreset(presetName.text,dialog.metadataValues())}
+                LumaTextField {id:presetName;placeholderText:qsTranslate("Luma","Metadata preset name");maximumLength:128;Layout.fillWidth:true}
+                LumaButton {text:qsTranslate("Luma","Save preset");enabled:presetName.text.trim().length>0;onClicked:library.saveImportMetadataPreset(presetName.text,dialog.metadataValues())}
             }
             Label {visible:mode.currentIndex===2;text:qsTranslate("Luma","Move deletes each source only after the imported file, optional backup and catalog entry are complete. Duplicate sources are kept.");wrapMode:Text.Wrap;Layout.fillWidth:true}
-            Label {visible:library.error.length>0;text:qsTranslate("Luma",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:"#ffc1bc"}
-            Label {visible:presets.error.length>0;text:qsTranslate("Luma",presets.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:"#ffc1bc"}
+            Label {visible:library.error.length>0;text:qsTranslate("Luma",library.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:Theme.negative}
+            Label {visible:presets.error.length>0;text:qsTranslate("Luma",presets.error);wrapMode:Text.Wrap;Layout.fillWidth:true;color:Theme.negative}
         }
     }
     footer:DialogButtonBox {
-        Button {objectName:"library.importCancel";text:qsTranslate("Luma","Cancel");onClicked:dialog.reject()}
-        Button {
+        LumaButton {objectName:"library.importCancel";text:qsTranslate("Luma","Cancel");onClicked:dialog.reject()}
+        LumaButton {
             objectName:"library.importStart";text:qsTranslate("Luma","Import photos")
             enabled:dialog.sources.length>0&&(mode.currentIndex===0||dialog.destination.toString().length>0)&&!library.working
             onClicked: {

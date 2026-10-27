@@ -22,7 +22,7 @@ ColumnLayout {
         }
         Label {
             text: qsTranslate("Luma", "HSL / COLOR MIXER")
-            color: "#858c97"
+            color: Theme.muted
             font.pixelSize: 9
             font.letterSpacing: 1
             Layout.fillWidth: true
@@ -33,7 +33,7 @@ ColumnLayout {
         spacing: 3
         Repeater {
             model: 8
-            Button {
+            LumaButton {
                 id: bandButton
                 required property int index
                 objectName: "hsl.band." + panel.bands[index]
@@ -82,7 +82,7 @@ ColumnLayout {
         Layout.fillWidth: true
     }
     RowLayout {
-        ComboBox {
+        LumaComboBox {
             id: targetMode
             objectName: "hsl.targetMode"
             model: [qsTranslate("Luma", "Hue"), qsTranslate("Luma", "Saturation"), qsTranslate("Luma", "Luminance")]
@@ -92,7 +92,7 @@ ColumnLayout {
                              editor.targetedTool = "hsl." + panel.parameters[currentIndex]
             Accessible.name: qsTranslate("Luma", "Targeted HSL parameter")
         }
-        Button {
+        LumaButton {
             objectName: "hsl.target"
             text: "◎"
             checkable: true

@@ -15,7 +15,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth:true
-        ComboBox {
+        LumaComboBox {
             visible:root.rule.kind!=="condition"
             model:["AND","OR","NOT"]
             currentIndex:root.rule.kind==="all"?0:root.rule.kind==="any"?1:2
@@ -26,7 +26,7 @@ ColumnLayout {
             }
             Accessible.name:qsTranslate("Luma","Rule group")
         }
-        ComboBox {
+        LumaComboBox {
             visible:root.rule.kind==="condition";Layout.fillWidth:true
             property var keys:["rating","flag","iso","camera","lens","filename","captureDate","label","keyword","width","height"]
             model:[qsTranslate("Luma","Rating"),qsTranslate("Luma","Flag"),"ISO",qsTranslate("Luma","Camera"),qsTranslate("Luma","Lens"),qsTranslate("Luma","Filename"),qsTranslate("Luma","Capture date"),qsTranslate("Luma","Color label"),qsTranslate("Luma","Keyword"),qsTranslate("Luma","Width"),qsTranslate("Luma","Height")]
@@ -34,7 +34,7 @@ ColumnLayout {
             onActivated:root.change("field",keys[currentIndex])
             Accessible.name:qsTranslate("Luma","Rule field")
         }
-        ComboBox {
+        LumaComboBox {
             visible:root.rule.kind==="condition"
             property var keys:["eq","ne","ge","gt","le","lt","contains"]
             model:["=","≠","≥",">","≤","<",qsTranslate("Luma","Contains")]
@@ -42,7 +42,7 @@ ColumnLayout {
             onActivated:root.change("operation",keys[currentIndex])
             Accessible.name:qsTranslate("Luma","Rule comparison")
         }
-        TextField {
+        LumaTextField {
             visible:root.rule.kind==="condition";Layout.fillWidth:true;Layout.minimumWidth:50
             text:String(root.rule.value??"");maximumLength:1024;selectByMouse:true
             onEditingFinished:if(text!==String(root.rule.value))root.change("value",text)
@@ -60,13 +60,13 @@ ColumnLayout {
                 Component.onCompleted:setSource("SmartRuleEditor.qml",{rule:modelData,depth:root.depth+1})
                 onLoaded: {item.edited.connect(function(next){root.replaceChild(index,next)})}
             }
-            Button {text:"−";enabled:root.rule.children.length>1;onClicked:root.removeChild(index);Accessible.name:qsTranslate("Luma","Remove rule")}
+            LumaButton {text:"−";enabled:root.rule.children.length>1;onClicked:root.removeChild(index);Accessible.name:qsTranslate("Luma","Remove rule")}
         }
     }
     RowLayout {
         visible:root.rule.kind!=="condition" && root.rule.kind!=="not"
         enabled:root.rule.kind!=="condition" && root.depth<7 && root.rule.children.length<16
-        Button {text:qsTranslate("Luma","Add condition");onClicked:root.addChild(false)}
-        Button {text:qsTranslate("Luma","Add group");onClicked:root.addChild(true)}
+        LumaButton {text:qsTranslate("Luma","Add condition");onClicked:root.addChild(false)}
+        LumaButton {text:qsTranslate("Luma","Add group");onClicked:root.addChild(true)}
     }
 }

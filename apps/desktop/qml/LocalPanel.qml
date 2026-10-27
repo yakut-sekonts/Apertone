@@ -28,7 +28,7 @@ ColumnLayout {
     }
     readonly property var kindNames: kinds.map(kind => kindName(kind))
     readonly property var operationNames: [qsTranslate("Luma", "Add"), qsTranslate("Luma", "Subtract"), qsTranslate("Luma", "Intersect")]
-    Button {
+    LumaButton {
         id: expanded
         objectName: "localPanelToggle"
         text: qsTranslate("Luma", "Local adjustments")
@@ -40,14 +40,14 @@ ColumnLayout {
         visible: expanded.checked
         Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
         enabled: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original
-        ComboBox {
+        LumaComboBox {
             id: newKind
             objectName: "localNewKind"
             model: panel.kindNames
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
             Accessible.name: qsTranslate("Luma", "Mask type")
         }
-        Button {
+        LumaButton {
             objectName: "localNewMask"
             text: qsTranslate("Luma", "New mask")
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
@@ -55,21 +55,21 @@ ColumnLayout {
         }
         Label {
             text: qsTranslate("Luma", "Local AI · photos stay on this Mac")
-            wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
+            wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { objectName: "localAI.subject"; text: qsTranslate("Luma", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
-            Button { text: qsTranslate("Luma", "Background"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("background") }
+            LumaButton { objectName: "localAI.subject"; text: qsTranslate("Luma", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
+            LumaButton { text: qsTranslate("Luma", "Background"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("background") }
         }
-        Button {
+        LumaButton {
             text: qsTranslate("Luma", "Select object")
             enabled: !editor.aiBusy
             Layout.fillWidth: true
             onClicked: editor.beginAIObjectSelection()
         }
-        Button {
+        LumaButton {
             text: qsTranslate("Luma", "Sky")
             enabled: !editor.aiBusy && editor.skyModelConfigured
             Layout.fillWidth: true
@@ -80,16 +80,16 @@ ColumnLayout {
         Label {
             visible: editor.aiObjectPicking
             text: qsTranslate("Luma", "Click the object in the photo.")
-            wrapMode: Text.Wrap; Layout.fillWidth: true; color: "#dfae77"
+            wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.accent
         }
         ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI selection"; value: editor.aiProgress; Layout.fillWidth: true }
-        Button {
+        LumaButton {
             text: qsTranslate("Luma", "Cancel")
             visible: (editor.aiBusy && editor.aiOperation === "AI selection") || editor.aiObjectPicking
             onClicked: editor.cancelAI()
             Layout.fillWidth: true
         }
-        ComboBox {
+        LumaComboBox {
             objectName: "localMaskChoice"
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
             model: editor.localMasks
@@ -100,13 +100,13 @@ ColumnLayout {
         Label {
             visible: !panel.selected
             text: qsTranslate("Luma", "Add a mask to adjust part of the photo.")
-            wrapMode: Text.Wrap; color: "#858c97"; font.pixelSize: 11
+            wrapMode: Text.Wrap; color: Theme.muted; font.pixelSize: 11
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
         }
         ColumnLayout {
             visible: panel.selected
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
-            TextField {
+            LumaTextField {
                 objectName: "localMaskName"
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
                 maximumLength: 80; text: editor.localState.name ?? ""
@@ -117,11 +117,11 @@ ColumnLayout {
             LocalCheckBox {objectName:"localMaskInvert";text: qsTranslate("Luma", "Invert mask");checked: editor.localState.inverted ?? false;onToggled: editor.setLocalInverted(checked)}
             RowLayout {
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
-                Button {objectName:"localMaskUp";text: "↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move mask up");onClicked:editor.moveLocalMask(-1)}
-                Button {objectName:"localMaskDown";text: "↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move mask down");onClicked:editor.moveLocalMask(1)}
-                Button {objectName:"localMaskDelete";text:qsTranslate("Luma", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
+                LumaButton {objectName:"localMaskUp";text: "↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move mask up");onClicked:editor.moveLocalMask(-1)}
+                LumaButton {objectName:"localMaskDown";text: "↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move mask down");onClicked:editor.moveLocalMask(1)}
+                LumaButton {objectName:"localMaskDelete";text:qsTranslate("Luma", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
             }
-            ComboBox {
+            LumaComboBox {
                 objectName: "localComponentChoice"
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
                 model: editor.localComponents.map(component => ({id:component.id,label:(component.operation<0?qsTranslate("Luma", "Base selection"):panel.operationName(component.operation))+" · "+panel.kindName(component.shape)}))
@@ -133,7 +133,7 @@ ColumnLayout {
             ColumnLayout {
                 visible: (editor.localState.componentIndex ?? -1)>=0
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
-                ComboBox {
+                LumaComboBox {
                     objectName:"localComponentOperation"
                     Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
                     model:panel.operationNames;currentIndex:editor.localState.componentOperation ?? 0
@@ -144,12 +144,12 @@ ColumnLayout {
                 LocalCheckBox {objectName:"localComponentInvert";text:qsTranslate("Luma", "Invert component");checked:editor.localState.componentInverted ?? false;onToggled:editor.setLocalComponentInverted(checked)}
                 RowLayout {
                     Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
-                    Button {objectName:"localComponentUp";text:"↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move component up");onClicked:editor.moveLocalComponent(-1)}
-                    Button {objectName:"localComponentDown";text:"↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move component down");onClicked:editor.moveLocalComponent(1)}
-                    Button {objectName:"localRemoveComponent";text:qsTranslate("Luma", "Remove component");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalComponent()}
+                    LumaButton {objectName:"localComponentUp";text:"↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move component up");onClicked:editor.moveLocalComponent(-1)}
+                    LumaButton {objectName:"localComponentDown";text:"↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Luma", "Move component down");onClicked:editor.moveLocalComponent(1)}
+                    LumaButton {objectName:"localRemoveComponent";text:qsTranslate("Luma", "Remove component");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalComponent()}
                 }
             }
-            Button {
+            LumaButton {
                 id: combine
                 objectName: "localCombineToggle"
                 text:qsTranslate("Luma", "Combine selections")
@@ -159,11 +159,11 @@ ColumnLayout {
             ColumnLayout {
                 visible:combine.checked
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
-                ComboBox {id:componentKind;objectName:"localComponentKind";model:panel.kindNames;currentIndex:2;Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;Accessible.name:qsTranslate("Luma", "Component type")}
-                ComboBox {id:componentOperation;objectName:"localNewOperation";model:panel.operationNames;Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;Accessible.name:qsTranslate("Luma", "Component operation")}
-                Button {objectName:"localAddComponent";text:qsTranslate("Luma", "Add component");Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;onClicked:editor.addLocalComponent(panel.kinds[componentKind.currentIndex],panel.operations[componentOperation.currentIndex])}
+                LumaComboBox {id:componentKind;objectName:"localComponentKind";model:panel.kindNames;currentIndex:2;Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;Accessible.name:qsTranslate("Luma", "Component type")}
+                LumaComboBox {id:componentOperation;objectName:"localNewOperation";model:panel.operationNames;Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;Accessible.name:qsTranslate("Luma", "Component operation")}
+                LumaButton {objectName:"localAddComponent";text:qsTranslate("Luma", "Add component");Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;onClicked:editor.addLocalComponent(panel.kinds[componentKind.currentIndex],panel.operations[componentOperation.currentIndex])}
             }
-            Button {
+            LumaButton {
                 objectName:"localEditOnPhoto"
                 text:qsTranslate("Luma", "Edit mask on photo")
                 checkable:true;checked:editor.localMode
@@ -178,14 +178,14 @@ ColumnLayout {
                 Label {Layout.fillWidth:true;Layout.minimumWidth:0;wrapMode:Text.Wrap;text:qsTranslate("Luma", "Brush opacity")+" · "+Number(editor.localBrushOpacity).toFixed(0)+"%";font.pixelSize:11}
                 Slider {objectName:"localBrushOpacity";from:0;to:100;value:editor.localBrushOpacity;onMoved:editor.localBrushOpacity=value;Layout.fillWidth:true;Accessible.name:qsTranslate("Luma", "Brush opacity")}
                 LocalCheckBox {objectName:"localBrushErase";text:qsTranslate("Luma", "Erase");checked:editor.localBrushErase;onToggled:editor.localBrushErase=checked}
-                Button {objectName:"localClearBrush";text:qsTranslate("Luma", "Clear brush strokes");enabled:(editor.localState.strokeCount ?? 0)>0;Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.clearLocalBrush()}
+                LumaButton {objectName:"localClearBrush";text:qsTranslate("Luma", "Clear brush strokes");enabled:(editor.localState.strokeCount ?? 0)>0;Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.clearLocalBrush()}
             }
             ColumnLayout {
                 visible:editor.localState.shape==="luminance"||editor.localState.shape==="color"
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
                 Label {
                     text:editor.localSampling?qsTranslate("Luma", "Sampling…"):qsTranslate("Luma", "Click the photo to sample the range.")
-                    wrapMode:Text.Wrap;font.pixelSize:11;color:"#dfae77"
+                    wrapMode:Text.Wrap;font.pixelSize:11;color:Theme.accent
                     Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
                 }
                 Rectangle {visible:editor.localState.shape==="color";color:editor.localState.referenceColor ?? "#808080";implicitHeight:22;Layout.fillWidth:true;Accessible.name:qsTranslate("Luma", "Sampled color")}
@@ -202,7 +202,7 @@ ColumnLayout {
                 Label {text:qsTranslate("Luma", "Overlay color");Layout.fillWidth:true;Layout.minimumWidth:0;font.pixelSize:11}
                 Repeater {
                     model:["#ff2666","#00cbea","#67e26a"]
-                    Button {
+                    LumaButton {
                         required property string modelData
                         objectName:"localOverlayColor."+modelData
                         implicitWidth:28;implicitHeight:28;Layout.preferredWidth:28;Layout.maximumWidth:28
@@ -225,7 +225,7 @@ ColumnLayout {
             Label {
                 visible:editor.localMode
                 text:editor.localState.shape==="brush"?qsTranslate("Luma", "Paint on the photo; each stroke is one Undo."):qsTranslate("Luma", "Drag empty photo to redraw; drag handles to move or resize.")
-                wrapMode:Text.Wrap;font.pixelSize:11;color:"#dfae77"
+                wrapMode:Text.Wrap;font.pixelSize:11;color:Theme.accent
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
             }
         }

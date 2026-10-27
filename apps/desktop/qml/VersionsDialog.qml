@@ -62,7 +62,7 @@ Dialog {
             }
             RowLayout {
                 Layout.fillWidth: true
-                TextField {
+                LumaTextField {
                     id: nameField
                     objectName: "versions.name"
                     placeholderText: qsTranslate("Luma", "Version name")
@@ -71,7 +71,7 @@ Dialog {
                     enabled: !editor.busy
                     Layout.fillWidth: true
                 }
-                Button {
+                LumaButton {
                     objectName: "versions.save"
                     text: qsTranslate("Luma", "Save current edit")
                     enabled: editor.hasPhoto && !editor.busy && nameField.text.trim().length > 0
@@ -108,21 +108,21 @@ Dialog {
             }
             RowLayout {
                 Layout.fillWidth: true
-                Button {
+                LumaButton {
                     objectName: "versions.restore"
                     text: qsTranslate("Luma", "Restore version")
                     enabled: !editor.busy && dialog.selected() !== null
                     Layout.fillWidth: true
                     onClicked: { const item = dialog.selected(); if (item) editor.restoreVersion(item.id, item.revision) }
                 }
-                Button {
+                LumaButton {
                     objectName: "versions.rename"
                     text: qsTranslate("Luma", "Rename")
                     enabled: !editor.busy && dialog.selected() !== null && nameField.text.trim().length > 0
                     Layout.fillWidth: true
                     onClicked: { const item = dialog.selected(); if (item) editor.renameVersion(item.id, item.revision, nameField.text) }
                 }
-                Button {
+                LumaButton {
                     objectName: "versions.delete"
                     text: qsTranslate("Luma", "Delete")
                     enabled: !editor.busy && dialog.selected() !== null
@@ -141,8 +141,8 @@ Dialog {
             }
             ProgressBar { indeterminate: true; visible: editor.versionsBusy; Layout.fillWidth: true }
             Label { text: editor.versionsStatus; textFormat: Text.PlainText; visible: text.length > 0; wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Label { text: qsTranslate("Luma", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-            Button { text: qsTranslate("Luma", "Refresh"); enabled: !editor.busy; onClicked: editor.refreshVersions(); Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", editor.versionsError); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Refresh"); enabled: !editor.busy; onClicked: editor.refreshVersions(); Layout.fillWidth: true }
         }
     }
 }

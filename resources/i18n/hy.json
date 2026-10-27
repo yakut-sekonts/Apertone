@@ -800,6 +800,15 @@
     "Aligning originals…": "Բնօրինակների հավասարեցում…",
     "Merging frames…": "Կադրերի միավորում…",
     "Writing Float DNG…": "Float DNG-ի պահպանում…",
-    "Align frames": "Հավասարեցնել կադրերը"
+    "Align frames": "Հավասարեցնել կադրերը",
+    "Appearance": "Արտաքին տեսք",
+    "Follow system": "Հետևել համակարգին",
+    "Day": "Ցերեկ",
+    "Night": "Գիշեր",
+    "Unsupported appearance mode.": "Արտաքին տեսքի չաջակցվող ռեժիմ։",
+    "Appearance preferences are busy.": "Արտաքին տեսքի կարգավորումները զբաղված են։",
+    "Cannot save appearance preferences.": "Չհաջողվեց պահպանել արտաքին տեսքի կարգավորումները։",
+    "Cannot read appearance preferences.": "Չհաջողվեց կարդալ արտաքին տեսքի կարգավորումները։",
+    "Invalid appearance preferences; system theme is active.": "Արտաքին տեսքի կարգավորումները անվավեր են․ ակտիվ է համակարգային թեման։"
   }
 }

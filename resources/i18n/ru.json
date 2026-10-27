@@ -800,6 +800,15 @@
     "Aligning originals…": "Выравнивание оригиналов…",
     "Merging frames…": "Объединение кадров…",
     "Writing Float DNG…": "Запись Float DNG…",
-    "Align frames": "Выравнивать кадры"
+    "Align frames": "Выравнивать кадры",
+    "Appearance": "Внешний вид",
+    "Follow system": "Как в системе",
+    "Day": "День",
+    "Night": "Ночь",
+    "Unsupported appearance mode.": "Неподдерживаемый режим оформления.",
+    "Appearance preferences are busy.": "Настройки оформления сейчас заняты.",
+    "Cannot save appearance preferences.": "Не удалось сохранить настройки оформления.",
+    "Cannot read appearance preferences.": "Не удалось прочитать настройки оформления.",
+    "Invalid appearance preferences; system theme is active.": "Настройки оформления повреждены; используется системная тема."
   }
 }

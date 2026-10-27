@@ -6,7 +6,7 @@ ColumnLayout {
     id: panel
     Layout.fillWidth: true
     Layout.minimumWidth: 0
-    Button {
+    LumaButton {
         objectName: "retouch.toggle"
         text: qsTranslate("Luma", "Retouch")
         checkable: true
@@ -25,7 +25,7 @@ ColumnLayout {
                 model: [{key: "clone", title: qsTranslate("Luma", "Clone")},
                         {key: "heal", title: qsTranslate("Luma", "Heal")},
                         {key: "remove", title: qsTranslate("Luma", "Remove")}]
-                Button {
+                LumaButton {
                     required property var modelData
                     objectName: "retouch.mode." + modelData.key
                     text: modelData.title
@@ -40,7 +40,7 @@ ColumnLayout {
             text: editor.retouchMode === "remove"
                 ? qsTranslate("Luma", "Paint over a small object to find a replacement area.")
                 : qsTranslate("Luma", "Option-click a source area, then paint over the target.")
-            wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
+            wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         Repeater {
@@ -62,7 +62,7 @@ ColumnLayout {
                 }
             }
         }
-        ComboBox {
+        LumaComboBox {
             id: strokes
             Layout.fillWidth: true
             model: editor.retouchItems
@@ -77,8 +77,8 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            Button { text: qsTranslate("Luma", "New stroke"); onClicked: editor.selectRetouch(""); Layout.fillWidth: true }
-            Button {
+            LumaButton { text: qsTranslate("Luma", "New stroke"); onClicked: editor.selectRetouch(""); Layout.fillWidth: true }
+            LumaButton {
                 text: qsTranslate("Luma", "Delete")
                 enabled: editor.retouchState.selected.length > 0
                 onClicked: editor.removeRetouch()
@@ -94,11 +94,11 @@ ColumnLayout {
         Label {
             visible: editor.retouchState.selected.length > 0
             text: qsTranslate("Luma", "Option-click to reposition the selected source.")
-            wrapMode: Text.Wrap; font.pixelSize: 11; color: "#858c97"
+            wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         ProgressBar { objectName: "retouch.progress"; visible: editor.retouchBusy; indeterminate: true; Layout.fillWidth: true }
-        Button {
+        LumaButton {
             objectName: "retouch.cancel"
             visible: editor.retouchBusy || editor.retouchState.drawing
             text: qsTranslate("Luma", "Cancel")

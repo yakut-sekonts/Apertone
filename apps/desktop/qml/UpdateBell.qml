@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Button {
+LumaButton {
     id: bell
     objectName: "updates.bell"
     implicitWidth: 40
@@ -21,7 +21,7 @@ Button {
             onPaint: {
                 const c = getContext("2d");
                 c.clearRect(0, 0, width, height);
-                c.strokeStyle = "#e3e5e9";
+                c.strokeStyle = Theme.text;
                 c.lineWidth = 1.6;
                 c.beginPath();
                 c.moveTo(3, 18);
@@ -43,7 +43,7 @@ Button {
             width: 8
             height: 8
             radius: 4
-            color: "#dfae77"
+            color: Theme.accent
             anchors.right: parent.right
             anchors.top: parent.top
         }
@@ -68,7 +68,7 @@ Button {
             Label {
                 visible: updates.availableVersion.length > 0
                 text: "Luma " + updates.availableVersion
-                color: "#dfae77"
+                color: Theme.accent
                 font.pixelSize: 15
             }
             Label {
@@ -77,7 +77,7 @@ Button {
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
             }
-            Button {
+            LumaButton {
                 visible: updates.availableVersion.length > 0
                 text: qsTranslate("Luma", "Install update…")
                 enabled: !updates.restartPending
@@ -87,7 +87,7 @@ Button {
                     updates.install();
                 }
             }
-            Button {
+            LumaButton {
                 objectName: "updates.check"
                 text: updates.checking ? qsTranslate("Luma", "Checking…") : qsTranslate("Luma", "Check for updates")
                 enabled: updates.canCheck && !updates.checking

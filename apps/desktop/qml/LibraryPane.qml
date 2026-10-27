@@ -5,7 +5,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: pane
-    color: "#111318"
+    color: Theme.window
     property string currentCollection: ""
     property string editCollectionID: ""
     CompareDialog { id:compareDialog }
@@ -24,7 +24,7 @@ Rectangle {
                 text: qsTranslate("Luma", "Merge 2–24 overlapping originals in capture order. Creates an auto-cropped Float DNG without current Develop edits.")
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
-            ComboBox {
+            LumaComboBox {
                 id: panoramaProjection; objectName: "merge.projection"
                 model: [qsTranslate("Luma", "Perspective"), qsTranslate("Luma", "Cylindrical"), qsTranslate("Luma", "Spherical")]
                 currentIndex: 1; Layout.fillWidth: true
@@ -37,7 +37,7 @@ Rectangle {
                 Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Frame field of view")
             }
             CheckBox { id: panoramaWarp; text: qsTranslate("Luma", "Boundary warp · stretch edges to reduce cropping"); Layout.fillWidth: true }
-            Button {
+            LumaButton {
                 objectName: "merge.panorama.create"
                 text: qsTranslate("Luma", "Create panorama")
                 enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy
@@ -65,7 +65,7 @@ Rectangle {
                 Layout.fillWidth: true
             }
             Slider { id: hdrDeghost; objectName: "merge.deghost"; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Luma", "Deghosting") }
-            Button {
+            LumaButton {
                 objectName: "merge.hdr.create"
                 text: qsTranslate("Luma", "Create HDR")
                 enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy
@@ -94,7 +94,7 @@ Rectangle {
         id: collectionDialog; objectName: "library.collectionDialog"; width: 360; implicitWidth: 360; title: pane.editCollectionID ? qsTranslate("Luma", "Rename collection") : qsTranslate("Luma", "New collection"); modal: true; anchors.centerIn: parent
         standardButtons: Dialog.Ok | Dialog.Cancel
         onOpened: { standardButton(Dialog.Ok).objectName = "library.collectionConfirm"; standardButton(Dialog.Cancel).objectName = "library.collectionCancel" }
-        TextField { id: collectionName; objectName: "library.collectionName"; width: 300; placeholderText: qsTranslate("Luma", "Collection name"); maximumLength: 128; selectByMouse: true }
+        LumaTextField { id: collectionName; objectName: "library.collectionName"; width: 300; placeholderText: qsTranslate("Luma", "Collection name"); maximumLength: 128; selectByMouse: true }
         onAccepted: { if (pane.editCollectionID) library.renameCollection(pane.editCollectionID, collectionName.text); else library.createCollection(collectionName.text) }
     }
     Dialog {
@@ -112,14 +112,14 @@ Rectangle {
     RowLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
-            color: "#191c22"; Layout.preferredWidth: 205; Layout.fillHeight: true
+            color: Theme.panel; Layout.preferredWidth: Theme.sidebarWidth; Layout.fillHeight: true
             ColumnLayout {
-                anchors.fill: parent; anchors.margins: 16; spacing: 12
-                Label { text: qsTranslate("Luma", "LIBRARY"); font.pixelSize: 10; color: "#8290a1"; font.letterSpacing: 1.5 }
-                Button { objectName: "library.importButton"; text: qsTranslate("Luma", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
-                Button { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
-                Button { objectName: "semantic.open"; text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
-                Button {
+                anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: 8
+                Label { text: qsTranslate("Luma", "LIBRARY"); font.pixelSize: 10; color: Theme.faint; font.letterSpacing: 1.5 }
+                LumaButton { objectName: "library.importButton"; text: qsTranslate("Luma", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
+                LumaButton { text: qsTranslate("Luma", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
+                LumaButton { objectName: "semantic.open"; text: qsTranslate("Luma", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
+                LumaButton {
                     objectName: "library.photoActions"
                     text: qsTranslate("Luma", "Photo actions")
                     Layout.fillWidth: true
@@ -132,7 +132,7 @@ Rectangle {
                         MenuItem { objectName: "library.panorama"; text: qsTranslate("Luma", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
                     }
                 }
-                Label { text: qsTranslate("Luma", "COLLECTIONS"); font.pixelSize: 10; color: "#8290a1"; Layout.topMargin: 16 }
+                Label { text: qsTranslate("Luma", "COLLECTIONS"); font.pixelSize: 10; color: Theme.faint; Layout.topMargin: 16 }
                 ScrollView {
                     objectName: "library.collectionsScroll"
                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true; contentWidth: availableWidth
@@ -140,43 +140,43 @@ Rectangle {
                         width: parent.width; spacing: 4
                         Repeater {
                             model: library.collections
-                            Button { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
+                            LumaButton { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
                         }
                     }
                 }
-                Button {text:qsTranslate("Luma","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create()}
-                Button {
+                LumaButton {text:qsTranslate("Luma","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create()}
+                LumaButton {
                     text:qsTranslate("Luma","Edit rules");Layout.fillWidth:true;enabled:!library.working
                     visible:!!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&c.smart)
                     onClicked:{const c=library.collections.find(c=>c.id===pane.currentCollection);if(c)library.editSmartCollection(c.id,c.name)}
                 }
-                Button { objectName: "library.newCollection"; text: qsTranslate("Luma", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
-                Button { objectName: "library.renameCollection"; text: qsTranslate("Luma", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
-                Button { objectName: "library.deleteCollection"; text: qsTranslate("Luma", "Delete collection"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: deleteDialog.open() }
-                Label { text: qsTranslate("Luma", "Double-click → Develop\n⌘ / Shift → select\n0–5 · P / X / U"); color: "#8290a1"; font.pixelSize: 10; Layout.topMargin: 8 }
+                LumaButton { objectName: "library.newCollection"; text: qsTranslate("Luma", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
+                LumaButton { objectName: "library.renameCollection"; text: qsTranslate("Luma", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
+                LumaButton { objectName: "library.deleteCollection"; text: qsTranslate("Luma", "Delete collection"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: deleteDialog.open() }
+                Label { text: qsTranslate("Luma", "Double-click → Develop\n⌘ / Shift → select\n0–5 · P / X / U"); color: Theme.faint; font.pixelSize: 10; Layout.topMargin: 8 }
             }
         }
         ColumnLayout {
-            Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: 18; spacing: 12
+            Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: Theme.panelPadding; spacing: 8
             RowLayout {
                 Layout.minimumWidth: 0; Layout.fillWidth: true
-                TextField { id: search; objectName: "library.search"; Layout.minimumWidth: 0; placeholderTextColor: "#858c97"; placeholderText: qsTranslate("Luma", "Search: name, path, camera, lens"); selectByMouse: true; maximumLength: 1024; Layout.fillWidth: true; onTextChanged: pane.applyFilter() }
-                ComboBox { id: ratingFilter; objectName: "library.ratingFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; model: [qsTranslate("Luma", "All ★"), "≥ 1 ★", "≥ 2 ★", "≥ 3 ★", "≥ 4 ★", "5 ★"]; onActivated: pane.applyFilter() }
-                ComboBox { id: flagFilter; objectName: "libraryFlagFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All flags"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged"), qsTranslate("Luma", "Pick")]; onActivated: pane.applyFilter() }
-                ComboBox { id: labelFilter; objectName: "libraryLabelFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All labels"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: pane.applyFilter() }
+                LumaTextField { id: search; objectName: "library.search"; Layout.minimumWidth: 0; placeholderTextColor: Theme.muted; placeholderText: qsTranslate("Luma", "Search: name, path, camera, lens"); selectByMouse: true; maximumLength: 1024; Layout.fillWidth: true; onTextChanged: pane.applyFilter() }
+                LumaComboBox { id: ratingFilter; objectName: "library.ratingFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; model: [qsTranslate("Luma", "All ★"), "≥ 1 ★", "≥ 2 ★", "≥ 3 ★", "≥ 4 ★", "5 ★"]; onActivated: pane.applyFilter() }
+                LumaComboBox { id: flagFilter; objectName: "libraryFlagFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All flags"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged"), qsTranslate("Luma", "Pick")]; onActivated: pane.applyFilter() }
+                LumaComboBox { id: labelFilter; objectName: "libraryLabelFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Luma", "All labels"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: pane.applyFilter() }
             }
             RowLayout {
                 visible: library.importing; Layout.fillWidth: true
                 ProgressBar { value: library.progress; indeterminate: library.progress === 0; Layout.fillWidth: true }
-                Button { objectName: "library.cancelImport"; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
+                LumaButton { objectName: "library.cancelImport"; text: qsTranslate("Luma", "Cancel import"); onClicked: library.cancelImport() }
             }
-            Label { objectName: "library.error"; visible: library.error.length > 0; text: qsTranslate("Luma", library.error); color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { objectName: "library.error"; visible: library.error.length > 0; text: qsTranslate("Luma", library.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             RowLayout {
                 Layout.minimumWidth: 0; Layout.fillWidth: true
-                Button { objectName: "library.importReportButton"; visible: library.importReport.length > 0; text: qsTranslate("Luma", "Import errors"); onClicked: reportDialog.open() }
-                Label { text: library.loading ? qsTranslate("Luma", "Loading…") : library.count + qsTranslate("Luma", " photos · selected ") + library.selectedCount; color: "#98a3b3"; Layout.fillWidth: true }
-                Button { objectName: "library.selectAll"; text: qsTranslate("Luma", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
-                Button { objectName: "library.clearSelection"; text: qsTranslate("Luma", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }
+                LumaButton { objectName: "library.importReportButton"; visible: library.importReport.length > 0; text: qsTranslate("Luma", "Import errors"); onClicked: reportDialog.open() }
+                Label { text: library.loading ? qsTranslate("Luma", "Loading…") : library.count + qsTranslate("Luma", " photos · selected ") + library.selectedCount; color: Theme.muted; Layout.fillWidth: true }
+                LumaButton { objectName: "library.selectAll"; text: qsTranslate("Luma", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
+                LumaButton { objectName: "library.clearSelection"; text: qsTranslate("Luma", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }
             }
             BatchSettings {}
             RowLayout {
@@ -190,10 +190,10 @@ Rectangle {
                         : qsTranslate("Luma", "Writing Float DNG…")
                 }
                 ProgressBar { objectName: "merge.progress"; value: editor.aiProgress; Layout.fillWidth: true }
-                Button { objectName: "merge.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI() }
+                LumaButton { objectName: "merge.cancel"; text: qsTranslate("Luma", "Cancel"); onClicked: editor.cancelAI() }
             }
-            Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; visible: text.length > 0; color: "#98a3b3"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
-            Label { text: qsTranslate("Luma", batch.error); textFormat: Text.PlainText; visible: text.length > 0; color: "#ffc1bc"; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", batch.status); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.muted; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+            Label { text: qsTranslate("Luma", batch.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Item {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 GridView {
@@ -313,7 +313,7 @@ Rectangle {
                         }
                     }
                 }
-                Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: "#8290a1"; font.pixelSize: 18 }
+                Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Luma", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: Theme.faint; font.pixelSize: 18 }
             }
             GridLayout {
                 objectName: "library.metadataActions"
@@ -323,18 +323,18 @@ Rectangle {
                 RowLayout {
                     Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
                     Label { Layout.maximumWidth: 80; elide: Text.ElideRight; text: qsTranslate("Luma", "Rating"); font.pixelSize: 11 }
-                    Repeater { model: 6; Button { required property int index; objectName: "library.rate." + index; Accessible.name: qsTranslate("Luma", "Rating") + " " + index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
-                    ComboBox { objectName: "library.flagChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }
-                    ComboBox { objectName: "library.labelChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Label…"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: { if (currentIndex > 0) library.label(["","","red","yellow","green","blue","purple"][currentIndex]); currentIndex = 0 } }
+                    Repeater { model: 6; LumaButton { required property int index; objectName: "library.rate." + index; Accessible.name: qsTranslate("Luma", "Rating") + " " + index; text: index ? index + "★" : "0"; implicitWidth: 38; onClicked: library.rate(index) } }
+                    LumaComboBox { objectName: "library.flagChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Flag…"), qsTranslate("Luma", "Pick"), qsTranslate("Luma", "Reject"), qsTranslate("Luma", "Unflagged")]; onActivated: { if (currentIndex > 0) library.flag([0,1,-1,0][currentIndex]); currentIndex = 0 } }
+                    LumaComboBox { objectName: "library.labelChoice"; Layout.minimumWidth: 0; Layout.maximumWidth: 120; model: [qsTranslate("Luma", "Label…"), qsTranslate("Luma", "No label"), qsTranslate("Luma", "Red"), qsTranslate("Luma", "Yellow"), qsTranslate("Luma", "Green"), qsTranslate("Luma", "Blue"), qsTranslate("Luma", "Purple")]; onActivated: { if (currentIndex > 0) library.label(["","","red","yellow","green","blue","purple"][currentIndex]); currentIndex = 0 } }
                 }
                 RowLayout {
                     Layout.minimumWidth: 0; Layout.fillWidth: true; spacing: 6
-                    ComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections.filter(c=>!c.smart); textRole: "name"; Layout.maximumWidth: 145 }
-                    Button { objectName: "libraryAddToCollection"; implicitWidth: 36; text: "+"; enabled: targetCollection.currentIndex >= 0 && targetCollection.count > 0; onClicked: library.collectionMembership(targetCollection.model[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
-                    Button { objectName: "libraryRemoveFromCollection"; implicitWidth: 36; text: "−"; enabled: !!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&!c.smart); onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
+                    LumaComboBox { id: targetCollection; Layout.minimumWidth: 0; model: library.collections.filter(c=>!c.smart); textRole: "name"; Layout.maximumWidth: 145 }
+                    LumaButton { objectName: "libraryAddToCollection"; implicitWidth: 36; text: "+"; enabled: targetCollection.currentIndex >= 0 && targetCollection.count > 0; onClicked: library.collectionMembership(targetCollection.model[targetCollection.currentIndex].id,true); Accessible.name: qsTranslate("Luma", "Add to collection") }
+                    LumaButton { objectName: "libraryRemoveFromCollection"; implicitWidth: 36; text: "−"; enabled: !!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&!c.smart); onClicked: library.collectionMembership(pane.currentCollection,false); Accessible.name: qsTranslate("Luma", "Remove from collection") }
                 }
             }
-            Label { text: qsTranslate("Luma", library.status); font.pixelSize: 10; color: "#8290a1"; elide: Text.ElideRight; Layout.fillWidth: true }
+            Label { text: qsTranslate("Luma", library.status); font.pixelSize: 10; color: Theme.faint; elide: Text.ElideRight; Layout.fillWidth: true }
         }
     }
 }

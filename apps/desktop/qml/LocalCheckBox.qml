@@ -11,7 +11,7 @@ CheckBox {
     contentItem: Text {
         text: control.text
         font: control.font
-        color: control.enabled ? "#d7dce3" : "#626771"
+        color: control.enabled ? Theme.text : Theme.faint
         wrapMode: Text.Wrap
         verticalAlignment: Text.AlignVCenter
         leftPadding: control.indicator ? control.indicator.width + control.spacing : 0

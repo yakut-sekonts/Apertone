@@ -12,7 +12,7 @@ GridLayout {
     Layout.fillWidth: true
     property bool ready: library.selectedCount > 0 && !library.working && !library.selecting && !editor.busy && !editor.exporting
     property var availablePresets: presets.builtinItems.concat(presets.items)
-    ComboBox {
+    LumaComboBox {
         Layout.minimumWidth: 0;
         id: presetChoice; objectName: "batchPresetChoice"
         model: row.availablePresets; textRole: "name"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
@@ -24,11 +24,11 @@ GridLayout {
         }
         contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
     }
-    Button { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
-    Button { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
-    Button { objectName: "batchSync"; Layout.minimumWidth: 0; Layout.maximumWidth: 200; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Sync Settings…"); enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
-    Button { objectName: "batchUndo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Undo batch"); enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.undo() }
-    Button { objectName: "batchRedo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Redo batch"); enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.redo() }
+    LumaButton { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
+    LumaButton { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
+    LumaButton { objectName: "batchSync"; Layout.minimumWidth: 0; Layout.maximumWidth: 200; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Sync Settings…"); enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
+    LumaButton { objectName: "batchUndo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Undo batch"); enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.undo() }
+    LumaButton { objectName: "batchRedo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Luma", "Redo batch"); enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.redo() }
     Dialog {
         id: syncDialog; objectName: "batchSyncDialog"
         parent: Overlay.overlay; anchors.centerIn: parent
@@ -50,8 +50,8 @@ GridLayout {
             }
         }
         footer: DialogButtonBox {
-            Button { text: qsTranslate("Luma", "Cancel"); onClicked: syncDialog.close(); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-            Button { objectName: "batchSyncConfirm"; text: qsTranslate("Luma", "Apply to selection"); enabled: syncDialog.groups !== 0 && row.ready; DialogButtonBox.buttonRole: DialogButtonBox.ActionRole; onClicked: { batch.sync(syncDialog.groups); syncDialog.close() } }
+            LumaButton { text: qsTranslate("Luma", "Cancel"); onClicked: syncDialog.close(); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
+            LumaButton { objectName: "batchSyncConfirm"; text: qsTranslate("Luma", "Apply to selection"); enabled: syncDialog.groups !== 0 && row.ready; DialogButtonBox.buttonRole: DialogButtonBox.ActionRole; onClicked: { batch.sync(syncDialog.groups); syncDialog.close() } }
         }
     }
 }

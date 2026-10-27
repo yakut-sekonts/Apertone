@@ -1,4 +1,5 @@
 #include "apps/desktop/BatchController.h"
+#include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/CatalogStartup.h"
 #include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/DiagnosticsController.h"
@@ -160,11 +161,16 @@ int main(int argc, char **argv) {
     QObject::connect(&editor, &EditorController::editsSaved, &library,
                      &LibraryModel::refreshThumbnails);
     std::unique_ptr<LocalizationController> localizationOwner;
+    std::unique_ptr<AppearanceController> appearanceOwner;
     QQmlApplicationEngine engine;
     localizationOwner = std::make_unique<LocalizationController>(
         QFileInfo(catalog).absolutePath() + QStringLiteral("/language.json"), engine);
     auto &localization = *localizationOwner;
     engine.rootContext()->setContextProperty(QStringLiteral("localization"), &localization);
+    appearanceOwner = std::make_unique<AppearanceController>(
+        QFileInfo(catalog).absolutePath() + QStringLiteral("/appearance.json"));
+    engine.rootContext()->setContextProperty(QStringLiteral("appearance"),
+                                             appearanceOwner.get());
     if (parser.isSet(QStringLiteral("test-language")) &&
         (!parser.isSet(QStringLiteral("smoke-test")) ||
          !localization.selectLanguage(parser.value(QStringLiteral("test-language"))))) {
@@ -260,8 +266,16 @@ int main(int argc, char **argv) {
                     app.quit();
                 });
             });
-        } else
-            QTimer::singleShot(300, &app, &QCoreApplication::quit);
+        } else {
+            const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
+            QTimer::singleShot(300, &app, [&, screenshot, window] {
+                if (!screenshot.isEmpty() && !window->grabWindow().save(screenshot)) {
+                    app.exit(1);
+                    return;
+                }
+                app.quit();
+            });
+        }
     } else if (parser.isSet(QStringLiteral("test-library"))) {
         startLibraryAcceptance(app, window, editor, library,
                                parser.value(QStringLiteral("test-library")),

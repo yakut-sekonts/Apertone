@@ -9,8 +9,8 @@ ApplicationWindow {
     visible: true
     width: 620; height: 570
     minimumWidth: 540; minimumHeight: 420
-    color: "#202124"
-    palette.windowText: "#eeeeee"
+    color: Theme.window
+    palette.windowText: Theme.text
     onClosing: function(event) { event.accepted = false; startup.quit() }
     property url restoreSource: ""
     FileDialog {
@@ -60,25 +60,25 @@ ApplicationWindow {
             Label {
                 visible: startup.error.length > 0
                 text: qsTranslate("Luma", startup.error); textFormat: Text.PlainText
-                color: "#ffc1bc"; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true
+                color: Theme.negative; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true
             }
             ColumnLayout {
                 visible: startup.recoveryPending; enabled: !startup.busy && !startup.quitting
                 Layout.fillWidth: true
-                Button { text: qsTranslate("Luma", "Recover previous session"); onClicked: startup.continueSession(true); Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Continue in Library"); onClicked: startup.continueSession(false); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Recover previous session"); onClicked: startup.continueSession(true); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Continue in Library"); onClicked: startup.continueSession(false); Layout.fillWidth: true }
             }
             ColumnLayout {
                 visible: !startup.busy; enabled: !startup.quitting; Layout.fillWidth: true
-                Button { text: qsTranslate("Luma", "Open catalog"); onClicked: openFile.open(); Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Restore backup to a new file"); onClicked: backupFile.open(); Layout.fillWidth: true }
-                Button { text: qsTranslate("Luma", "Create catalog"); onClicked: newFile.open(); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Open catalog"); onClicked: openFile.open(); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Restore backup to a new file"); onClicked: backupFile.open(); Layout.fillWidth: true }
+                LumaButton { text: qsTranslate("Luma", "Create catalog"); onClicked: newFile.open(); Layout.fillWidth: true }
                 Label {
                     text: qsTranslate("Luma", "Restoration creates a new catalog. The previous catalog and backup are kept. Originals and generated DNG files need their separate backups.")
                     wrapMode: Text.Wrap; Layout.fillWidth: true
                 }
             }
-            Button { text: qsTranslate("Luma", "Quit"); enabled: !startup.quitting; onClicked: startup.quit(); Layout.fillWidth: true }
+            LumaButton { text: qsTranslate("Luma", "Quit"); enabled: !startup.quitting; onClicked: startup.quit(); Layout.fillWidth: true }
         }
     }
 }
