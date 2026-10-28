@@ -221,6 +221,7 @@ bool cropScenario(Context &c, const QString &id) {
         return true;
     }
     if (id == "UX-CRP-013") {
+        c.openBuiltinFilters();
         d.move("filter_soft-portrait", {.5, .5});
         d.wait([&] { return c.editor.presetPreview(); }, "Crop preset hover entered");
         // Documented preset preview closes transient tools; geometry must remain intact.

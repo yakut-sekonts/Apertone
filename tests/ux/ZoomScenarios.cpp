@@ -1205,6 +1205,7 @@ bool progressiveTransientScenario(Context &c, const QString &id) {
         d.click("develop.processedButton");
         ready(c, edited);
     } else {
+        c.openBuiltinFilters();
         const auto preset = c.presets.snapshot("builtin:soft-portrait");
         const auto hoveredDocument =
             luma::mergeSettings(document, preset.settings, preset.groups, preset.parameters);

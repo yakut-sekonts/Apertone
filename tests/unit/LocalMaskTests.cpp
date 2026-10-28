@@ -74,11 +74,11 @@ void documents() {
     const auto encoded = luma::encodeLocalMasks({m});
     require(luma::decodeLocalMasks(encoded) == std::vector{m},
             "Canonical Unicode roundtrip failed.");
-    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 3 0\n", "Neutral document changed.");
+    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 4 0\n", "Neutral document changed.");
     require(luma::decodeLocalMasks("LUMA_LOCAL_MASKS 2 0\n").empty(),
             "Legacy neutral document did not decode.");
     for (auto text :
-         {encoded + " ", std::string("LUMA_LOCAL_MASKS 4 0\n"),
+         {encoded + " ", std::string("LUMA_LOCAL_MASKS 5 0\n"),
           std::string("LUMA_LOCAL_MASKS 1 129\n"), encoded.substr(0, encoded.size() - 2)})
         rejects([&] { luma::decodeLocalMasks(text); });
     rejects([&] { luma::encodeLocalMasks({m, m}); });

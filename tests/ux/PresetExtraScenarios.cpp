@@ -36,6 +36,7 @@ bool presetExtraScenario(Context &c, const QString &id) {
         return false;
     auto &d = *c.driver;
     c.openFirst();
+    c.openBuiltinFilters();
     c.reveal("develop.exposureSlider");
     d.drag("develop.exposureSlider", d.sliderThumb("develop.exposureSlider"), {.65, .5});
     if (id == "UX-PRS-015") {
