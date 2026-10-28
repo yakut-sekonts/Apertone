@@ -89,6 +89,10 @@ void filterEditorTests(const QString &source, const QString &root, const QString
                 return found;
         return nullptr;
     };
+    auto *tabs = find(quick->contentItem(), "presetTabs");
+    require(tabs != nullptr, "Preset tabs were not created.");
+    tabs->setProperty("currentIndex", 1);
+    QCoreApplication::processEvents();
     wait([&] { return find(quick->contentItem(), "filter_soft-portrait") != nullptr; });
     auto *row = find(quick->contentItem(), "filter_soft-portrait");
     wait([&] { return quick->isExposed() && row->width() > 0; });
