@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Apertone VERSION 1.1.1 LANGUAGES C CXX OBJCXX)
+project(Apertone VERSION 1.2.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Apertone currently supports macOS Apple Silicon only.")

@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 / 2026-10-28
+
+- Expanded integer Bayer RAW import and development across common Canon, Sony,
+  Nikon, Pentax/Ricoh, OM System/Olympus, Panasonic/Leica, Samsung,
+  Hasselblad and Phase One formats, with explicit rejection of unsupported
+  sensor layouts instead of silently using embedded previews.
+- Added 70 original Quick Looks covering recommended, adaptive, portrait,
+  seasonal, style, film, scene, travel and automatic workflows.
+- Added a non-destructive Quick Look stack with per-layer Amount from 0–200%,
+  enable/disable, reordering and removal. Stack state persists in edit documents
+  and remains compatible with documents created before 1.2.0.
+- Added adaptive Subject, Sky and Background Quick Looks backed by editable
+  local masks, plus bounded background blur shared by preview and full export.
+- Localized the Quick Look workflow in all eight bundled language packs.
+
 ## 1.1.1 / 2026-10-28
 
 - Completed the visible Apertone rename in the application chrome, Develop
