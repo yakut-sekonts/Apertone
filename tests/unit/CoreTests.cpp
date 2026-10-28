@@ -13,6 +13,7 @@
 #include <future>
 #include <iostream>
 #include <limits>
+#include <source_location>
 #include <sqlite3.h>
 
 namespace {
@@ -21,14 +22,17 @@ void require(bool result, const char *message) {
         throw std::runtime_error(message);
     }
 }
-template <typename F> void throws(F function) {
+template <typename F>
+void throws(F function, const std::source_location location = std::source_location::current()) {
     bool caught = false;
     try {
         function();
     } catch (const std::exception &) {
         caught = true;
     }
-    require(caught, "Expected an exception.");
+    if (!caught)
+        throw std::runtime_error(
+            "Expected an exception at CoreTests.cpp:" + std::to_string(location.line()) + ".");
 }
 void imageTests() {
     require(std::abs(luma::applyExposure(0.25F, 1) - 0.5F) < 1e-7,
@@ -310,7 +314,7 @@ void catalogTests() {
         }
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
                 "Cannot reopen future schema fixture.");
-        require(sqlite3_exec(db, "PRAGMA user_version=22", nullptr, nullptr, nullptr) == SQLITE_OK,
+        require(sqlite3_exec(db, "PRAGMA user_version=23", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });

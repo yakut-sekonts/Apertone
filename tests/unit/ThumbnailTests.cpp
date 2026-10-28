@@ -239,7 +239,8 @@ void sourceBindings(const QString &qmlPath) {
          "{objectName: \"card\"; anchors.fill: parent; index: 0; assetID: \"a\"; "
          "filename: \"test\"; thumbnailURL: \"image://controlled/old\"; rating: 0; "
          "flagValue: 0; colorLabel: \"\"; selected: false; activePhoto: false; sourceMissing: "
-         "false} }")
+         "false; cullingScore: 0; cullingRecommendation: 2; cullingReasons: 0; "
+         "faceCount: 0; burstID: \"\"; burstSize: 0; burstBest: false} }")
             .toUtf8(),
         QUrl());
     wait([&] { return component.status() != QQmlComponent::Loading; });
