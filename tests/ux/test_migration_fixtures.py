@@ -28,7 +28,7 @@ class MigrationAuditTests(unittest.TestCase):
         with closing(sqlite3.connect(self.catalog)) as db, db:
             db.execute('PRAGMA user_version=21')
             db.execute('CREATE TABLE derived_images(path TEXT PRIMARY KEY)')
-            db.execute("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 2 ','LUMA_LOCAL_MASKS 3 ')")
+            db.execute("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 2 ','LUMA_LOCAL_MASKS 4 ')")
         self.ids = [r[0] for r in self.before['tables']['assets']['rows']]
         self.marker = self.evidence / 'serialized-audit.json'
         self.marker.write_text(json.dumps({'status': 'PASS', 'pid': 123, 'asset_ids': self.ids,
@@ -71,7 +71,7 @@ class MigrationAuditTests(unittest.TestCase):
             self.audit()
 
     def test_unchanged_mask_format_is_rejected(self):
-        self.sql("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 3 ','LUMA_LOCAL_MASKS 2 ')")
+        self.sql("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 4 ','LUMA_LOCAL_MASKS 2 ')")
         with self.assertRaisesRegex(ValueError, 'mask identities or format'):
             self.audit()
 

@@ -143,6 +143,11 @@ void Context::selectPresetGroups(std::uint32_t groups) {
     require(driver->object("presetEditor")->property("groups").toUInt() == groups,
             "Preset editor did not retain the exact selected groups");
 }
+void Context::openBuiltinFilters() {
+    driver->click("preset.tabs.filters");
+    driver->wait([&] { return driver->find("filter_soft-portrait") != nullptr; },
+                 "built-in filters visible");
+}
 void Context::loaded() {
     driver->wait(
         [&] { return editor.hasPhoto() && !editor.busy() && !editor.previewUrl().isEmpty(); },

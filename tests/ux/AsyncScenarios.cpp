@@ -8,6 +8,7 @@ bool asyncScenario(Context &c, const QString &id) {
         return false;
     auto &d = *c.driver;
     c.openFirst();
+    c.openBuiltinFilters();
     c.saved();
     const auto source = c.editor.sourcePath();
     const auto original = c.provider->requestImage({}, nullptr, {});
