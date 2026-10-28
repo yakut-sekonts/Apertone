@@ -1,4 +1,4 @@
-# Luma development
+# Apertone development
 
 - Respond in Russian; preserve code identifiers and technical terms.
 - Use Graphify to inspect code relationships and the impact of a proposed change.

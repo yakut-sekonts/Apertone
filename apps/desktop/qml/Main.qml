@@ -148,7 +148,7 @@ ApplicationWindow {
                     Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 1; border.color: Theme.text }
                     Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
                 }
-                Label { text: "luma"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
+                Label { text: "Apertone"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
                 ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
                 ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
@@ -248,7 +248,7 @@ ApplicationWindow {
                         PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
                         Label { text: qsTranslate("Apertone", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: Theme.faint; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                        Label { text: "LUMA / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }
+                        Label { text: "APERTONE / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }
                     }
                 }
             }

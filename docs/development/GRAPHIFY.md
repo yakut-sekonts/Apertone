@@ -1,4 +1,4 @@
-# Graphify for Luma
+# Graphify for Apertone
 
 Graphify is an optional local development tool for navigating source relationships.
 It is not a build dependency or a release quality gate.

@@ -123,26 +123,27 @@ int main(int argc, char **argv) {
             }
         }
         if (arguments.empty() || arguments[0] == "--help") {
-            std::cout << "Apertone Library and Develop\nUsage: luma open RAW --catalog FILE\n"
-                      << "       luma exposure EV --catalog FILE\n"
-                      << "       luma restore --catalog FILE\n"
-                      << "       luma lens profiles | lens profile auto|ID --catalog FILE\n"
-                      << "       luma develop PARAM=VALUE... --catalog FILE\n"
-                      << "       luma curve rgb|red|green|blue X:Y X:Y... --catalog FILE\n"
-                      << "       luma enable|disable CORRECTION --catalog FILE\n"
-                      << "       luma wb as-shot --catalog FILE\n"
-                      << "       luma export DEST [--quality N] [--overwrite] --catalog FILE\n"
-                      << "       luma catalog verify --catalog FILE\n"
-                      << "       luma import add SOURCES... | import copy DEST SOURCES... "
-                         "--catalog FILE\n"
-                      << "       luma library [--search TEXT] [--rating N] [--flag N] [--label "
-                         "COLOR] [--collection ID] [--offset N] [--limit N] --catalog FILE\n"
-                      << "       luma rate|flag|label VALUE IDS... --catalog FILE\n"
-                      << "       luma collections | collection create NAME | collection rename ID "
-                         "NAME --catalog FILE\n"
-                      << "       luma collection add|remove ID ASSETS... | collection delete ID "
-                         "--catalog FILE\n"
-                      << "       luma recover --catalog FILE\n";
+            std::cout
+                << "Apertone Library and Develop\nUsage: apertone open RAW --catalog FILE\n"
+                << "       apertone exposure EV --catalog FILE\n"
+                << "       apertone restore --catalog FILE\n"
+                << "       apertone lens profiles | lens profile auto|ID --catalog FILE\n"
+                << "       apertone develop PARAM=VALUE... --catalog FILE\n"
+                << "       apertone curve rgb|red|green|blue X:Y X:Y... --catalog FILE\n"
+                << "       apertone enable|disable CORRECTION --catalog FILE\n"
+                << "       apertone wb as-shot --catalog FILE\n"
+                << "       apertone export DEST [--quality N] [--overwrite] --catalog FILE\n"
+                << "       apertone catalog verify --catalog FILE\n"
+                << "       apertone import add SOURCES... | import copy DEST SOURCES... "
+                   "--catalog FILE\n"
+                << "       apertone library [--search TEXT] [--rating N] [--flag N] [--label "
+                   "COLOR] [--collection ID] [--offset N] [--limit N] --catalog FILE\n"
+                << "       apertone rate|flag|label VALUE IDS... --catalog FILE\n"
+                << "       apertone collections | collection create NAME | collection rename ID "
+                   "NAME --catalog FILE\n"
+                << "       apertone collection add|remove ID ASSETS... | collection delete ID "
+                   "--catalog FILE\n"
+                << "       apertone recover --catalog FILE\n";
             return 0;
         }
         if (catalog.empty()) {
