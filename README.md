@@ -7,17 +7,17 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.1.1
+## Release: v1.2.0
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[1.1.1 release notes](docs/releases/v1.1.1.md)
+[1.2.0 release notes](docs/releases/v1.2.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.1.1 completes the Apertone rename
-across the interface and CLI. It includes compact Day and
-Night desktop appearances while retaining
-the full 1.0 editing scope. Existing Luma 1.0 catalogs, settings, DNG output and
+checksums accompany the release. Version 1.2.0 adds broad Bayer RAW camera
+support and 70 editable Quick Looks, including adaptive Subject, Sky and
+Background treatments. Looks can be stacked, reordered and adjusted from
+0–200%. Existing Luma and Apertone catalogs, settings, presets, DNG output and
 Sparkle update installations are upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
@@ -26,7 +26,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.1
+## Included in source: phases 0.4–1.2
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -92,7 +92,7 @@ planned.
 ## Build and run
 
 ```bash
-git clone --branch v1.1.1 https://github.com/yakut-sekonts/Apertone.git
+git clone --branch v1.2.0 https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -448,7 +448,7 @@ The complete local mask workflow is implemented in the 0.5.1 source; see below.
 The application and mounted DMG use Apertone's split-tone aperture logo. Settings,
 window title, status bar, Finder and --version share CMake's release version.
 The latest GitHub Release provides a matching DMG, ZIP, SHA256SUMS, BUILD_INFO.json
-and signed Sparkle appcast. See [release notes](docs/releases/v1.1.1.md).
+and signed Sparkle appcast. See [release notes](docs/releases/v1.2.0.md).
 
 ## Local adjustments / 0.5.1 source
 
