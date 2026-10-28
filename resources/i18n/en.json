@@ -809,6 +809,13 @@
     "Appearance preferences are busy.": "Appearance preferences are busy.",
     "Cannot save appearance preferences.": "Cannot save appearance preferences.",
     "Cannot read appearance preferences.": "Cannot read appearance preferences.",
-    "Invalid appearance preferences; system theme is active.": "Invalid appearance preferences; system theme is active."
+    "Invalid appearance preferences; system theme is active.": "Invalid appearance preferences; system theme is active.",
+    "Quick": "Quick",
+    "Automatic Light and Color": "Automatic Light and Color",
+    "B&W": "B&W",
+    "Straighten": "Straighten",
+    "Layers": "Layers",
+    "Add looks above — they stay editable and stack in order.": "Add looks above — they stay editable and stack in order.",
+    "Blur": "Blur"
   }
 }

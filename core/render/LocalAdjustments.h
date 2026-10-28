@@ -12,12 +12,14 @@ class LocalAdjustmentPass {
   public:
     explicit LocalAdjustmentPass(const std::vector<LocalMask> &masks, double aspect = 1);
     std::array<float, 3> pixel(std::array<float, 3> color, double x, double y) const;
+    double blur(double x, double y, std::array<float, 3> reference) const;
     double coverage(std::size_t mask, double x, double y, std::array<float, 3> reference) const;
 
   private:
     struct Layer {
         MaskCoverage coverage;
         std::optional<DevelopPipeline> pipeline;
+        double blur = 0;
     };
     std::vector<Layer> layers_;
 };

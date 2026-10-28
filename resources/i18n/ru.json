@@ -809,6 +809,13 @@
     "Appearance preferences are busy.": "Настройки оформления сейчас заняты.",
     "Cannot save appearance preferences.": "Не удалось сохранить настройки оформления.",
     "Cannot read appearance preferences.": "Не удалось прочитать настройки оформления.",
-    "Invalid appearance preferences; system theme is active.": "Настройки оформления повреждены; используется системная тема."
+    "Invalid appearance preferences; system theme is active.": "Настройки оформления повреждены; используется системная тема.",
+    "Quick": "Быстро",
+    "Automatic Light and Color": "Автокоррекция света и цвета",
+    "B&W": "Ч/Б",
+    "Straighten": "Выровнять",
+    "Layers": "Слои",
+    "Add looks above — they stay editable and stack in order.": "Добавляйте стили выше — они остаются редактируемыми и накладываются по порядку.",
+    "Blur": "Размытие"
   }
 }

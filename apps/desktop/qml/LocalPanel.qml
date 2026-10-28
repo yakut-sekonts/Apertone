@@ -196,6 +196,7 @@ ColumnLayout {
             LocalSlider {visible:editor.localState.shape!=="bitmap";parameter:"feather";label:qsTranslate("Apertone", "Feather");minimum:0;maximum:100}
             LocalSlider {visible:editor.localState.shape==="radial";parameter:"angle";label:qsTranslate("Apertone", "Rotation");minimum:-180;maximum:180}
             LocalSlider {parameter:"opacity";label:qsTranslate("Apertone", "Mask opacity");minimum:0;maximum:100}
+            LocalSlider {parameter:"blur";label:qsTranslate("Apertone", "Blur");minimum:0;maximum:100}
             LocalCheckBox {objectName:"localOverlayToggle";text:qsTranslate("Apertone", "Show mask overlay");checked:editor.localOverlay;onToggled:editor.localOverlay=checked}
             RowLayout {
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width

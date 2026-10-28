@@ -809,6 +809,13 @@
     "Appearance preferences are busy.": "Die Darstellungseinstellungen sind belegt.",
     "Cannot save appearance preferences.": "Darstellungseinstellungen können nicht gespeichert werden.",
     "Cannot read appearance preferences.": "Darstellungseinstellungen können nicht gelesen werden.",
-    "Invalid appearance preferences; system theme is active.": "Ungültige Darstellungseinstellungen; das Systemdesign ist aktiv."
+    "Invalid appearance preferences; system theme is active.": "Ungültige Darstellungseinstellungen; das Systemdesign ist aktiv.",
+    "Quick": "Schnell",
+    "Automatic Light and Color": "Automatisches Licht und Farbe",
+    "B&W": "S/W",
+    "Straighten": "Ausrichten",
+    "Layers": "Ebenen",
+    "Add looks above — they stay editable and stack in order.": "Looks oben hinzufügen – sie bleiben bearbeitbar und werden der Reihe nach angewendet.",
+    "Blur": "Weichzeichnen"
   }
 }

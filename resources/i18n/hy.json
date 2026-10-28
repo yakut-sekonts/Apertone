@@ -809,6 +809,13 @@
     "Appearance preferences are busy.": "Արտաքին տեսքի կարգավորումները զբաղված են։",
     "Cannot save appearance preferences.": "Չհաջողվեց պահպանել արտաքին տեսքի կարգավորումները։",
     "Cannot read appearance preferences.": "Չհաջողվեց կարդալ արտաքին տեսքի կարգավորումները։",
-    "Invalid appearance preferences; system theme is active.": "Արտաքին տեսքի կարգավորումները անվավեր են․ ակտիվ է համակարգային թեման։"
+    "Invalid appearance preferences; system theme is active.": "Արտաքին տեսքի կարգավորումները անվավեր են․ ակտիվ է համակարգային թեման։",
+    "Quick": "Արագ",
+    "Automatic Light and Color": "Լույսի և գույնի ավտոմատ կարգավորում",
+    "B&W": "Սև և սպիտակ",
+    "Straighten": "Ուղղել",
+    "Layers": "Շերտեր",
+    "Add looks above — they stay editable and stack in order.": "Վերևից ավելացրեք ոճեր․ դրանք մնում են խմբագրելի և կիրառվում են հերթականությամբ։",
+    "Blur": "Լղոզում"
   }
 }

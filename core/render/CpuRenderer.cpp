@@ -5,9 +5,11 @@
 #include "core/color/DisplayTransform.h"
 #include "core/image/Bayer.h"
 #include "core/lens/LensCorrection.h"
+#include "core/quick/QuickLooks.h"
 #include "core/render/CreativeColor.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
+#include "core/render/LocalBlur.h"
 #include "core/render/NoiseReduction.h"
 #include "core/render/Presence.h"
 #include "core/render/RetouchPass.h"
@@ -103,6 +105,7 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     if (static_cast<unsigned>(analysis.clipping) > 3)
         throw std::runtime_error("Invalid clipping preview mode.");
     source.validateCoverage();
+    edits = resolveQuickLooks(edits);
     const LensCorrectionPass optics(source, edits, metadata, stop);
     const RetouchPass retouch(optics.image(), edits.retouch, stop);
     const auto &input = retouch.image();
@@ -160,6 +163,12 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
     const auto referencePixel = [&](int x, int y) {
         return presence.pixel(detailPixel(x, y), x, y);
     };
+    const bool hasLocalBlur =
+        diagnostic == DetailDiagnostic::none &&
+        std::any_of(edits.localMasks.begin(), edits.localMasks.end(), [](const auto &mask) {
+            return mask.enabled && mask.opacity > 0 && mask.blur > 0;
+        });
+    const LocalBlurPass blur(input.width, input.height, hasLocalBlur, referencePixel, stop);
     auto referenceEdits = edits;
     referenceEdits.setEnabled(Correction::pointColor, false);
     referenceEdits.setEnabled(Correction::grading, false);
@@ -179,9 +188,18 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
             for (int x = 0; x < width; ++x) {
                 auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
                     auto color = referencePixel(sx, sy);
-                    if (diagnostic == DetailDiagnostic::none)
+                    if (diagnostic == DetailDiagnostic::none) {
+                        if (blur.active()) {
+                            const double amount = local.blur((sx + 0.5) / input.width,
+                                                             (sy + 0.5) / input.height, color);
+                            const auto softened = blur.pixel(sx, sy);
+                            for (std::size_t c = 0; c < 3; ++c)
+                                color[c] = static_cast<float>(color[c] +
+                                                              (softened[c] - color[c]) * amount);
+                        }
                         color =
                             local.pixel(color, (sx + 0.5) / input.width, (sy + 0.5) / input.height);
+                    }
                     if (!input.alpha.empty())
                         for (auto &value : color)
                             value *= input.coverage(sx, sy);

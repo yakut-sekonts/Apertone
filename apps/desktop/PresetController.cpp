@@ -1,12 +1,14 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/BuiltinPresets.h"
+#include "core/quick/QuickLooks.h"
 #include <QFileInfo>
 #include <algorithm>
 #include <filesystem>
 
 PresetController::PresetController(QString path, EditorController &editor, QObject *parent)
     : QObject(parent), path_(std::move(path)), store_(path_), editor_(editor) {
+    connect(&editor_, &EditorController::stateChanged, this, &PresetController::quickLooksChanged);
     refresh();
 }
 QVariantList PresetController::items() const {
@@ -24,6 +26,45 @@ QVariantList PresetController::builtinItems() const {
         result.append(QVariantMap{{"id", entry.id},
                                   {"name", entry.preset.name},
                                   {"groups", static_cast<int>(entry.preset.groups)}});
+    return result;
+}
+QVariantList PresetController::quickItems() const {
+    QVariantList result;
+    for (const auto &recipe : luma::quickLookRecipes()) {
+        const auto target =
+            recipe.target == luma::QuickLookTarget::subject      ? QStringLiteral("subject")
+            : recipe.target == luma::QuickLookTarget::background ? QStringLiteral("background")
+            : recipe.target == luma::QuickLookTarget::sky        ? QStringLiteral("sky")
+                                                                 : QStringLiteral("global");
+        result.append(QVariantMap{{"id", QString::fromUtf8(recipe.id)},
+                                  {"name", QString::fromUtf8(recipe.name)},
+                                  {"category", QString::fromUtf8(recipe.category)},
+                                  {"description", QString::fromUtf8(recipe.description)},
+                                  {"target", target}});
+    }
+    return result;
+}
+QStringList PresetController::quickCategories() const {
+    QStringList result;
+    for (const auto &recipe : luma::quickLookRecipes()) {
+        const auto category = QString::fromUtf8(recipe.category);
+        if (!result.contains(category))
+            result.append(category);
+    }
+    return result;
+}
+QVariantList PresetController::quickStack() const {
+    QVariantList result;
+    for (const auto &layer : editor_.currentSettings().creative.quickLooks) {
+        const auto &recipe = luma::quickLookRecipe(layer.recipe);
+        result.append(QVariantMap{{"id", QString::fromStdString(layer.id)},
+                                  {"recipe", QString::fromStdString(layer.recipe)},
+                                  {"name", QString::fromUtf8(recipe.name)},
+                                  {"category", QString::fromUtf8(recipe.category)},
+                                  {"amount", layer.amount},
+                                  {"enabled", layer.enabled},
+                                  {"adaptive", !layer.mask.empty()}});
+    }
     return result;
 }
 const luma::DevelopPreset &PresetController::find(const QString &id) const {
@@ -182,6 +223,24 @@ void PresetController::preview(const QString &id) {
 }
 void PresetController::clearPreview() {
     editor_.clearPreviewSettings();
+}
+void PresetController::applyQuickLook(const QString &recipe) {
+    editor_.applyQuickLook(recipe);
+}
+void PresetController::setQuickLookAmount(const QString &id, double amount) {
+    editor_.setQuickLookAmount(id, amount);
+}
+void PresetController::setQuickLookEnabled(const QString &id, bool enabled) {
+    editor_.setQuickLookEnabled(id, enabled);
+}
+void PresetController::removeQuickLook(const QString &id) {
+    editor_.removeQuickLook(id);
+}
+void PresetController::moveQuickLook(const QString &id, int direction) {
+    editor_.moveQuickLook(id, direction);
+}
+void PresetController::clearQuickLooks() {
+    editor_.clearQuickLooks();
 }
 void PresetController::copySettings(int groups) {
     try {

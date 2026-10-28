@@ -24,7 +24,7 @@ include(cmake/CrashReporter.cmake)
 add_library(luma_core STATIC
     core/io/StagingFile.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
-    core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp
+    core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/quick/QuickLooks.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
     core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
@@ -32,7 +32,7 @@ add_library(luma_core STATIC
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp
     core/edits/Retouch.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
     core/catalog/BitmapMaskMigration.cpp
-    core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
+    core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/render/LocalBlur.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
     "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
     core/math/Homography.cpp core/edits/TransformSettings.cpp core/render/TransformMapping.cpp core/render/PerspectiveCorrection.cpp
     core/lens/LensProfiles.cpp core/lens/LensCorrection.cpp core/edits/LensSettings.cpp
@@ -90,7 +90,7 @@ qt_add_executable(Apertone MACOSX_BUNDLE
     apps/desktop/DiagnosticsController.cpp apps/desktop/DiagnosticsController.h
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
-    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
+    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -147,6 +147,10 @@ target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 include(CTest)
 option(LUMA_ENABLE_SCALE_CONTRACT_TESTS "Enable deferred application scale contracts for pre-1.0 qualification" OFF)
 if(BUILD_TESTING)
+    add_executable(luma_quick_look_tests tests/unit/QuickLookTests.cpp)
+    target_link_libraries(luma_quick_look_tests PRIVATE luma_core)
+    target_compile_options(luma_quick_look_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME quick-look-stack-and-blur COMMAND luma_quick_look_tests)
     # Explicit model qualification uses this bridge; ordinary CTest does not
     # require a downloaded model or silently claim its quality has been tested.
     add_executable(luma_denoise_runtime_probe tests/models/DenoiseRuntime.cpp)
@@ -243,7 +247,7 @@ if(BUILD_TESTING)
     qt_add_executable(luma_ux_tests MACOSX_BUNDLE tests/ux/main.cpp tests/ux/UxContext.cpp tests/ux/UxPixels.cpp tests/ux/UxDriver.cpp tests/ux/UxMetrics.cpp tests/ux/SqliteFault.cpp tests/ux/RecoveryScenarios.cpp tests/ux/BasicScenarios.cpp tests/ux/LibraryScenarios.cpp tests/ux/MaskScenarios.cpp tests/ux/LifecycleScenarios.cpp tests/ux/ImportScenarios.cpp tests/ux/ExportScenarios.cpp tests/ux/RestartScenarios.cpp tests/ux/BatchScenarios.cpp tests/ux/GeometryScenarios.cpp tests/ux/CropScenarios.cpp tests/ux/AccessibilityScenarios.cpp tests/ux/LibraryScaleScenarios.cpp tests/ux/SelectionScenarios.cpp tests/ux/KeyboardScenarios.cpp tests/ux/NavigationScenarios.cpp tests/ux/FilterExtraScenarios.cpp tests/ux/DetailScenarios.cpp tests/ux/LensScenarios.cpp tests/ux/AdvancedScenarios.cpp tests/ux/PresetScenarios.cpp tests/ux/PresetExtraScenarios.cpp tests/ux/PresetRemainingScenarios.cpp tests/ux/HistoryStressScenarios.cpp tests/ux/ImportExtraScenarios.cpp tests/ux/CurrentPerformanceScenarios.cpp tests/ux/WhiteBalanceScenarios.cpp tests/ux/PreviewBackendScenarios.cpp tests/ux/ZoomScenarios.cpp tests/ux/GestureRemainingScenarios.cpp tests/ux/VisualRemainingScenarios.cpp tests/ux/LibraryRemainingScenarios.cpp tests/ux/BatchUpdateRemainingScenarios.cpp tests/ux/AppExtraScenarios.cpp tests/ux/ExportExtraScenarios.cpp tests/ux/PreviewExtraScenarios.cpp tests/ux/RecoveryExtraScenarios.cpp tests/ux/AsyncScenarios.cpp tests/ux/TransformScenarios.cpp tests/ux/TransformExtraScenarios.cpp tests/ux/LocalizationScenarios.cpp tests/ux/UpdaterScenarios.cpp
         apps/desktop/ExportController.cpp apps/shared/ExportSettings.cpp
         apps/desktop/BatchController.cpp apps/desktop/PresetController.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
-        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
     target_sources(luma_ux_tests PRIVATE apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h apps/desktop/DiagnosticsController.cpp
@@ -360,13 +364,13 @@ if(BUILD_TESTING)
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/LocalCompleteEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
-        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
+        apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_preset_tests PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_preset_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
