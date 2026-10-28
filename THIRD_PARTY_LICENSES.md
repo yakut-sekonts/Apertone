@@ -1,6 +1,6 @@
 # Third-party dependencies
 
-Luma's original source is Apache-2.0. Dependencies retain their own licenses.
+Apertone's original source is Apache-2.0. Dependencies retain their own licenses.
 
 - **Qt 6.10.3** — https://www.qt.io / https://download.qt.io/archive/qt/6.10/6.10.3/
   Core, Gui, Qml, Quick, QuickControls2, native dialogs, tools and SVG plugins.

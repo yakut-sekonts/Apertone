@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.1 / 2026-10-28
+
+- Completed the visible Apertone rename in the application chrome, Develop
+  workspace marker and CLI usage.
+- Updated the public project description, current screenshots and release
+  documentation. Legacy identifiers required for catalog, settings, XMP and
+  Sparkle update compatibility remain unchanged.
+
 ## 1.1.0 / 2026-10-27
 
 - Renamed the public product, application bundle, executable, release artifacts

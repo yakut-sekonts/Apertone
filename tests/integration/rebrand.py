@@ -21,7 +21,7 @@ assert info["SUFeedURL"] == (
 assert info["SUPublicEDKey"] == "yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI="
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
-require(cmake, "project(Apertone VERSION 1.1.0", "CMakeLists.txt")
+require(cmake, "project(Apertone VERSION 1.1.1", "CMakeLists.txt")
 require(cmake, "qt_add_executable(Apertone MACOSX_BUNDLE", "CMakeLists.txt")
 require(cmake, "URI Apertone.Desktop", "CMakeLists.txt")
 require(cmake, "resources/branding/Apertone.icns", "CMakeLists.txt")
@@ -37,6 +37,16 @@ assert main.index("parser.process(app)") < main.rindex(
 decoder = (ROOT / "core/raw/RawDecoder.cpp").read_text()
 require(decoder, 'make == "Apertone" || make == "Luma"', "RawDecoder.cpp")
 require(decoder, 'model.starts_with("Luma Rendered Linear RGB")', "RawDecoder.cpp")
+
+qml = (ROOT / "apps/desktop/qml/Main.qml").read_text()
+require(qml, 'text: "Apertone"', "Main.qml")
+require(qml, 'text: "APERTONE / DEVELOP CORE"', "Main.qml")
+assert 'text: "luma"' not in qml
+assert 'text: "LUMA / DEVELOP CORE"' not in qml
+
+cli = (ROOT / "apps/cli/main.cpp").read_text()
+require(cli, "Usage: apertone open RAW", "apps/cli/main.cpp")
+assert "Usage: luma " not in cli
 
 for script in ("package.sh", "package-dmg.sh", "release-artifacts.sh",
                "create-appcast.py", "publish-release.py"):
