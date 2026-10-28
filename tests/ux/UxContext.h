@@ -50,6 +50,7 @@ class Context {
     void saved();
     void import(int count, bool copy = false);
     void selectPresetGroups(std::uint32_t groups);
+    void openBuiltinFilters();
     void openFirst();
     void addMask(int kind);
     void addComponent(int kind, int operation);

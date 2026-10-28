@@ -351,6 +351,9 @@ bool presetRemainingScenario(Context &c, const QString &id) {
     editLightColor(c);
     const auto document = c.editor.currentSettings();
 
+    if (id == "UX-PRS-003" || id == "UX-PRS-006")
+        c.openBuiltinFilters();
+
     if (id == "UX-PRS-002") {
         const auto presetID = create(c, "User preset 🌅");
         const auto original = c.presets.snapshot(presetID);

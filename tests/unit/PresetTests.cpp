@@ -343,7 +343,7 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
             throw std::runtime_error(std::string("Preset control was not found: ") + name);
         return value;
     };
-    child("presetTabs")->setProperty("currentIndex", 1);
+    child("presetTabs")->setProperty("currentIndex", 2);
     QCoreApplication::processEvents();
     auto *panel = child("presetPanel");
     require(QMetaObject::invokeMethod(child("presetCreate"), "clicked"),

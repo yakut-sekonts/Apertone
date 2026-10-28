@@ -26,7 +26,7 @@ void Catalog::migrateBitmapMasks() {
         DROP TABLE edit_local_masks;
         ALTER TABLE edit_local_masks_v3 RENAME TO edit_local_masks;
         CREATE TRIGGER initialize_local_masks AFTER INSERT ON edit_documents BEGIN
-            INSERT INTO edit_local_masks VALUES(NEW.asset_id,'LUMA_LOCAL_MASKS 3 0'||char(10));
+            INSERT INTO edit_local_masks VALUES(NEW.asset_id,'LUMA_LOCAL_MASKS 4 0'||char(10));
         END;
         INSERT INTO schema_migrations(version) VALUES(12);
         PRAGMA user_version=12;

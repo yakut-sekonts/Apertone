@@ -47,6 +47,7 @@ bool presetScenario(Context &c, const QString &id) {
         require(c.editor.currentSettings() == before, "Subset preset was not one Undo");
         return true;
     }
+    c.openBuiltinFilters();
     const auto image = c.provider->requestImage({}, nullptr, {});
     d.move("filter_soft-portrait", {.5, .5});
     d.wait(
