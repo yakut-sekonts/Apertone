@@ -161,7 +161,7 @@ class Catalog {
     void saveCullingAnalysis(const std::string &id, const std::string &checksum,
                              const std::string &provider,
                              const ai::CullingObservation &observation);
-    void rebuildIntelligentGroups(const std::string &provider, CancellationToken stop = {});
+    void rebuildIntelligentGroups(const std::string &provider, const CancellationToken &stop = {});
     std::vector<FaceGroupRecord> faceGroups() const;
     void renameFaceGroup(const std::string &id, const std::string &name);
     std::vector<std::string> cullingIDs(int recommendation = -2,

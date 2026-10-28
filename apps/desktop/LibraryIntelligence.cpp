@@ -24,7 +24,7 @@ void LibraryModel::analyzePendingLibrary() {
     startCulling({}, false);
 }
 
-void LibraryModel::startCulling(std::vector<std::string> selected, bool selectionScope) {
+void LibraryModel::startCulling(const std::vector<std::string> &selected, bool selectionScope) {
     if (working())
         return;
     cancelCulling();
@@ -82,9 +82,11 @@ void LibraryModel::startCulling(std::vector<std::string> selected, bool selectio
                                         [self, revision, completed, total, value] {
                                             if (!self || self->cullingRevision_ != revision)
                                                 return;
-                                            self->cullingProgress_ = std::clamp(
-                                                (completed + std::clamp(value, 0., 1.)) / total, 0.,
-                                                1.);
+                                            self->cullingProgress_ =
+                                                std::clamp((static_cast<double>(completed) +
+                                                            std::clamp(value, 0., 1.)) /
+                                                               static_cast<double>(total),
+                                                           0., 1.);
                                             emit self->stateChanged();
                                         },
                                         Qt::QueuedConnection);
@@ -107,7 +109,9 @@ void LibraryModel::startCulling(std::vector<std::string> selected, bool selectio
                                     if (!self || self->cullingRevision_ != revision)
                                         return;
                                     self->cullingProgress_ =
-                                        total ? static_cast<double>(analyzed + failed) / total : 1.;
+                                        total ? static_cast<double>(analyzed + failed) /
+                                                    static_cast<double>(total)
+                                              : 1.;
                                     self->cullingStatus_ =
                                         LocalizedText(QStringLiteral("Analyzed: %1 · errors: %2"))
                                             .arg(static_cast<qulonglong>(analyzed))

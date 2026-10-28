@@ -17,7 +17,8 @@ CFHandle<CGImageRef> cgImage(ai::RgbaImage input) {
         CGDataProviderCreateWithData(nullptr, input.pixels.data(), input.pixels.size(), nullptr));
     CFHandle image(
         color && data
-            ? CGImageCreate(input.width, input.height, 8, 32, input.width * 4, color.get(),
+            ? CGImageCreate(input.width, input.height, 8, 32,
+                            static_cast<std::size_t>(input.width) * 4, color.get(),
                             static_cast<CGBitmapInfo>(kCGImageAlphaLast) | kCGBitmapByteOrder32Big,
                             data.get(), nullptr, false, kCGRenderingIntentDefault)
             : nullptr);
@@ -81,6 +82,8 @@ double openness(VNFaceLandmarkRegion2D *eye) {
     if (!eye || eye.pointCount < 4)
         return .5;
     const auto *points = eye.normalizedPoints;
+    if (!points)
+        return .5;
     CGFloat minX = 1, maxX = 0, minY = 1, maxY = 0;
     for (NSUInteger i = 0; i < eye.pointCount; ++i) {
         minX = std::min(minX, points[i].x);
@@ -95,7 +98,7 @@ double openness(VNFaceLandmarkRegion2D *eye) {
     return std::clamp((ratio - .07) / .18, 0., 1.);
 }
 
-std::vector<ai::FaceObservation> faces(CGImageRef image, CancellationToken stop) {
+std::vector<ai::FaceObservation> faces(CGImageRef image, const CancellationToken &stop) {
     checkCancellation(stop);
     VNDetectFaceLandmarksRequest *landmarks = [[VNDetectFaceLandmarksRequest alloc] init];
     landmarks.revision = VNDetectFaceLandmarksRequestRevision3;
@@ -116,6 +119,8 @@ std::vector<ai::FaceObservation> faces(CGImageRef image, CancellationToken stop)
     NSArray<VNFaceObservation *> *qualityFaces = quality.results ? quality.results : @[];
 
     const auto width = CGImageGetWidth(image), height = CGImageGetHeight(image);
+    const auto imageWidth = static_cast<double>(width);
+    const auto imageHeight = static_cast<double>(height);
     std::vector<ai::FaceObservation> result;
     result.reserve(observations.count);
     for (VNFaceObservation *face in observations) {
@@ -138,11 +143,11 @@ std::vector<ai::FaceObservation> faces(CGImageRef image, CancellationToken stop)
         const double normalizedHeight = std::min(box.size.height, 1. - top);
         if (normalizedWidth <= 0 || normalizedHeight <= 0)
             continue;
-        const CGRect crop = CGRectMake(std::floor(left * width), std::floor(top * height),
-                                       std::max(1., std::ceil(normalizedWidth * width)),
-                                       std::max(1., std::ceil(normalizedHeight * height)));
+        const CGRect crop = CGRectMake(std::floor(left * imageWidth), std::floor(top * imageHeight),
+                                       std::max(1., std::ceil(normalizedWidth * imageWidth)),
+                                       std::max(1., std::ceil(normalizedHeight * imageHeight)));
         CFHandle faceImage(CGImageCreateWithImageInRect(
-            image, CGRectIntersection(crop, CGRectMake(0, 0, width, height))));
+            image, CGRectIntersection(crop, CGRectMake(0, 0, imageWidth, imageHeight))));
         if (!faceImage)
             continue;
         const double leftEye = openness(face.landmarks.leftEye);

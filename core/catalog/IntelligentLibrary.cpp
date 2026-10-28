@@ -145,7 +145,8 @@ std::optional<std::string> Catalog::cullingProvider() const {
     Statement query(db_, "SELECT MIN(provider),MAX(provider),COUNT(*) FROM culling_analysis");
     if (!query.row() || query.integer(2) == 0)
         return std::nullopt;
-    const auto first = query.string(0), last = query.string(1);
+    auto first = query.string(0);
+    const auto last = query.string(1);
     if (first != last)
         throw std::runtime_error("Catalog contains incompatible local-analysis providers.");
     return first;
@@ -247,7 +248,7 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
     }
 }
 
-void Catalog::rebuildIntelligentGroups(const std::string &provider, CancellationToken stop) {
+void Catalog::rebuildIntelligentGroups(const std::string &provider, const CancellationToken &stop) {
     validateProvider(provider);
     struct Candidate {
         std::string id, camera;
@@ -334,8 +335,9 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
             clusters.push_back({id, std::move(vector), 1, false});
         } else if (found->centroid.size() == vector.size()) {
             for (std::size_t i = 0; i < vector.size(); ++i)
-                found->centroid[i] = static_cast<float>(
-                    (found->centroid[i] * found->count + vector[i]) / (found->count + 1));
+                found->centroid[i] =
+                    (found->centroid[i] * static_cast<float>(found->count) + vector[i]) /
+                    static_cast<float>(found->count + 1);
             ++found->count;
             found->centroid = ai::normalizedEmbedding(found->centroid);
         }
@@ -371,8 +373,9 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
         } else {
             if (best->centroid.size() == face.embedding.size())
                 for (std::size_t i = 0; i < face.embedding.size(); ++i)
-                    best->centroid[i] = static_cast<float>(
-                        (best->centroid[i] * best->count + face.embedding[i]) / (best->count + 1));
+                    best->centroid[i] =
+                        (best->centroid[i] * static_cast<float>(best->count) + face.embedding[i]) /
+                        static_cast<float>(best->count + 1);
             ++best->count;
             best->centroid = ai::normalizedEmbedding(best->centroid);
         }

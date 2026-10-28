@@ -51,6 +51,6 @@ class ICullingProvider {
 // faces and feature prints; these metrics remain testable without macOS APIs.
 CullingObservation scoreCullingPreview(RgbaImage image, std::vector<float> imageEmbedding,
                                        std::vector<FaceObservation> faces,
-                                       CancellationToken stop = {});
+                                       const CancellationToken &stop = {});
 
 } // namespace luma::ai

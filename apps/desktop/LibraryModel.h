@@ -289,7 +289,7 @@ class LibraryModel final : public QAbstractListModel {
     luma::JobHandle sourceAvailabilityJob_;
     void initializeMaintenance();
     void analyzePendingLibrary();
-    void startCulling(std::vector<std::string> selected, bool selectionScope);
+    void startCulling(const std::vector<std::string> &selected, bool selectionScope);
     void watchVisibleFolders();
     void refreshSourceAvailability();
     void page(int number);

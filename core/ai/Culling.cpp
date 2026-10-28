@@ -41,7 +41,8 @@ void CullingObservation::validate() const {
 }
 
 CullingObservation scoreCullingPreview(RgbaImage image, std::vector<float> imageEmbedding,
-                                       std::vector<FaceObservation> faces, CancellationToken stop) {
+                                       std::vector<FaceObservation> faces,
+                                       const CancellationToken &stop) {
     image.validate();
     if (image.width < 8 || image.height < 8)
         throw std::runtime_error("Culling preview is too small.");
@@ -71,14 +72,16 @@ CullingObservation scoreCullingPreview(RgbaImage image, std::vector<float> image
             ++samples;
         }
     }
-    const double variance = std::max(0., laplacianSquare / laplacianCount -
-                                             std::pow(laplacianMean / laplacianCount, 2));
+    const auto laplacianSamples = static_cast<double>(laplacianCount);
+    const double variance = std::max(0., laplacianSquare / laplacianSamples -
+                                             std::pow(laplacianMean / laplacianSamples, 2));
     // The saturating curve is resolution-independent enough for a 512–1024 px
     // preview and avoids declaring already-sharp images progressively "better".
     const double sharpness = std::clamp(1. - std::exp(-variance * 180.), 0., 1.);
-    const double mean = luminanceSum / samples;
-    const double darkFraction = static_cast<double>(dark) / samples;
-    const double brightFraction = static_cast<double>(bright) / samples;
+    const auto luminanceSamples = static_cast<double>(samples);
+    const double mean = luminanceSum / luminanceSamples;
+    const double darkFraction = static_cast<double>(dark) / luminanceSamples;
+    const double brightFraction = static_cast<double>(bright) / luminanceSamples;
     const double meanPenalty = mean < .08   ? (.08 - mean) * 3.5
                                : mean > .92 ? (mean - .92) * 3.5
                                             : 0.;
