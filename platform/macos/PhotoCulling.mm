@@ -10,7 +10,7 @@
 
 namespace luma::macos {
 namespace {
-CFHandle<CGImageRef> cgImage(ai::RgbaImage input) {
+CFHandle<CGImageRef> cgImage(const ai::RgbaImage &input) {
     input.validate();
     CFHandle color(CGColorSpaceCreateWithName(kCGColorSpaceSRGB));
     CFHandle data(
