@@ -1,7 +1,7 @@
-# Ordinary photo/image support — 0.4.12
+# Photo and camera RAW support
 
 Open photo, drag-and-drop and Library Add/Copy accept JPEG/JPG, PNG, TIFF/TIF
-(8/16 bit), HEIC/HEIF, WebP, BMP and GIF alongside the existing Bayer RAW formats.
+(8/16 bit), HEIC/HEIF, WebP, BMP and GIF alongside supported Bayer RAW formats.
 AVIF is available when macOS ImageIO advertises its decoder. Folder discovery
 checks extensions case-insensitively against installed decoder capabilities;
 explicitly selected invalid files fail individually through the import journal.
@@ -32,16 +32,32 @@ checked before raster allocation: up to 20,000 px per side, 100 MP, and 512 MB
 encoded input. Corrupt/truncated data fail explicitly; cancellation is cooperative
 around native decode and during pixel conversion.
 
-RAW sensor development stays in LibRaw. Recognized RAW TIFF containers always use
-that path, including unsupported sensors which must fail rather than substitute
-an embedded preview. Supported RAW layouts remain integer Bayer and Apertone's own
-identified processed Linear RGB DNG; this change does not expand camera support.
+RAW sensor development stays in the pinned LibRaw decoder. Import discovery and
+XMP ownership use one case-insensitive registry:
 
-Tests include owned synthetic fixtures, all eight EXIF orientations, ICC reference
+`3FR, ARW, CR2, CR3, CRW, DCR, DCS, DNG, ERF, FFF, GPR, IIQ, K25, KDC, MEF,
+MOS, MRW, NEF, NRW, ORF, PEF, PTX, RAF, RAW, RW2, RWL, SR2, SRF, SRW`.
+
+This covers common Bayer cameras from Canon, Sony, Nikon, Pentax/Ricoh,
+OM System/Olympus, Panasonic/Leica, Samsung, Hasselblad, Phase One and several
+legacy families. A registered extension means Apertone routes the original sensor
+container to LibRaw; final compatibility still depends on that camera model,
+compression and sensor layout. Recognized RAW TIFF containers always use the same
+path and never substitute an embedded preview.
+
+Supported sensor layouts remain three-channel integer Bayer plus Apertone's own
+identified processed Linear RGB DNG. X-Trans RAF, monochrome RAW, Foveon/layered
+RAW and unrecognized RGB/float DNG fail with an explicit error. RAF remains in the
+registry for Fujifilm cameras that use a Bayer CFA.
+
+Tests include owned synthetic fixtures, a vendor-independent Bayer routing matrix,
+all eight EXIF orientations, ICC reference
 tones, grayscale/CMYK, 16-bit ramps, alpha edges through Detail/Optics/Transform,
 invalid inputs/cancellation and all output formats. Mixed-format acceptance covers
 Add/Copy/duplicates, original hashes, native Library/thumbnails, edit/export/restart,
-queue and RAW TIFF routing. No private photographs are shipped in the fixtures.
+queue and RAW TIFF routing. The generated Bayer fixtures verify shared routing,
+metadata, recursive import and XMP behavior without pretending to reproduce every
+proprietary camera compression. Real-body qualification can be added without
+shipping private photographs.
 
 See [ADR 0020](adr/0020-common-image-import.md) and [export options](EXPORT.md).
-This is the second human-requested extension before phase 0.5, which remains on hold.

@@ -1,4 +1,5 @@
 #include "apps/shared/MetadataService.h"
+#include "apps/shared/PhotoFormats.h"
 #include "core/image/Bayer.h"
 #include "core/io/StagingFile.h"
 #include "platform/macos/FileHasher.h"
@@ -6,24 +7,13 @@
 #ifdef LUMA_UX_PERSISTENCE_PROBE
 #include "tests/ux/PersistenceProbe.h"
 #endif
-#include <algorithm>
-#include <cctype>
 #include <cerrno>
 #include <fcntl.h>
-#include <set>
 #include <sys/stat.h>
 #include <unistd.h>
 
 namespace luma {
 namespace {
-bool rawExtension(const std::filesystem::path &path) {
-    auto extension = path.extension().string();
-    std::transform(extension.begin(), extension.end(), extension.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    static const std::set<std::string> extensions{".nef", ".dng", ".cr2", ".cr3",
-                                                  ".arw", ".rw2", ".orf", ".raf"};
-    return extensions.contains(extension);
-}
 struct Descriptor {
     int value;
     ~Descriptor() {
@@ -84,10 +74,10 @@ void syncFolder(const std::filesystem::path &path) {
 } // namespace
 std::filesystem::path MetadataService::sidecarPath(const std::filesystem::path &source) {
     auto target = source;
-    if (rawExtension(source)) {
+    if (isSupportedRawExtension(source)) {
         // Two RAWs with one basename cannot safely share a standard sidecar.
         for (const auto &entry : std::filesystem::directory_iterator(source.parent_path()))
-            if (entry.path() != source && rawExtension(entry.path()) &&
+            if (entry.path() != source && isSupportedRawExtension(entry.path()) &&
                 entry.path().stem() == source.stem())
                 throw std::runtime_error(
                     "Multiple RAWs share this basename; XMP sidecar ownership is ambiguous.");

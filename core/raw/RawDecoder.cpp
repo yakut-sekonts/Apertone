@@ -86,6 +86,38 @@ RawColorCalibration linearCalibration(const libraw_data_t &data) {
         result.cameraToSRGB[i] = static_cast<float>(matrix[i]);
     return result;
 }
+RawColorCalibration bayerCalibration(const libraw_colordata_t &color) {
+    const auto green = color.cam_mul[1] > 0 ? color.cam_mul[1] : color.pre_mul[1];
+    if (!std::isfinite(green) || green <= 0 || color.maximum == 0)
+        throw std::runtime_error("RAW has no usable white balance or white level.");
+
+    RawColorCalibration result;
+    for (int channel = 0; channel < 3; ++channel) {
+        const auto value =
+            color.cam_mul[channel] > 0 ? color.cam_mul[channel] : color.pre_mul[channel];
+        result.asShotGains[channel] = value / green;
+        if (!std::isfinite(result.asShotGains[channel]) || result.asShotGains[channel] <= 0)
+            throw std::runtime_error("Invalid RAW white balance.");
+    }
+
+    ColorMatrix3 matrix{};
+    for (int row = 0; row < 3; ++row) {
+        matrix[row * 3] = color.rgb_cam[row][0];
+        matrix[row * 3 + 1] = color.rgb_cam[row][1] + color.rgb_cam[row][3];
+        matrix[row * 3 + 2] = color.rgb_cam[row][2];
+        for (int column = 0; column < 3; ++column)
+            if (!std::isfinite(matrix[row * 3 + column]))
+                throw std::runtime_error("Invalid RAW camera color profile.");
+    }
+    try {
+        (void)inverseColorMatrix(matrix);
+    } catch (const std::exception &) {
+        throw std::runtime_error("RAW camera color profile is missing or singular.");
+    }
+    for (std::size_t index = 0; index < matrix.size(); ++index)
+        result.cameraToSRGB[index] = static_cast<float>(matrix[index]);
+    return result;
+}
 PhotoMetadata metadataFrom(const libraw_data_t &data) {
     PhotoMetadata metadata;
     metadata.camera = text(data.idata.make) + " " + text(data.idata.model);
@@ -164,6 +196,8 @@ PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, Cancellatio
     pixelCount(data.sizes.width, data.sizes.height);
     if (lumaLinearDNG(data))
         (void)linearCalibration(data);
+    else
+        (void)bayerCalibration(data.color);
     checkCancellation(stop);
     return metadataFrom(data);
 }
@@ -255,7 +289,8 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     if (!data.rawdata.raw_image || data.idata.filters == 0 || data.idata.filters == 9 ||
         data.idata.colors != 3 || sizes.width < 2 || sizes.height < 2) {
         throw std::runtime_error(
-            "M0 supports integer Bayer RAW only; X-Trans, monochrome and RGB RAW are planned.");
+            "Apertone supports integer Bayer RAW only; X-Trans, monochrome and layered/RGB RAW "
+            "are not supported.");
     }
     pixelCount(sizes.width, sizes.height);
     if (sizes.top_margin + sizes.height > sizes.raw_height ||
@@ -274,20 +309,7 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     }
     BayerFrame frame(sizes.width, sizes.height, cfa);
     const auto &color = data.color;
-    const auto green = color.cam_mul[1] > 0 ? color.cam_mul[1] : color.pre_mul[1];
-    if (!std::isfinite(green) || green <= 0 || color.maximum == 0) {
-        throw std::runtime_error("RAW has no usable white balance or white level.");
-    }
-    std::array<float, 4> gains{};
-    for (int c = 0; c < 4; ++c) {
-        const int channel = c == 3 ? 1 : c;
-        const auto wb =
-            color.cam_mul[channel] > 0 ? color.cam_mul[channel] : color.pre_mul[channel];
-        gains[c] = wb / green;
-        if (!std::isfinite(gains[c]) || gains[c] <= 0) {
-            throw std::runtime_error("Invalid RAW white balance.");
-        }
-    }
+    const auto calibration = bayerCalibration(color);
     const auto stride = sizes.raw_pitch / sizeof(unsigned short);
     for (int y = 0; y < sizes.height; ++y) {
         checkCancellation(stop);
@@ -312,12 +334,6 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
                 static_cast<float>(std::max(0.0, sample - black) / (white - black));
         }
     }
-    std::array<float, 9> matrix{};
-    for (int row = 0; row < 3; ++row) {
-        matrix[row * 3] = color.rgb_cam[row][0];
-        matrix[row * 3 + 1] = color.rgb_cam[row][1] + color.rgb_cam[row][3];
-        matrix[row * 3 + 2] = color.rgb_cam[row][2];
-    }
     decoder.recycle();
     if (progress) {
         progress(0.45);
@@ -329,6 +345,6 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     if (progress) {
         progress(1);
     }
-    return {std::move(image), std::move(metadata), {matrix, {gains[0], gains[1], gains[2]}}};
+    return {std::move(image), std::move(metadata), calibration};
 }
 } // namespace luma

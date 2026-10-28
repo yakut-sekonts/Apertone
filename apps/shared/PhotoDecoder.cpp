@@ -1,19 +1,15 @@
 #include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/MetadataService.h"
+#include "apps/shared/PhotoFormats.h"
 #include "core/image/Bayer.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/RasterDecoder.h"
-#include <algorithm>
-#include <cctype>
 #include <set>
 
 namespace luma {
 namespace {
 std::string extension(const std::filesystem::path &path) {
-    auto value = path.extension().string();
-    std::transform(value.begin(), value.end(), value.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
-    return value;
+    return lowerPhotoExtension(path);
 }
 bool rasterExtension(const std::string &extension) {
     static const std::set<std::string> values{".jpg",  ".jpeg", ".png", ".tif", ".tiff", ".heic",
@@ -33,9 +29,7 @@ bool raw(const std::filesystem::path &path, CancellationToken stop) {
 } // namespace
 bool PhotoDecoder::supportedExtension(const std::filesystem::path &path) {
     const auto value = extension(path);
-    static const std::set<std::string> raws{".nef", ".dng", ".cr2", ".cr3",
-                                            ".arw", ".rw2", ".orf", ".raf"};
-    return raws.contains(value) || macos::RasterDecoder().available(value);
+    return isSupportedRawExtension(path) || macos::RasterDecoder().available(value);
 }
 PhotoMetadata PhotoDecoder::inspect(const std::filesystem::path &path,
                                     CancellationToken stop) const {
