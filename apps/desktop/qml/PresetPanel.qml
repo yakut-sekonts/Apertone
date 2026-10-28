@@ -9,6 +9,7 @@ ColumnLayout {
     property string selectedId: ""
     property var selected: null
     property string hoverPreviewId: ""
+    property var filteredQuickItems: []
     readonly property Item editorScrollView: editScroll
     function previewHoveredPreset(presetId) {
         hoverPreviewId = presetId
@@ -25,6 +26,10 @@ ColumnLayout {
             if (item.id === selectedId) { selected = item; break }
         }
     }
+    function updateQuickItems() {
+        if (!quickCategory.currentText.length) { filteredQuickItems = presets.quickItems; return }
+        filteredQuickItems = presets.quickItems.filter(item => item.category === quickCategory.currentText)
+    }
     function openEditor(create) {
         panel.clearHoveredPreview()
         editDialog.presetId = create ? "" : selectedId
@@ -38,19 +43,131 @@ ColumnLayout {
     onSelectedIdChanged: selection()
     onVisibleChanged: if (!visible) panel.clearHoveredPreview()
     Connections { target: presets; function onItemsChanged() { panel.selection() } }
+    Component.onCompleted: updateQuickItems()
     spacing: 8
     TabBar {
         id: presetTabs
         objectName: "presetTabs"
         Layout.fillWidth: true
         onCurrentIndexChanged: panel.clearHoveredPreview()
-        TabButton { objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters"); implicitWidth: 80; font.pixelSize: 11 }
-        TabButton { objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets"); implicitWidth: 80; font.pixelSize: 11 }
+        TabButton { objectName: "preset.tabs.quick"; text: qsTranslate("Apertone", "Quick"); implicitWidth: 68; font.pixelSize: 11 }
+        TabButton { objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters"); implicitWidth: 68; font.pixelSize: 11 }
+        TabButton { objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets"); implicitWidth: 68; font.pixelSize: 11 }
+    }
+    ColumnLayout {
+        visible: presetTabs.currentIndex === 0
+        Layout.fillWidth: true; Layout.fillHeight: true; spacing: 6
+        ComboBox {
+            id: quickCategory
+            objectName: "quick.category"
+            Layout.fillWidth: true; model: presets.quickCategories
+            onCurrentTextChanged: panel.updateQuickItems()
+        }
+        RowLayout {
+            Layout.fillWidth: true; spacing: 4
+            ApertoneButton {
+                objectName: "quick.auto"; text: qsTranslate("Apertone", "Auto")
+                enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+                onClicked: editor.autoAdjust()
+                ToolTip.visible: hovered; ToolTip.text: qsTranslate("Apertone", "Automatic Light and Color")
+            }
+            ApertoneButton {
+                objectName: "quick.mono"; text: qsTranslate("Apertone", "B&W")
+                enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+                onClicked: presets.applyQuickLook("pure-mono")
+            }
+            ApertoneButton {
+                objectName: "quick.straighten"; text: qsTranslate("Apertone", "Straighten")
+                enabled: editor.hasPhoto && !editor.busy && !editor.transformAutoBusy; Layout.fillWidth: true
+                onClicked: editor.autoTransform()
+            }
+        }
+        ListView {
+            id: quickList
+            objectName: "quick.catalog"
+            Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 130
+            clip: true; model: panel.filteredQuickItems; spacing: 2
+            delegate: ItemDelegate {
+                id: quickRow
+                required property var modelData
+                objectName: "quick.recipe." + modelData.id
+                width: quickList.width; height: 38; hoverEnabled: true
+                enabled: editor.hasPhoto && !editor.busy && !editor.aiBusy
+                contentItem: RowLayout {
+                    spacing: 6
+                    Label {
+                        Layout.fillWidth: true; text: quickRow.modelData.name
+                        color: quickRow.palette.buttonText; font.pixelSize: 11
+                        elide: Text.ElideRight; textFormat: Text.PlainText
+                    }
+                    Label {
+                        visible: quickRow.modelData.target !== "global"
+                        text: quickRow.modelData.target === "subject" ? "S" : quickRow.modelData.target === "sky" ? "☁" : "B"
+                        color: Theme.accent; font.pixelSize: 9
+                    }
+                    Label { text: "+"; color: Theme.muted; font.pixelSize: 13 }
+                }
+                onClicked: presets.applyQuickLook(modelData.id)
+                ToolTip.visible: hovered; ToolTip.delay: 500; ToolTip.text: modelData.description
+            }
+            ScrollBar.vertical: ScrollBar {}
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            Label { text: qsTranslate("Apertone", "Layers"); color: Theme.text; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true }
+            Label { text: presets.quickStack.length + "/32"; color: Theme.muted; font.pixelSize: 10 }
+            ApertoneButton {
+                objectName: "quick.clear"; text: qsTranslate("Apertone", "Clear"); implicitWidth: 52
+                enabled: presets.quickStack.length > 0 && !editor.busy
+                onClicked: presets.clearQuickLooks()
+            }
+        }
+        ListView {
+            id: quickStack
+            objectName: "quick.stack"
+            Layout.fillWidth: true; Layout.preferredHeight: Math.min(contentHeight, 190)
+            Layout.minimumHeight: presets.quickStack.length ? 52 : 28
+            clip: true; model: presets.quickStack; spacing: 3
+            delegate: Rectangle {
+                id: layerRow
+                required property var modelData
+                required property int index
+                width: quickStack.width; height: 66; radius: 4
+                color: Theme.panelRaised; border.color: Theme.divider; border.width: 1
+                ColumnLayout {
+                    anchors.fill: parent; anchors.margins: 5; spacing: 2
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 3
+                        CheckBox {
+                            objectName: "quick.enabled." + layerRow.modelData.id
+                            checked: layerRow.modelData.enabled; implicitWidth: 22; implicitHeight: 22
+                            onClicked: presets.setQuickLookEnabled(layerRow.modelData.id, checked)
+                        }
+                        Label { Layout.fillWidth: true; text: layerRow.modelData.name; elide: Text.ElideRight; font.pixelSize: 10; color: Theme.text }
+                        ToolButton { text: "↑"; enabled: layerRow.index > 0; onClicked: presets.moveQuickLook(layerRow.modelData.id, -1); implicitWidth: 24; implicitHeight: 22 }
+                        ToolButton { text: "↓"; enabled: layerRow.index + 1 < quickStack.count; onClicked: presets.moveQuickLook(layerRow.modelData.id, 1); implicitWidth: 24; implicitHeight: 22 }
+                        ToolButton { text: "×"; onClicked: presets.removeQuickLook(layerRow.modelData.id); implicitWidth: 24; implicitHeight: 22 }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 5
+                        Slider {
+                            id: amount
+                            objectName: "quick.amount." + layerRow.modelData.id
+                            Layout.fillWidth: true; from: 0; to: 200; stepSize: 1; value: layerRow.modelData.amount
+                            onPressedChanged: if (!pressed) presets.setQuickLookAmount(layerRow.modelData.id, value)
+                        }
+                        Label { text: Math.round(amount.value) + "%"; color: Theme.muted; font.pixelSize: 9; Layout.preferredWidth: 34; horizontalAlignment: Text.AlignRight }
+                    }
+                }
+            }
+            Label { anchors.centerIn: parent; visible: quickStack.count === 0; text: qsTranslate("Apertone", "Add looks above — they stay editable and stack in order."); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; width: parent.width }
+            ScrollBar.vertical: ScrollBar {}
+        }
     }
     ListView {
         id: builtinList
         objectName: "builtinFilterList"
-        visible: presetTabs.currentIndex === 0
+        visible: presetTabs.currentIndex === 1
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
         clip: true; model: presets.builtinItems
         delegate: ItemDelegate {
@@ -70,7 +187,7 @@ ColumnLayout {
         ScrollBar.vertical: ScrollBar {}
     }
     RowLayout {
-        visible: presetTabs.currentIndex === 1
+        visible: presetTabs.currentIndex === 2
         Layout.fillWidth: true; spacing: 4
         ApertoneButton { objectName: "presetCreate"; Accessible.name: qsTranslate("Apertone", "Save current settings"); implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Apertone", "Save current settings") }
         ApertoneButton { objectName: "presetImport"; text: qsTranslate("Apertone", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
@@ -89,7 +206,7 @@ ColumnLayout {
     ListView {
         id: list
         objectName: "presetList"
-        visible: presetTabs.currentIndex === 1
+        visible: presetTabs.currentIndex === 2
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
         clip: true; model: presets.items
         section.property: "folder"; section.criteria: ViewSection.FullString
@@ -241,7 +358,7 @@ ColumnLayout {
     FileDialog {
         id: importDialog; objectName: "presetImportDialog"; title: qsTranslate("Apertone", "Import preset")
         nameFilters: [qsTranslate("Apertone", "Preset files (*.json *.xmp)"), "Apertone preset (*.json)", "XMP (*.xmp)"]
-        onAccepted: if (presets.importPreset(selectedFile)) { panel.selectedId = presets.importedId; presetTabs.currentIndex = 1 }
+        onAccepted: if (presets.importPreset(selectedFile)) { panel.selectedId = presets.importedId; presetTabs.currentIndex = 2 }
     }
     FileDialog {
         id: exportDialog; objectName: "presetExportDialog"; property string presetId: ""

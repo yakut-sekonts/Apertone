@@ -38,6 +38,7 @@ QVariantMap EditorController::localState() const {
         {"inverted", mask.inverted},
         {"feather", geometry.feather},
         {"opacity", mask.opacity},
+        {"blur", mask.blur},
         {"angle", geometry.angle},
         {"rangeLow", geometry.rangeLow * 100},
         {"rangeHigh", geometry.rangeHigh * 100},
@@ -158,7 +159,10 @@ void EditorController::removeLocalMask() {
         return;
     endEdit();
     auto next = history_.current();
+    const auto removedID = next.localMasks[static_cast<std::size_t>(localIndex())].id;
     next.localMasks.erase(next.localMasks.begin() + localIndex());
+    std::erase_if(next.creative.quickLooks,
+                  [&](const auto &layer) { return layer.mask == removedID; });
     localSelected_ =
         next.localMasks.empty() ? QString() : QString::fromStdString(next.localMasks.back().id);
     applyAdvanced(std::move(next));
@@ -192,7 +196,11 @@ void EditorController::setLocalEnabled(bool enabled) {
         return;
     endEdit();
     auto next = history_.current();
+    const auto &mask = next.localMasks[static_cast<std::size_t>(localIndex())];
     next.localMasks[static_cast<std::size_t>(localIndex())].enabled = enabled;
+    for (auto &layer : next.creative.quickLooks)
+        if (layer.mask == mask.id)
+            layer.enabled = enabled;
     applyAdvanced(std::move(next));
 }
 void EditorController::setLocalInverted(bool inverted) {
@@ -210,7 +218,7 @@ void EditorController::setLocalParameter(const QString &name, double value) {
         auto next = history_.current();
         auto &mask = next.localMasks[static_cast<std::size_t>(localIndex())];
         const auto key = name.toStdString();
-        if (key == "opacity" ||
+        if (key == "opacity" || key == "blur" ||
             std::find(luma::localParameters.begin(), luma::localParameters.end(), key) !=
                 luma::localParameters.end())
             mask.setParameter(key, value);

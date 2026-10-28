@@ -479,6 +479,12 @@ class EditorController final : public QObject {
     void previewSettings(const luma::EditDocument &settings, std::uint32_t groups,
                          std::span<const std::string> parameters = {});
     void clearPreviewSettings();
+    Q_INVOKABLE void applyQuickLook(const QString &recipe);
+    Q_INVOKABLE void setQuickLookAmount(const QString &id, double amount);
+    Q_INVOKABLE void setQuickLookEnabled(const QString &id, bool enabled);
+    Q_INVOKABLE void removeQuickLook(const QString &id);
+    Q_INVOKABLE void moveQuickLook(const QString &id, int direction);
+    Q_INVOKABLE void clearQuickLooks();
     bool editingLocked() const {
         return editingLocked_;
     }
@@ -691,6 +697,7 @@ class EditorController final : public QObject {
     int pendingWrites_ = 0;
     luma::EditHistory history_;
     std::optional<luma::EditDocument> presetPreview_;
+    QString pendingQuickLook_;
     QString detailControl_;
     bool optionHeld_ = false;
     luma::DetailDiagnostic diagnostic_ = luma::DetailDiagnostic::none;

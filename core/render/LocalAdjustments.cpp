@@ -10,8 +10,15 @@ LocalAdjustmentPass::LocalAdjustmentPass(const std::vector<LocalMask> &masks, do
                 settings.setParameter(localParameters[i], mask.adjustments[i]);
             pipeline.emplace(settings);
         }
-        layers_.push_back({MaskCoverage(mask, aspect), std::move(pipeline)});
+        layers_.push_back({MaskCoverage(mask, aspect), std::move(pipeline), mask.blur / 100});
     }
+}
+double LocalAdjustmentPass::blur(double x, double y, std::array<float, 3> reference) const {
+    double remaining = 1;
+    for (const auto &layer : layers_)
+        if (layer.blur > 0)
+            remaining *= 1 - layer.coverage.coverage(x, y, reference) * layer.blur;
+    return std::clamp(1 - remaining, 0.0, 1.0);
 }
 std::array<float, 3> LocalAdjustmentPass::pixel(std::array<float, 3> color, double x,
                                                 double y) const {

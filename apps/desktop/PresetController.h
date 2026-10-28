@@ -10,6 +10,9 @@ class PresetController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QVariantList items READ items NOTIFY itemsChanged)
     Q_PROPERTY(QVariantList builtinItems READ builtinItems CONSTANT)
+    Q_PROPERTY(QVariantList quickItems READ quickItems CONSTANT)
+    Q_PROPERTY(QStringList quickCategories READ quickCategories CONSTANT)
+    Q_PROPERTY(QVariantList quickStack READ quickStack NOTIFY quickLooksChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importNotice READ importNotice NOTIFY stateChanged)
     Q_PROPERTY(QStringList importUnsupported READ importUnsupported NOTIFY stateChanged)
@@ -19,6 +22,9 @@ class PresetController final : public QObject {
     PresetController(QString path, EditorController &editor, QObject *parent = nullptr);
     QVariantList items() const;
     QVariantList builtinItems() const;
+    QVariantList quickItems() const;
+    QStringList quickCategories() const;
+    QVariantList quickStack() const;
     QString error() const {
         return error_;
     }
@@ -50,11 +56,18 @@ class PresetController final : public QObject {
     Q_INVOKABLE void apply(const QString &id);
     Q_INVOKABLE void preview(const QString &id);
     Q_INVOKABLE void clearPreview();
+    Q_INVOKABLE void applyQuickLook(const QString &recipe);
+    Q_INVOKABLE void setQuickLookAmount(const QString &id, double amount);
+    Q_INVOKABLE void setQuickLookEnabled(const QString &id, bool enabled);
+    Q_INVOKABLE void removeQuickLook(const QString &id);
+    Q_INVOKABLE void moveQuickLook(const QString &id, int direction);
+    Q_INVOKABLE void clearQuickLooks();
     Q_INVOKABLE void copySettings(int groups);
     Q_INVOKABLE void pasteSettings();
   signals:
     void itemsChanged();
     void stateChanged();
+    void quickLooksChanged();
 
   private:
     QString path_;

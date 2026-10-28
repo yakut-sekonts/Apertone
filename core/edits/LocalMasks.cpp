@@ -111,6 +111,7 @@ void LocalMask::validate() const {
     require(validName(name), "Mask name must contain 1–80 printable characters.");
     MaskGeometry::validate();
     range(opacity, 0, 100);
+    range(blur, 0, 100);
     for (std::size_t i = 0; i < adjustments.size(); ++i)
         range(adjustments[i], i == 0 ? -5 : -100, i == 0 ? 5 : 100);
     require(components.size() <= 64, "A mask supports at most 64 components.");
@@ -126,7 +127,8 @@ void LocalMask::validate() const {
 }
 bool LocalMask::neutral() const {
     return !enabled || opacity == 0 ||
-           std::all_of(adjustments.begin(), adjustments.end(), [](double v) { return v == 0; });
+           (blur == 0 &&
+            std::all_of(adjustments.begin(), adjustments.end(), [](double v) { return v == 0; }));
 }
 double MaskGeometry::parameter(std::string_view name) const {
     if (name == "feather")
@@ -161,6 +163,8 @@ void MaskGeometry::setParameter(std::string_view name, double value) {
 double LocalMask::parameter(std::string_view name) const {
     if (name == "opacity")
         return opacity;
+    if (name == "blur")
+        return blur;
     if (std::find(localParameters.begin(), localParameters.end(), name) != localParameters.end())
         return adjustments[parameterIndex(name)];
     return MaskGeometry::parameter(name);
@@ -169,6 +173,8 @@ void LocalMask::setParameter(std::string_view name, double value) {
     auto next = *this;
     if (name == "opacity")
         next.opacity = value;
+    else if (name == "blur")
+        next.blur = value;
     else if (std::find(localParameters.begin(), localParameters.end(), name) !=
              localParameters.end())
         next.adjustments[parameterIndex(name)] = value;
@@ -246,6 +252,8 @@ std::string encode(const std::vector<LocalMask> &masks, int version) {
             out << '\n';
         } else {
             out << ' ' << mask.enabled << ' ' << mask.inverted << ' ' << mask.opacity;
+            if (version >= 4)
+                out << ' ' << mask.blur;
             for (double v : mask.adjustments)
                 out << ' ' << v;
             out << ' ' << mask.components.size() << '\n';
@@ -336,7 +344,7 @@ MaskGeometry geometryIn(std::istream &in, std::size_t &totalPoints, std::size_t 
 }
 } // namespace
 std::string encodeLocalMasks(const std::vector<LocalMask> &masks) {
-    return encode(masks, 3);
+    return encode(masks, 4);
 }
 std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
     require(!text.empty() && text.size() <= 16 * 1048576, "Invalid local mask document size.");
@@ -345,7 +353,7 @@ std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
     std::string marker;
     int version = 0;
     in >> marker >> version;
-    require(in && marker == "LUMA_LOCAL_MASKS" && version >= 1 && version <= 3,
+    require(in && marker == "LUMA_LOCAL_MASKS" && version >= 1 && version <= 4,
             "Unsupported local mask document.");
     const auto size = count(in, 128);
     std::vector<LocalMask> masks;
@@ -369,6 +377,8 @@ std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
             mask.enabled = flag(in);
             mask.inverted = flag(in);
             in >> mask.opacity;
+            if (version >= 4)
+                in >> mask.blur;
             for (auto &v : mask.adjustments)
                 in >> v;
             const auto components = count(in, 64);

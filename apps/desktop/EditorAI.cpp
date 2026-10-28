@@ -2,6 +2,7 @@
 #include "apps/desktop/EditorController.h"
 #include "core/catalog/Identity.h"
 #include "core/image/Bayer.h"
+#include "core/quick/QuickLooks.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/CoreMLSky.h"
 #include <QFileInfo>
@@ -33,6 +34,7 @@ void EditorController::setSkyModel(const QUrl &url) {
 void EditorController::cancelAI() {
     aiJob_.cancel();
     ++aiRevision_;
+    pendingQuickLook_.clear();
     if (!aiBusy_ && !aiObjectPicking_)
         return;
     aiBusy_ = false;
@@ -167,6 +169,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                     auto next = self->history_.current();
                                     luma::LocalMask mask;
                                     mask.id = luma::newID();
+                                    const auto pendingRecipe = self->pendingQuickLook_;
+                                    self->pendingQuickLook_.clear();
                                     const char *name =
                                         selection == luma::ai::Selection::background ? "Background"
                                         : selection == luma::ai::Selection::object   ? "Object"
@@ -176,14 +180,27 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                         QCoreApplication::translate("Apertone", name).toStdString();
                                     mask.shape = luma::MaskShape::bitmap;
                                     mask.bitmap = anchored;
+                                    if (!pendingRecipe.isEmpty()) {
+                                        const auto &recipe =
+                                            luma::quickLookRecipe(pendingRecipe.toStdString());
+                                        mask.name = std::string(recipe.name);
+                                        mask.adjustments =
+                                            luma::quickLookLocalAdjustments(recipe, 100);
+                                        mask.blur = luma::quickLookBlur(recipe, 100);
+                                        next.creative.quickLooks.push_back({luma::newID(),
+                                                                            std::string(recipe.id),
+                                                                            100, true, mask.id});
+                                    }
                                     next.localMasks.push_back(mask);
                                     next.validate();
                                     // Check the serialized storage budget before changing history.
                                     luma::encodeLocalMasks(next.localMasks);
-                                    self->localSelected_ = QString::fromStdString(mask.id);
-                                    self->localComponentSelected_.clear();
-                                    self->setLocalMode(true);
-                                    self->localOverlay_ = true;
+                                    if (pendingRecipe.isEmpty()) {
+                                        self->localSelected_ = QString::fromStdString(mask.id);
+                                        self->localComponentSelected_.clear();
+                                        self->setLocalMode(true);
+                                        self->localOverlay_ = true;
+                                    }
                                     self->applyAdvanced(std::move(next));
                                     emit self->stateChanged();
                                 } catch (const std::exception &failure) {
@@ -201,6 +218,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                 if (!self || self->aiRevision_ != revision)
                                     return;
                                 self->aiBusy_ = false;
+                                self->pendingQuickLook_.clear();
                                 if (!cancelled)
                                     self->error_ = message;
                                 emit self->stateChanged();
@@ -210,6 +228,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
             });
     } catch (const std::exception &failure) {
         aiBusy_ = false;
+        pendingQuickLook_.clear();
         advancedFailure(failure);
     }
 }

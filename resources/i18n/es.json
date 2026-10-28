@@ -809,6 +809,13 @@
     "Appearance preferences are busy.": "Las preferencias de apariencia están ocupadas.",
     "Cannot save appearance preferences.": "No se pueden guardar las preferencias de apariencia.",
     "Cannot read appearance preferences.": "No se pueden leer las preferencias de apariencia.",
-    "Invalid appearance preferences; system theme is active.": "Las preferencias de apariencia no son válidas; está activo el tema del sistema."
+    "Invalid appearance preferences; system theme is active.": "Las preferencias de apariencia no son válidas; está activo el tema del sistema.",
+    "Quick": "Rápido",
+    "Automatic Light and Color": "Luz y color automáticos",
+    "B&W": "B/N",
+    "Straighten": "Enderezar",
+    "Layers": "Capas",
+    "Add looks above — they stay editable and stack in order.": "Añade estilos arriba: seguirán siendo editables y se apilarán en orden.",
+    "Blur": "Desenfoque"
   }
 }

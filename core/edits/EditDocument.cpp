@@ -1,5 +1,8 @@
 #include "core/edits/EditDocument.h"
+#include "core/quick/QuickLooks.h"
+#include <algorithm>
 #include <array>
+#include <set>
 #include <string>
 
 namespace luma {
@@ -79,6 +82,17 @@ void EditDocument::validate() const {
     validateLocalMasks(localMasks);
     validateRetouch(retouch);
     creative.validate();
+    std::set<std::string> linkedMasks;
+    for (const auto &layer : creative.quickLooks) {
+        const auto &recipe = quickLookRecipe(layer.recipe);
+        const bool adaptive = recipe.target != QuickLookTarget::global;
+        if (adaptive == layer.mask.empty())
+            throw std::runtime_error("Quick Look target and mask do not match.");
+        if (adaptive && (std::none_of(localMasks.begin(), localMasks.end(),
+                                      [&](const auto &mask) { return mask.id == layer.mask; }) ||
+                         !linkedMasks.insert(layer.mask).second))
+            throw std::runtime_error("Quick Look adaptive mask is missing or reused.");
+    }
     for (const auto &parameter : parameters) {
         const auto value = this->*parameter.member;
         if (!std::isfinite(value) || value < parameter.minimum || value > parameter.maximum)

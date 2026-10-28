@@ -1,8 +1,10 @@
 #pragma once
+#include "core/edits/QuickLookTypes.h"
 #include <array>
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace luma {
 struct CreativeParameter {
@@ -55,6 +57,7 @@ const CreativeParameter &creativeParameter(std::string_view name);
 struct CreativeSettings {
     std::array<double, creativeParameters.size()> values{};
     std::uint32_t enabled = creativeCorrectionMask;
+    std::vector<QuickLookLayer> quickLooks;
     CreativeSettings();
     double parameter(std::string_view name) const;
     void setParameter(std::string_view name, double value);

@@ -1,10 +1,12 @@
 #include "core/export/LinearOutput.h"
 #include "core/image/Bayer.h"
 #include "core/lens/LensCorrection.h"
+#include "core/quick/QuickLooks.h"
 #include "core/render/CreativeColor.h"
 #include "core/render/CropGeometry.h"
 #include "core/render/DevelopPipeline.h"
 #include "core/render/LocalAdjustments.h"
+#include "core/render/LocalBlur.h"
 #include "core/render/NoiseReduction.h"
 #include "core/render/Presence.h"
 #include "core/render/RetouchPass.h"
@@ -23,25 +25,26 @@ void LinearOutput::validate() const {
 LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &edits,
                                 CancellationToken stop,
                                 const std::function<void(double)> &progress) {
-    edits.validate();
+    const auto resolved = resolveQuickLooks(edits);
+    resolved.validate();
     decoded.image.validateCoverage();
-    const LensCorrectionPass optics(decoded.image, edits, decoded.metadata, stop);
-    const RetouchPass retouch(optics.image(), edits.retouch, stop);
+    const LensCorrectionPass optics(decoded.image, resolved, decoded.metadata, stop);
+    const RetouchPass retouch(optics.image(), resolved.retouch, stop);
     const auto &input = retouch.image();
-    const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, edits);
+    const CropGeometry geometry(input.width, input.height, decoded.metadata.orientation, resolved);
     const double sourceAspect =
         decoded.metadata.width > 0 && decoded.metadata.height > 0
             ? static_cast<double>(decoded.metadata.width) / decoded.metadata.height
             : static_cast<double>(input.width) / input.height;
-    const LocalAdjustmentPass local(edits.localMasks, sourceAspect);
-    const DevelopPipeline pipeline(edits, decoded.calibration);
-    const NoiseReductionPass noise(input, pipeline, edits, stop, 1, DetailDiagnostic::none,
+    const LocalAdjustmentPass local(resolved.localMasks, sourceAspect);
+    const DevelopPipeline pipeline(resolved, decoded.calibration);
+    const NoiseReductionPass noise(input, pipeline, resolved, stop, 1, DetailDiagnostic::none,
                                    [&](double value) {
                                        if (progress)
                                            progress(value * 0.2);
                                    });
     const SharpeningPass sharpening(
-        input, pipeline, edits, stop, 1, DetailDiagnostic::none,
+        input, pipeline, resolved, stop, 1, DetailDiagnostic::none,
         [&](double value) {
             if (progress)
                 progress(0.2 + value * 0.2);
@@ -54,14 +57,29 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
                            : pipeline.pixel({input.rgb[i], input.rgb[i + 1], input.rgb[i + 2]});
         return sharpening.pixel(developed, sx, sy);
     };
-    const PresencePass presence(input, edits, detailPixel, stop);
+    const PresencePass presence(input, resolved, detailPixel, stop);
+    const auto referencePixel = [&](int sx, int sy) {
+        return presence.pixel(detailPixel(sx, sy), sx, sy);
+    };
+    const bool hasLocalBlur =
+        std::any_of(resolved.localMasks.begin(), resolved.localMasks.end(), [](const auto &mask) {
+            return mask.enabled && mask.opacity > 0 && mask.blur > 0;
+        });
+    const LocalBlurPass blur(input.width, input.height, hasLocalBlur, referencePixel, stop);
     LinearOutput result(geometry.width(), geometry.height());
     for (int y = 0; y < result.height; ++y) {
         checkCancellation(stop);
         for (int x = 0; x < result.width; ++x) {
             auto rgb = geometry.sample(x, y, [&](int sx, int sy) {
-                auto color = local.pixel(presence.pixel(detailPixel(sx, sy), sx, sy),
-                                         (sx + 0.5) / input.width, (sy + 0.5) / input.height);
+                auto color = referencePixel(sx, sy);
+                if (blur.active()) {
+                    const double amount =
+                        local.blur((sx + 0.5) / input.width, (sy + 0.5) / input.height, color);
+                    const auto softened = blur.pixel(sx, sy);
+                    for (std::size_t c = 0; c < 3; ++c)
+                        color[c] = static_cast<float>(color[c] + (softened[c] - color[c]) * amount);
+                }
+                color = local.pixel(color, (sx + 0.5) / input.width, (sy + 0.5) / input.height);
                 if (!input.alpha.empty())
                     for (auto &value : color)
                         value *= input.coverage(sx, sy);
@@ -75,7 +93,7 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
             if (!input.alpha.empty())
                 for (auto &value : rgb)
                     value = alpha > 1e-8F ? value / alpha : 0;
-            rgb = applyOutputEffects(rgb, edits, x, y, result.width, result.height);
+            rgb = applyOutputEffects(rgb, resolved, x, y, result.width, result.height);
             const auto target = (static_cast<std::size_t>(y) * result.width + x) * 4;
             for (std::size_t c = 0; c < 3; ++c)
                 result.rgba[target + c] = rgb[c];
