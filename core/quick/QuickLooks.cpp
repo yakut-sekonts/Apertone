@@ -374,6 +374,7 @@ const QuickLookRecipe &quickLookRecipe(std::string_view id) {
     return *found;
 }
 EditDocument resolveQuickLooks(const EditDocument &source) {
+    source.validate();
     auto result = source;
     const auto layers = result.creative.quickLooks;
     result.creative.quickLooks.clear();

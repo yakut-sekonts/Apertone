@@ -161,6 +161,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                 if (!self || self->aiRevision_ != revision)
                                     return;
                                 self->aiBusy_ = false;
+                                const auto pendingRecipe = self->pendingQuickLook_;
+                                self->pendingQuickLook_.clear();
                                 if (!self->editable()) {
                                     emit self->stateChanged();
                                     return;
@@ -169,8 +171,6 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                     auto next = self->history_.current();
                                     luma::LocalMask mask;
                                     mask.id = luma::newID();
-                                    const auto pendingRecipe = self->pendingQuickLook_;
-                                    self->pendingQuickLook_.clear();
                                     const char *name =
                                         selection == luma::ai::Selection::background ? "Background"
                                         : selection == luma::ai::Selection::object   ? "Object"
