@@ -191,23 +191,23 @@ void LibraryModel::applyCullingSuggestions() {
 
 void LibraryModel::clearCullingIndex() {
     filter_.cullingRecommendation = -2;
-    filter_.personID.clear();
+    filter_.faceGroupID.clear();
     filter_.bestOfBurstOnly = false;
     mutate([](luma::Catalog &catalog) { catalog.clearCullingIndex(); });
 }
 
-void LibraryModel::renamePerson(const QString &id, const QString &name) {
+void LibraryModel::renameFaceGroup(const QString &id, const QString &name) {
     const auto trimmed = name.trimmed();
     mutate([id, trimmed](luma::Catalog &catalog) {
-        catalog.renamePerson(id.toStdString(), trimmed.toStdString());
+        catalog.renameFaceGroup(id.toStdString(), trimmed.toStdString());
     });
 }
 
-void LibraryModel::setIntelligentFilter(int recommendation, const QString &personID,
+void LibraryModel::setIntelligentFilter(int recommendation, const QString &faceGroupID,
                                         bool bestOfBurstOnly) {
     auto next = filter_;
     next.cullingRecommendation = recommendation;
-    next.personID = personID.toStdString();
+    next.faceGroupID = faceGroupID.toStdString();
     next.bestOfBurstOnly = bestOfBurstOnly;
     try {
         next.validate();

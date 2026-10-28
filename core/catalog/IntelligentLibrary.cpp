@@ -77,7 +77,7 @@ void Catalog::migrateIntelligentLibrary() {
             embedding BLOB NOT NULL CHECK(typeof(embedding)='blob' AND length(embedding)=4*dimension),
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE INDEX culling_recommendation ON culling_analysis(recommendation,score,asset_id);
-        CREATE TABLE people(
+        CREATE TABLE face_groups(
             id TEXT PRIMARY KEY,provider TEXT NOT NULL CHECK(length(provider) BETWEEN 1 AND 256),
             name TEXT NOT NULL DEFAULT '' CHECK(length(name)<=128),
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
@@ -92,9 +92,9 @@ void Catalog::migrateIntelligentLibrary() {
             eyes_open REAL NOT NULL CHECK(eyes_open BETWEEN 0 AND 1),
             dimension INTEGER NOT NULL CHECK(dimension BETWEEN 1 AND 2048),
             embedding BLOB NOT NULL CHECK(typeof(embedding)='blob' AND length(embedding)=4*dimension),
-            person_id TEXT REFERENCES people(id) ON DELETE SET NULL,
+            face_group_id TEXT REFERENCES face_groups(id) ON DELETE SET NULL,
             UNIQUE(asset_id,provider,face_index));
-        CREATE INDEX face_person ON face_instances(person_id,asset_id);
+        CREATE INDEX face_group_membership ON face_instances(face_group_id,asset_id);
         CREATE TABLE burst_stacks(
             id TEXT PRIMARY KEY,provider TEXT NOT NULL CHECK(length(provider) BETWEEN 1 AND 256),
             started_at INTEGER NOT NULL);
@@ -167,13 +167,13 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
             throw std::runtime_error(
                 "Local analysis model changed. Clear analysis before rebuilding it.");
         struct NamedFace {
-            std::string person;
+            std::string group;
             std::vector<float> embedding;
         };
         std::vector<NamedFace> namedFaces;
         Statement previous(
-            db_, "SELECT f.person_id,f.embedding,f.dimension FROM face_instances f JOIN people p "
-                 "ON p.id=f.person_id WHERE f.asset_id=?1 AND p.provider=?2");
+            db_, "SELECT f.face_group_id,f.embedding,f.dimension FROM face_instances f JOIN "
+                 "face_groups g ON g.id=f.face_group_id WHERE f.asset_id=?1 AND g.provider=?2");
         previous.text(1, id);
         previous.text(2, provider);
         while (previous.row())
@@ -211,19 +211,20 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
         for (std::size_t index = 0; index < observation.faces.size(); ++index) {
             const auto &face = observation.faces[index];
             const auto faceBytes = encodeVector(face.embedding);
-            std::string namedPerson;
+            std::string namedGroup;
             double namedSimilarity = .86;
             for (const auto &candidate : namedFaces) {
                 const auto value = similarity(face.embedding, candidate.embedding);
                 if (value > namedSimilarity) {
                     namedSimilarity = value;
-                    namedPerson = candidate.person;
+                    namedGroup = candidate.group;
                 }
             }
             Statement insert(
-                db_, "INSERT INTO face_instances(id,asset_id,provider,face_index,x,y,width,height,"
-                     "quality,eyes_open,dimension,embedding,person_id) VALUES(?1,?2,?3,?4,?5,?6,"
-                     "?7,?8,?9,?10,?11,?12,NULLIF(?13,''))");
+                db_,
+                "INSERT INTO face_instances(id,asset_id,provider,face_index,x,y,width,height,"
+                "quality,eyes_open,dimension,embedding,face_group_id) VALUES(?1,?2,?3,?4,?5,?6,"
+                "?7,?8,?9,?10,?11,?12,NULLIF(?13,''))");
             insert.text(1, newID());
             insert.text(2, id);
             insert.text(3, provider);
@@ -236,7 +237,7 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
             insert.number(10, face.eyesOpen);
             insert.integer(11, static_cast<std::int64_t>(face.embedding.size()));
             insert.blob(12, faceBytes);
-            insert.text(13, namedPerson);
+            insert.text(13, namedGroup);
             insert.row();
         }
         execute("COMMIT;");
@@ -317,11 +318,11 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
     planBurst(burst);
 
     std::vector<Cluster> clusters;
-    Statement assigned(db_, "SELECT p.id,f.embedding,f.dimension FROM people p JOIN "
-                            "face_instances f ON f.person_id=p.id JOIN culling_analysis c ON "
+    Statement assigned(db_, "SELECT g.id,f.embedding,f.dimension FROM face_groups g JOIN "
+                            "face_instances f ON f.face_group_id=g.id JOIN culling_analysis c ON "
                             "c.asset_id=f.asset_id JOIN assets a ON a.id=c.asset_id AND "
-                            "a.checksum=c.checksum WHERE p.provider=?1 AND f.provider=?1 AND "
-                            "c.provider=?1 ORDER BY p.id,f.id");
+                            "a.checksum=c.checksum WHERE g.provider=?1 AND f.provider=?1 AND "
+                            "c.provider=?1 ORDER BY g.id,f.id");
     assigned.text(1, provider);
     while (assigned.row()) {
         checkCancellation(stop);
@@ -343,7 +344,7 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
     Statement unassigned(db_, "SELECT f.id,f.embedding,f.dimension FROM face_instances f JOIN "
                               "culling_analysis c ON c.asset_id=f.asset_id JOIN assets a ON "
                               "a.id=c.asset_id AND a.checksum=c.checksum WHERE f.provider=?1 AND "
-                              "c.provider=?1 AND f.person_id IS NULL ORDER BY f.asset_id,"
+                              "c.provider=?1 AND f.face_group_id IS NULL ORDER BY f.asset_id,"
                               "f.face_index");
     unassigned.text(1, provider);
     while (unassigned.row()) {
@@ -424,25 +425,26 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
         for (const auto &cluster : clusters)
             if (cluster.created) {
                 checkCancellation(stop);
-                Statement person(db_, "INSERT INTO people(id,provider) VALUES(?1,?2)");
-                person.text(1, cluster.id);
-                person.text(2, provider);
-                person.row();
+                Statement group(db_, "INSERT INTO face_groups(id,provider) VALUES(?1,?2)");
+                group.text(1, cluster.id);
+                group.text(2, provider);
+                group.row();
             }
-        for (const auto &[face, person] : assignments) {
+        for (const auto &[face, group] : assignments) {
             checkCancellation(stop);
-            Statement assign(db_, "UPDATE face_instances SET person_id=?1 WHERE id=?2 AND "
-                                  "provider=?3 AND person_id IS NULL");
-            assign.text(1, person);
+            Statement assign(db_, "UPDATE face_instances SET face_group_id=?1 WHERE id=?2 AND "
+                                  "provider=?3 AND face_group_id IS NULL");
+            assign.text(1, group);
             assign.text(2, face);
             assign.text(3, provider);
             assign.row();
             requireChanged(db_, "Culling face changed while grouping similar faces.");
         }
-        Statement emptyPeople(db_, "DELETE FROM people WHERE provider=?1 AND NOT EXISTS(SELECT 1 "
-                                   "FROM face_instances f WHERE f.person_id=people.id)");
-        emptyPeople.text(1, provider);
-        emptyPeople.row();
+        Statement emptyGroups(
+            db_, "DELETE FROM face_groups WHERE provider=?1 AND NOT EXISTS(SELECT 1 FROM "
+                 "face_instances f WHERE f.face_group_id=face_groups.id)");
+        emptyGroups.text(1, provider);
+        emptyGroups.row();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
@@ -450,42 +452,42 @@ void Catalog::rebuildIntelligentGroups(const std::string &provider, Cancellation
     }
 }
 
-std::vector<PersonRecord> Catalog::people() const {
+std::vector<FaceGroupRecord> Catalog::faceGroups() const {
     Statement query(
-        db_, "SELECT p.id,p.name,COUNT(DISTINCT f.asset_id) FROM people p JOIN "
-             "face_instances f ON f.person_id=p.id JOIN culling_analysis c ON "
+        db_, "SELECT g.id,g.name,COUNT(DISTINCT f.asset_id) FROM face_groups g JOIN "
+             "face_instances f ON f.face_group_id=g.id JOIN culling_analysis c ON "
              "c.asset_id=f.asset_id JOIN assets a ON a.id=c.asset_id AND a.checksum=c.checksum "
-             "GROUP BY p.id ORDER BY "
-             "CASE WHEN p.name='' THEN 1 ELSE 0 END,p.name COLLATE NOCASE,p.created_at,p.id");
-    std::vector<PersonRecord> result;
+             "GROUP BY g.id ORDER BY "
+             "CASE WHEN g.name='' THEN 1 ELSE 0 END,g.name COLLATE NOCASE,g.created_at,g.id");
+    std::vector<FaceGroupRecord> result;
     while (query.row())
         result.push_back({query.string(0), query.string(1), query.integer(2)});
     return result;
 }
 
-void Catalog::renamePerson(const std::string &id, const std::string &name) {
+void Catalog::renameFaceGroup(const std::string &id, const std::string &name) {
     if (id.empty() || name.size() > 512 || name.find('\0') != std::string::npos ||
         name.find_first_not_of(" \t\r\n") == std::string::npos)
         throw std::runtime_error("Face group name must contain text and fit 128 characters.");
-    Statement query(db_, "UPDATE people SET name=?1 WHERE id=?2");
+    Statement query(db_, "UPDATE face_groups SET name=?1 WHERE id=?2");
     query.text(1, name);
     query.text(2, id);
     query.row();
     requireChanged(db_, "Face group does not exist.");
 }
 
-std::vector<std::string> Catalog::cullingIDs(int recommendation, const std::string &personID,
+std::vector<std::string> Catalog::cullingIDs(int recommendation, const std::string &faceGroupID,
                                              bool bestOfBurstOnly) const {
-    if (recommendation < -2 || recommendation > 1 || personID.size() > 64)
+    if (recommendation < -2 || recommendation > 1 || faceGroupID.size() > 64)
         throw std::runtime_error("Invalid intelligent-library selection.");
     Statement query(
         db_, "SELECT c.asset_id FROM culling_analysis c JOIN assets a ON a.id=c.asset_id AND "
              "a.checksum=c.checksum WHERE (?1=-2 OR c.recommendation=?1) "
              "AND (?2='' OR EXISTS(SELECT 1 FROM face_instances f WHERE f.asset_id=c.asset_id "
-             "AND f.person_id=?2)) AND (?3=0 OR EXISTS(SELECT 1 FROM burst_members b WHERE "
+             "AND f.face_group_id=?2)) AND (?3=0 OR EXISTS(SELECT 1 FROM burst_members b WHERE "
              "b.asset_id=c.asset_id AND b.is_best=1)) ORDER BY c.score DESC,c.asset_id");
     query.integer(1, recommendation);
-    query.text(2, personID);
+    query.text(2, faceGroupID);
     query.integer(3, bestOfBurstOnly ? 1 : 0);
     std::vector<std::string> result;
     while (query.row())
@@ -535,12 +537,12 @@ CullingSummary Catalog::cullingSummary() const {
                           "a.id=c.asset_id AND a.checksum=c.checksum");
     if (bursts.row())
         result.bursts = bursts.integer(0);
-    Statement peopleCount(db_, "SELECT COUNT(*) FROM people WHERE EXISTS(SELECT 1 FROM "
-                               "face_instances f JOIN culling_analysis c ON c.asset_id=f.asset_id "
-                               "JOIN assets a ON a.id=c.asset_id AND a.checksum=c.checksum WHERE "
-                               "f.person_id=people.id)");
-    if (peopleCount.row())
-        result.people = peopleCount.integer(0);
+    Statement groupCount(db_, "SELECT COUNT(*) FROM face_groups WHERE EXISTS(SELECT 1 FROM "
+                              "face_instances f JOIN culling_analysis c ON c.asset_id=f.asset_id "
+                              "JOIN assets a ON a.id=c.asset_id AND a.checksum=c.checksum WHERE "
+                              "f.face_group_id=face_groups.id)");
+    if (groupCount.row())
+        result.faceGroups = groupCount.integer(0);
     return result;
 }
 
@@ -548,7 +550,7 @@ void Catalog::clearCullingIndex() {
     execute("BEGIN IMMEDIATE;");
     try {
         execute("DELETE FROM burst_members;DELETE FROM burst_stacks;DELETE FROM face_instances;"
-                "DELETE FROM people;DELETE FROM culling_analysis;");
+                "DELETE FROM face_groups;DELETE FROM culling_analysis;");
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

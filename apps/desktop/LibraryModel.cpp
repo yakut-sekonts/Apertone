@@ -283,7 +283,7 @@ void LibraryModel::reload(bool clear) {
                                                               viewportAnchor](const auto &context) {
         std::int64_t count = 0;
         int anchorRow = -1;
-        QVariantList collections, people;
+        QVariantList collections, faceGroups;
         QVariantMap cullingSummary;
         QString error;
         try {
@@ -302,15 +302,15 @@ void LibraryModel::reload(bool clear) {
                                                   {"smart", c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
             int unnamed = 0;
-            for (const auto &person : db.people()) {
+            for (const auto &group : db.faceGroups()) {
                 const auto displayName =
-                    person.name.empty()
+                    group.name.empty()
                         ? LocalizedText(QStringLiteral("Face group %1")).arg(++unnamed).text()
-                        : QString::fromStdString(person.name);
-                people.push_back(QVariantMap{{"id", QString::fromStdString(person.id)},
-                                             {"name", QString::fromStdString(person.name)},
-                                             {"displayName", displayName},
-                                             {"count", static_cast<qlonglong>(person.count)}});
+                        : QString::fromStdString(group.name);
+                faceGroups.push_back(QVariantMap{{"id", QString::fromStdString(group.id)},
+                                                 {"name", QString::fromStdString(group.name)},
+                                                 {"displayName", displayName},
+                                                 {"count", static_cast<qlonglong>(group.count)}});
             }
             const auto summary = db.cullingSummary();
             cullingSummary = {{"analyzed", static_cast<qlonglong>(summary.analyzed)},
@@ -318,7 +318,7 @@ void LibraryModel::reload(bool clear) {
                               {"reviews", static_cast<qlonglong>(summary.reviews)},
                               {"rejects", static_cast<qlonglong>(summary.rejects)},
                               {"bursts", static_cast<qlonglong>(summary.bursts)},
-                              {"people", static_cast<qlonglong>(summary.people)}};
+                              {"faceGroups", static_cast<qlonglong>(summary.faceGroups)}};
         } catch (const std::exception &e) {
             count = 0;
             error = QString::fromUtf8(e.what());
@@ -326,13 +326,13 @@ void LibraryModel::reload(bool clear) {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, count, collections, people, cullingSummary, error, revision, anchorRow] {
+                [self, count, collections, faceGroups, cullingSummary, error, revision, anchorRow] {
                     if (!self || self->revision_ != revision)
                         return;
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
-                    self->people_ = people;
+                    self->faceGroups_ = faceGroups;
                     self->cullingSummary_ = cullingSummary;
                     // Views may request their first metadata page synchronously
                     // from modelReset. Publish readiness before that signal.
@@ -359,7 +359,7 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
         next.label = label.toStdString();
     next.collectionID = collection.toStdString();
     next.cullingRecommendation = filter_.cullingRecommendation;
-    next.personID = filter_.personID;
+    next.faceGroupID = filter_.faceGroupID;
     next.bestOfBurstOnly = filter_.bestOfBurstOnly;
     try {
         next.validate();

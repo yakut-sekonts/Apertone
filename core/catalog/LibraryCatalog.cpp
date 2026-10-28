@@ -26,7 +26,7 @@ constexpr auto where =
     "q.checksum=a.checksum AND q.recommendation=?7))"
     " AND (?8='' OR EXISTS(SELECT 1 FROM face_instances f JOIN culling_analysis fq ON "
     "fq.asset_id=f.asset_id AND fq.checksum=a.checksum WHERE f.asset_id=a.id AND "
-    "f.person_id=?8))"
+    "f.face_group_id=?8))"
     " AND (?9=0 OR EXISTS(SELECT 1 FROM burst_members b JOIN culling_analysis bq ON "
     "bq.asset_id=b.asset_id AND bq.checksum=a.checksum WHERE b.asset_id=a.id AND "
     "b.is_best=1))";
@@ -61,7 +61,7 @@ void bindFilter(Statement &query, const LibraryFilter &filter, const QueryFilter
     query.integer(5, filter.label.has_value() ? 1 : 0);
     query.text(6, filter.label.value_or(""));
     query.integer(7, filter.cullingRecommendation);
-    query.text(8, filter.personID);
+    query.text(8, filter.faceGroupID);
     query.integer(9, filter.bestOfBurstOnly ? 1 : 0);
     for (std::size_t i = 0; i < resolved.smart.values.size(); ++i) {
         const auto &v = resolved.smart.values[i];

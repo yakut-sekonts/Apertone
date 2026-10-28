@@ -15,7 +15,7 @@ struct LibraryFilter {
     std::string collectionID;
     std::string search;
     int cullingRecommendation = -2; // -2: any, -1: Reject, 0: Review, 1: Pick.
-    std::string personID;
+    std::string faceGroupID;
     bool bestOfBurstOnly = false;
     void validate() const;
 };

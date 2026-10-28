@@ -8,35 +8,35 @@ Rectangle {
     color: Theme.window
     property string currentCollection: ""
     property string editCollectionID: ""
-    property string intelligentPersonID: ""
-    property var intelligencePeople: [{"id":"", "displayName":qsTranslate("Apertone", "All face groups"), "name":"", "count":0}].concat(library.people)
-    onIntelligencePeopleChanged: Qt.callLater(function() {
-        const index = intelligencePeople.findIndex(p => p.id === pane.intelligentPersonID)
-        if (index < 0) pane.intelligentPersonID = ""
-        peopleFilter.currentIndex = Math.max(0, index)
+    property string intelligentFaceGroupID: ""
+    property var intelligenceGroups: [{"id":"", "displayName":qsTranslate("Apertone", "All face groups"), "name":"", "count":0}].concat(library.faceGroups)
+    onIntelligenceGroupsChanged: Qt.callLater(function() {
+        const index = intelligenceGroups.findIndex(group => group.id === pane.intelligentFaceGroupID)
+        if (index < 0) pane.intelligentFaceGroupID = ""
+        faceGroupFilter.currentIndex = Math.max(0, index)
     })
     CompareDialog { id:compareDialog }
     SmartCollectionDialog { id: smartCollection }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
     Dialog {
-        id: personDialog; objectName: "intelligence.personDialog"
+        id: faceGroupDialog; objectName: "intelligence.faceGroupDialog"
         title: qsTranslate("Apertone", "Name face group")
         modal: true; anchors.centerIn: parent; width: 360; implicitWidth: 360
         standardButtons: Dialog.Ok | Dialog.Cancel
         ApertoneTextField {
-            id: personName; objectName: "intelligence.personName"
+            id: faceGroupName; objectName: "intelligence.faceGroupName"
             width: 300; maximumLength: 128; selectByMouse: true
             placeholderText: qsTranslate("Apertone", "Group name")
         }
         onOpened: {
-            const person = pane.intelligencePeople.find(p => p.id === pane.intelligentPersonID)
-            personName.text = person ? person.name : ""
-            personName.forceActiveFocus()
+            const group = pane.intelligenceGroups.find(item => item.id === pane.intelligentFaceGroupID)
+            faceGroupName.text = group ? group.name : ""
+            faceGroupName.forceActiveFocus()
         }
         onAccepted: {
-            if (pane.intelligentPersonID.length > 0)
-                library.renamePerson(pane.intelligentPersonID, personName.text)
+            if (pane.intelligentFaceGroupID.length > 0)
+                library.renameFaceGroup(pane.intelligentFaceGroupID, faceGroupName.text)
         }
     }
     Dialog {
@@ -61,7 +61,7 @@ Rectangle {
             width: 380; wrapMode: Text.Wrap
             text: qsTranslate("Apertone", "Deletes suggestions, similar-face groups and burst groups from this catalog. Existing catalog backups may retain older analysis.")
         }
-        onAccepted: { pane.intelligentPersonID = ""; library.clearCullingIndex() }
+        onAccepted: { pane.intelligentFaceGroupID = ""; library.clearCullingIndex() }
     }
     Dialog {
         id: panoramaDialog; objectName: "merge.panorama"
@@ -132,7 +132,7 @@ Rectangle {
     }
     function applyFilter() { library.filter(search.text, ratingFilter.currentIndex, flagFilter.currentIndex - 2, ["any","","red","yellow","green","blue","purple"][labelFilter.currentIndex], currentCollection) }
     function applyIntelligentFilter() {
-        library.setIntelligentFilter([-2, 1, 0, -1][suggestionFilter.currentIndex], pane.intelligentPersonID, bestOfBurst.checked)
+        library.setIntelligentFilter([-2, 1, 0, -1][suggestionFilter.currentIndex], pane.intelligentFaceGroupID, bestOfBurst.checked)
     }
     function allowShortcut() { return library.selectedCount > 0 && !library.working && !(Window.window.activeFocusItem && typeof Window.window.activeFocusItem.cursorPosition === "number") }
     Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(1) }
@@ -231,14 +231,14 @@ Rectangle {
                     onActivated: pane.applyIntelligentFilter()
                 }
                 ApertoneComboBox {
-                    id: peopleFilter; objectName: "intelligence.peopleFilter"
-                    Layout.maximumWidth: 170; model: pane.intelligencePeople; textRole: "displayName"
-                    onActivated: { pane.intelligentPersonID = currentIndex > 0 ? model[currentIndex].id : ""; pane.applyIntelligentFilter() }
+                    id: faceGroupFilter; objectName: "intelligence.faceGroupFilter"
+                    Layout.maximumWidth: 170; model: pane.intelligenceGroups; textRole: "displayName"
+                    onActivated: { pane.intelligentFaceGroupID = currentIndex > 0 ? model[currentIndex].id : ""; pane.applyIntelligentFilter() }
                 }
                 ApertoneButton {
-                    objectName: "intelligence.renamePerson"; text: qsTranslate("Apertone", "Name")
-                    visible: peopleFilter.currentIndex > 0; enabled: !library.working
-                    onClicked: personDialog.open()
+                    objectName: "intelligence.renameFaceGroup"; text: qsTranslate("Apertone", "Name")
+                    visible: faceGroupFilter.currentIndex > 0; enabled: !library.working
+                    onClicked: faceGroupDialog.open()
                 }
                 CheckBox {
                     id: bestOfBurst; objectName: "intelligence.bestOfBurst"
@@ -254,7 +254,7 @@ Rectangle {
                 Label {
                     visible: library.cullingSummary.analyzed > 0
                     text: library.cullingSummary.picks + " " + qsTranslate("Apertone", "picks") + " · " +
-                          library.cullingSummary.people + " " + qsTranslate("Apertone", "face groups")
+                          library.cullingSummary.faceGroups + " " + qsTranslate("Apertone", "face groups")
                     color: Theme.faint; font.pixelSize: 10
                 }
                 ApertoneButton {

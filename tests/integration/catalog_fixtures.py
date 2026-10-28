@@ -7,7 +7,7 @@ def remove_post_v11_features(database):
     assert database.execute("PRAGMA user_version").fetchone() == (22,)
     for statement in (
         "DROP TABLE burst_members", "DROP TABLE burst_stacks",
-        "DROP TABLE face_instances", "DROP TABLE people", "DROP TABLE culling_analysis",
+        "DROP TABLE face_instances", "DROP TABLE face_groups", "DROP TABLE culling_analysis",
         "DROP TABLE import_item_plans", "DROP TABLE import_options",
         "DROP TRIGGER smart_collection_rename", "DROP TABLE smart_collections",
         "DROP TRIGGER initialize_creative", "DROP TABLE edit_creative",

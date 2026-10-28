@@ -58,12 +58,12 @@ struct SmartCollectionRecord {
     SmartRule rule;
     std::int64_t revision = 0;
 };
-struct PersonRecord {
+struct FaceGroupRecord {
     std::string id, name;
     std::int64_t count = 0;
 };
 struct CullingSummary {
-    std::int64_t analyzed = 0, picks = 0, reviews = 0, rejects = 0, bursts = 0, people = 0;
+    std::int64_t analyzed = 0, picks = 0, reviews = 0, rejects = 0, bursts = 0, faceGroups = 0;
 };
 enum class CatalogOpenMode { createIfMissing, existingOnly };
 
@@ -162,9 +162,10 @@ class Catalog {
                              const std::string &provider,
                              const ai::CullingObservation &observation);
     void rebuildIntelligentGroups(const std::string &provider, CancellationToken stop = {});
-    std::vector<PersonRecord> people() const;
-    void renamePerson(const std::string &id, const std::string &name);
-    std::vector<std::string> cullingIDs(int recommendation = -2, const std::string &personID = {},
+    std::vector<FaceGroupRecord> faceGroups() const;
+    void renameFaceGroup(const std::string &id, const std::string &name);
+    std::vector<std::string> cullingIDs(int recommendation = -2,
+                                        const std::string &faceGroupID = {},
                                         bool bestOfBurstOnly = false) const;
     std::int64_t applyCullingSuggestions(const std::vector<std::string> &ids);
     CullingSummary cullingSummary() const;

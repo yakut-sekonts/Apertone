@@ -158,29 +158,28 @@ void catalogChecks() {
             "Completed culling work remained pending.");
     catalog.rebuildIntelligentGroups(provider);
     const auto summary = catalog.cullingSummary();
-    require(summary.analyzed == 3 && summary.bursts == 1 && summary.people == 2 &&
+    require(summary.analyzed == 3 && summary.bursts == 1 && summary.faceGroups == 2 &&
                 summary.picks == 1 && summary.reviews == 2,
             "Intelligent grouping summary is inconsistent.");
     require(catalog.cullingIDs(1).size() == 1 && catalog.cullingIDs(-2, {}, true).size() == 1,
             "Best-of-burst or Pick selection is incorrect.");
 
-    const auto people = catalog.people();
-    const auto pair = std::find_if(people.begin(), people.end(),
-                                   [](const auto &person) { return person.count == 2; });
-    require(pair != people.end(), "Similar faces were not grouped together.");
-    luma::LibraryFilter personFilter;
-    personFilter.personID = pair->id;
-    require(catalog.libraryCount(personFilter) == 2,
-            "People filter did not select the grouped photos.");
-    catalog.renamePerson(pair->id, "Alex");
+    const auto groups = catalog.faceGroups();
+    const auto pair = std::find_if(groups.begin(), groups.end(),
+                                   [](const auto &group) { return group.count == 2; });
+    require(pair != groups.end(), "Similar faces were not grouped together.");
+    luma::LibraryFilter groupFilter;
+    groupFilter.faceGroupID = pair->id;
+    require(catalog.libraryCount(groupFilter) == 2,
+            "Face-group filter did not select the grouped photos.");
+    catalog.renameFaceGroup(pair->id, "Alex");
     catalog.saveCullingAnalysis(ids[0], std::string(64, 'a'), provider,
                                 observation(.75, imageVectors[0], faceVectors[0]));
     catalog.rebuildIntelligentGroups(provider);
-    const auto renamed = catalog.people();
-    require(
-        std::any_of(renamed.begin(), renamed.end(),
-                    [](const auto &person) { return person.name == "Alex" && person.count == 2; }),
-        "Named person was not preserved across local reanalysis.");
+    const auto renamed = catalog.faceGroups();
+    require(std::any_of(renamed.begin(), renamed.end(),
+                        [](const auto &group) { return group.name == "Alex" && group.count == 2; }),
+            "Named face group was not preserved across local reanalysis.");
 
     const auto beforeCancellation = catalog.cullingSummary();
     luma::CancellationSource cancelled;
@@ -189,13 +188,13 @@ void catalogChecks() {
     const auto afterCancellation = catalog.cullingSummary();
     require(afterCancellation.analyzed == beforeCancellation.analyzed &&
                 afterCancellation.bursts == beforeCancellation.bursts &&
-                afterCancellation.people == beforeCancellation.people,
+                afterCancellation.faceGroups == beforeCancellation.faceGroups,
             "Cancelled grouping published a partial index.");
 
     for (const auto &id : ids)
         setChecksum(path, id, "stale");
     require(catalog.cullingSummary().analyzed == 0 && catalog.cullingIDs().empty() &&
-                catalog.libraryCount(personFilter) == 0 && catalog.people().empty(),
+                catalog.libraryCount(groupFilter) == 0 && catalog.faceGroups().empty(),
             "Stale local analysis remained visible after an asset checksum changed.");
     for (int index = 0; index < 3; ++index)
         setChecksum(path, ids[index], std::string(64, 'a' + index));
@@ -217,9 +216,9 @@ void catalogChecks() {
         catalog.saveCullingAnalysis(ids[0], std::string(64, 'a'), nextProvider,
                                     observation(.65, imageVectors[0], faceVectors[0]));
     });
-    const auto preservedPeople = catalog.people();
-    require(std::any_of(preservedPeople.begin(), preservedPeople.end(),
-                        [](const auto &person) { return person.name == "Alex"; }),
+    const auto preservedGroups = catalog.faceGroups();
+    require(std::any_of(preservedGroups.begin(), preservedGroups.end(),
+                        [](const auto &group) { return group.name == "Alex"; }),
             "Provider mismatch erased a named face group.");
     catalog.clearCullingIndex();
     for (int index = 0; index < 3; ++index)
@@ -230,7 +229,7 @@ void catalogChecks() {
     require(catalog.cullingSummary().bursts == 1,
             "Provider upgrade left conflicting burst membership.");
     catalog.clearCullingIndex();
-    require(catalog.cullingSummary().analyzed == 0 && catalog.people().empty(),
+    require(catalog.cullingSummary().analyzed == 0 && catalog.faceGroups().empty(),
             "Clearing local analysis left derived groups behind.");
 
     sqlite3 *raw = nullptr;
@@ -250,7 +249,7 @@ void migrationChecks() {
         luma::Catalog current(path);
     }
     sql(path, "DROP TABLE burst_members;DROP TABLE burst_stacks;DROP TABLE face_instances;"
-              "DROP TABLE people;DROP TABLE culling_analysis;"
+              "DROP TABLE face_groups;DROP TABLE culling_analysis;"
               "DELETE FROM schema_migrations WHERE version=22;PRAGMA user_version=21;");
     {
         luma::Catalog migrated(path, luma::CatalogOpenMode::existingOnly);

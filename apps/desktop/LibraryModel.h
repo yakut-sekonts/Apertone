@@ -36,7 +36,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(double cullingProgress READ cullingProgress NOTIFY stateChanged)
     Q_PROPERTY(QString cullingStatus READ cullingStatus NOTIFY stateChanged)
     Q_PROPERTY(QString cullingError READ cullingError NOTIFY stateChanged)
-    Q_PROPERTY(QVariantList people READ people NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList faceGroups READ faceGroups NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap cullingSummary READ cullingSummary NOTIFY stateChanged)
     Q_PROPERTY(bool cullingAutoEnabled READ cullingAutoEnabled WRITE setCullingAutoEnabled NOTIFY
                    stateChanged)
@@ -176,8 +176,8 @@ class LibraryModel final : public QAbstractListModel {
     QString cullingError() const {
         return cullingError_;
     }
-    QVariantList people() const {
-        return people_;
+    QVariantList faceGroups() const {
+        return faceGroups_;
     }
     QVariantMap cullingSummary() const {
         return cullingSummary_;
@@ -190,8 +190,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void cancelCulling();
     Q_INVOKABLE void applyCullingSuggestions();
     Q_INVOKABLE void clearCullingIndex();
-    Q_INVOKABLE void renamePerson(const QString &id, const QString &name);
-    Q_INVOKABLE void setIntelligentFilter(int recommendation, const QString &personID,
+    Q_INVOKABLE void renameFaceGroup(const QString &id, const QString &name);
+    Q_INVOKABLE void setIntelligentFilter(int recommendation, const QString &faceGroupID,
                                           bool bestOfBurstOnly);
     std::size_t cachedPages() const {
         return pages_.size();
@@ -257,7 +257,7 @@ class LibraryModel final : public QAbstractListModel {
     double cullingProgress_ = 0;
     LocalizedText cullingStatus_;
     QString cullingError_;
-    QVariantList people_;
+    QVariantList faceGroups_;
     QVariantMap cullingSummary_;
     luma::CancellationSource importCancellation_;
     // Import cancellation must not cancel later backup, metadata or relink work.
