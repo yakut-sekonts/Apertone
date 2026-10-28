@@ -487,6 +487,9 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME synthetic-raw-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" synthetic)
+    add_test(NAME common-bayer-camera-matrix COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/camera_raw_matrix.py" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(common-bayer-camera-matrix PROPERTIES TIMEOUT 180)
     add_test(NAME develop-export-restart COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/develop.py" "$<TARGET_FILE:luma_cli>")
     add_test(NAME complete-mask-native-restart COMMAND ${Python3_EXECUTABLE}

@@ -1,4 +1,6 @@
+#include "apps/shared/MetadataService.h"
 #include "apps/shared/PhotoDecoder.h"
+#include "apps/shared/PhotoFormats.h"
 #include "apps/shared/SessionService.h"
 #include "core/catalog/Identity.h"
 #include "core/export/LinearOutput.h"
@@ -355,6 +357,27 @@ void coverageTests(const std::filesystem::path &folder) {
     bad.alpha[0] = std::numeric_limits<float>::quiet_NaN();
     rejects([&] { luma::renderCPU(bad, {}, 0); });
 }
+void rawFormatTests(const std::filesystem::path &folder) {
+    for (const auto extension : luma::supportedRawExtensions) {
+        std::string upper(extension);
+        std::transform(upper.begin(), upper.end(), upper.begin(),
+                       [](unsigned char character) { return std::toupper(character); });
+        const auto source = folder / ("camera" + upper);
+        require(luma::PhotoDecoder::supportedExtension(source),
+                "A registered RAW extension was not discovered.");
+        require(luma::MetadataService::sidecarPath(source) == folder / "camera.xmp",
+                "A registered RAW extension did not use a standard XMP sidecar.");
+    }
+    require(!luma::PhotoDecoder::supportedExtension("camera.x3f") &&
+                !luma::PhotoDecoder::supportedExtension("camera.r3d"),
+            "Unsupported layered or cinema RAW was advertised.");
+
+    const auto collision = folder / "sidecar-collision";
+    std::filesystem::create_directory(collision);
+    std::ofstream(collision / "same.CR3").put('\0');
+    std::ofstream(collision / "same.ARW").put('\0');
+    rejects([&] { (void)luma::MetadataService::sidecarPath(collision / "same.CR3"); });
+}
 } // namespace
 int main(int argc, char **argv) {
     @autoreleasepool {
@@ -376,8 +399,9 @@ int main(int argc, char **argv) {
             fixtures(folder.path);
             nativeTests(folder.path, argv[1]);
             coverageTests(folder.path);
+            rawFormatTests(folder.path);
             std::cout << "Raster decode: ICC, metadata, EXIF orientations, 16-bit, WebP/GIF, "
-                         "coverage/spatial/export and invalid inputs passed.\n";
+                         "coverage/spatial/export, RAW registry/XMP and invalid inputs passed.\n";
             return 0;
         } catch (const std::exception &error) {
             std::cerr << error.what() << '\n';

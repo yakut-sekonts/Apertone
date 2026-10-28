@@ -72,19 +72,22 @@ Linux are outside the current scope.
 
 ### Image support
 
-Apertone develops **integer Bayer RAW**, including Nikon NEF and Bayer DNG, and
-reimports its own processed Linear RGB DNG output.
-LibRaw can decode other Bayer camera formats, but those are not claimed as
-verified until they have acceptance coverage. X-Trans, monochrome RAW,
-general floating-point/RGB DNG remain planned.
+Apertone develops **integer Bayer RAW** through the pinned LibRaw decoder. The
+shared import path covers Canon (CR2/CR3/CRW), Sony (ARW/SR2/SRF), Nikon
+(NEF/NRW), Pentax/Ricoh (PEF/PTX), OM System/Olympus (ORF), Panasonic/Leica
+(RW2/RWL), Samsung (SRW), Hasselblad (3FR/FFF), Phase One (IIQ), Bayer DNG and
+additional established camera RAW extensions. Exact compatibility depends on
+the camera model and Bayer layout. X-Trans RAF, monochrome RAW, Foveon/layered
+RAW and general floating-point/RGB DNG are rejected explicitly. Apertone also
+reimports its own identified processed Linear RGB DNG output.
 Source 0.4.12 also opens/imports JPEG, PNG, TIFF8/16, HEIC/HEIF, WebP, BMP, GIF
 and system-supported AVIF, with ICC color conversion, EXIF orientation and alpha.
 See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
-This is a foundation milestone, not a daily-use Lightroom replacement.
-Bilinear demosaic is a reference implementation; advanced demosaic, highlight
-reconstruction and production camera profiles remain planned.
+The current bilinear demosaic is a reference implementation; advanced demosaic,
+highlight reconstruction and additional camera-specific qualification remain
+planned.
 
 ## Build and run
 

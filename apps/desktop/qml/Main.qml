@@ -122,7 +122,7 @@ ApplicationWindow {
         id: fileDialog
         objectName: "main.openDialog"
         title: qsTranslate("Apertone", "Open photo")
-        nameFilters: [qsTranslate("Apertone", "Photos (*.nef *.NEF *.dng *.DNG *.cr2 *.CR2 *.cr3 *.CR3 *.arw *.ARW *.rw2 *.RW2 *.orf *.ORF *.raf *.RAF *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Apertone", "All files (*)")]
+        nameFilters: [qsTranslate("Apertone", "Photos (*.3fr *.3FR *.arw *.ARW *.cr2 *.CR2 *.cr3 *.CR3 *.crw *.CRW *.dcr *.DCR *.dcs *.DCS *.dng *.DNG *.erf *.ERF *.fff *.FFF *.gpr *.GPR *.iiq *.IIQ *.k25 *.K25 *.kdc *.KDC *.mef *.MEF *.mos *.MOS *.mrw *.MRW *.nef *.NEF *.nrw *.NRW *.orf *.ORF *.pef *.PEF *.ptx *.PTX *.raf *.RAF *.raw *.RAW *.rw2 *.RW2 *.rwl *.RWL *.sr2 *.SR2 *.srf *.SRF *.srw *.SRW *.jpg *.JPG *.jpeg *.JPEG *.png *.PNG *.tif *.TIF *.tiff *.TIFF *.heic *.HEIC *.heif *.HEIF *.webp *.WEBP *.bmp *.BMP *.gif *.GIF *.avif *.AVIF)"), qsTranslate("Apertone", "All files (*)")]
         onAccepted: editor.openFile(selectedFile)
     }
     PreferencesPanel { id: preferences }
