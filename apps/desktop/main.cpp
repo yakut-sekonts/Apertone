@@ -134,7 +134,9 @@ int main(int argc, char **argv) {
     ExportController exporter(std::filesystem::path(catalog.toStdString()), editor, library);
     QObject::connect(&library, &LibraryModel::stateChanged, &library, [&] {
         diagnosticSession.observe(luma::desktop::LoggedWorkflow::library, library.working(),
-                                  !library.error().isEmpty());
+                                  !library.error().isEmpty() ||
+                                      !library.semanticError().isEmpty() ||
+                                      !library.cullingError().isEmpty());
     });
     QObject::connect(&editor, &EditorController::stateChanged, &editor, [&] {
         diagnosticSession.observe(luma::desktop::LoggedWorkflow::editor,

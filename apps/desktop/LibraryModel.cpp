@@ -31,6 +31,7 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
                        QSettings::IniFormat);
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
+    cullingAutoEnabled_ = settings.value("cullingAutoEnabled", false).toBool();
     initializeMaintenance();
     filterTimer_.setSingleShot(true);
     filterTimer_.setInterval(160);
@@ -80,12 +81,16 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
                                 .arg(recovered.back().failed);
                     self->reload(false);
                     emit self->stateChanged();
+                    if (self->cullingAutoEnabled_ && error.isEmpty())
+                        self->analyzePendingLibrary();
                     self->checkClose();
                 },
                 Qt::QueuedConnection);
     });
 }
 LibraryModel::~LibraryModel() {
+    cullingJob_.cancel();
+    cullingJobs_.shutdown();
     semanticJob_.cancel();
     semanticJobs_.shutdown();
     importCancellation_.cancel();
@@ -98,10 +103,24 @@ int LibraryModel::rowCount(const QModelIndex &parent) const {
     return parent.isValid() ? 0 : count_;
 }
 QHash<int, QByteArray> LibraryModel::roleNames() const {
-    return {{AssetID, "assetID"},        {Filename, "filename"},    {Path, "pathURL"},
-            {Thumbnail, "thumbnailURL"}, {Rating, "rating"},        {Flag, "flagValue"},
-            {Label, "colorLabel"},       {Camera, "cameraName"},    {Selected, "selected"},
-            {Active, "activePhoto"},     {Missing, "sourceMissing"}};
+    return {{AssetID, "assetID"},
+            {Filename, "filename"},
+            {Path, "pathURL"},
+            {Thumbnail, "thumbnailURL"},
+            {Rating, "rating"},
+            {Flag, "flagValue"},
+            {Label, "colorLabel"},
+            {Camera, "cameraName"},
+            {Selected, "selected"},
+            {Active, "activePhoto"},
+            {Missing, "sourceMissing"},
+            {CullingScore, "cullingScore"},
+            {CullingRecommendation, "cullingRecommendation"},
+            {CullingReasons, "cullingReasons"},
+            {FaceCount, "faceCount"},
+            {BurstID, "burstID"},
+            {BurstSize, "burstSize"},
+            {BurstBest, "burstBest"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -111,9 +130,14 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     const auto found = pages_.find(number);
     if (found == pages_.end()) {
         self->page(number);
-        if (role == Rating || role == Flag)
+        if (role == Rating || role == Flag || role == CullingReasons || role == FaceCount ||
+            role == BurstSize)
             return 0;
-        if (role == Selected || role == Active || role == Missing)
+        if (role == CullingScore)
+            return -1.;
+        if (role == CullingRecommendation)
+            return -2;
+        if (role == Selected || role == Active || role == Missing || role == BurstBest)
             return false;
         if (role == Path)
             return QUrl{};
@@ -150,6 +174,20 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         return activeID_ == id;
     case Missing:
         return item.missing;
+    case CullingScore:
+        return item.cullingScore;
+    case CullingRecommendation:
+        return item.cullingRecommendation;
+    case CullingReasons:
+        return static_cast<qulonglong>(item.cullingReasons);
+    case FaceCount:
+        return item.faceCount;
+    case BurstID:
+        return QString::fromStdString(item.burstID);
+    case BurstSize:
+        return item.burstSize;
+    case BurstBest:
+        return item.burstBest;
     default:
         return {};
     }
@@ -245,7 +283,8 @@ void LibraryModel::reload(bool clear) {
                                                               viewportAnchor](const auto &context) {
         std::int64_t count = 0;
         int anchorRow = -1;
-        QVariantList collections;
+        QVariantList collections, people;
+        QVariantMap cullingSummary;
         QString error;
         try {
             if (context.stopToken().isCancelled())
@@ -262,6 +301,24 @@ void LibraryModel::reload(bool clear) {
                                                   {"name", QString::fromStdString(c.name)},
                                                   {"smart", c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
+            int unnamed = 0;
+            for (const auto &person : db.people()) {
+                const auto displayName =
+                    person.name.empty()
+                        ? LocalizedText(QStringLiteral("Face group %1")).arg(++unnamed).text()
+                        : QString::fromStdString(person.name);
+                people.push_back(QVariantMap{{"id", QString::fromStdString(person.id)},
+                                             {"name", QString::fromStdString(person.name)},
+                                             {"displayName", displayName},
+                                             {"count", static_cast<qlonglong>(person.count)}});
+            }
+            const auto summary = db.cullingSummary();
+            cullingSummary = {{"analyzed", static_cast<qlonglong>(summary.analyzed)},
+                              {"picks", static_cast<qlonglong>(summary.picks)},
+                              {"reviews", static_cast<qlonglong>(summary.reviews)},
+                              {"rejects", static_cast<qlonglong>(summary.rejects)},
+                              {"bursts", static_cast<qlonglong>(summary.bursts)},
+                              {"people", static_cast<qlonglong>(summary.people)}};
         } catch (const std::exception &e) {
             count = 0;
             error = QString::fromUtf8(e.what());
@@ -269,12 +326,14 @@ void LibraryModel::reload(bool clear) {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, count, collections, error, revision, anchorRow] {
+                [self, count, collections, people, cullingSummary, error, revision, anchorRow] {
                     if (!self || self->revision_ != revision)
                         return;
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
+                    self->people_ = people;
+                    self->cullingSummary_ = cullingSummary;
                     // Views may request their first metadata page synchronously
                     // from modelReset. Publish readiness before that signal.
                     self->loading_ = false;
@@ -299,6 +358,9 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
     if (label != QStringLiteral("any"))
         next.label = label.toStdString();
     next.collectionID = collection.toStdString();
+    next.cullingRecommendation = filter_.cullingRecommendation;
+    next.personID = filter_.personID;
+    next.bestOfBurstOnly = filter_.bestOfBurstOnly;
     try {
         next.validate();
     } catch (const std::exception &e) {
@@ -621,6 +683,8 @@ bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,
                             self->importReport_ = report;
                             self->reload(false);
                             emit self->stateChanged();
+                            if (self->cullingAutoEnabled_ && error.isEmpty())
+                                self->analyzePendingLibrary();
                             self->checkClose();
                         },
                         Qt::QueuedConnection);
@@ -643,9 +707,10 @@ bool LibraryModel::requestClose() {
     cancelImport();
     maintenanceCancellation_.cancel();
     cancelSemantic();
-    return !importing_ && !writing_ && !semanticBusy_;
+    cancelCulling();
+    return !importing_ && !writing_ && !semanticBusy_ && !cullingBusy_;
 }
 void LibraryModel::checkClose() {
-    if (closing_ && !importing_ && !writing_ && !semanticBusy_)
+    if (closing_ && !importing_ && !writing_ && !semanticBusy_ && !cullingBusy_)
         emit closeReady();
 }

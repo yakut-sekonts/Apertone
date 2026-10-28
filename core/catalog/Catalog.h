@@ -1,4 +1,5 @@
 #pragma once
+#include "core/ai/Culling.h"
 #include "core/ai/Embedding.h"
 #include "core/edits/EditDocument.h"
 #include "core/jobs/Cancellation.h"
@@ -56,6 +57,13 @@ struct EditVersionInfo {
 struct SmartCollectionRecord {
     SmartRule rule;
     std::int64_t revision = 0;
+};
+struct PersonRecord {
+    std::string id, name;
+    std::int64_t count = 0;
+};
+struct CullingSummary {
+    std::int64_t analyzed = 0, picks = 0, reviews = 0, rejects = 0, bursts = 0, people = 0;
 };
 enum class CatalogOpenMode { createIfMissing, existingOnly };
 
@@ -147,6 +155,20 @@ class Catalog {
                                                   std::span<const float> embedding, int limit = 100,
                                                   CancellationToken stop = {}) const;
     void clearSemanticIndex();
+    std::vector<std::string> pendingCullingImages(const std::string &provider,
+                                                  const std::vector<std::string> &ids = {}) const;
+    std::optional<std::string> cullingProvider() const;
+    void saveCullingAnalysis(const std::string &id, const std::string &checksum,
+                             const std::string &provider,
+                             const ai::CullingObservation &observation);
+    void rebuildIntelligentGroups(const std::string &provider, CancellationToken stop = {});
+    std::vector<PersonRecord> people() const;
+    void renamePerson(const std::string &id, const std::string &name);
+    std::vector<std::string> cullingIDs(int recommendation = -2, const std::string &personID = {},
+                                        bool bestOfBurstOnly = false) const;
+    std::int64_t applyCullingSuggestions(const std::vector<std::string> &ids);
+    CullingSummary cullingSummary() const;
+    void clearCullingIndex();
     void stageDerived(const DerivedImageRecord &record);
     void finishDerived(const DerivedImageRecord &record);
     void discardDerived(const std::filesystem::path &path);
@@ -194,6 +216,7 @@ class Catalog {
     void migrateCreative();
     void migrateSmartCollections();
     void migrateImportPlans();
+    void migrateIntelligentLibrary();
     void writeCreative(const std::string &assetID, const CreativeSettings &settings);
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);

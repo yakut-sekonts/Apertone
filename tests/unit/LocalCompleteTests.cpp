@@ -332,7 +332,7 @@ void migration() {
                         record->asset.edits.localMasks == luma::decodeLocalMasks(legacy),
                     "Catalog-10 migration changed revision, global edits or gradient data.");
         }
-        require(scalar(path, "PRAGMA user_version") == "21" &&
+        require(scalar(path, "PRAGMA user_version") == "22" &&
                     scalar(path, "SELECT document FROM edit_local_masks LIMIT 1")
                         .starts_with("LUMA_LOCAL_MASKS 3 1\n"),
                 "Migration did not persist version 3.");

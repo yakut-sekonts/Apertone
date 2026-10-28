@@ -26,7 +26,7 @@ class RestoredDataTests(unittest.TestCase):
         self.digest = hashlib.sha256(self.source.read_bytes()).hexdigest()
         with closing(sqlite3.connect(self.catalog)) as database, database:
             database.executescript('''
-                PRAGMA user_version=21;
+                PRAGMA user_version=22;
                 CREATE TABLE assets(id TEXT PRIMARY KEY, original_path TEXT, checksum TEXT);
                 CREATE TABLE edit_documents(asset_id TEXT PRIMARY KEY REFERENCES assets(id), exposure REAL);
                 CREATE TABLE edit_local_masks(asset_id TEXT REFERENCES assets(id), document TEXT);

@@ -26,7 +26,7 @@ class MigrationAuditTests(unittest.TestCase):
         shutil.copyfile(self.catalog, self.backup)
         # Deliberately minimal auditor control; only the native app exercises real migrations.
         with closing(sqlite3.connect(self.catalog)) as db, db:
-            db.execute('PRAGMA user_version=21')
+            db.execute('PRAGMA user_version=22')
             db.execute('CREATE TABLE derived_images(path TEXT PRIMARY KEY)')
             db.execute("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 2 ','LUMA_LOCAL_MASKS 3 ')")
         self.ids = [r[0] for r in self.before['tables']['assets']['rows']]

@@ -74,7 +74,7 @@ try:
         assert (mask_folder/"first.png").read_bytes()==(mask_folder/"second.png").read_bytes()
         with sqlite3.connect(mask_folder/"catalog.sqlite") as db:
             catalog_schema = db.execute("PRAGMA user_version").fetchone()[0]
-            assert catalog_schema == 21, f"Unexpected installed catalog schema: {catalog_schema}"
+            assert catalog_schema == 22, f"Unexpected installed catalog schema: {catalog_schema}"
             masks = db.execute("SELECT document FROM edit_local_masks").fetchone()[0]
             assert masks.startswith("LUMA_LOCAL_MASKS 3 2\n"), "Installed mask document lost its version or two saved masks"
         assert hashlib.sha256(raw.read_bytes()).hexdigest()==checksum
