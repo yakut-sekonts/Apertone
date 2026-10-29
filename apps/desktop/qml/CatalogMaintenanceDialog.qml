@@ -22,20 +22,26 @@ Dialog {
         title: qsTranslate("Apertone", "Refresh last import?")
         modal: true; anchors.centerIn: parent
         width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 300)
         standardButtons: Dialog.Ok | Dialog.Cancel
         onOpened: {
             standardButton(Dialog.Ok).objectName = "catalog.refreshLastImportConfirm"
             standardButton(Dialog.Cancel).objectName = "catalog.refreshLastImportCancel"
         }
-        ColumnLayout {
-            width: parent.width
-            Label {
-                text: qsTranslate("Apertone", "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.")
-                wrapMode: Text.Wrap; Layout.fillWidth: true
-            }
-            Label {
-                text: qsTranslate("Apertone", "If the previous import used Move, newly found originals are moved again after verification.")
-                wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.muted
+        contentItem: ScrollView {
+            id: refreshImportWarning
+            clip: true
+            contentWidth: availableWidth
+            ColumnLayout {
+                width: refreshImportWarning.availableWidth
+                Label {
+                    text: qsTranslate("Apertone", "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.")
+                    wrapMode: Text.Wrap; Layout.fillWidth: true
+                }
+                Label {
+                    text: qsTranslate("Apertone", "If the previous import used Move, newly found originals are moved again after verification.")
+                    wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.muted
+                }
             }
         }
         onAccepted: library.refreshLastImport()
@@ -46,14 +52,21 @@ Dialog {
         title: qsTranslate("Apertone", "Clear library?")
         modal: true; anchors.centerIn: parent
         width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 260)
         standardButtons: Dialog.Ok | Dialog.Cancel
         onOpened: {
             standardButton(Dialog.Ok).objectName = "catalog.clearLibraryConfirm"
             standardButton(Dialog.Cancel).objectName = "catalog.clearLibraryCancel"
         }
-        Label {
-            text: qsTranslate("Apertone", "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.")
-            wrapMode: Text.Wrap; width: parent.width
+        contentItem: ScrollView {
+            id: clearLibraryWarning
+            clip: true
+            contentWidth: availableWidth
+            Label {
+                width: clearLibraryWarning.availableWidth
+                text: qsTranslate("Apertone", "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.")
+                wrapMode: Text.Wrap
+            }
         }
         onAccepted: {
             if (editor.closePhoto()) {
