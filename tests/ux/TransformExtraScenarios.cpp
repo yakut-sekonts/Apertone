@@ -43,7 +43,11 @@ void cancelAuto(Context &c) {
     const bool undo = c.editor.canUndo();
     QueuedCallGate gate(
         c.editor,
-        [&] { return c.editor.transformAutoBusy() && !c.editor.busy() && !c.editor.saving(); },
+        [&] {
+            const auto *cancel = d.item("transformAutoCancel");
+            return c.editor.transformAutoBusy() && !c.editor.busy() && !c.editor.saving() &&
+                   cancel->isVisible() && cancel->isEnabled();
+        },
         [&] {
             d.frame();
             d.click("transformAutoCancel");
