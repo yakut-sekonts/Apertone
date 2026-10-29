@@ -212,6 +212,7 @@ Fixture prepare(Context &c, int count, Replay &replay) {
     const auto preset = c.presets.snapshot("builtin:landscape");
     const auto expected =
         luma::mergeSettings(before, preset.settings, preset.groups, preset.parameters);
+    c.openBuiltinFilters();
     d.click("filter_landscape");
     d.move("develop.preview", {.5, .5});
     require(c.editor.currentSettings() == expected && expected != before,
