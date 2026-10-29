@@ -223,3 +223,11 @@ Qt/QML macOS interface. Begin with an audit of the existing product, then choose
 the visual direction and validate the revised workflows before publication.
 See [redesign direction](docs/POST_1_0_REDESIGN.md). Existing phase order and
 qualification-before-release policy continue to apply.
+
+## 1.4 — Library maintenance
+
+- Refresh the latest completed import using its durable Add, Copy or Move plan.
+- Track exact import sources, show availability and refresh one or all sources.
+- Forget a tracked source without deleting photos, edits, history or files.
+- Clear catalog content atomically while preserving originals, exports, backups
+  and empty collection definitions.

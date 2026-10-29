@@ -171,3 +171,67 @@ bool LibraryModel::refreshLastImport() {
         return false;
     }
 }
+bool LibraryModel::refreshImportSource(const QUrl &source) {
+    if (working() || loading_)
+        return false;
+    try {
+        if (!source.isLocalFile())
+            throw std::runtime_error("Import supports local files");
+        auto replay = luma::Catalog(catalog_).importSource(
+            std::filesystem::path(source.toLocalFile().toStdString()));
+        if (!replay)
+            throw std::runtime_error("Import source is no longer tracked.");
+        replay->options.skipDuplicates = true;
+        importSourceRefreshQueue_.clear();
+        importSourceRefreshIndex_ = importSourceRefreshTotal_ = 1;
+        managedSourceRefresh_ = true;
+        maintenanceStatus_ = QStringLiteral("Refreshing import source…");
+        if (!startImport(std::move(replay->sources), std::move(replay->options))) {
+            managedSourceRefresh_ = false;
+            return false;
+        }
+        return true;
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+        return false;
+    }
+}
+bool LibraryModel::refreshAllImportSources() {
+    if (working() || loading_)
+        return false;
+    try {
+        const auto sources = luma::Catalog(catalog_).importSources();
+        if (sources.empty())
+            throw std::runtime_error("No tracked import sources are available to refresh.");
+        importSourceRefreshQueue_.clear();
+        for (const auto &source : sources) {
+            auto options = source.options;
+            options.skipDuplicates = true;
+            importSourceRefreshQueue_.push_back({{source.path}, std::move(options)});
+        }
+        importSourceRefreshIndex_ = 0;
+        importSourceRefreshTotal_ = static_cast<int>(importSourceRefreshQueue_.size());
+        managedSourceRefresh_ = true;
+        return startNextImportSourceRefresh();
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+        return false;
+    }
+}
+bool LibraryModel::startNextImportSourceRefresh() {
+    if (importSourceRefreshQueue_.empty())
+        return false;
+    auto replay = std::move(importSourceRefreshQueue_.front());
+    importSourceRefreshQueue_.pop_front();
+    ++importSourceRefreshIndex_;
+    maintenanceStatus_ = LocalizedText(QStringLiteral("Refreshing import source %1 of %2…"))
+                             .arg(importSourceRefreshIndex_)
+                             .arg(importSourceRefreshTotal_);
+    if (startImport(std::move(replay.sources), std::move(replay.options)))
+        return true;
+    importSourceRefreshQueue_.clear();
+    managedSourceRefresh_ = false;
+    return false;
+}

@@ -25,6 +25,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString maintenanceStatus READ maintenanceStatus NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList importSources READ importSources NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
     Q_PROPERTY(bool semanticEnabled READ semanticEnabled NOTIFY stateChanged)
     Q_PROPERTY(bool semanticBusy READ semanticBusy NOTIFY stateChanged)
@@ -139,6 +140,9 @@ class LibraryModel final : public QAbstractListModel {
     QString importReport() const {
         return importReport_;
     }
+    QVariantList importSources() const {
+        return importSources_;
+    }
     QVariantList collections() const {
         return collections_;
     }
@@ -226,6 +230,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE bool refreshLastImport();
+    Q_INVOKABLE bool refreshImportSource(const QUrl &source);
+    Q_INVOKABLE bool refreshAllImportSources();
+    Q_INVOKABLE void forgetImportSource(const QUrl &source);
     Q_INVOKABLE void clearLibrary();
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE bool requestClose();
@@ -241,6 +248,7 @@ class LibraryModel final : public QAbstractListModel {
 
   private:
     bool startImport(std::vector<std::filesystem::path> sources, luma::ImportOptions options);
+    bool startNextImportSourceRefresh();
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
     luma::JobManager semanticJobs_;
@@ -282,6 +290,10 @@ class LibraryModel final : public QAbstractListModel {
     LocalizedText status_ = QStringLiteral("Opening catalog…");
     LocalizedText maintenanceStatus_;
     QString error_, importReport_;
+    QVariantList importSources_;
+    std::deque<luma::ImportReplay> importSourceRefreshQueue_;
+    int importSourceRefreshIndex_ = 0, importSourceRefreshTotal_ = 0;
+    bool managedSourceRefresh_ = false;
     QVariantMap descriptiveMetadata_;
     std::uint64_t metadataRevision_ = 0;
     int backupSchedule_ = 2, backupKeep_ = 10;

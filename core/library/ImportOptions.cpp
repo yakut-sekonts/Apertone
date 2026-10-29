@@ -108,7 +108,8 @@ ImportOptions decodeImportOptions(const std::string &document) {
     require(static_cast<bool>(in));
     if (!develop.empty())
         o.develop = decodeEditSnapshot(develop);
-    if (version == 2)
+    o.sourceRootsRecorded = version == 2;
+    if (o.sourceRootsRecorded)
         for (auto &path : readList(in, 65536))
             o.sourceRoots.emplace_back(std::move(path));
     in >> std::ws;

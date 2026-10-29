@@ -283,7 +283,7 @@ void LibraryModel::reload(bool clear) {
                                                               viewportAnchor](const auto &context) {
         std::int64_t count = 0;
         int anchorRow = -1;
-        QVariantList collections, faceGroups;
+        QVariantList collections, faceGroups, importSources;
         QVariantMap cullingSummary;
         QString error;
         try {
@@ -301,6 +301,18 @@ void LibraryModel::reload(bool clear) {
                                                   {"name", QString::fromStdString(c.name)},
                                                   {"smart", c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
+            for (const auto &source : db.importSources()) {
+                std::error_code availabilityError;
+                const bool available = std::filesystem::exists(source.path, availabilityError);
+                importSources.push_back(QVariantMap{
+                    {"url", QUrl::fromLocalFile(QString::fromStdString(source.path.string()))},
+                    {"path", QString::fromStdString(source.path.string())},
+                    {"name", QString::fromStdString(source.path.filename().string())},
+                    {"mode", static_cast<int>(source.options.mode)},
+                    {"destination", QString::fromStdString(source.options.destination.string())},
+                    {"finishedAt", QString::fromStdString(source.finishedAt)},
+                    {"available", !availabilityError && available}});
+            }
             int unnamed = 0;
             for (const auto &group : db.faceGroups()) {
                 const auto displayName =
@@ -326,12 +338,14 @@ void LibraryModel::reload(bool clear) {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, count, collections, faceGroups, cullingSummary, error, revision, anchorRow] {
+                [self, count, collections, faceGroups, importSources, cullingSummary, error,
+                 revision, anchorRow] {
                     if (!self || self->revision_ != revision)
                         return;
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
+                    self->importSources_ = importSources;
                     self->faceGroups_ = faceGroups;
                     self->cullingSummary_ = cullingSummary;
                     // Views may request their first metadata page synchronously
@@ -637,58 +651,77 @@ bool LibraryModel::startImport(std::vector<std::filesystem::path> sources,
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
     try {
-        imports_.submit(
-            luma::JobPriority::background, [self, path, sources, options, stop](const auto &) {
-                QString error, report;
-                LocalizedText message;
-                auto last = std::chrono::steady_clock::now();
-                try {
-                    const auto update = [self, &last](double value, const std::string &name) {
-                        const auto now = std::chrono::steady_clock::now();
-                        if (value < 1 && now - last < std::chrono::milliseconds(100))
+        imports_.submit(luma::JobPriority::background, [self, path, sources, options,
+                                                        stop](const auto &) {
+            QString error, report;
+            LocalizedText message;
+            bool cancelled = false;
+            auto last = std::chrono::steady_clock::now();
+            try {
+                const auto update = [self, &last](double value, const std::string &name) {
+                    const auto now = std::chrono::steady_clock::now();
+                    if (value < 1 && now - last < std::chrono::milliseconds(100))
+                        return;
+                    last = now;
+                    if (self)
+                        QMetaObject::invokeMethod(
+                            self,
+                            [self, value, name] {
+                                if (!self)
+                                    return;
+                                self->progress_ = value;
+                                self->status_ = LocalizedText(QStringLiteral("Importing %1"))
+                                                    .arg(QString::fromStdString(name));
+                                emit self->stateChanged();
+                            },
+                            Qt::QueuedConnection);
+                };
+                const auto result =
+                    luma::LibraryService(path).import(sources, options, stop, update);
+                message = summary(result);
+                report = ::importReport(path, result);
+                cancelled = stop.isCancelled() || result.cancelled > 0;
+            } catch (const std::exception &e) {
+                if (stop.isCancelled()) {
+                    message = QStringLiteral("Import cancelled");
+                    cancelled = true;
+                } else
+                    error = QString::fromUtf8(e.what());
+            }
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, error, message, report, cancelled] {
+                        if (!self)
                             return;
-                        last = now;
-                        if (self)
-                            QMetaObject::invokeMethod(
-                                self,
-                                [self, value, name] {
-                                    if (!self)
-                                        return;
-                                    self->progress_ = value;
-                                    self->status_ = LocalizedText(QStringLiteral("Importing %1"))
-                                                        .arg(QString::fromStdString(name));
-                                    emit self->stateChanged();
-                                },
-                                Qt::QueuedConnection);
-                    };
-                    const auto result =
-                        luma::LibraryService(path).import(sources, options, stop, update);
-                    message = summary(result);
-                    report = ::importReport(path, result);
-                } catch (const std::exception &e) {
-                    if (stop.isCancelled())
-                        message = QStringLiteral("Import cancelled");
-                    else
-                        error = QString::fromUtf8(e.what());
-                }
-                if (self)
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, error, message, report] {
-                            if (!self)
-                                return;
-                            self->importing_ = false;
-                            self->error_ = error;
-                            self->status_ = message;
-                            self->importReport_ = report;
-                            self->reload(false);
+                        self->importing_ = false;
+                        self->error_ = error;
+                        self->status_ = message;
+                        self->importReport_ = report;
+                        if (self->managedSourceRefresh_ && error.isEmpty() && !cancelled &&
+                            !self->importSourceRefreshQueue_.empty()) {
+                            self->startNextImportSourceRefresh();
                             emit self->stateChanged();
-                            if (self->cullingAutoEnabled_ && error.isEmpty())
-                                self->analyzePendingLibrary();
-                            self->checkClose();
-                        },
-                        Qt::QueuedConnection);
-            });
+                            return;
+                        }
+                        if (self->managedSourceRefresh_) {
+                            self->importSourceRefreshQueue_.clear();
+                            self->managedSourceRefresh_ = false;
+                            if (error.isEmpty() && !cancelled)
+                                self->maintenanceStatus_ =
+                                    self->importSourceRefreshTotal_ > 1
+                                        ? LocalizedText(
+                                              QStringLiteral("All import sources refreshed."))
+                                        : LocalizedText(QStringLiteral("Import source refreshed."));
+                        }
+                        self->reload(false);
+                        emit self->stateChanged();
+                        if (self->cullingAutoEnabled_ && error.isEmpty())
+                            self->analyzePendingLibrary();
+                        self->checkClose();
+                    },
+                    Qt::QueuedConnection);
+        });
         return true;
     } catch (const std::exception &failure) {
         importing_ = false;

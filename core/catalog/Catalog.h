@@ -138,6 +138,9 @@ class Catalog {
                           const std::string &error = "", const std::string &assetID = "");
     void finishImport(const std::string &sessionID, const std::string &state);
     std::optional<ImportReplay> latestCompletedImport() const;
+    std::vector<ImportSourceRecord> importSources() const;
+    std::optional<ImportReplay> importSource(const std::filesystem::path &path) const;
+    void forgetImportSource(const std::filesystem::path &path);
     std::vector<ImportJournal> unfinishedImports() const;
     ImportSummary importSummary(const std::string &sessionID) const;
     std::vector<std::string> importProblems(const std::string &sessionID) const;

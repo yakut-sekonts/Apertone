@@ -326,12 +326,79 @@ void libraryMaintenanceTests(const std::filesystem::path &root,
                     std::vector<std::filesystem::path>{std::filesystem::canonical(sources)} &&
                 replay->options.sourceRoots == replay->sources,
             "Last import did not retain the selected source folder.");
+    auto tracked = catalog.importSources();
+    require(tracked.size() == 1 && tracked.front().path == std::filesystem::canonical(sources) &&
+                tracked.front().options.sourceRoots ==
+                    std::vector<std::filesystem::path>{std::filesystem::canonical(sources)},
+            "Managed sources did not expose the exact selected import folder.");
+    const auto exactSource = catalog.importSource(sources);
+    require(exactSource && exactSource->sources == tracked.front().options.sourceRoots &&
+                exactSource->options.skipDuplicates,
+            "Managed source replay did not preserve its safe import plan.");
     replay->options.skipDuplicates = true;
     const auto refreshed = service.import(replay->sources, replay->options);
     require(refreshed.added == 1 && refreshed.duplicates == 1 && refreshed.failed == 0 &&
                 catalog.libraryCount() == 2 &&
                 catalog.assetSnapshot(firstID)->asset.edits.exposure == 1.25,
             "Refreshing the last import lost edits, duplicated an asset, or missed a new photo.");
+
+    const auto otherSources = folder / "other-sources";
+    std::filesystem::create_directories(otherSources);
+    const auto third = otherSources / "third.dng";
+    std::filesystem::copy_file(fixture, third);
+    auto otherOptions = options;
+    otherOptions.recursive = false;
+    const auto otherImport = service.import({otherSources}, otherOptions);
+    require(otherImport.duplicates == 1 && otherImport.failed == 0,
+            "Second managed source fixture import failed.");
+    tracked = catalog.importSources();
+    require(tracked.size() == 2 &&
+                tracked.front().path == std::filesystem::canonical(otherSources) &&
+                !tracked.front().options.recursive &&
+                tracked.back().path == std::filesystem::canonical(sources),
+            "Managed sources were not deduplicated or ordered by recent import settings.");
+    catalog.forgetImportSource(otherSources);
+    tracked = catalog.importSources();
+    require(tracked.size() == 1 && tracked.front().path == std::filesystem::canonical(sources) &&
+                catalog.libraryCount() == 2 &&
+                catalog.assetSnapshot(firstID)->asset.edits.exposure == 1.25 &&
+                std::filesystem::is_regular_file(third),
+            "Forgetting an import source removed photos, edits, files, or another source.");
+    replay = catalog.latestCompletedImport();
+    require(replay && replay->sources ==
+                          std::vector<std::filesystem::path>{std::filesystem::canonical(sources)},
+            "Refresh last import did not skip a forgotten newer source.");
+    throws([&] { catalog.forgetImportSource(otherSources); });
+
+    {
+        LibraryModel model(catalogPath);
+        wait([&] { return !model.working() && !model.loading(); });
+        require(model.importSources().size() == 1,
+                "Library model did not publish the tracked import source.");
+        const auto sourceUrl = model.importSources().front().toMap().value("url").toUrl();
+        require(model.refreshImportSource(sourceUrl),
+                "Library model rejected a tracked import source refresh.");
+        wait([&] { return !model.working() && !model.loading(); });
+        require(model.error().isEmpty() && model.count() == 2 &&
+                    model.maintenanceStatus() == QStringLiteral("Import source refreshed."),
+                "Single managed source refresh failed or changed catalog membership.");
+        require(model.refreshAllImportSources(),
+                "Library model rejected refresh of all tracked sources.");
+        wait([&] { return !model.working() && !model.loading(); });
+        require(model.error().isEmpty() && model.count() == 2 &&
+                    model.maintenanceStatus() == QStringLiteral("Import source refreshed."),
+                "Managed refresh-all failed for a single source.");
+        model.forgetImportSource(sourceUrl);
+        wait([&] { return !model.working() && !model.loading(); });
+        require(
+            model.error().isEmpty() && model.importSources().empty() && model.count() == 2 &&
+                model.maintenanceStatus() ==
+                    QStringLiteral("Import source forgotten. Existing photos were not removed."),
+            "Library model did not forget the source non-destructively.");
+    }
+    require(catalog.libraryCount() == 2 && std::filesystem::is_regular_file(first) &&
+                std::filesystem::is_regular_file(second),
+            "Managed source UI operations removed catalog photos or originals.");
 
     const auto running =
         catalog.beginImport(luma::ImportMode::add, {}, {first}, getpid(), true, {}, options);

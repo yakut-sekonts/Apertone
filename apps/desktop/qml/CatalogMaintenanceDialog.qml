@@ -12,6 +12,14 @@ Dialog {
     height: Math.min(parent.height - 40, 690)
     standardButtons: Dialog.Close
     property url restoreSource: ""
+    property url pendingImportSource: ""
+    property string pendingImportSourcePath: ""
+    readonly property var managedImportSources: library.importSources || []
+    function importModeName(mode) {
+        if (mode === 1) return qsTranslate("Apertone", "Copy")
+        if (mode === 2) return qsTranslate("Apertone", "Move")
+        return qsTranslate("Apertone", "Add")
+    }
     readonly property bool maintenanceReady: !library.working && !library.loading &&
         !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy &&
         !editor.retouchBusy && !editor.creativeBusy && !editor.whiteBalanceBusy &&
@@ -75,6 +83,139 @@ Dialog {
             }
         }
     }
+    Dialog {
+        id: refreshSourceDialog
+        objectName: "catalog.refreshSourceDialog"
+        title: qsTranslate("Apertone", "Refresh import source?")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 260)
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        contentItem: Label {
+            text: qsTranslate("Apertone", "Scan this source using its most recent import settings? Existing photos and edits are preserved. New files may be copied or moved according to those settings.") + "\n\n" + dialog.pendingImportSourcePath
+            textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere
+        }
+        onAccepted: library.refreshImportSource(dialog.pendingImportSource)
+    }
+    Dialog {
+        id: refreshAllSourcesDialog
+        objectName: "catalog.refreshAllSourcesDialog"
+        title: qsTranslate("Apertone", "Refresh all import sources?")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 260)
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        contentItem: Label {
+            text: qsTranslate("Apertone", "Scan every tracked source in order using its most recent import settings? Existing photos and edits are preserved. Unavailable sources are reported and do not remove photos.")
+            wrapMode: Text.Wrap
+        }
+        onAccepted: library.refreshAllImportSources()
+    }
+    Dialog {
+        id: forgetSourceDialog
+        objectName: "catalog.forgetSourceDialog"
+        title: qsTranslate("Apertone", "Forget import source?")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 40, 480)
+        implicitHeight: Math.min(dialog.height - 40, 250)
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        contentItem: Label {
+            text: qsTranslate("Apertone", "Stop tracking this source? Existing photos, edits and import history remain in the catalog. Files are not deleted.") + "\n\n" + dialog.pendingImportSourcePath
+            textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere
+        }
+        onAccepted: library.forgetImportSource(dialog.pendingImportSource)
+    }
+    Dialog {
+        id: importSourcesDialog
+        objectName: "catalog.importSourcesDialog"
+        title: qsTranslate("Apertone", "Import sources")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 20, 520)
+        height: Math.min(dialog.height - 40, 560)
+        standardButtons: Dialog.Close
+        contentItem: ScrollView {
+            id: importSourcesView
+            clip: true; contentWidth: availableWidth
+            ColumnLayout {
+                width: importSourcesView.availableWidth; spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTranslate("Apertone", "Import sources")
+                        Layout.fillWidth: true
+                    }
+                    ApertoneButton {
+                        objectName: "catalog.refreshAllSources"
+                        text: qsTranslate("Apertone", "Refresh all")
+                        enabled: dialog.maintenanceReady && dialog.managedImportSources.length > 0
+                        onClicked: refreshAllSourcesDialog.open()
+                    }
+                }
+                Label {
+                    visible: dialog.managedImportSources.length === 0
+                    text: qsTranslate("Apertone", "Sources from new imports appear here.")
+                    color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
+                }
+                Repeater {
+                    model: dialog.managedImportSources
+                    delegate: Rectangle {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        implicitHeight: sourceContent.implicitHeight + 16
+                        radius: Theme.radius
+                        color: Theme.panelRaised
+                        border.color: Theme.divider
+                        ColumnLayout {
+                            id: sourceContent
+                            anchors.fill: parent; anchors.margins: 8; spacing: 5
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Label {
+                                    text: modelData.name || modelData.path
+                                    textFormat: Text.PlainText; elide: Text.ElideMiddle
+                                    Layout.fillWidth: true
+                                }
+                                Label {
+                                    text: dialog.importModeName(modelData.mode)
+                                    color: Theme.muted
+                                }
+                                Label {
+                                    text: modelData.available ? qsTranslate("Apertone", "Available") : qsTranslate("Apertone", "Unavailable")
+                                    color: modelData.available ? Theme.positive : Theme.warning
+                                }
+                            }
+                            Label {
+                                text: modelData.path; textFormat: Text.PlainText
+                                elide: Text.ElideMiddle; color: Theme.muted; Layout.fillWidth: true
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                Item { Layout.fillWidth: true }
+                                ApertoneButton {
+                                    text: qsTranslate("Apertone", "Refresh")
+                                    enabled: dialog.maintenanceReady
+                                    onClicked: {
+                                        dialog.pendingImportSource = modelData.url
+                                        dialog.pendingImportSourcePath = modelData.path
+                                        refreshSourceDialog.open()
+                                    }
+                                }
+                                ApertoneButton {
+                                    text: qsTranslate("Apertone", "Forget")
+                                    enabled: dialog.maintenanceReady
+                                    onClicked: {
+                                        dialog.pendingImportSource = modelData.url
+                                        dialog.pendingImportSourcePath = modelData.path
+                                        forgetSourceDialog.open()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     FileDialog {
         id: newCatalog
         title: qsTranslate("Apertone", "Create catalog")
@@ -112,12 +253,21 @@ Dialog {
             ApertoneButton { text: qsTranslate("Apertone", "Open catalog in a new window"); enabled: !library.working; onClicked: openCatalog.open(); Layout.fillWidth: true }
         }
         Label { text: qsTranslate("Apertone", "Library maintenance") }
-        ApertoneButton {
-            objectName: "catalog.refreshLastImport"
-            text: qsTranslate("Apertone", "Refresh last import")
-            enabled: dialog.maintenanceReady
-            onClicked: refreshImportDialog.open()
+        RowLayout {
             Layout.fillWidth: true
+            ApertoneButton {
+                objectName: "catalog.refreshLastImport"
+                text: qsTranslate("Apertone", "Refresh last import")
+                enabled: dialog.maintenanceReady
+                onClicked: refreshImportDialog.open()
+                Layout.fillWidth: true
+            }
+            ApertoneButton {
+                objectName: "catalog.manageImportSources"
+                text: qsTranslate("Apertone", "Manage sources")
+                enabled: dialog.maintenanceReady
+                onClicked: importSourcesDialog.open()
+            }
         }
         Label {
             text: qsTranslate("Apertone", "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.")
