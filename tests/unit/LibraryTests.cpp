@@ -291,6 +291,62 @@ void importTests(const std::filesystem::path &root, const std::filesystem::path 
     db.finishImport(live, "cancelled");
     db.verify();
 }
+void libraryMaintenanceTests(const std::filesystem::path &root,
+                             const std::filesystem::path &fixture) {
+    const auto folder = root / "library-maintenance";
+    const auto sources = folder / "sources";
+    const auto nested = sources / "nested";
+    std::filesystem::create_directories(nested);
+    const auto first = sources / "first.dng";
+    std::filesystem::copy_file(fixture, first);
+    const auto catalogPath = folder / "catalog.sqlite";
+    luma::LibraryService service(catalogPath);
+    luma::ImportOptions options;
+    const auto initial = service.import({sources}, options);
+    require(initial.added == 1 && initial.failed == 0,
+            "Maintenance fixture initial import failed.");
+
+    luma::Catalog catalog(catalogPath);
+    const auto firstID = catalog.libraryIDs({}).at(0);
+    catalog.saveExposure(firstID, 1.25);
+    const auto collection = catalog.createCollection("Keep empty");
+    catalog.collectionMembership(collection, {firstID}, true);
+    const auto second = nested / "second.dng";
+    std::filesystem::copy_file(fixture, second);
+    {
+        std::fstream changed(second, std::ios::binary | std::ios::in | std::ios::out);
+        changed.seekp(-2, std::ios::end);
+        changed.put('\0');
+        changed.put('\0');
+    }
+
+    auto replay = catalog.latestCompletedImport();
+    require(replay &&
+                replay->sources ==
+                    std::vector<std::filesystem::path>{std::filesystem::canonical(sources)} &&
+                replay->options.sourceRoots == replay->sources,
+            "Last import did not retain the selected source folder.");
+    replay->options.skipDuplicates = true;
+    const auto refreshed = service.import(replay->sources, replay->options);
+    require(refreshed.added == 1 && refreshed.duplicates == 1 && refreshed.failed == 0 &&
+                catalog.libraryCount() == 2 &&
+                catalog.assetSnapshot(firstID)->asset.edits.exposure == 1.25,
+            "Refreshing the last import lost edits, duplicated an asset, or missed a new photo.");
+
+    const auto running =
+        catalog.beginImport(luma::ImportMode::add, {}, {first}, getpid(), true, {}, options);
+    throws([&] { catalog.clearLibrary(); });
+    require(catalog.libraryCount() == 2,
+            "Rejected clear partially changed a catalog with an active import.");
+    catalog.finishImport(running, "cancelled");
+    catalog.clearLibrary();
+    require(
+        catalog.libraryCount() == 0 && !catalog.activeAsset() && !catalog.latestCompletedImport() &&
+            catalog.collections().size() == 1 && catalog.collections().front().count == 0 &&
+            std::filesystem::is_regular_file(first) && std::filesystem::is_regular_file(second),
+        "Clearing the library removed originals, retained catalog content, or lost collections.");
+    catalog.verify();
+}
 void viewportTests(const std::filesystem::path &root) {
     const auto path = root / "viewport.sqlite";
     luma::Catalog db(path);
@@ -813,6 +869,7 @@ int main(int argc, char **argv) {
             maintenanceAfterCancelledImportTests(root, argv[1]);
             catalogTests(root, argv[1]);
             importTests(root, argv[1]);
+            libraryMaintenanceTests(root, argv[1]);
             viewportTests(root);
             firstPageOnResetTests(root);
             modelTests(root, false);

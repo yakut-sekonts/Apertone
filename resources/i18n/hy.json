@@ -847,6 +847,21 @@
     "Soft focus": "Ոչ հստակ ֆոկուս",
     "face groups": "դեմքերի խումբ",
     "picks": "ընտրված",
-    "Face group name must contain text and fit 128 characters.": "Դեմքերի խմբի անունը պետք է պարունակի տեքստ և չգերազանցի 128 նիշը։"
+    "Face group name must contain text and fit 128 characters.": "Դեմքերի խմբի անունը պետք է պարունակի տեքստ և չգերազանցի 128 նիշը։",
+    "Refresh last import?": "Թարմացնե՞լ վերջին ներմուծումը",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "Կրկին սկանավորում է վերջին ավարտված ներմուծման համար ընտրված ֆայլերն ու պանակները՝ նույն Add, Copy կամ Move կարգավորումներով։ Գոյություն ունեցող լուսանկարներն ու խմբագրումները պահպանվում են, իսկ նոր աջակցվող լուսանկարները ներմուծվում են։",
+    "If the previous import used Move, newly found originals are moved again after verification.": "Եթե նախորդ ներմուծումն օգտագործել է Move, նոր գտնված բնօրինակները ստուգումից հետո կրկին կտեղափոխվեն։",
+    "Clear library?": "Մաքրե՞լ գրադարանը",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "Հեռացնե՞լ այս կատալոգից բոլոր լուսանկարները, խմբագրումները, մետատվյալները, ներմուծման պատմությունը և տեղային վերլուծությունը։ Հավաքածուները կմնան դատարկ։ Բնօրինակները, արտահանված ֆայլերը և պահուստային պատճենները կմնան սկավառակի վրա։ Գործողությունը հետարկել հնարավոր չէ։",
+    "Library maintenance": "Գրադարանի սպասարկում",
+    "Refresh last import": "Թարմացնել վերջին ներմուծումը",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "Ներմուծում է նոր աջակցվող ֆայլերը վերջին ընտրված աղբյուրներից։ Կրկնօրինակ լուսանկարներն ու խմբագրումները պահպանվում են, իսկ փոփոխված բնօրինակները նշվում են ստուգման համար։",
+    "Clear library": "Մաքրել գրադարանը",
+    "Refreshing the last import…": "Վերջին ներմուծումը թարմացվում է…",
+    "No completed import is available to refresh.": "Թարմացնելու համար ավարտված ներմուծում չկա։",
+    "The last completed import has no reusable sources.": "Վերջին ավարտված ներմուծումը կրկին օգտագործելի աղբյուրներ չունի։",
+    "Library cleared. Originals were not deleted.": "Գրադարանը մաքրված է։ Բնօրինակները չեն ջնջվել։",
+    "Finish or cancel the active import before clearing the library.": "Գրադարանը մաքրելուց առաջ ավարտեք կամ չեղարկեք ակտիվ ներմուծումը։",
+    "Finish the active HDR or panorama operation before clearing the library.": "Գրադարանը մաքրելուց առաջ ավարտեք ակտիվ HDR կամ համայնապատկերային գործողությունը։"
   }
 }

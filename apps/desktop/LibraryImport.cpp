@@ -153,3 +153,21 @@ bool LibraryModel::importAdvanced(const QList<QUrl> &urls, const QVariantMap &se
         return false;
     }
 }
+bool LibraryModel::refreshLastImport() {
+    if (working() || loading_)
+        return false;
+    try {
+        auto replay = luma::Catalog(catalog_).latestCompletedImport();
+        if (!replay)
+            throw std::runtime_error("No completed import is available to refresh.");
+        // A refresh may discover the same files again. Never replace their catalog
+        // identity or processing state, even if the original import allowed duplicates.
+        replay->options.skipDuplicates = true;
+        maintenanceStatus_ = QStringLiteral("Refreshing the last import…");
+        return startImport(std::move(replay->sources), std::move(replay->options));
+    } catch (const std::exception &failure) {
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+        return false;
+    }
+}

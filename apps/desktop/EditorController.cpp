@@ -338,6 +338,40 @@ void EditorController::openFile(const QUrl &url) {
     }
     load(std::filesystem::path(url.toLocalFile().toStdString()));
 }
+bool EditorController::closePhoto() {
+    if (busy() || saving() || exporting_ || aiBusy_ || retouchBusy_ || creativeBusy_ ||
+        whiteBalanceBusy_ || transformAutoBusy_ || editingLocked_)
+        return false;
+    closeCompare();
+    cancelCreative();
+    cancelWhiteBalance();
+    cancelAI();
+    cancelRetouch();
+    closeTransformTool();
+    endEdit();
+    refineTimer_.stop();
+    loadCancellation_.cancel();
+    renderJob_.cancel();
+    ++loadRevision_;
+    ++renderRevision_;
+    session_.reset();
+    history_ = luma::EditHistory{};
+    ++historyGeneration_;
+    parametersCache_.reset();
+    processingVersions_.clear();
+    selectedVersionID_.clear();
+    presetPreview_.reset();
+    previewReady_ = false;
+    original_ = false;
+    resetPreviewZoom();
+    provider_->update({});
+    publishHistogram(std::nullopt);
+    status_ = QStringLiteral("Open a photo to begin");
+    error_.clear();
+    emit previewChanged();
+    emit stateChanged();
+    return true;
+}
 void EditorController::load(std::optional<std::filesystem::path> source) {
     if (versionsBusy_)
         return;

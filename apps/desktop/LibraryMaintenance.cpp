@@ -64,6 +64,26 @@ void LibraryModel::initializeMaintenance() {
         emit stateChanged();
     });
 }
+void LibraryModel::clearLibrary() {
+    if (working() || loading_)
+        return;
+    mutate([](luma::Catalog &catalog) { catalog.clearLibrary(); },
+           [this] {
+               activeID_.clear();
+               viewportAnchor_.clear();
+               sourceWatchTimer_.stop();
+               sourceAvailabilityJob_.cancel();
+               if (!sourceWatcher_.directories().isEmpty())
+                   sourceWatcher_.removePaths(sourceWatcher_.directories());
+               descriptiveMetadata_.clear();
+               importReport_.clear();
+               maintenanceStatus_ = QStringLiteral("Library cleared. Originals were not deleted.");
+               status_ = maintenanceStatus_;
+               reload(true);
+               emit metadataChanged();
+               return true;
+           });
+}
 void LibraryModel::refreshSourceAvailability() {
     sourceAvailabilityJob_.cancel();
     const auto revision = revision_;

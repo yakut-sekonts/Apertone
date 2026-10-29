@@ -12,6 +12,52 @@ Dialog {
     height: Math.min(parent.height - 40, 690)
     standardButtons: Dialog.Close
     property url restoreSource: ""
+    Dialog {
+        id: refreshImportDialog
+        objectName: "catalog.refreshLastImportDialog"
+        title: qsTranslate("Apertone", "Refresh last import?")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 40, 480)
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onOpened: {
+            standardButton(Dialog.Ok).objectName = "catalog.refreshLastImportConfirm"
+            standardButton(Dialog.Cancel).objectName = "catalog.refreshLastImportCancel"
+        }
+        ColumnLayout {
+            width: parent.width
+            Label {
+                text: qsTranslate("Apertone", "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            Label {
+                text: qsTranslate("Apertone", "If the previous import used Move, newly found originals are moved again after verification.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.muted
+            }
+        }
+        onAccepted: library.refreshLastImport()
+    }
+    Dialog {
+        id: clearLibraryDialog
+        objectName: "catalog.clearLibraryDialog"
+        title: qsTranslate("Apertone", "Clear library?")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(dialog.width - 40, 480)
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onOpened: {
+            standardButton(Dialog.Ok).objectName = "catalog.clearLibraryConfirm"
+            standardButton(Dialog.Cancel).objectName = "catalog.clearLibraryCancel"
+        }
+        Label {
+            text: qsTranslate("Apertone", "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.")
+            wrapMode: Text.Wrap; width: parent.width
+        }
+        onAccepted: {
+            if (editor.closePhoto()) {
+                editor.clearPreviewCache()
+                library.clearLibrary()
+            }
+        }
+    }
     FileDialog {
         id: newCatalog
         title: qsTranslate("Apertone", "Create catalog")
@@ -47,6 +93,25 @@ Dialog {
             Layout.fillWidth: true
             ApertoneButton { text: qsTranslate("Apertone", "Create catalog"); enabled: !library.working; onClicked: newCatalog.open(); Layout.fillWidth: true }
             ApertoneButton { text: qsTranslate("Apertone", "Open catalog in a new window"); enabled: !library.working; onClicked: openCatalog.open(); Layout.fillWidth: true }
+        }
+        Label { text: qsTranslate("Apertone", "Library maintenance") }
+        ApertoneButton {
+            objectName: "catalog.refreshLastImport"
+            text: qsTranslate("Apertone", "Refresh last import")
+            enabled: !library.working && !library.loading && !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy
+            onClicked: refreshImportDialog.open()
+            Layout.fillWidth: true
+        }
+        Label {
+            text: qsTranslate("Apertone", "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.")
+            wrapMode: Text.Wrap; color: Theme.muted; Layout.fillWidth: true
+        }
+        ApertoneButton {
+            objectName: "catalog.clearLibrary"
+            text: qsTranslate("Apertone", "Clear library")
+            enabled: !library.working && !library.loading && !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy
+            onClicked: clearLibraryDialog.open()
+            Layout.fillWidth: true
         }
         Label { text: qsTranslate("Apertone", "Automatic catalog backup") }
         ApertoneComboBox {

@@ -847,6 +847,21 @@
     "Soft focus": "焦点偏软",
     "face groups": "面孔组",
     "picks": "精选",
-    "Face group name must contain text and fit 128 characters.": "人脸分组名称必须包含文字且不超过 128 个字符。"
+    "Face group name must contain text and fit 128 characters.": "人脸分组名称必须包含文字且不超过 128 个字符。",
+    "Refresh last import?": "刷新上次导入？",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "使用相同的添加、复制或移动设置，重新扫描上次已完成导入时选择的文件和文件夹。现有照片和编辑会保留，并导入新的受支持照片。",
+    "If the previous import used Move, newly found originals are moved again after verification.": "如果上次导入使用了移动，新发现的原片在验证后会再次被移动。",
+    "Clear library?": "清空图库？",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "从此目录中移除所有照片、编辑、元数据、导入历史和本地分析？收藏集会保留为空。原片、导出文件和备份仍保留在磁盘上。此操作无法撤销。",
+    "Library maintenance": "图库维护",
+    "Refresh last import": "刷新上次导入",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "从上次选择的来源导入新的受支持文件。重复照片和现有编辑会保留；已更改的原片会报告以供检查。",
+    "Clear library": "清空图库",
+    "Refreshing the last import…": "正在刷新上次导入…",
+    "No completed import is available to refresh.": "没有可刷新的已完成导入。",
+    "The last completed import has no reusable sources.": "上次已完成导入没有可重复使用的来源。",
+    "Library cleared. Originals were not deleted.": "图库已清空。原片未被删除。",
+    "Finish or cancel the active import before clearing the library.": "请先完成或取消正在进行的导入，再清空图库。",
+    "Finish the active HDR or panorama operation before clearing the library.": "请先完成正在进行的 HDR 或全景操作，再清空图库。"
   }
 }

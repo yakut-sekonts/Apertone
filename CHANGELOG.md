@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.4.0 / Unreleased
+
+- Added **Refresh last import**. Apertone persistently records the exact files
+  and folders selected for new imports, rescans them with the same Add, Copy or
+  Move settings, skips catalog duplicates and preserves existing edits.
+- Added a guarded **Clear library** operation that atomically removes catalog
+  photos, edits, metadata, import history and local analysis while leaving
+  originals, exports and backups on disk. Collections remain available and
+  empty after the reset.
+- Added explicit confirmation, active-operation guards, editor/preview cleanup,
+  backward reading of older import plans and localized UI in all eight bundled
+  languages.
+
 ## 1.3.1 / 2026-10-28
 
 - Added an opt-in Intelligent Library that analyzes selected photos or new

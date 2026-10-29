@@ -847,6 +847,21 @@
     "Soft focus": "Soft focus",
     "face groups": "face groups",
     "picks": "picks",
-    "Face group name must contain text and fit 128 characters.": "Face group name must contain text and fit 128 characters."
+    "Face group name must contain text and fit 128 characters.": "Face group name must contain text and fit 128 characters.",
+    "Refresh last import?": "Refresh last import?",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.",
+    "If the previous import used Move, newly found originals are moved again after verification.": "If the previous import used Move, newly found originals are moved again after verification.",
+    "Clear library?": "Clear library?",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.",
+    "Library maintenance": "Library maintenance",
+    "Refresh last import": "Refresh last import",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.",
+    "Clear library": "Clear library",
+    "Refreshing the last import…": "Refreshing the last import…",
+    "No completed import is available to refresh.": "No completed import is available to refresh.",
+    "The last completed import has no reusable sources.": "The last completed import has no reusable sources.",
+    "Library cleared. Originals were not deleted.": "Library cleared. Originals were not deleted.",
+    "Finish or cancel the active import before clearing the library.": "Finish or cancel the active import before clearing the library.",
+    "Finish the active HDR or panorama operation before clearing the library.": "Finish the active HDR or panorama operation before clearing the library."
   }
 }

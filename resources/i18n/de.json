@@ -847,6 +847,21 @@
     "Soft focus": "Weicher Fokus",
     "face groups": "Gesichtsgruppen",
     "picks": "Auswahl",
-    "Face group name must contain text and fit 128 characters.": "Der Name der Gesichtsgruppe muss Text enthalten und darf höchstens 128 Zeichen lang sein."
+    "Face group name must contain text and fit 128 characters.": "Der Name der Gesichtsgruppe muss Text enthalten und darf höchstens 128 Zeichen lang sein.",
+    "Refresh last import?": "Letzten Import aktualisieren?",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "Durchsucht die für den letzten abgeschlossenen Import ausgewählten Dateien und Ordner erneut mit denselben Einstellungen für Hinzufügen, Kopieren oder Verschieben. Vorhandene Fotos und Bearbeitungen bleiben erhalten; neue unterstützte Fotos werden importiert.",
+    "If the previous import used Move, newly found originals are moved again after verification.": "Wenn beim vorherigen Import Verschieben verwendet wurde, werden neu gefundene Originale nach der Prüfung erneut verschoben.",
+    "Clear library?": "Bibliothek leeren?",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "Alle Fotos, Bearbeitungen, Metadaten, den Importverlauf und die lokale Analyse aus diesem Katalog entfernen? Sammlungen bleiben leer erhalten. Originale, exportierte Dateien und Sicherungen bleiben auf dem Datenträger. Dies kann nicht rückgängig gemacht werden.",
+    "Library maintenance": "Bibliothekswartung",
+    "Refresh last import": "Letzten Import aktualisieren",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "Importiert neue unterstützte Dateien aus den zuletzt ausgewählten Quellen. Doppelte Fotos und vorhandene Bearbeitungen bleiben erhalten; geänderte Originale werden zur Prüfung gemeldet.",
+    "Clear library": "Bibliothek leeren",
+    "Refreshing the last import…": "Letzter Import wird aktualisiert…",
+    "No completed import is available to refresh.": "Es ist kein abgeschlossener Import zum Aktualisieren verfügbar.",
+    "The last completed import has no reusable sources.": "Der letzte abgeschlossene Import enthält keine wiederverwendbaren Quellen.",
+    "Library cleared. Originals were not deleted.": "Bibliothek geleert. Originale wurden nicht gelöscht.",
+    "Finish or cancel the active import before clearing the library.": "Beenden oder brechen Sie den aktiven Import ab, bevor Sie die Bibliothek leeren.",
+    "Finish the active HDR or panorama operation before clearing the library.": "Beenden Sie den aktiven HDR- oder Panoramavorgang, bevor Sie die Bibliothek leeren."
   }
 }

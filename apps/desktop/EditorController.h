@@ -495,6 +495,7 @@ class EditorController final : public QObject {
     void restore();
     void setWindow(QQuickWindow *window);
     Q_INVOKABLE void openFile(const QUrl &url);
+    Q_INVOKABLE bool closePhoto();
     Q_INVOKABLE void beginEdit();
     Q_INVOKABLE void endEdit();
     Q_INVOKABLE void setParameter(const QString &name, double value);

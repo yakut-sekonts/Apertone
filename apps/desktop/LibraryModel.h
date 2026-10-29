@@ -225,6 +225,8 @@ class LibraryModel final : public QAbstractListModel {
                                     const QString &developPreset);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
+    Q_INVOKABLE bool refreshLastImport();
+    Q_INVOKABLE void clearLibrary();
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE bool requestClose();
   signals:
