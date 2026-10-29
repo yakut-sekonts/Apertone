@@ -883,6 +883,7 @@
     "Import source forgotten. Existing photos were not removed.": "Se olvidó la fuente de importación. No se eliminaron las fotos existentes.",
     "Import source is no longer tracked.": "La fuente de importación ya no está registrada.",
     "No tracked import sources are available to refresh.": "No hay fuentes de importación registradas disponibles para actualizar.",
-    "Invalid import source.": "Fuente de importación no válida."
+    "Invalid import source.": "Fuente de importación no válida.",
+    "Manage sources": "Gestionar fuentes"
   }
 }

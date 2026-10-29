@@ -883,6 +883,7 @@
     "Import source forgotten. Existing photos were not removed.": "已忘记导入源。未删除现有照片。",
     "Import source is no longer tracked.": "不再跟踪此导入源。",
     "No tracked import sources are available to refresh.": "没有可刷新的已跟踪导入源。",
-    "Invalid import source.": "无效的导入源。"
+    "Invalid import source.": "无效的导入源。",
+    "Manage sources": "管理来源"
   }
 }

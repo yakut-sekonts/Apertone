@@ -883,6 +883,7 @@
     "Import source forgotten. Existing photos were not removed.": "Источник импорта забыт. Существующие фотографии не удалены.",
     "Import source is no longer tracked.": "Источник импорта больше не отслеживается.",
     "No tracked import sources are available to refresh.": "Нет отслеживаемых источников импорта для обновления.",
-    "Invalid import source.": "Недопустимый источник импорта."
+    "Invalid import source.": "Недопустимый источник импорта.",
+    "Manage sources": "Управление источниками"
   }
 }

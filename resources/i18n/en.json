@@ -883,6 +883,7 @@
     "Import source forgotten. Existing photos were not removed.": "Import source forgotten. Existing photos were not removed.",
     "Import source is no longer tracked.": "Import source is no longer tracked.",
     "No tracked import sources are available to refresh.": "No tracked import sources are available to refresh.",
-    "Invalid import source.": "Invalid import source."
+    "Invalid import source.": "Invalid import source.",
+    "Manage sources": "Manage sources"
   }
 }

@@ -883,6 +883,7 @@
     "Import source forgotten. Existing photos were not removed.": "Ներմուծման աղբյուրը մոռացվել է։ Գոյություն ունեցող լուսանկարները չեն հեռացվել։",
     "Import source is no longer tracked.": "Ներմուծման աղբյուրն այլևս չի հետևվում։",
     "No tracked import sources are available to refresh.": "Թարմացման համար հետևվող ներմուծման աղբյուրներ չկան։",
-    "Invalid import source.": "Ներմուծման անվավեր աղբյուր։"
+    "Invalid import source.": "Ներմուծման անվավեր աղբյուր։",
+    "Manage sources": "Կառավարել աղբյուրները"
   }
 }
