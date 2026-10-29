@@ -44,6 +44,9 @@ enum class ImportMode : std::uint8_t { add, copy, move };
 struct ImportOptions {
     ImportMode mode = ImportMode::add;
     std::filesystem::path destination;
+    // The exact files or folders selected by the user. They are persisted so the
+    // last completed import can be scanned again without guessing a common parent.
+    std::vector<std::filesystem::path> sourceRoots;
     bool recursive = true;
     bool skipDuplicates = true;
     // Capture date in UTC; missing dates use the timestamp frozen at session start.
@@ -58,6 +61,10 @@ struct ImportOptions {
 struct ImportSummary {
     std::string sessionID;
     std::int64_t added = 0, duplicates = 0, failed = 0, cancelled = 0;
+};
+struct ImportReplay {
+    std::vector<std::filesystem::path> sources;
+    ImportOptions options;
 };
 struct ImportJournalItem {
     std::string sessionID;

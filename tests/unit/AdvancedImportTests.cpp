@@ -43,12 +43,18 @@ void optionsAndNaming() {
     options.naming = "{date}-{seq}-{name}";
     options.metadata.copyright = "Author";
     options.metadata.keywords = {"Travel"};
+    options.sourceRoots = {"/tmp/Input", "/tmp/Input/photo.raw"};
     options.develop.emplace();
     options.develop->setParameter("presence.texture", 45);
     const auto encoded = luma::encodeImportOptions(options);
     const auto decoded = luma::decodeImportOptions(encoded);
-    require(luma::encodeImportOptions(decoded) == encoded && decoded.develop == options.develop,
+    require(luma::encodeImportOptions(decoded) == encoded && decoded.develop == options.develop &&
+                decoded.sourceRoots == options.sourceRoots,
             "Import snapshot did not retain its options and creative settings.");
+    const auto legacy = luma::decodeImportOptions(
+        "LUMA_IMPORT 1 0 \"\" 1 1 0 \"{name}\" \"\" 0 \"\" \"\" \"\" \"\" 0 0 \"\" 0 0 \"\"\n");
+    require(legacy.sourceRoots.empty() && legacy.mode == luma::ImportMode::add,
+            "Legacy import snapshot did not remain readable.");
     require(luma::importRelativePath("{date}.JPG", {}, 1, options) ==
                 "2021/01/01/2021-01-01-000002-{date}.JPG",
             "Date fallback, sequence, or literal source-name braces changed.");

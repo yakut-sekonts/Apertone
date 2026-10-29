@@ -421,6 +421,39 @@ void Catalog::finishImport(const std::string &sessionID, const std::string &stat
         throw;
     }
 }
+std::optional<ImportReplay> Catalog::latestCompletedImport() const {
+    Statement session(db_,
+                      "SELECT s.id,s.mode,s.destination,s.skip_duplicates,COALESCE(o.document,'') "
+                      "FROM import_sessions s LEFT JOIN import_options o ON o.session_id=s.id "
+                      "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.rowid DESC "
+                      "LIMIT 1");
+    if (!session.row())
+        return std::nullopt;
+    const auto sessionID = session.string(0);
+    ImportReplay replay;
+    if (const auto document = session.string(4); !document.empty())
+        replay.options = decodeImportOptions(document);
+    else {
+        replay.options.mode = session.string(1) == "copy" ? ImportMode::copy : ImportMode::add;
+        replay.options.destination = session.string(2);
+        replay.options.skipDuplicates = session.integer(3) != 0;
+    }
+    replay.sources = replay.options.sourceRoots;
+    if (replay.sources.empty()) {
+        Statement items(db_, "SELECT source_path FROM import_items WHERE session_id=?1 "
+                             "ORDER BY position");
+        items.text(1, sessionID);
+        std::set<std::filesystem::path> unique;
+        while (items.row()) {
+            std::filesystem::path source(items.string(0));
+            if (unique.insert(source).second)
+                replay.sources.push_back(std::move(source));
+        }
+    }
+    if (replay.sources.empty())
+        throw std::runtime_error("The last completed import has no reusable sources.");
+    return replay;
+}
 std::vector<ImportJournal> Catalog::unfinishedImports() const {
     Statement sessions(db_, "SELECT id,state,mode,owner_pid,destination,skip_duplicates FROM "
                             "import_sessions WHERE state='running' ORDER BY created_at,id");
@@ -513,6 +546,31 @@ std::vector<std::string> Catalog::importProblems(const std::string &sessionID) c
     while (query.row())
         results.push_back(query.string(0) + "\n" + query.string(1));
     return results;
+}
+void Catalog::clearLibrary() {
+    execute("BEGIN IMMEDIATE;");
+    try {
+        Statement running(db_, "SELECT 1 FROM import_sessions WHERE state='running' LIMIT 1");
+        if (running.row())
+            throw std::runtime_error(
+                "Finish or cancel the active import before clearing the library.");
+        Statement derived(db_, "SELECT 1 FROM derived_images LIMIT 1");
+        if (derived.row())
+            throw std::runtime_error(
+                "Finish the active HDR or panorama operation before clearing the library.");
+        execute("DELETE FROM session;"
+                "DELETE FROM import_item_plans;"
+                "DELETE FROM import_options;"
+                "DELETE FROM import_items;"
+                "DELETE FROM import_sessions;"
+                "DELETE FROM face_groups;"
+                "DELETE FROM burst_stacks;"
+                "DELETE FROM assets;");
+        execute("COMMIT;");
+    } catch (...) {
+        sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+        throw;
+    }
 }
 } // namespace luma
 

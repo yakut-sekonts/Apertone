@@ -847,6 +847,21 @@
     "Soft focus": "Нерезкий кадр",
     "face groups": "групп лиц",
     "picks": "лучших",
-    "Face group name must contain text and fit 128 characters.": "Название группы лиц должно содержать текст и быть не длиннее 128 символов."
+    "Face group name must contain text and fit 128 characters.": "Название группы лиц должно содержать текст и быть не длиннее 128 символов.",
+    "Refresh last import?": "Обновить последний импорт?",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "Повторно сканирует файлы и папки, выбранные для последнего завершённого импорта, с теми же настройками Add, Copy или Move. Существующие фотографии и правки сохраняются; новые поддерживаемые фотографии импортируются.",
+    "If the previous import used Move, newly found originals are moved again after verification.": "Если в предыдущем импорте использовался Move, новые найденные оригиналы после проверки будут снова перемещены.",
+    "Clear library?": "Очистить библиотеку?",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "Удалить из этого каталога все фотографии, правки, метаданные, историю импорта и локальный анализ? Коллекции останутся пустыми. Оригиналы, экспортированные файлы и резервные копии останутся на диске. Это действие нельзя отменить.",
+    "Library maintenance": "Обслуживание библиотеки",
+    "Refresh last import": "Обновить последний импорт",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "Импортирует новые поддерживаемые файлы из последних выбранных источников. Дубликаты фотографий и существующие правки сохраняются; изменённые оригиналы отмечаются для проверки.",
+    "Clear library": "Очистить библиотеку",
+    "Refreshing the last import…": "Обновление последнего импорта…",
+    "No completed import is available to refresh.": "Нет завершённого импорта, который можно обновить.",
+    "The last completed import has no reusable sources.": "У последнего завершённого импорта нет доступных для повторного использования источников.",
+    "Library cleared. Originals were not deleted.": "Библиотека очищена. Оригиналы не удалены.",
+    "Finish or cancel the active import before clearing the library.": "Завершите или отмените активный импорт перед очисткой библиотеки.",
+    "Finish the active HDR or panorama operation before clearing the library.": "Завершите активную операцию HDR или панорамы перед очисткой библиотеки."
   }
 }

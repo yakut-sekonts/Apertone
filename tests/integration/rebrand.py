@@ -1,6 +1,7 @@
 """Static contracts for the 1.1 Apertone rename and Luma upgrade path."""
 from pathlib import Path
 import plistlib
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -21,7 +22,14 @@ assert info["SUFeedURL"] == (
 assert info["SUPublicEDKey"] == "yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI="
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
-require(cmake, "project(Apertone VERSION 1.3.1", "CMakeLists.txt")
+project_version = re.search(
+    r"project\(Apertone VERSION ([0-9]+\.[0-9]+\.[0-9]+) LANGUAGES",
+    cmake,
+)
+assert project_version is not None, "CMakeLists.txt is missing the Apertone project version"
+assert tuple(map(int, project_version.group(1).split("."))) >= (1, 1, 0)
+assert info["CFBundleShortVersionString"] == "${PROJECT_VERSION}"
+assert info["CFBundleVersion"] == "${PROJECT_VERSION}"
 require(cmake, "qt_add_executable(Apertone MACOSX_BUNDLE", "CMakeLists.txt")
 require(cmake, "URI Apertone.Desktop", "CMakeLists.txt")
 require(cmake, "resources/branding/Apertone.icns", "CMakeLists.txt")

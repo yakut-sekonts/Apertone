@@ -17,14 +17,15 @@ void writeList(std::ostream &out, const std::vector<std::string> &values) {
     for (const auto &value : values)
         out << std::quoted(value) << ' ';
 }
-std::vector<std::string> readList(std::istream &in) {
+std::vector<std::string> readList(std::istream &in, unsigned maximum = 256) {
     unsigned count = 0;
     in >> count;
-    require(count <= 256);
+    require(static_cast<bool>(in) && count <= maximum);
     std::vector<std::string> values;
     for (unsigned i = 0; i < count; ++i) {
         std::string value;
         in >> std::quoted(value);
+        require(static_cast<bool>(in));
         values.push_back(std::move(value));
     }
     return values;
@@ -40,8 +41,12 @@ void ImportOptions::validate() const {
     require(mode == ImportMode::add || mode == ImportMode::copy || mode == ImportMode::move);
     require(naming.size() <= 230 && !naming.empty() && startedAt >= 0 &&
             startedAt <= 253402300799LL);
+    require(sourceRoots.size() <= 65536);
     for (const auto &path : {destination, backupDestination})
         require(path.string().size() <= 4096 && path.string().find('\0') == std::string::npos);
+    for (const auto &path : sourceRoots)
+        require(!path.empty() && path.string().size() <= 4096 &&
+                path.string().find('\0') == std::string::npos);
     if (mode != ImportMode::add)
         require(!destination.empty());
     auto example = naming;
@@ -62,7 +67,7 @@ std::string encodeImportOptions(const ImportOptions &o) {
     o.validate();
     std::ostringstream out;
     out.imbue(std::locale::classic());
-    out << "LUMA_IMPORT 1 " << static_cast<int>(o.mode) << ' '
+    out << "LUMA_IMPORT 2 " << static_cast<int>(o.mode) << ' '
         << std::quoted(o.destination.string()) << ' ' << o.recursive << ' ' << o.skipDuplicates
         << ' ' << o.dateFolders << ' ' << std::quoted(o.naming) << ' '
         << std::quoted(o.backupDestination.string()) << ' ' << o.startedAt << ' '
@@ -72,7 +77,13 @@ std::string encodeImportOptions(const ImportOptions &o) {
         << ' ';
     writeList(out, o.metadata.creators);
     writeList(out, o.metadata.keywords);
-    out << std::quoted(o.develop ? encodeEditSnapshot(*o.develop) : std::string{}) << '\n';
+    out << std::quoted(o.develop ? encodeEditSnapshot(*o.develop) : std::string{}) << ' ';
+    std::vector<std::string> roots;
+    roots.reserve(o.sourceRoots.size());
+    for (const auto &path : o.sourceRoots)
+        roots.push_back(path.string());
+    writeList(out, roots);
+    out << '\n';
     return out.str();
 }
 ImportOptions decodeImportOptions(const std::string &document) {
@@ -84,7 +95,7 @@ ImportOptions decodeImportOptions(const std::string &document) {
     ImportOptions o;
     in >> magic >> version >> mode >> std::quoted(destination) >> o.recursive >> o.skipDuplicates >>
         o.dateFolders >> std::quoted(o.naming) >> std::quoted(backup) >> o.startedAt;
-    require(magic == "LUMA_IMPORT" && version == 1 && mode >= 0 && mode <= 2);
+    require(magic == "LUMA_IMPORT" && (version == 1 || version == 2) && mode >= 0 && mode <= 2);
     o.mode = static_cast<ImportMode>(mode);
     o.destination = destination;
     o.backupDestination = backup;
@@ -97,8 +108,12 @@ ImportOptions decodeImportOptions(const std::string &document) {
     require(static_cast<bool>(in));
     if (!develop.empty())
         o.develop = decodeEditSnapshot(develop);
+    if (version == 2)
+        for (auto &path : readList(in, 65536))
+            o.sourceRoots.emplace_back(std::move(path));
+    in >> std::ws;
+    require(in.eof());
     o.validate();
-    require(encodeImportOptions(o) == document);
     return o;
 }
 std::filesystem::path importRelativePath(const std::filesystem::path &source,

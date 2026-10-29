@@ -847,6 +847,21 @@
     "Soft focus": "Fuoco morbido",
     "face groups": "gruppi di volti",
     "picks": "scelte",
-    "Face group name must contain text and fit 128 characters.": "Il nome del gruppo di volti deve contenere testo e non superare 128 caratteri."
+    "Face group name must contain text and fit 128 characters.": "Il nome del gruppo di volti deve contenere testo e non superare 128 caratteri.",
+    "Refresh last import?": "Aggiornare l’ultima importazione?",
+    "Scans the files and folders selected for the last completed import using the same Add, Copy, or Move settings. Existing photos and edits are preserved; new supported photos are imported.": "Esegue nuovamente la scansione dei file e delle cartelle selezionati per l’ultima importazione completata usando le stesse impostazioni Aggiungi, Copia o Sposta. Le foto e le modifiche esistenti vengono mantenute; le nuove foto supportate vengono importate.",
+    "If the previous import used Move, newly found originals are moved again after verification.": "Se l’importazione precedente usava Sposta, i nuovi originali trovati verranno spostati di nuovo dopo la verifica.",
+    "Clear library?": "Svuotare la libreria?",
+    "Remove all photos, edits, metadata, import history and local analysis from this catalog? Collections are kept empty. Originals, exported files and backups stay on disk. This cannot be undone.": "Rimuovere da questo catalogo tutte le foto, le modifiche, i metadati, la cronologia di importazione e l’analisi locale? Le raccolte rimarranno vuote. Gli originali, i file esportati e i backup resteranno sul disco. Questa azione non può essere annullata.",
+    "Library maintenance": "Manutenzione della libreria",
+    "Refresh last import": "Aggiorna l’ultima importazione",
+    "Imports new supported files from the last selected sources. Duplicate photos and existing edits are preserved; changed originals are reported for review.": "Importa nuovi file supportati dalle ultime sorgenti selezionate. Le foto duplicate e le modifiche esistenti vengono mantenute; gli originali modificati vengono segnalati per la verifica.",
+    "Clear library": "Svuota libreria",
+    "Refreshing the last import…": "Aggiornamento dell’ultima importazione…",
+    "No completed import is available to refresh.": "Non è disponibile alcuna importazione completata da aggiornare.",
+    "The last completed import has no reusable sources.": "L’ultima importazione completata non contiene sorgenti riutilizzabili.",
+    "Library cleared. Originals were not deleted.": "Libreria svuotata. Gli originali non sono stati eliminati.",
+    "Finish or cancel the active import before clearing the library.": "Completa o annulla l’importazione attiva prima di svuotare la libreria.",
+    "Finish the active HDR or panorama operation before clearing the library.": "Completa l’operazione HDR o panorama attiva prima di svuotare la libreria."
   }
 }

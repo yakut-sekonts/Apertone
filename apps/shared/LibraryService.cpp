@@ -391,6 +391,20 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
                        CancellationToken stop,
                        const std::function<void(double, const std::string &)> &progress) const {
     options.startedAt = static_cast<std::int64_t>(std::time(nullptr));
+    options.sourceRoots.clear();
+    std::set<std::filesystem::path> normalizedRoots;
+    for (const auto &root : roots) {
+        std::error_code error;
+        auto normalized = std::filesystem::weakly_canonical(root, error);
+        if (error) {
+            error.clear();
+            normalized = std::filesystem::absolute(root, error).lexically_normal();
+        }
+        if (error)
+            normalized = root.lexically_normal();
+        if (normalizedRoots.insert(normalized).second)
+            options.sourceRoots.push_back(std::move(normalized));
+    }
     options.validate();
     const auto discovery =
         discover(roots, options.recursive, stop, options.mode != ImportMode::move);

@@ -137,9 +137,11 @@ class Catalog {
     void finishImportItem(const std::string &sessionID, int index, const std::string &state,
                           const std::string &error = "", const std::string &assetID = "");
     void finishImport(const std::string &sessionID, const std::string &state);
+    std::optional<ImportReplay> latestCompletedImport() const;
     std::vector<ImportJournal> unfinishedImports() const;
     ImportSummary importSummary(const std::string &sessionID) const;
     std::vector<std::string> importProblems(const std::string &sessionID) const;
+    void clearLibrary();
     void verify() const;
     void backupTo(const std::filesystem::path &destination, CancellationToken stop = {},
                   const std::function<void(double)> &progress = {}) const;
