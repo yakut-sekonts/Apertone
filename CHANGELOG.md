@@ -5,6 +5,10 @@
 - Added **Refresh last import**. Apertone persistently records the exact files
   and folders selected for new imports, rescans them with the same Add, Copy or
   Move settings, skips catalog duplicates and preserves existing edits.
+- Added managed import sources with availability status, per-source refresh,
+  sequential refresh of all tracked sources and a non-destructive Forget action.
+  Forget removes only the saved source association; photos, edits, import history
+  and files remain intact.
 - Added a guarded **Clear library** operation that atomically removes catalog
   photos, edits, metadata, import history and local analysis while leaving
   originals, exports and backups on disk. Collections remain available and

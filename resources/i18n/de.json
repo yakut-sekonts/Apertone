@@ -862,6 +862,27 @@
     "The last completed import has no reusable sources.": "Der letzte abgeschlossene Import enthält keine wiederverwendbaren Quellen.",
     "Library cleared. Originals were not deleted.": "Bibliothek geleert. Originale wurden nicht gelöscht.",
     "Finish or cancel the active import before clearing the library.": "Beenden oder brechen Sie den aktiven Import ab, bevor Sie die Bibliothek leeren.",
-    "Finish the active HDR or panorama operation before clearing the library.": "Beenden Sie den aktiven HDR- oder Panoramavorgang, bevor Sie die Bibliothek leeren."
+    "Finish the active HDR or panorama operation before clearing the library.": "Beenden Sie den aktiven HDR- oder Panoramavorgang, bevor Sie die Bibliothek leeren.",
+    "Move": "Verschieben",
+    "Refresh import source?": "Importquelle aktualisieren?",
+    "Scan this source using its most recent import settings? Existing photos and edits are preserved. New files may be copied or moved according to those settings.": "Diese Quelle mit den zuletzt verwendeten Importeinstellungen durchsuchen? Vorhandene Fotos und Bearbeitungen bleiben erhalten. Neue Dateien können gemäß diesen Einstellungen kopiert oder verschoben werden.",
+    "Refresh all import sources?": "Alle Importquellen aktualisieren?",
+    "Scan every tracked source in order using its most recent import settings? Existing photos and edits are preserved. Unavailable sources are reported and do not remove photos.": "Alle erfassten Quellen nacheinander mit ihren zuletzt verwendeten Importeinstellungen durchsuchen? Vorhandene Fotos und Bearbeitungen bleiben erhalten. Nicht verfügbare Quellen werden gemeldet und entfernen keine Fotos.",
+    "Forget import source?": "Importquelle vergessen?",
+    "Stop tracking this source? Existing photos, edits and import history remain in the catalog. Files are not deleted.": "Diese Quelle nicht mehr erfassen? Vorhandene Fotos, Bearbeitungen und der Importverlauf bleiben im Katalog. Dateien werden nicht gelöscht.",
+    "Import sources": "Importquellen",
+    "Refresh all": "Alle aktualisieren",
+    "Sources from new imports appear here.": "Quellen neuer Importe werden hier angezeigt.",
+    "Available": "Verfügbar",
+    "Unavailable": "Nicht verfügbar",
+    "Forget": "Vergessen",
+    "Refreshing import source…": "Importquelle wird aktualisiert…",
+    "Refreshing import source %1 of %2…": "Importquelle %1 von %2 wird aktualisiert…",
+    "All import sources refreshed.": "Alle Importquellen wurden aktualisiert.",
+    "Import source refreshed.": "Importquelle wurde aktualisiert.",
+    "Import source forgotten. Existing photos were not removed.": "Importquelle wurde vergessen. Vorhandene Fotos wurden nicht entfernt.",
+    "Import source is no longer tracked.": "Die Importquelle wird nicht mehr erfasst.",
+    "No tracked import sources are available to refresh.": "Es sind keine erfassten Importquellen zum Aktualisieren verfügbar.",
+    "Invalid import source.": "Ungültige Importquelle."
   }
 }

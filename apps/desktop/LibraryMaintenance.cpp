@@ -77,11 +77,25 @@ void LibraryModel::clearLibrary() {
                    sourceWatcher_.removePaths(sourceWatcher_.directories());
                descriptiveMetadata_.clear();
                importReport_.clear();
+               importSources_.clear();
+               importSourceRefreshQueue_.clear();
+               managedSourceRefresh_ = false;
                maintenanceStatus_ = QStringLiteral("Library cleared. Originals were not deleted.");
                status_ = maintenanceStatus_;
                reload(true);
                emit metadataChanged();
                return true;
+           });
+}
+void LibraryModel::forgetImportSource(const QUrl &source) {
+    if (working() || loading_ || !source.isLocalFile())
+        return;
+    const auto path = std::filesystem::path(source.toLocalFile().toStdString());
+    mutate([path](luma::Catalog &catalog) { catalog.forgetImportSource(path); },
+           [this] {
+               maintenanceStatus_ =
+                   QStringLiteral("Import source forgotten. Existing photos were not removed.");
+               return false;
            });
 }
 void LibraryModel::refreshSourceAvailability() {

@@ -47,6 +47,9 @@ struct ImportOptions {
     // The exact files or folders selected by the user. They are persisted so the
     // last completed import can be scanned again without guessing a common parent.
     std::vector<std::filesystem::path> sourceRoots;
+    // Set when the persisted plan explicitly contains the source-root list.
+    // Legacy v1 plans did not, so an empty list there still requires item fallback.
+    bool sourceRootsRecorded = false;
     bool recursive = true;
     bool skipDuplicates = true;
     // Capture date in UTC; missing dates use the timestamp frozen at session start.
@@ -65,6 +68,11 @@ struct ImportSummary {
 struct ImportReplay {
     std::vector<std::filesystem::path> sources;
     ImportOptions options;
+};
+struct ImportSourceRecord {
+    std::filesystem::path path;
+    ImportOptions options;
+    std::string finishedAt;
 };
 struct ImportJournalItem {
     std::string sessionID;

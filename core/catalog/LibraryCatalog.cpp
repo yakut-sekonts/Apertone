@@ -80,6 +80,19 @@ void requireChanged(sqlite3 *db) {
     if (sqlite3_changes(db) != 1)
         throw std::runtime_error("Library item is missing; transaction was not committed.");
 }
+std::filesystem::path normalizeImportSource(const std::filesystem::path &path) {
+    if (path.empty())
+        throw std::runtime_error("Invalid import source.");
+    std::error_code error;
+    auto normalized = std::filesystem::weakly_canonical(path, error);
+    if (error) {
+        error.clear();
+        normalized = std::filesystem::absolute(path, error).lexically_normal();
+    }
+    if (error || normalized.empty())
+        throw std::runtime_error("Invalid import source.");
+    return normalized;
+}
 } // namespace
 std::int64_t Catalog::libraryCount(const LibraryFilter &filter) const {
     const auto resolved = resolveFilter(*this, filter);
@@ -422,37 +435,104 @@ void Catalog::finishImport(const std::string &sessionID, const std::string &stat
     }
 }
 std::optional<ImportReplay> Catalog::latestCompletedImport() const {
-    Statement session(db_,
-                      "SELECT s.id,s.mode,s.destination,s.skip_duplicates,COALESCE(o.document,'') "
-                      "FROM import_sessions s LEFT JOIN import_options o ON o.session_id=s.id "
-                      "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.rowid DESC "
-                      "LIMIT 1");
-    if (!session.row())
-        return std::nullopt;
-    const auto sessionID = session.string(0);
-    ImportReplay replay;
-    if (const auto document = session.string(4); !document.empty())
-        replay.options = decodeImportOptions(document);
-    else {
-        replay.options.mode = session.string(1) == "copy" ? ImportMode::copy : ImportMode::add;
-        replay.options.destination = session.string(2);
-        replay.options.skipDuplicates = session.integer(3) != 0;
+    Statement sessions(db_,
+                       "SELECT s.id,s.mode,s.destination,s.skip_duplicates,COALESCE(o.document,'') "
+                       "FROM import_sessions s LEFT JOIN import_options o ON o.session_id=s.id "
+                       "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.rowid DESC");
+    bool foundCompleted = false;
+    while (sessions.row()) {
+        foundCompleted = true;
+        const auto sessionID = sessions.string(0);
+        ImportReplay replay;
+        if (const auto document = sessions.string(4); !document.empty())
+            replay.options = decodeImportOptions(document);
+        else {
+            replay.options.mode = sessions.string(1) == "copy" ? ImportMode::copy : ImportMode::add;
+            replay.options.destination = sessions.string(2);
+            replay.options.skipDuplicates = sessions.integer(3) != 0;
+        }
+        replay.sources = replay.options.sourceRoots;
+        if (replay.sources.empty() && !replay.options.sourceRootsRecorded) {
+            Statement items(db_, "SELECT source_path FROM import_items WHERE session_id=?1 "
+                                 "ORDER BY position");
+            items.text(1, sessionID);
+            std::set<std::filesystem::path> unique;
+            while (items.row()) {
+                std::filesystem::path source(items.string(0));
+                if (unique.insert(source).second)
+                    replay.sources.push_back(std::move(source));
+            }
+        }
+        if (!replay.sources.empty())
+            return replay;
     }
-    replay.sources = replay.options.sourceRoots;
-    if (replay.sources.empty()) {
-        Statement items(db_, "SELECT source_path FROM import_items WHERE session_id=?1 "
-                             "ORDER BY position");
-        items.text(1, sessionID);
-        std::set<std::filesystem::path> unique;
-        while (items.row()) {
-            std::filesystem::path source(items.string(0));
-            if (unique.insert(source).second)
-                replay.sources.push_back(std::move(source));
+    if (foundCompleted)
+        throw std::runtime_error("The last completed import has no reusable sources.");
+    return std::nullopt;
+}
+std::vector<ImportSourceRecord> Catalog::importSources() const {
+    Statement sessions(db_, "SELECT o.document,s.finished_at FROM import_sessions s "
+                            "JOIN import_options o ON o.session_id=s.id "
+                            "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.rowid DESC");
+    std::vector<ImportSourceRecord> result;
+    std::set<std::filesystem::path> seen;
+    while (sessions.row()) {
+        auto options = decodeImportOptions(sessions.string(0));
+        if (!options.sourceRootsRecorded)
+            continue;
+        for (const auto &source : options.sourceRoots) {
+            const auto normalized = source.lexically_normal();
+            if (normalized.empty() || !seen.insert(normalized).second)
+                continue;
+            auto sourceOptions = options;
+            sourceOptions.sourceRoots = {normalized};
+            result.push_back({normalized, std::move(sourceOptions), sessions.string(1)});
         }
     }
-    if (replay.sources.empty())
-        throw std::runtime_error("The last completed import has no reusable sources.");
-    return replay;
+    return result;
+}
+std::optional<ImportReplay> Catalog::importSource(const std::filesystem::path &path) const {
+    const auto normalized = normalizeImportSource(path);
+    for (auto source : importSources())
+        if (source.path == normalized) {
+            source.options.skipDuplicates = true;
+            return ImportReplay{{source.path}, std::move(source.options)};
+        }
+    return std::nullopt;
+}
+void Catalog::forgetImportSource(const std::filesystem::path &path) {
+    const auto normalized = normalizeImportSource(path);
+    execute("BEGIN IMMEDIATE;");
+    try {
+        Statement sessions(db_, "SELECT o.session_id,o.document FROM import_options o "
+                                "JOIN import_sessions s ON s.id=o.session_id "
+                                "WHERE s.state='completed'");
+        std::vector<std::pair<std::string, std::string>> replacements;
+        while (sessions.row()) {
+            auto options = decodeImportOptions(sessions.string(1));
+            if (!options.sourceRootsRecorded)
+                continue;
+            const auto oldSize = options.sourceRoots.size();
+            std::erase_if(options.sourceRoots, [&](const auto &source) {
+                return source.lexically_normal() == normalized;
+            });
+            if (options.sourceRoots.size() != oldSize)
+                replacements.emplace_back(sessions.string(0), encodeImportOptions(options));
+        }
+        if (replacements.empty())
+            throw std::runtime_error("Import source is no longer tracked.");
+        for (const auto &[sessionID, document] : replacements) {
+            Statement update(db_, "UPDATE import_options SET document=?1 WHERE session_id=?2");
+            update.text(1, document);
+            update.text(2, sessionID);
+            update.row();
+            requireChanged(db_);
+        }
+        execute("COMMIT;");
+    } catch (...) {
+        sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+        throw;
+    }
 }
 std::vector<ImportJournal> Catalog::unfinishedImports() const {
     Statement sessions(db_, "SELECT id,state,mode,owner_pid,destination,skip_duplicates FROM "

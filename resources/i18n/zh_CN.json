@@ -862,6 +862,27 @@
     "The last completed import has no reusable sources.": "上次已完成导入没有可重复使用的来源。",
     "Library cleared. Originals were not deleted.": "图库已清空。原片未被删除。",
     "Finish or cancel the active import before clearing the library.": "请先完成或取消正在进行的导入，再清空图库。",
-    "Finish the active HDR or panorama operation before clearing the library.": "请先完成正在进行的 HDR 或全景操作，再清空图库。"
+    "Finish the active HDR or panorama operation before clearing the library.": "请先完成正在进行的 HDR 或全景操作，再清空图库。",
+    "Move": "移动",
+    "Refresh import source?": "刷新导入源？",
+    "Scan this source using its most recent import settings? Existing photos and edits are preserved. New files may be copied or moved according to those settings.": "使用最近的导入设置扫描此来源？现有照片和编辑将保留。新文件可能会按照这些设置复制或移动。",
+    "Refresh all import sources?": "刷新所有导入源？",
+    "Scan every tracked source in order using its most recent import settings? Existing photos and edits are preserved. Unavailable sources are reported and do not remove photos.": "按顺序使用各自最近的导入设置扫描所有已跟踪来源？现有照片和编辑将保留。不可用的来源会被报告，并且不会删除照片。",
+    "Forget import source?": "忘记导入源？",
+    "Stop tracking this source? Existing photos, edits and import history remain in the catalog. Files are not deleted.": "停止跟踪此来源？现有照片、编辑和导入历史仍保留在目录中。不会删除文件。",
+    "Import sources": "导入源",
+    "Refresh all": "全部刷新",
+    "Sources from new imports appear here.": "新导入的来源将显示在这里。",
+    "Available": "可用",
+    "Unavailable": "不可用",
+    "Forget": "忘记",
+    "Refreshing import source…": "正在刷新导入源…",
+    "Refreshing import source %1 of %2…": "正在刷新导入源 %1/%2…",
+    "All import sources refreshed.": "所有导入源已刷新。",
+    "Import source refreshed.": "导入源已刷新。",
+    "Import source forgotten. Existing photos were not removed.": "已忘记导入源。未删除现有照片。",
+    "Import source is no longer tracked.": "不再跟踪此导入源。",
+    "No tracked import sources are available to refresh.": "没有可刷新的已跟踪导入源。",
+    "Invalid import source.": "无效的导入源。"
   }
 }
