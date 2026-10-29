@@ -50,6 +50,39 @@ void sql(const std::filesystem::path &path, const char *statement) {
     if (result != SQLITE_OK)
         throw std::runtime_error(message);
 }
+void automaticCullingImportTests(const std::filesystem::path &root,
+                                 const std::filesystem::path &fixture) {
+    const auto folder = root / "automatic-culling";
+    std::filesystem::create_directories(folder);
+    const auto catalog = folder / "catalog.sqlite";
+    {
+        LibraryModel model(catalog);
+        wait([&] { return !model.working() && !model.loading(); });
+        require(!model.cullingAutoEnabled(),
+                "Automatic local analysis was enabled without opt-in.");
+        model.setCullingAutoEnabled(true);
+        QCoreApplication::processEvents();
+        wait([&] { return !model.working() && !model.loading(); });
+        model.importFiles({QUrl::fromLocalFile(QString::fromStdString(fixture.string()))}, false,
+                          {}, false, true);
+        require(model.importing(), "Automatic-culling import did not start.");
+        wait([&] { return !model.working() && !model.loading(); });
+        require(model.error().isEmpty(), "Automatic-culling import failed.");
+        require(model.cullingError().isEmpty(), "Automatic local analysis failed after import.");
+        if (model.count() != 1 || model.cullingSummary().value("analyzed").toLongLong() != 1)
+            throw std::runtime_error(
+                "Automatic local analysis did not index the imported photo: count=" +
+                std::to_string(model.count()) + ", analyzed=" +
+                std::to_string(model.cullingSummary().value("analyzed").toLongLong()));
+    }
+    {
+        LibraryModel reopened(catalog);
+        wait([&] { return !reopened.working() && !reopened.loading(); });
+        require(reopened.cullingAutoEnabled(),
+                "Automatic local-analysis opt-in did not survive restart.");
+        reopened.setCullingAutoEnabled(false);
+    }
+}
 void catalogTests(const std::filesystem::path &root, const std::filesystem::path &source) {
     const auto path = root / "catalog.sqlite";
     std::promise<void> start;
@@ -775,6 +808,7 @@ int main(int argc, char **argv) {
         if (scaleContract) {
             modelTests(root, true);
         } else {
+            automaticCullingImportTests(root, argv[1]);
             invalidXmpTextTests(root, argv[1]);
             maintenanceAfterCancelledImportTests(root, argv[1]);
             catalogTests(root, argv[1]);

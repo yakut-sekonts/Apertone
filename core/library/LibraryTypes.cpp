@@ -8,7 +8,8 @@ void validateLabel(const std::string &label) {
         throw std::runtime_error("Unknown color label.");
 }
 void LibraryFilter::validate() const {
-    if (minimumRating < 0 || minimumRating > 5 || flag < -2 || flag > 1)
+    if (minimumRating < 0 || minimumRating > 5 || flag < -2 || flag > 1 ||
+        cullingRecommendation < -2 || cullingRecommendation > 1 || faceGroupID.size() > 64)
         throw std::runtime_error("Invalid library filter.");
     if (label)
         validateLabel(*label);

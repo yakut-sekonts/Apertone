@@ -8,10 +8,61 @@ Rectangle {
     color: Theme.window
     property string currentCollection: ""
     property string editCollectionID: ""
+    property string intelligentFaceGroupID: ""
+    property var intelligenceGroups: [{"id":"", "displayName":qsTranslate("Apertone", "All face groups"), "name":"", "count":0}].concat(library.faceGroups)
+    onIntelligenceGroupsChanged: Qt.callLater(function() {
+        const index = intelligenceGroups.findIndex(group => group.id === pane.intelligentFaceGroupID)
+        if (index < 0) pane.intelligentFaceGroupID = ""
+        faceGroupFilter.currentIndex = Math.max(0, index)
+    })
     CompareDialog { id:compareDialog }
     SmartCollectionDialog { id: smartCollection }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
+    Dialog {
+        id: faceGroupDialog; objectName: "intelligence.faceGroupDialog"
+        title: qsTranslate("Apertone", "Name face group")
+        modal: true; anchors.centerIn: parent; width: 360; implicitWidth: 360
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        ApertoneTextField {
+            id: faceGroupName; objectName: "intelligence.faceGroupName"
+            width: 300; maximumLength: 128; selectByMouse: true
+            placeholderText: qsTranslate("Apertone", "Group name")
+        }
+        onOpened: {
+            const group = pane.intelligenceGroups.find(item => item.id === pane.intelligentFaceGroupID)
+            faceGroupName.text = group ? group.name : ""
+            faceGroupName.forceActiveFocus()
+        }
+        onAccepted: {
+            if (pane.intelligentFaceGroupID.length > 0)
+                library.renameFaceGroup(pane.intelligentFaceGroupID, faceGroupName.text)
+        }
+    }
+    Dialog {
+        id: applySuggestionsDialog; objectName: "intelligence.applyDialog"
+        title: qsTranslate("Apertone", "Apply suggestions?")
+        modal: true; anchors.centerIn: parent; width: 440; implicitWidth: 440
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        Label {
+            width: 380; wrapMode: Text.Wrap
+            text: library.selectedCount > 0
+                  ? qsTranslate("Apertone", "Only unflagged selected photos will receive Pick, Review or Reject flags.")
+                  : qsTranslate("Apertone", "Only unflagged photos visible through the current filters will receive Pick, Review or Reject flags.")
+        }
+        onAccepted: library.applyCullingSuggestions()
+    }
+    Dialog {
+        id: clearAnalysisDialog; objectName: "intelligence.clearDialog"
+        title: qsTranslate("Apertone", "Delete local analysis?")
+        modal: true; anchors.centerIn: parent; width: 440; implicitWidth: 440
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        Label {
+            width: 380; wrapMode: Text.Wrap
+            text: qsTranslate("Apertone", "Deletes suggestions, similar-face groups and burst groups from this catalog. Existing catalog backups may retain older analysis.")
+        }
+        onAccepted: { pane.intelligentFaceGroupID = ""; library.clearCullingIndex() }
+    }
     Dialog {
         id: panoramaDialog; objectName: "merge.panorama"
         title: qsTranslate("Apertone", "Panorama merge")
@@ -80,6 +131,9 @@ Rectangle {
         function onViewportRestored(row) { grid.restoreViewport(row) }
     }
     function applyFilter() { library.filter(search.text, ratingFilter.currentIndex, flagFilter.currentIndex - 2, ["any","","red","yellow","green","blue","purple"][labelFilter.currentIndex], currentCollection) }
+    function applyIntelligentFilter() {
+        library.setIntelligentFilter([-2, 1, 0, -1][suggestionFilter.currentIndex], pane.intelligentFaceGroupID, bestOfBurst.checked)
+    }
     function allowShortcut() { return library.selectedCount > 0 && !library.working && !(Window.window.activeFocusItem && typeof Window.window.activeFocusItem.cursorPosition === "number") }
     Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(1) }
     Shortcut { sequence: "X"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(-1) }
@@ -164,6 +218,68 @@ Rectangle {
                 ApertoneComboBox { id: ratingFilter; objectName: "library.ratingFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; model: [qsTranslate("Apertone", "All ★"), "≥ 1 ★", "≥ 2 ★", "≥ 3 ★", "≥ 4 ★", "5 ★"]; onActivated: pane.applyFilter() }
                 ApertoneComboBox { id: flagFilter; objectName: "libraryFlagFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Apertone", "All flags"), qsTranslate("Apertone", "Reject"), qsTranslate("Apertone", "Unflagged"), qsTranslate("Apertone", "Pick")]; onActivated: pane.applyFilter() }
                 ApertoneComboBox { id: labelFilter; objectName: "libraryLabelFilter"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: currentText; model: [qsTranslate("Apertone", "All labels"), qsTranslate("Apertone", "No label"), qsTranslate("Apertone", "Red"), qsTranslate("Apertone", "Yellow"), qsTranslate("Apertone", "Green"), qsTranslate("Apertone", "Blue"), qsTranslate("Apertone", "Purple")]; onActivated: pane.applyFilter() }
+            }
+            GridLayout {
+                objectName: "intelligence.controls"
+                Layout.minimumWidth: 0; Layout.fillWidth: true; columnSpacing: 6; rowSpacing: 5
+                columns: width < 880 ? 4 : 9
+                Label { text: qsTranslate("Apertone", "INTELLIGENT"); font.pixelSize: 9; color: Theme.faint; font.letterSpacing: 1.2 }
+                ApertoneComboBox {
+                    id: suggestionFilter; objectName: "intelligence.suggestionFilter"
+                    Layout.maximumWidth: 135
+                    model: [qsTranslate("Apertone", "All photos"), qsTranslate("Apertone", "Pick"), qsTranslate("Apertone", "Review"), qsTranslate("Apertone", "Reject")]
+                    onActivated: pane.applyIntelligentFilter()
+                }
+                ApertoneComboBox {
+                    id: faceGroupFilter; objectName: "intelligence.faceGroupFilter"
+                    Layout.maximumWidth: 170; model: pane.intelligenceGroups; textRole: "displayName"
+                    onActivated: { pane.intelligentFaceGroupID = currentIndex > 0 ? model[currentIndex].id : ""; pane.applyIntelligentFilter() }
+                }
+                ApertoneButton {
+                    objectName: "intelligence.renameFaceGroup"; text: qsTranslate("Apertone", "Name")
+                    visible: faceGroupFilter.currentIndex > 0; enabled: !library.working
+                    onClicked: faceGroupDialog.open()
+                }
+                CheckBox {
+                    id: bestOfBurst; objectName: "intelligence.bestOfBurst"
+                    text: qsTranslate("Apertone", "Best of burst"); font.pixelSize: 11
+                    onToggled: pane.applyIntelligentFilter()
+                }
+                CheckBox {
+                    objectName: "intelligence.autoAnalyze"
+                    text: qsTranslate("Apertone", "Analyze new imports locally"); font.pixelSize: 11
+                    checked: library.cullingAutoEnabled
+                    onClicked: library.cullingAutoEnabled = checked
+                }
+                Label {
+                    visible: library.cullingSummary.analyzed > 0
+                    text: library.cullingSummary.picks + " " + qsTranslate("Apertone", "picks") + " · " +
+                          library.cullingSummary.faceGroups + " " + qsTranslate("Apertone", "face groups")
+                    color: Theme.faint; font.pixelSize: 10
+                }
+                ApertoneButton {
+                    objectName: "intelligence.apply"; text: library.selectedCount > 0 ? qsTranslate("Apertone", "Apply to selection") : qsTranslate("Apertone", "Apply suggestions")
+                    enabled: !library.working && library.cullingSummary.analyzed > 0 && (library.selectedCount > 0 || library.count > 0)
+                    onClicked: applySuggestionsDialog.open()
+                }
+                ApertoneButton {
+                    objectName: "intelligence.analyze"; text: library.selectedCount > 0 ? qsTranslate("Apertone", "Analyze selection") : qsTranslate("Apertone", "Analyze library")
+                    enabled: !library.working && library.count > 0
+                    onClicked: library.analyzeLibrary()
+                }
+                ApertoneButton {
+                    objectName: "intelligence.clear"; text: qsTranslate("Apertone", "Clear analysis")
+                    enabled: !library.working && library.cullingSummary.analyzed > 0
+                    onClicked: clearAnalysisDialog.open()
+                }
+            }
+            RowLayout {
+                visible: library.cullingBusy || library.cullingStatus.length > 0 || library.cullingError.length > 0
+                Layout.fillWidth: true; spacing: 6
+                ProgressBar { visible: library.cullingBusy; value: library.cullingProgress; Layout.fillWidth: true }
+                Label { visible: !library.cullingBusy && library.cullingError.length === 0; text: qsTranslate("Apertone", library.cullingStatus); color: Theme.faint; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                Label { visible: library.cullingError.length > 0; text: qsTranslate("Apertone", library.cullingError); color: Theme.negative; font.pixelSize: 10; elide: Text.ElideRight; Layout.fillWidth: true }
+                ApertoneButton { visible: library.cullingBusy; text: qsTranslate("Apertone", "Cancel"); onClicked: library.cancelCulling() }
             }
             RowLayout {
                 visible: library.importing; Layout.fillWidth: true

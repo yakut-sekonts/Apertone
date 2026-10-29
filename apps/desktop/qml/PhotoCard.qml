@@ -14,6 +14,21 @@ Rectangle {
     required property bool selected
     required property bool activePhoto
     required property bool sourceMissing
+    required property real cullingScore
+    required property int cullingRecommendation
+    required property int cullingReasons
+    required property int faceCount
+    required property string burstID
+    required property int burstSize
+    required property bool burstBest
+    readonly property string cullingReasonText: {
+        let reasons = []
+        if (cullingReasons & 1) reasons.push(qsTranslate("Apertone", "Soft focus"))
+        if (cullingReasons & 2) reasons.push(qsTranslate("Apertone", "Exposure issue"))
+        if (cullingReasons & 4) reasons.push(qsTranslate("Apertone", "Low face quality"))
+        if (cullingReasons & 8) reasons.push(qsTranslate("Apertone", "Closed eyes"))
+        return reasons.join(" · ")
+    }
     property bool compact: false
     property int retryCount: 0
     readonly property var keyboardView: compact ? card.ListView.view : card.GridView.view
@@ -76,6 +91,35 @@ Rectangle {
         anchors { right: parent.right; top: parent.top; margins: 7 }
         width: 8; height: 8; radius: 4
         color: ({red:"#d56868",yellow:"#d9be67",green:"#78a985",blue:"#789bc8",purple:"#af83b8"})[card.colorLabel] || "transparent"
+    }
+    Rectangle {
+        id: suggestionBadge
+        z: 2
+        visible: !card.compact && card.cullingRecommendation >= -1
+        anchors { left: parent.left; top: parent.top; margins: 7 }
+        width: suggestionLabel.implicitWidth + 12; height: 22; radius: 5
+        color: card.cullingRecommendation === 1 ? Theme.positive : card.cullingRecommendation === -1 ? Theme.negative : Theme.control
+        opacity: 0.94
+        Label {
+            id: suggestionLabel; anchors.centerIn: parent; color: "white"; font.pixelSize: 9
+            text: card.cullingRecommendation === 1 ? qsTranslate("Apertone", "Pick") :
+                  card.cullingRecommendation === -1 ? qsTranslate("Apertone", "Reject") : qsTranslate("Apertone", "Review")
+        }
+        MouseArea {
+            id: suggestionHover; anchors.fill: parent; hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+        }
+        ToolTip.visible: suggestionHover.containsMouse && card.cullingReasonText.length > 0
+        ToolTip.text: card.cullingReasonText
+    }
+    Label {
+        z: 2
+        visible: !card.compact && (card.faceCount > 0 || card.burstSize > 1)
+        anchors { right: parent.right; top: parent.top; topMargin: 22; rightMargin: 7 }
+        text: (card.faceCount > 0 ? "◉ " + card.faceCount : "") +
+              (card.faceCount > 0 && card.burstSize > 1 ? "  " : "") +
+              (card.burstSize > 1 ? (card.burstBest ? "◆ " : "◇ ") + card.burstSize : "")
+        color: Theme.text; font.pixelSize: 10
     }
     MouseArea {
         anchors.fill: parent

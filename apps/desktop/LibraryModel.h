@@ -32,6 +32,14 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString semanticStatus READ semanticStatus NOTIFY stateChanged)
     Q_PROPERTY(QString semanticError READ semanticError NOTIFY stateChanged)
     Q_PROPERTY(QVariantList semanticResults READ semanticResults NOTIFY stateChanged)
+    Q_PROPERTY(bool cullingBusy READ cullingBusy NOTIFY stateChanged)
+    Q_PROPERTY(double cullingProgress READ cullingProgress NOTIFY stateChanged)
+    Q_PROPERTY(QString cullingStatus READ cullingStatus NOTIFY stateChanged)
+    Q_PROPERTY(QString cullingError READ cullingError NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList faceGroups READ faceGroups NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap cullingSummary READ cullingSummary NOTIFY stateChanged)
+    Q_PROPERTY(bool cullingAutoEnabled READ cullingAutoEnabled WRITE setCullingAutoEnabled NOTIFY
+                   stateChanged)
     Q_PROPERTY(QVariantMap descriptiveMetadata READ descriptiveMetadata NOTIFY metadataChanged)
     Q_PROPERTY(int backupSchedule READ backupSchedule WRITE setBackupSchedule NOTIFY stateChanged)
     Q_PROPERTY(int backupKeep READ backupKeep WRITE setBackupKeep NOTIFY stateChanged)
@@ -49,7 +57,14 @@ class LibraryModel final : public QAbstractListModel {
         Camera,
         Selected,
         Active,
-        Missing
+        Missing,
+        CullingScore,
+        CullingRecommendation,
+        CullingReasons,
+        FaceCount,
+        BurstID,
+        BurstSize,
+        BurstBest
     };
     static constexpr int pageSize = 128, maximumPages = 16;
     explicit LibraryModel(std::filesystem::path catalog, QObject *parent = nullptr);
@@ -64,7 +79,7 @@ class LibraryModel final : public QAbstractListModel {
         return selected_.size();
     }
     bool working() const {
-        return importing_ || writing_ || closing_ || externalBusy_ || semanticBusy_;
+        return importing_ || writing_ || closing_ || externalBusy_ || semanticBusy_ || cullingBusy_;
     }
     bool selecting() const {
         return selecting_;
@@ -149,6 +164,35 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void searchSemantic(const QString &query);
     Q_INVOKABLE void cancelSemantic();
     Q_INVOKABLE void disableSemantic();
+    bool cullingBusy() const {
+        return cullingBusy_;
+    }
+    double cullingProgress() const {
+        return cullingProgress_;
+    }
+    QString cullingStatus() const {
+        return cullingStatus_.text();
+    }
+    QString cullingError() const {
+        return cullingError_;
+    }
+    QVariantList faceGroups() const {
+        return faceGroups_;
+    }
+    QVariantMap cullingSummary() const {
+        return cullingSummary_;
+    }
+    bool cullingAutoEnabled() const {
+        return cullingAutoEnabled_;
+    }
+    void setCullingAutoEnabled(bool enabled);
+    Q_INVOKABLE void analyzeLibrary();
+    Q_INVOKABLE void cancelCulling();
+    Q_INVOKABLE void applyCullingSuggestions();
+    Q_INVOKABLE void clearCullingIndex();
+    Q_INVOKABLE void renameFaceGroup(const QString &id, const QString &name);
+    Q_INVOKABLE void setIntelligentFilter(int recommendation, const QString &faceGroupID,
+                                          bool bestOfBurstOnly);
     std::size_t cachedPages() const {
         return pages_.size();
     }
@@ -205,6 +249,16 @@ class LibraryModel final : public QAbstractListModel {
     LocalizedText semanticStatus_;
     QString semanticError_;
     QVariantList semanticResults_;
+    luma::JobManager cullingJobs_;
+    luma::JobHandle cullingJob_;
+    std::uint64_t cullingRevision_ = 0;
+    bool cullingBusy_ = false;
+    bool cullingAutoEnabled_ = false;
+    double cullingProgress_ = 0;
+    LocalizedText cullingStatus_;
+    QString cullingError_;
+    QVariantList faceGroups_;
+    QVariantMap cullingSummary_;
     luma::CancellationSource importCancellation_;
     // Import cancellation must not cancel later backup, metadata or relink work.
     luma::CancellationSource maintenanceCancellation_;
@@ -234,6 +288,8 @@ class LibraryModel final : public QAbstractListModel {
     QTimer sourceWatchTimer_;
     luma::JobHandle sourceAvailabilityJob_;
     void initializeMaintenance();
+    void analyzePendingLibrary();
+    void startCulling(const std::vector<std::string> &selected, bool selectionScope);
     void watchVisibleFolders();
     void refreshSourceAvailability();
     void page(int number);

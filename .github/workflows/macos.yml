@@ -7,7 +7,10 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: macos-${{ github.ref }}
+  # A branch push and its pull_request event represent the same qualification
+  # candidate. Use the source branch for both so only one hosted macOS run
+  # consumes the four-hour gate.
+  group: macos-${{ github.head_ref || github.ref_name }}
   # Preserve the long qualification scan; only the latest pending run waits.
   # Regular development branches still cancel superseded runs immediately.
   cancel-in-progress: ${{ (github.head_ref || github.ref_name) != 'codex/1.0-qualification' }}

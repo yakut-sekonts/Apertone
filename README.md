@@ -7,17 +7,17 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.2.0
+## Release: v1.3.1
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[1.2.0 release notes](docs/releases/v1.2.0.md)
+[1.3.1 release notes](docs/releases/v1.3.1.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.2.0 adds broad Bayer RAW camera
-support and 70 editable Quick Looks, including adaptive Subject, Sky and
-Background treatments. Looks can be stacked, reordered and adjusted from
-0–200%. Existing Luma and Apertone catalogs, settings, presets, DNG output and
+checksums accompany the release. Version 1.3.1 adds the opt-in, local Intelligent
+Library: explainable Pick/Review/Reject suggestions, Best of Burst and named
+similar-face groups. Version 1.2 camera support and 70 stackable Quick Looks are
+included. Existing Luma and Apertone catalogs, settings, presets, DNG output and
 Sparkle update installations are upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
@@ -26,7 +26,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.2
+## Included in source: phases 0.4–1.3
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -56,6 +56,8 @@ evidence and owner-accepted exceptions.
 - ✅ Lazy thumbnails, virtualized grid/filmstrip and bounded metadata paging.
 - ✅ Single/multi/range selection, ratings, Pick/Reject, color labels and manual collections.
 - ✅ Basic search and combined metadata/collection filters.
+- ✅ Local Intelligent Library with opt-in import analysis, explainable culling
+  suggestions, Best of Burst and named similar-face groups.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
 - ✅ Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
@@ -92,7 +94,7 @@ planned.
 ## Build and run
 
 ```bash
-git clone --branch v1.2.0 https://github.com/yakut-sekonts/Apertone.git
+git clone --branch v1.3.1 https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"

@@ -21,7 +21,7 @@ assert info["SUFeedURL"] == (
 assert info["SUPublicEDKey"] == "yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI="
 
 cmake = (ROOT / "CMakeLists.txt").read_text()
-require(cmake, "project(Apertone VERSION 1.2.0", "CMakeLists.txt")
+require(cmake, "project(Apertone VERSION 1.3.1", "CMakeLists.txt")
 require(cmake, "qt_add_executable(Apertone MACOSX_BUNDLE", "CMakeLists.txt")
 require(cmake, "URI Apertone.Desktop", "CMakeLists.txt")
 require(cmake, "resources/branding/Apertone.icns", "CMakeLists.txt")

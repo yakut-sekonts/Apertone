@@ -21,7 +21,15 @@ constexpr auto where =
     " OR m.caption LIKE ?3 ESCAPE '\\' OR m.xmp_label LIKE ?3 ESCAPE '\\')))"
     " AND (?4='' OR EXISTS(SELECT 1 FROM collection_assets ca WHERE ca.asset_id=a.id AND "
     "ca.collection_id=?4))"
-    " AND (?5=0 OR COALESCE(a.color_label,'')=?6)";
+    " AND (?5=0 OR COALESCE(a.color_label,'')=?6)"
+    " AND (?7=-2 OR EXISTS(SELECT 1 FROM culling_analysis q WHERE q.asset_id=a.id AND "
+    "q.checksum=a.checksum AND q.recommendation=?7))"
+    " AND (?8='' OR EXISTS(SELECT 1 FROM face_instances f JOIN culling_analysis fq ON "
+    "fq.asset_id=f.asset_id AND fq.checksum=a.checksum WHERE f.asset_id=a.id AND "
+    "f.face_group_id=?8))"
+    " AND (?9=0 OR EXISTS(SELECT 1 FROM burst_members b JOIN culling_analysis bq ON "
+    "bq.asset_id=b.asset_id AND bq.checksum=a.checksum WHERE b.asset_id=a.id AND "
+    "b.is_best=1))";
 constexpr auto order = " ORDER BY a.filename COLLATE NOCASE,a.id";
 struct QueryFilter {
     std::string where;
@@ -32,7 +40,7 @@ QueryFilter resolveFilter(const Catalog &db, const LibraryFilter &filter) {
     QueryFilter result{where, {}, false};
     if (!filter.collectionID.empty())
         if (const auto collection = db.smartCollection(filter.collectionID)) {
-            result.smart = compileSmartRule(collection->rule);
+            result.smart = compileSmartRule(collection->rule, 12);
             result.dynamic = true;
             result.where += " AND (" + result.smart.expression + ")";
         }
@@ -52,9 +60,12 @@ void bindFilter(Statement &query, const LibraryFilter &filter, const QueryFilter
     query.text(4, resolved.dynamic ? "" : filter.collectionID);
     query.integer(5, filter.label.has_value() ? 1 : 0);
     query.text(6, filter.label.value_or(""));
+    query.integer(7, filter.cullingRecommendation);
+    query.text(8, filter.faceGroupID);
+    query.integer(9, filter.bestOfBurstOnly ? 1 : 0);
     for (std::size_t i = 0; i < resolved.smart.values.size(); ++i) {
         const auto &v = resolved.smart.values[i];
-        const int index = 9 + static_cast<int>(i);
+        const int index = 12 + static_cast<int>(i);
         if (const auto number = std::get_if<double>(&v))
             query.number(index, *number);
         else
@@ -86,10 +97,10 @@ std::optional<std::int64_t> Catalog::libraryIndex(const LibraryFilter &filter,
         return std::nullopt;
     Statement query(db_,
                     ("SELECT position FROM (SELECT a.id,ROW_NUMBER() OVER (" + std::string(order) +
-                     ")-1 AS position FROM assets a" + resolved.where + ") WHERE id=?7")
+                     ")-1 AS position FROM assets a" + resolved.where + ") WHERE id=?10")
                         .c_str());
     bindFilter(query, filter, resolved);
-    query.text(7, assetID);
+    query.text(10, assetID);
     return query.row() ? std::optional<std::int64_t>(query.integer(0)) : std::nullopt;
 }
 std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int offset,
@@ -98,19 +109,52 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
     if (offset < 0 || limit < 1 || limit > 1024)
         throw std::runtime_error("Invalid metadata page bounds.");
     Statement query(
-        db_, ("SELECT a.id,a.original_path,a.filename,a.checksum,a.width,a.height,a.orientation,"
-              "a.rating,a.flag,COALESCE(a.color_label,''),a.camera FROM assets a" +
-              resolved.where + order + " LIMIT ?7 OFFSET ?8")
-                 .c_str());
+        db_,
+        ("SELECT a.id,a.original_path,a.filename,a.checksum,a.width,a.height,a.orientation,"
+         "a.rating,a.flag,COALESCE(a.color_label,''),a.camera,COALESCE(q.score,-1),"
+         "COALESCE(q.recommendation,-2),COALESCE(q.reason_flags,0),"
+         "(SELECT COUNT(*) FROM face_instances f WHERE f.asset_id=a.id AND q.asset_id IS NOT NULL),"
+         "COALESCE(b.stack_id,''),(SELECT COUNT(*) FROM burst_members bm JOIN culling_analysis "
+         "bc ON bc.asset_id=bm.asset_id JOIN assets ba ON ba.id=bc.asset_id AND "
+         "ba.checksum=bc.checksum WHERE bm.stack_id=b.stack_id),COALESCE(b.is_best,0) FROM "
+         "assets a LEFT JOIN "
+         "culling_analysis q ON q.asset_id=a.id AND q.checksum=a.checksum LEFT JOIN "
+         "burst_members b ON b.asset_id=a.id AND q.asset_id IS NOT NULL" +
+         resolved.where + order + " LIMIT ?10 OFFSET ?11")
+            .c_str());
     bindFilter(query, filter, resolved);
-    query.integer(7, limit);
-    query.integer(8, offset);
+    query.integer(10, limit);
+    query.integer(11, offset);
     std::vector<LibraryItem> rows;
-    while (query.row())
-        rows.push_back({query.string(0), query.string(1), query.string(2), query.string(3),
-                        static_cast<int>(query.integer(4)), static_cast<int>(query.integer(5)),
-                        static_cast<int>(query.integer(6)), static_cast<int>(query.integer(7)),
-                        static_cast<int>(query.integer(8)), query.string(9), query.string(10)});
+    while (query.row()) {
+        LibraryItem item{query.string(0),
+                         query.string(1),
+                         query.string(2),
+                         query.string(3),
+                         static_cast<int>(query.integer(4)),
+                         static_cast<int>(query.integer(5)),
+                         static_cast<int>(query.integer(6)),
+                         static_cast<int>(query.integer(7)),
+                         static_cast<int>(query.integer(8)),
+                         query.string(9),
+                         query.string(10),
+                         false,
+                         -1,
+                         -2,
+                         0,
+                         0,
+                         {},
+                         0,
+                         false};
+        item.cullingScore = query.value(11);
+        item.cullingRecommendation = static_cast<int>(query.integer(12));
+        item.cullingReasons = static_cast<std::uint32_t>(query.integer(13));
+        item.faceCount = static_cast<int>(query.integer(14));
+        item.burstID = query.string(15);
+        item.burstSize = static_cast<int>(query.integer(16));
+        item.burstBest = query.integer(17) != 0;
+        rows.push_back(std::move(item));
+    }
     return rows;
 }
 std::vector<std::string> Catalog::libraryIDs(const LibraryFilter &filter, int offset,
@@ -119,11 +163,11 @@ std::vector<std::string> Catalog::libraryIDs(const LibraryFilter &filter, int of
     if (offset < 0 || limit < 0)
         throw std::runtime_error("Invalid selection bounds.");
     Statement query(db_, ("SELECT a.id FROM assets a" + resolved.where + std::string(order) +
-                          " LIMIT ?7 OFFSET ?8")
+                          " LIMIT ?10 OFFSET ?11")
                              .c_str());
     bindFilter(query, filter, resolved);
-    query.integer(7, limit);
-    query.integer(8, offset);
+    query.integer(10, limit);
+    query.integer(11, offset);
     std::vector<std::string> ids;
     while (query.row())
         ids.push_back(query.string(0));

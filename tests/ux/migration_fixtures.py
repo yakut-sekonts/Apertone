@@ -88,7 +88,7 @@ def prepare_migration(state_root, folder=FIXTURE):
 
 
 def compare_historical(before, after):
-    if before['schema'] != 11 or after['schema'] != 21:
+    if before['schema'] != 11 or after['schema'] != 22:
         raise ValueError('Unexpected migration schema transition')
     for name, expected in before['tables'].items():
         actual = after['tables'].get(name)
@@ -147,7 +147,7 @@ def audit_migration(state_root, evidence_root, child_pid, stage):
     previous = state_root / 'first-migration.json'
     if stage == 'verify' and json.loads(previous.read_text()) != after:
         raise ValueError('Catalog changed after migration restart')
-    result = {'status': 'PASS', 'old_schema': 11, 'new_schema': 21,
+    result = {'status': 'PASS', 'old_schema': 11, 'new_schema': 22,
               'historical_tables': len(before['tables']), **data,
               'asset_ids': ids, 'original_sha256': originals,
               'pre_migration_backup_sha256': digest(backups[0]),

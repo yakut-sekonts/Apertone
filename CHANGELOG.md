@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.1 / 2026-10-28
+
+- Added an opt-in Intelligent Library that analyzes selected photos or new
+  imports entirely on the Mac and produces explainable Pick, Review and Reject
+  suggestions without changing originals.
+- Added Best of Burst grouping with a suggested strongest frame and compact
+  Library badges for recommendation reasons, detected faces and burst status.
+- Added local similar-face groups that can be filtered and named. These are
+  visual similarity suggestions, not face identity recognition.
+- Preserved manual flags and named groups during reanalysis, limited suggestion
+  application to the active selection or Library filters, and made provider
+  upgrades and analysis deletion explicit.
+- Added catalog schema 22 with pre-migration backup, checksum/provider guards,
+  cancellable grouping, short atomic publication and eight-language UI.
+
 ## 1.2.0 / 2026-10-28
 
 - Expanded integer Bayer RAW import and development across common Canon, Sony,

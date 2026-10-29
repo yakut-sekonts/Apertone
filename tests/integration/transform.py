@@ -52,7 +52,7 @@ with tempfile.TemporaryDirectory(prefix="luma-transform-") as temporary:
         children = [db.execute(f"SELECT * FROM {table}").fetchall() for table in ("edit_curve_points", "edit_hsl_bands")]
     assert run("restore") == before, "Neutral Transform migration changed prior settings"
     with sqlite3.connect(catalog) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 21
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 22
         assert db.execute("SELECT schema_version,transform_rotate,transform_scale,transform_constrain_crop,transform_guided FROM edit_documents").fetchone() == (8, 0, 100, 1, 0)
         assert db.execute("SELECT revision,updated_at FROM edit_documents").fetchone() == durable
         assert db.execute("SELECT rating FROM assets").fetchone()[0] == 4

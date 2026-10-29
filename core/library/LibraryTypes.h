@@ -14,6 +14,9 @@ struct LibraryFilter {
     std::optional<std::string> label;
     std::string collectionID;
     std::string search;
+    int cullingRecommendation = -2; // -2: any, -1: Reject, 0: Review, 1: Pick.
+    std::string faceGroupID;
+    bool bestOfBurstOnly = false;
     void validate() const;
 };
 struct LibraryItem {
@@ -24,6 +27,13 @@ struct LibraryItem {
     int width = 0, height = 0, orientation = 0, rating = 0, flag = 0;
     std::string label, camera;
     bool missing = false;
+    double cullingScore = -1;
+    int cullingRecommendation = -2;
+    std::uint32_t cullingReasons = 0;
+    int faceCount = 0;
+    std::string burstID;
+    int burstSize = 0;
+    bool burstBest = false;
 };
 struct CollectionRecord {
     std::string id, name;
