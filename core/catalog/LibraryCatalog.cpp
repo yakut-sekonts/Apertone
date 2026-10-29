@@ -422,11 +422,11 @@ void Catalog::finishImport(const std::string &sessionID, const std::string &stat
     }
 }
 std::optional<ImportReplay> Catalog::latestCompletedImport() const {
-    Statement session(
-        db_, "SELECT s.id,s.mode,s.destination,s.skip_duplicates,COALESCE(o.document,'') "
-             "FROM import_sessions s LEFT JOIN import_options o ON o.session_id=s.id "
-             "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.created_at DESC,s.id DESC "
-             "LIMIT 1");
+    Statement session(db_,
+                      "SELECT s.id,s.mode,s.destination,s.skip_duplicates,COALESCE(o.document,'') "
+                      "FROM import_sessions s LEFT JOIN import_options o ON o.session_id=s.id "
+                      "WHERE s.state='completed' ORDER BY s.finished_at DESC,s.rowid DESC "
+                      "LIMIT 1");
     if (!session.row())
         return std::nullopt;
     const auto sessionID = session.string(0);

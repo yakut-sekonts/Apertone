@@ -12,6 +12,10 @@ Dialog {
     height: Math.min(parent.height - 40, 690)
     standardButtons: Dialog.Close
     property url restoreSource: ""
+    readonly property bool maintenanceReady: !library.working && !library.loading &&
+        !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy &&
+        !editor.retouchBusy && !editor.creativeBusy && !editor.whiteBalanceBusy &&
+        !editor.transformAutoBusy && !editor.editingLocked
     Dialog {
         id: refreshImportDialog
         objectName: "catalog.refreshLastImportDialog"
@@ -98,7 +102,7 @@ Dialog {
         ApertoneButton {
             objectName: "catalog.refreshLastImport"
             text: qsTranslate("Apertone", "Refresh last import")
-            enabled: !library.working && !library.loading && !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy
+            enabled: dialog.maintenanceReady
             onClicked: refreshImportDialog.open()
             Layout.fillWidth: true
         }
@@ -109,7 +113,7 @@ Dialog {
         ApertoneButton {
             objectName: "catalog.clearLibrary"
             text: qsTranslate("Apertone", "Clear library")
-            enabled: !library.working && !library.loading && !editor.busy && !editor.saving && !editor.exporting && !editor.aiBusy
+            enabled: dialog.maintenanceReady
             onClicked: clearLibraryDialog.open()
             Layout.fillWidth: true
         }
