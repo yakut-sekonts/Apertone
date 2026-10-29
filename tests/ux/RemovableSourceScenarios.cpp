@@ -404,6 +404,7 @@ bool removableSourceScenario(Context &c, const QString &id) {
                     c.editor.sourcePath() == external &&
                     c.editor.currentSettings() == defaultDocument,
                 "Actual external B card did not open its own full source document");
+        c.openBuiltinFilters();
         d.click("filter_landscape");
         d.move("main.filename", {.5, .5});
         require(c.editor.currentSettings() == editedB && !c.editor.presetPreview(),

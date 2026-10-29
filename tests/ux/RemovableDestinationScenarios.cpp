@@ -316,6 +316,7 @@ bool removableDestinationScenario(Context &c, const QString &id, const QString &
         require(c.editor.photoID() == bID && c.editor.sourcePath() == paths[1] &&
                     c.editor.currentSettings() == defaultDocument,
                 "Actual B card opened the wrong host source/document");
+        c.openBuiltinFilters();
         d.click("filter_landscape");
         d.move("main.filename", {.5, .5});
         require(c.editor.currentSettings() == editedB && !c.editor.presetPreview(),
