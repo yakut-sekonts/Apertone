@@ -891,6 +891,8 @@
     "Preserve Exposure": "Belichtung beibehalten",
     "Preserve White Balance": "Weißabgleich beibehalten",
     "Selected Library photos become references. The current photo is excluded.": "Ausgewählte Bibliotheksfotos dienen als Referenzen. Das aktuelle Foto wird ausgeschlossen.",
-    "Transfer the editable style of selected Library photos to the current photo.": "Den bearbeitbaren Stil ausgewählter Bibliotheksfotos auf das aktuelle Foto übertragen."
+    "Transfer the editable style of selected Library photos to the current photo.": "Den bearbeitbaren Stil ausgewählter Bibliotheksfotos auf das aktuelle Foto übertragen.",
+    "Edge shift": "Kantenverschiebung",
+    "Edge feather": "Kantenweichzeichnung"
   }
 }

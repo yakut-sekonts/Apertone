@@ -891,6 +891,8 @@
     "Preserve Exposure": "Preserve Exposure",
     "Preserve White Balance": "Preserve White Balance",
     "Selected Library photos become references. The current photo is excluded.": "Selected Library photos become references. The current photo is excluded.",
-    "Transfer the editable style of selected Library photos to the current photo.": "Transfer the editable style of selected Library photos to the current photo."
+    "Transfer the editable style of selected Library photos to the current photo.": "Transfer the editable style of selected Library photos to the current photo.",
+    "Edge shift": "Edge shift",
+    "Edge feather": "Edge feather"
   }
 }

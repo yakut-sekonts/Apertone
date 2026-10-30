@@ -891,6 +891,8 @@
     "Preserve Exposure": "Сохранить экспозицию",
     "Preserve White Balance": "Сохранить баланс белого",
     "Selected Library photos become references. The current photo is excluded.": "Выбранные фотографии Библиотеки используются как референсы. Текущая фотография исключается.",
-    "Transfer the editable style of selected Library photos to the current photo.": "Перенести редактируемый стиль выбранных фотографий Библиотеки на текущую фотографию."
+    "Transfer the editable style of selected Library photos to the current photo.": "Перенести редактируемый стиль выбранных фотографий Библиотеки на текущую фотографию.",
+    "Edge shift": "Смещение края",
+    "Edge feather": "Растушёвка края"
   }
 }

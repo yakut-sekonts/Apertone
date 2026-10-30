@@ -13,6 +13,10 @@
 - Match Look layers remain independently adjustable, reorderable, removable and
   serializable with the edit document. Existing creative documents remain
   readable through the versioned codec.
+- Added non-destructive **Edge shift** and **Edge feather** controls for AI and
+  other bitmap masks. Refinement is compiled once per render with bounded linear
+  time filters, persists in the versioned mask document and is shared by
+  preview, overlay, thumbnails and export.
 
 ## 1.4.0 / 2026-10-30
 

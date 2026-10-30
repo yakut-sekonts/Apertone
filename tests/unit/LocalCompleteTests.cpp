@@ -257,9 +257,9 @@ void serialization() {
         mask.components.push_back(c);
     }
     const auto encoded = luma::encodeLocalMasks({mask, old[0]});
-    require(encoded.starts_with("LUMA_LOCAL_MASKS 4 2\n") &&
+    require(encoded.starts_with("LUMA_LOCAL_MASKS 5 2\n") &&
                 luma::decodeLocalMasks(encoded) == std::vector{mask, old[0]},
-            "Version-4 masks did not roundtrip losslessly.");
+            "Version-5 masks did not roundtrip losslessly.");
     const std::string version2 =
         "LUMA_LOCAL_MASKS 2 1\n"
         "\"01234567-89ab-cdef-0123-456789abcdef\" \"Legacy vector\" "
@@ -267,7 +267,7 @@ void serialization() {
         "G 0 0.5 0.25 0.5 0.75 0 100 0.25 0.75 0.14999999999999999 0.5 0.5 0.5 0\n";
     const auto vector = luma::decodeLocalMasks(version2);
     require(vector.size() == 1 && vector[0].parameter("exposure") == 1.25 && vector[0].blur == 0,
-            "Version-2 vector mask lost data when read by the version-4 codec.");
+            "Version-2 vector mask lost data when read by the current codec.");
     rejects([&] { luma::decodeLocalMasks(encoded + "junk"); });
     auto bad = mask;
     bad.strokes[0].points.resize(16385);
@@ -338,7 +338,7 @@ void migration() {
         }
         require(scalar(path, "PRAGMA user_version") == "22" &&
                     scalar(path, "SELECT document FROM edit_local_masks LIMIT 1")
-                        .starts_with("LUMA_LOCAL_MASKS 4 1\n"),
+                        .starts_with("LUMA_LOCAL_MASKS 5 1\n"),
                 "Migration did not persist the current mask codec.");
         std::filesystem::remove_all(root);
     } catch (...) {

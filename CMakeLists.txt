@@ -31,7 +31,7 @@ add_library(luma_core STATIC
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
     core/catalog/SemanticCatalog.cpp
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp
-    core/edits/Retouch.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
+    core/edits/Retouch.cpp core/edits/BitmapMask.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
     core/catalog/BitmapMaskMigration.cpp
     core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/render/LocalBlur.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
     "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"

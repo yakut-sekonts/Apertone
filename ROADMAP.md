@@ -244,4 +244,7 @@ qualification-before-release policy continue to apply.
   combinations while preserving the existing non-destructive mask document.
 
 Match Look is the first implemented block. Detailed People Masks and Mask Engine
-improvements remain in development and are not part of the 1.4.0 release.
+improvements remain in development and are not part of the 1.4.0 release. The
+first Mask Engine improvement adds persistent Edge shift and Edge feather for
+bitmap selections; additional people regions still require a reliable local
+provider rather than geometric approximations.

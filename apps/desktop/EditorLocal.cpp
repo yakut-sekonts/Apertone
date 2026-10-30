@@ -39,6 +39,8 @@ QVariantMap EditorController::localState() const {
         {"feather", geometry.feather},
         {"opacity", mask.opacity},
         {"blur", mask.blur},
+        {"edgeShift", mask.edgeShift},
+        {"edgeFeather", mask.edgeFeather},
         {"angle", geometry.angle},
         {"rangeLow", geometry.rangeLow * 100},
         {"rangeHigh", geometry.rangeHigh * 100},
@@ -218,7 +220,7 @@ void EditorController::setLocalParameter(const QString &name, double value) {
         auto next = history_.current();
         auto &mask = next.localMasks[static_cast<std::size_t>(localIndex())];
         const auto key = name.toStdString();
-        if (key == "opacity" || key == "blur" ||
+        if (key == "opacity" || key == "blur" || key == "edgeShift" || key == "edgeFeather" ||
             std::find(luma::localParameters.begin(), luma::localParameters.end(), key) !=
                 luma::localParameters.end())
             mask.setParameter(key, value);

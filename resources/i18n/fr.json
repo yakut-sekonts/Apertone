@@ -891,6 +891,8 @@
     "Preserve Exposure": "Conserver l’exposition",
     "Preserve White Balance": "Conserver la balance des blancs",
     "Selected Library photos become references. The current photo is excluded.": "Les photos sélectionnées dans la Bibliothèque servent de références. La photo actuelle est exclue.",
-    "Transfer the editable style of selected Library photos to the current photo.": "Transférer le style modifiable des photos sélectionnées dans la Bibliothèque vers la photo actuelle."
+    "Transfer the editable style of selected Library photos to the current photo.": "Transférer le style modifiable des photos sélectionnées dans la Bibliothèque vers la photo actuelle.",
+    "Edge shift": "Décalage du contour",
+    "Edge feather": "Progressivité du contour"
   }
 }

@@ -194,6 +194,8 @@ ColumnLayout {
                 LocalSlider {visible:editor.localState.shape==="color";parameter:"colorTolerance";label:qsTranslate("Apertone", "Color tolerance");minimum:0;maximum:100;step:.1}
             }
             LocalSlider {visible:editor.localState.shape!=="bitmap";parameter:"feather";label:qsTranslate("Apertone", "Feather");minimum:0;maximum:100}
+            LocalSlider {visible:editor.localState.shape==="bitmap";parameter:"edgeShift";label:qsTranslate("Apertone", "Edge shift");minimum:-100;maximum:100}
+            LocalSlider {visible:editor.localState.shape==="bitmap";parameter:"edgeFeather";label:qsTranslate("Apertone", "Edge feather");minimum:0;maximum:100}
             LocalSlider {visible:editor.localState.shape==="radial";parameter:"angle";label:qsTranslate("Apertone", "Rotation");minimum:-180;maximum:180}
             LocalSlider {parameter:"opacity";label:qsTranslate("Apertone", "Mask opacity");minimum:0;maximum:100}
             LocalSlider {parameter:"blur";label:qsTranslate("Apertone", "Blur");minimum:0;maximum:100}

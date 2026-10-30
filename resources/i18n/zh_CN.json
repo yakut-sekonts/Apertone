@@ -891,6 +891,8 @@
     "Preserve Exposure": "保留曝光",
     "Preserve White Balance": "保留白平衡",
     "Selected Library photos become references. The current photo is excluded.": "所选图库照片将作为参考，当前照片会被排除。",
-    "Transfer the editable style of selected Library photos to the current photo.": "将所选图库照片的可编辑风格应用到当前照片。"
+    "Transfer the editable style of selected Library photos to the current photo.": "将所选图库照片的可编辑风格应用到当前照片。",
+    "Edge shift": "边缘偏移",
+    "Edge feather": "边缘羽化"
   }
 }
