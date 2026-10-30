@@ -6,6 +6,9 @@
   reconstruction. It chooses green interpolation by local sensor gradients and
   reconstructs chroma from color differences, reducing false color across hard
   edges while preserving linear highlights and the original sensor samples.
+- Raster import now requests the HDR representation from ImageIO. Adaptive HDR
+  JPEG/HEIF gain maps and ISO HDR images expand into the existing scene-linear
+  working space while ordinary SDR files retain their previous values.
 
 ## 1.5.0 / 2026-10-30
 

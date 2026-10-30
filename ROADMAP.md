@@ -259,5 +259,6 @@ editor does not substitute geometric approximations.
   deterministic CPU fallback where the bundled model contract allows it.
 
 The first RAW Pipeline 2.0 block replaces bilinear Bayer interpolation with a
-bounded two-pass edge-aware reconstruction. HDR/gain-map and AI Enhance remain
-in development.
+bounded two-pass edge-aware reconstruction. Adaptive HDR gain maps and ISO HDR
+now expand during raster import into scene-linear working pixels. HDR display,
+compatible gain-map export and AI Enhance remain in development.

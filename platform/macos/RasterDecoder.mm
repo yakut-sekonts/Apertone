@@ -191,12 +191,18 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
         if (progress)
             progress(.05);
         checkCancellation(stop);
-        NSDictionary *options = @{
+        NSMutableDictionary *options = [@{
             (__bridge NSString *)kCGImageSourceShouldAllowFloat : @YES,
-            (__bridge NSString *)kCGImageSourceShouldCache : @NO
-        };
+            (__bridge NSString *)kCGImageSourceShouldCache : @NO,
+            (__bridge NSString *)
+            kCGImageSourceDecodeRequest : (__bridge NSString *)kCGImageSourceDecodeToHDR
+        } mutableCopy];
+        if (@available(macOS 16.0, *))
+            options[(__bridge NSString *)kCGImageSourceDecodeRequestOptions] =
+                @{(__bridge NSString *)kCGComputeHDRStats : @YES};
         CFHandle image(
             CGImageSourceCreateImageAtIndex(input.get(), index, (__bridge CFDictionaryRef)options));
+        [options release];
         checkCancellation(stop);
         if (!image || CGImageGetWidth(image.get()) != static_cast<std::size_t>(info.width) ||
             CGImageGetHeight(image.get()) != static_cast<std::size_t>(info.height) ||
