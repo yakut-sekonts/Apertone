@@ -176,6 +176,22 @@ void completeLocalEditorTests(const QString &source, const QString &root, const 
     require(editor.currentSettings().localMasks[0].components[0].id == colorID.toStdString(),
             "Component reorder failed.");
     const auto composed = editor.currentSettings();
+    require(QMetaObject::invokeMethod(child("localMaskDuplicate"), "clicked"),
+            "Cannot duplicate a combined mask through QML.");
+    const auto duplicated = editor.currentSettings();
+    require(duplicated.localMasks.size() == 2 &&
+                duplicated.localMasks[0].id != duplicated.localMasks[1].id &&
+                duplicated.localMasks[0].components.size() ==
+                    duplicated.localMasks[1].components.size() &&
+                duplicated.localMasks[0].components[0].id !=
+                    duplicated.localMasks[1].components[0].id &&
+                duplicated.localMasks[0].components[0].geometry ==
+                    duplicated.localMasks[1].components[0].geometry,
+            "Mask duplication did not create an independent combined selection.");
+    editor.undo();
+    require(editor.currentSettings() == composed, "Duplicate mask Undo changed its source.");
+    editor.selectLocalMask(QString::fromStdString(composed.localMasks[0].id));
+    editor.selectLocalComponent(colorID);
     editor.removeLocalComponent();
     editor.undo();
     require(editor.currentSettings() == composed, "Remove component Undo lost selection or order.");

@@ -100,7 +100,7 @@ def compare_historical(before, after):
         elif name == 'edit_local_masks':
             if ([row[0] for row in actual['rows']] != [row[0] for row in expected['rows']]
                     or not all(row[1].startswith('LUMA_LOCAL_MASKS 2 ') for row in expected['rows'])
-                    or not all(row[1].startswith('LUMA_LOCAL_MASKS 4 ') for row in actual['rows'])):
+                    or not all(row[1].startswith('LUMA_LOCAL_MASKS 5 ') for row in actual['rows'])):
                 raise ValueError('Historical mask identities or format changed unexpectedly')
             # Full decoded equality is checked by the child; old export pixels are independent.
         elif actual != expected:

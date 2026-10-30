@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Apertone VERSION 1.4.0 LANGUAGES C CXX OBJCXX)
+project(Apertone VERSION 1.5.0 LANGUAGES C CXX OBJCXX)
 
 if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     message(FATAL_ERROR "Apertone currently supports macOS Apple Silicon only.")
@@ -25,13 +25,13 @@ add_library(luma_core STATIC
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp
     core/io/StagingFile.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
-    core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/quick/QuickLooks.cpp
+    core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
     core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
     core/catalog/SemanticCatalog.cpp
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp
-    core/edits/Retouch.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
+    core/edits/Retouch.cpp core/edits/BitmapMask.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
     core/catalog/BitmapMaskMigration.cpp
     core/edits/LocalMasks.cpp core/render/MaskCoverage.cpp core/render/MaskReference.cpp core/render/LocalAdjustments.cpp core/render/LocalBlur.cpp core/catalog/LocalMaskStorage.cpp core/catalog/MaskComponentMigration.cpp
     "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
@@ -159,6 +159,13 @@ if(BUILD_TESTING)
     target_link_libraries(luma_quick_look_tests PRIVATE luma_core)
     target_compile_options(luma_quick_look_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME quick-look-stack-and-blur COMMAND luma_quick_look_tests)
+    add_executable(luma_vision_selection_tests tests/unit/VisionSelectionTests.cpp)
+    target_link_libraries(luma_vision_selection_tests PRIVATE luma_macos)
+    target_compile_definitions(luma_vision_selection_tests PRIVATE
+        APERTONE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    target_compile_options(luma_vision_selection_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME vision-people-selections COMMAND luma_vision_selection_tests)
+    set_tests_properties(vision-people-selections PROPERTIES TIMEOUT 30 LABELS "unit;ai;masks")
     # Explicit model qualification uses this bridge; ordinary CTest does not
     # require a downloaded model or silently claim its quality has been tested.
     add_executable(luma_denoise_runtime_probe tests/models/DenoiseRuntime.cpp)

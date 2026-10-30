@@ -39,6 +39,8 @@ QVariantMap EditorController::localState() const {
         {"feather", geometry.feather},
         {"opacity", mask.opacity},
         {"blur", mask.blur},
+        {"edgeShift", mask.edgeShift},
+        {"edgeFeather", mask.edgeFeather},
         {"angle", geometry.angle},
         {"rangeLow", geometry.rangeLow * 100},
         {"rangeHigh", geometry.rangeHigh * 100},
@@ -141,6 +143,37 @@ QString EditorController::addLocalMask(const QString &shape) {
         return {};
     }
 }
+QString EditorController::duplicateLocalMask() {
+    if (!editable() || original_ || localIndex() < 0)
+        return {};
+    try {
+        endEdit();
+        auto next = history_.current();
+        auto copy = next.localMasks[static_cast<std::size_t>(localIndex())];
+        copy.id = luma::newID();
+        for (auto &component : copy.components)
+            component.id = luma::newID();
+        auto name = QCoreApplication::translate("Apertone", "%1 copy")
+                        .arg(QString::fromStdString(copy.name));
+        if (name.size() > 80) {
+            name.truncate(80);
+            if (!name.isEmpty() && name.back().isHighSurrogate())
+                name.chop(1);
+        }
+        copy.name = name.trimmed().toStdString();
+        next.localMasks.insert(next.localMasks.begin() + localIndex() + 1, copy);
+        next.validate();
+        luma::encodeLocalMasks(next.localMasks);
+        localSelected_ = QString::fromStdString(copy.id);
+        localComponentSelected_.clear();
+        setLocalMode(true);
+        applyAdvanced(std::move(next));
+        return localSelected_;
+    } catch (const std::exception &failure) {
+        advancedFailure(failure);
+        return {};
+    }
+}
 void EditorController::selectLocalMask(const QString &id) {
     if (!editable())
         return;
@@ -218,7 +251,7 @@ void EditorController::setLocalParameter(const QString &name, double value) {
         auto next = history_.current();
         auto &mask = next.localMasks[static_cast<std::size_t>(localIndex())];
         const auto key = name.toStdString();
-        if (key == "opacity" || key == "blur" ||
+        if (key == "opacity" || key == "blur" || key == "edgeShift" || key == "edgeFeather" ||
             std::find(luma::localParameters.begin(), luma::localParameters.end(), key) !=
                 luma::localParameters.end())
             mask.setParameter(key, value);

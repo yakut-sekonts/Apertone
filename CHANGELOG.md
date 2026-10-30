@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.5.0 / 2026-10-30
+
+- Added **Match Look** as an editable Quick Look layer. It averages the
+  transferable tone and color treatment from up to 16 selected reference
+  photos and applies the result to the current photo without modifying the
+  references or originals.
+- Match Look preserves Exposure and White Balance by default, offers an Amount
+  range from 0–200%, and can include those controls explicitly when requested.
+  Geometry, masks, retouching, AI results and sampled Point Color ranges are
+  deliberately excluded from style transfer.
+- Match Look layers remain independently adjustable, reorderable, removable and
+  serializable with the edit document. Existing creative documents remain
+  readable through the versioned codec.
+- Added non-destructive **Edge shift** and **Edge feather** controls for AI and
+  other bitmap masks. Refinement is compiled once per render with bounded linear
+  time filters, persists in the versioned mask document and is shared by
+  preview, overlay, thumbnails and export.
+- Added local **Face**, **Eyes** and **Lips** selections backed by Apple Vision
+  face landmarks. A click chooses the intended face in group photos; incomplete
+  or low-confidence landmarks are refused instead of publishing a guessed mask.
+  Skin, hair, teeth and clothing remain unavailable until a suitably licensed
+  semantic provider is integrated.
+- Combined selections can now be duplicated with their ordered Add, Subtract
+  and Intersect component stack. The copy receives fresh mask and component IDs,
+  remains independently editable and participates in normal Undo/Redo.
+
 ## 1.4.0 / 2026-10-30
 
 - Added **Refresh last import**. Apertone persistently records the exact files

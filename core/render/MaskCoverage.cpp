@@ -16,6 +16,24 @@ double edge(double distance, double radius, double feather) {
         return distance <= radius ? 1 : 0;
     return 1 - smooth((distance / radius - (1 - feather)) / feather);
 }
+int bitmapRadius(double amount, double maximumFraction, const BitmapMask &bitmap) {
+    if (amount == 0)
+        return 0;
+    const double scaled = std::abs(amount) / 100 *
+                          static_cast<double>(std::min(bitmap.width(), bitmap.height())) *
+                          maximumFraction;
+    return std::max(1, static_cast<int>(std::lround(scaled)));
+}
+MaskGeometry refinedGeometry(const LocalMask &mask) {
+    auto result = static_cast<const MaskGeometry &>(mask);
+    if (result.shape != MaskShape::bitmap || (mask.edgeShift == 0 && mask.edgeFeather == 0))
+        return result;
+    const int shift =
+        bitmapRadius(mask.edgeShift, .03, result.bitmap) * (mask.edgeShift < 0 ? -1 : 1);
+    const int feather = bitmapRadius(mask.edgeFeather, .04, result.bitmap);
+    result.bitmap = result.bitmap.refined(shift, feather);
+    return result;
+}
 } // namespace
 std::array<double, 3> maskReferenceColor(std::array<float, 3> linear) {
     std::array<double, 3> result;
@@ -160,7 +178,7 @@ double PrimitiveCoverage::coverage(double x, double y, std::array<float, 3> refe
     throw std::runtime_error("Unknown mask primitive.");
 }
 MaskCoverage::MaskCoverage(const LocalMask &mask, double aspect)
-    : base_(mask, aspect), enabled_(mask.enabled), inverted_(mask.inverted),
+    : base_(refinedGeometry(mask), aspect), enabled_(mask.enabled), inverted_(mask.inverted),
       opacity_(mask.opacity / 100) {
     mask.validate();
     for (const auto &component : mask.components)

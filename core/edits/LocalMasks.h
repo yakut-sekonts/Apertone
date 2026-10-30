@@ -45,6 +45,9 @@ struct LocalMask : MaskGeometry {
     std::string id, name;
     bool enabled = true, inverted = false;
     double opacity = 100, blur = 0;
+    // Bitmap-only boundary controls. Edge shift expands/contracts the selection;
+    // edge feather softens the resulting boundary. Both are neutral at zero.
+    double edgeShift = 0, edgeFeather = 0;
     std::array<double, 8> adjustments{};
     std::vector<MaskComponent> components;
     bool operator==(const LocalMask &) const = default;

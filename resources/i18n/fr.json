@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "fr",
   "messages": {
+    "%1 copy": "Copie de %1",
+    "Duplicate": "Dupliquer",
     " mm": " mm",
     " photos · selected ": " photos · sélectionnées ",
     " s": " s",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "La source d’importation n’est plus suivie.",
     "No tracked import sources are available to refresh.": "Aucune source d’importation suivie n’est disponible pour l’actualisation.",
     "Invalid import source.": "Source d’importation non valide.",
-    "Manage sources": "Gérer les sources"
+    "Manage sources": "Gérer les sources",
+    "%1 selected": "%1 sélectionnées",
+    "Match Look": "Harmoniser le rendu",
+    "Match Look…": "Harmoniser le rendu…",
+    "Preserve Exposure": "Conserver l’exposition",
+    "Preserve White Balance": "Conserver la balance des blancs",
+    "Selected Library photos become references. The current photo is excluded.": "Les photos sélectionnées dans la Bibliothèque servent de références. La photo actuelle est exclue.",
+    "Transfer the editable style of selected Library photos to the current photo.": "Transférer le style modifiable des photos sélectionnées dans la Bibliothèque vers la photo actuelle.",
+    "Edge shift": "Décalage du contour",
+    "Edge feather": "Progressivité du contour",
+    "People details": "Détails de la personne",
+    "Face": "Visage",
+    "Eyes": "Yeux",
+    "Lips": "Lèvres",
+    "Click a face in the photo.": "Cliquez sur un visage dans la photo."
   }
 }

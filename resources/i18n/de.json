@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "de",
   "messages": {
+    "%1 copy": "%1 – Kopie",
+    "Duplicate": "Duplizieren",
     " mm": " mm",
     " photos · selected ": " Fotos · ausgewählt ",
     " s": " s",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "Die Importquelle wird nicht mehr erfasst.",
     "No tracked import sources are available to refresh.": "Es sind keine erfassten Importquellen zum Aktualisieren verfügbar.",
     "Invalid import source.": "Ungültige Importquelle.",
-    "Manage sources": "Quellen verwalten"
+    "Manage sources": "Quellen verwalten",
+    "%1 selected": "%1 ausgewählt",
+    "Match Look": "Look abgleichen",
+    "Match Look…": "Look abgleichen…",
+    "Preserve Exposure": "Belichtung beibehalten",
+    "Preserve White Balance": "Weißabgleich beibehalten",
+    "Selected Library photos become references. The current photo is excluded.": "Ausgewählte Bibliotheksfotos dienen als Referenzen. Das aktuelle Foto wird ausgeschlossen.",
+    "Transfer the editable style of selected Library photos to the current photo.": "Den bearbeitbaren Stil ausgewählter Bibliotheksfotos auf das aktuelle Foto übertragen.",
+    "Edge shift": "Kantenverschiebung",
+    "Edge feather": "Kantenweichzeichnung",
+    "People details": "Personendetails",
+    "Face": "Gesicht",
+    "Eyes": "Augen",
+    "Lips": "Lippen",
+    "Click a face in the photo.": "Klicken Sie auf ein Gesicht im Foto."
   }
 }

@@ -78,8 +78,19 @@ ColumnLayout {
             ToolTip.text: qsTranslate("Apertone", "Choose a compatible local Sky model in Settings.")
         }
         Label {
+            text: qsTranslate("Apertone", "People details")
+            font.pixelSize: 10; font.weight: Font.DemiBold; color: Theme.muted
+            Layout.fillWidth: true
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            ApertoneButton { objectName: "localAI.face"; text: qsTranslate("Apertone", "Face"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("face") }
+            ApertoneButton { objectName: "localAI.eyes"; text: qsTranslate("Apertone", "Eyes"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("eyes") }
+            ApertoneButton { objectName: "localAI.lips"; text: qsTranslate("Apertone", "Lips"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("lips") }
+        }
+        Label {
             visible: editor.aiObjectPicking
-            text: qsTranslate("Apertone", "Click the object in the photo.")
+            text: editor.aiPickKind === "object" ? qsTranslate("Apertone", "Click the object in the photo.") : qsTranslate("Apertone", "Click a face in the photo.")
             wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.accent
         }
         ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI selection"; value: editor.aiProgress; Layout.fillWidth: true }
@@ -119,6 +130,7 @@ ColumnLayout {
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
                 ApertoneButton {objectName:"localMaskUp";text: "↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask up");onClicked:editor.moveLocalMask(-1)}
                 ApertoneButton {objectName:"localMaskDown";text: "↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask down");onClicked:editor.moveLocalMask(1)}
+                ApertoneButton {objectName:"localMaskDuplicate";text:qsTranslate("Apertone", "Duplicate");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.duplicateLocalMask()}
                 ApertoneButton {objectName:"localMaskDelete";text:qsTranslate("Apertone", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
             }
             ApertoneComboBox {
@@ -194,6 +206,8 @@ ColumnLayout {
                 LocalSlider {visible:editor.localState.shape==="color";parameter:"colorTolerance";label:qsTranslate("Apertone", "Color tolerance");minimum:0;maximum:100;step:.1}
             }
             LocalSlider {visible:editor.localState.shape!=="bitmap";parameter:"feather";label:qsTranslate("Apertone", "Feather");minimum:0;maximum:100}
+            LocalSlider {visible:editor.localState.shape==="bitmap";parameter:"edgeShift";label:qsTranslate("Apertone", "Edge shift");minimum:-100;maximum:100}
+            LocalSlider {visible:editor.localState.shape==="bitmap";parameter:"edgeFeather";label:qsTranslate("Apertone", "Edge feather");minimum:0;maximum:100}
             LocalSlider {visible:editor.localState.shape==="radial";parameter:"angle";label:qsTranslate("Apertone", "Rotation");minimum:-180;maximum:180}
             LocalSlider {parameter:"opacity";label:qsTranslate("Apertone", "Mask opacity");minimum:0;maximum:100}
             LocalSlider {parameter:"blur";label:qsTranslate("Apertone", "Blur");minimum:0;maximum:100}

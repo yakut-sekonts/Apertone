@@ -10,6 +10,7 @@ ColumnLayout {
     property var selected: null
     property string hoverPreviewId: ""
     property var filteredQuickItems: []
+    property var libraryModel: null
     readonly property Item editorScrollView: editScroll
     function previewHoveredPreset(presetId) {
         hoverPreviewId = presetId
@@ -81,6 +82,16 @@ ColumnLayout {
                 enabled: editor.hasPhoto && !editor.busy && !editor.transformAutoBusy; Layout.fillWidth: true
                 onClicked: editor.autoTransform()
             }
+        }
+        ApertoneButton {
+            objectName: "quick.matchLook"
+            text: qsTranslate("Apertone", "Match Look…")
+            Layout.fillWidth: true
+            enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                     panel.libraryModel !== null && panel.libraryModel.selectedCount > 0
+            onClicked: matchLookDialog.open()
+            ToolTip.visible: hovered
+            ToolTip.text: qsTranslate("Apertone", "Transfer the editable style of selected Library photos to the current photo.")
         }
         ListView {
             id: quickList
@@ -162,6 +173,65 @@ ColumnLayout {
             }
             Label { anchors.centerIn: parent; visible: quickStack.count === 0; text: qsTranslate("Apertone", "Add looks above — they stay editable and stack in order."); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; width: parent.width }
             ScrollBar.vertical: ScrollBar {}
+        }
+    }
+    Dialog {
+        id: matchLookDialog
+        objectName: "quick.matchLookDialog"
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(400, parent ? parent.width - 32 : 400)
+        modal: true
+        title: qsTranslate("Apertone", "Match Look")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onOpened: matchAmount.value = 100
+        onAccepted: if (panel.libraryModel !== null)
+                        editor.applyMatchLook(panel.libraryModel.selectedAssetIDs(), matchAmount.value,
+                                              !preserveExposure.checked,
+                                              !preserveWhiteBalance.checked)
+        ColumnLayout {
+            width: parent.width
+            spacing: 10
+            Label {
+                Layout.fillWidth: true
+                text: qsTranslate("Apertone", "Selected Library photos become references. The current photo is excluded.")
+                wrapMode: Text.Wrap
+                color: Theme.text
+            }
+            Label {
+                text: qsTranslate("Apertone", "%1 selected")
+                          .arg(panel.libraryModel === null ? 0 : panel.libraryModel.selectedCount)
+                color: Theme.muted
+                font.pixelSize: 10
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                Label { text: qsTranslate("Apertone", "Amount"); color: Theme.text }
+                Slider {
+                    id: matchAmount
+                    objectName: "quick.matchLookAmount"
+                    Layout.fillWidth: true
+                    from: 0; to: 200; stepSize: 1; value: 100
+                }
+                Label {
+                    text: Math.round(matchAmount.value) + "%"
+                    color: Theme.muted
+                    Layout.preferredWidth: 38
+                    horizontalAlignment: Text.AlignRight
+                }
+            }
+            CheckBox {
+                id: preserveExposure
+                objectName: "quick.matchLookPreserveExposure"
+                text: qsTranslate("Apertone", "Preserve Exposure")
+                checked: true
+            }
+            CheckBox {
+                id: preserveWhiteBalance
+                objectName: "quick.matchLookPreserveWhiteBalance"
+                text: qsTranslate("Apertone", "Preserve White Balance")
+                checked: true
+            }
         }
     }
     ListView {

@@ -44,6 +44,7 @@ class BitmapMask {
         return std::lerp(std::lerp(at(x0, y0), at(x1, y0), px - x0),
                          std::lerp(at(x0, y1), at(x1, y1), px - x0), py - y0);
     }
+    BitmapMask refined(int edgeShiftPixels, int featherRadiusPixels) const;
     bool operator==(const BitmapMask &other) const {
         return width_ == other.width_ && height_ == other.height_ &&
                (values_ == other.values_ ||

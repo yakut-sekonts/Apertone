@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "hy",
   "messages": {
+    "%1 copy": "%1-ի պատճենը",
+    "Duplicate": "Կրկնօրինակել",
     " mm": " մմ",
     " photos · selected ": " լուսանկար · ընտրված ",
     " s": " վ",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "Ներմուծման աղբյուրն այլևս չի հետևվում։",
     "No tracked import sources are available to refresh.": "Թարմացման համար հետևվող ներմուծման աղբյուրներ չկան։",
     "Invalid import source.": "Ներմուծման անվավեր աղբյուր։",
-    "Manage sources": "Կառավարել աղբյուրները"
+    "Manage sources": "Կառավարել աղբյուրները",
+    "%1 selected": "Ընտրված է՝ %1",
+    "Match Look": "Ոճի համադրում",
+    "Match Look…": "Համադրել ոճը…",
+    "Preserve Exposure": "Պահպանել լուսակայումը",
+    "Preserve White Balance": "Պահպանել սպիտակի հավասարակշռությունը",
+    "Selected Library photos become references. The current photo is excluded.": "Գրադարանի ընտրված լուսանկարները դառնում են հղումներ։ Ընթացիկ լուսանկարը բացառվում է։",
+    "Transfer the editable style of selected Library photos to the current photo.": "Ընտրված գրադարանի լուսանկարների խմբագրվող ոճը կիրառել ընթացիկ լուսանկարի վրա։",
+    "Edge shift": "Եզրի տեղաշարժ",
+    "Edge feather": "Եզրի փափկեցում",
+    "People details": "Մարդու մանրամասներ",
+    "Face": "Դեմք",
+    "Eyes": "Աչքեր",
+    "Lips": "Շուրթեր",
+    "Click a face in the photo.": "Սեղմեք լուսանկարի դեմքին։"
   }
 }

@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "zh_CN",
   "messages": {
+    "%1 copy": "%1 副本",
+    "Duplicate": "复制",
     " mm": " mm",
     " photos · selected ": " 张照片 · 已选 ",
     " s": " s",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "不再跟踪此导入源。",
     "No tracked import sources are available to refresh.": "没有可刷新的已跟踪导入源。",
     "Invalid import source.": "无效的导入源。",
-    "Manage sources": "管理来源"
+    "Manage sources": "管理来源",
+    "%1 selected": "已选择 %1 张",
+    "Match Look": "匹配外观",
+    "Match Look…": "匹配外观…",
+    "Preserve Exposure": "保留曝光",
+    "Preserve White Balance": "保留白平衡",
+    "Selected Library photos become references. The current photo is excluded.": "所选图库照片将作为参考，当前照片会被排除。",
+    "Transfer the editable style of selected Library photos to the current photo.": "将所选图库照片的可编辑风格应用到当前照片。",
+    "Edge shift": "边缘偏移",
+    "Edge feather": "边缘羽化",
+    "People details": "人物细节",
+    "Face": "面部",
+    "Eyes": "眼睛",
+    "Lips": "嘴唇",
+    "Click a face in the photo.": "点按照片中的面部。"
   }
 }

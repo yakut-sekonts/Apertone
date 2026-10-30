@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "en",
   "messages": {
+    "%1 copy": "%1 copy",
+    "Duplicate": "Duplicate",
     " mm": " mm",
     " photos · selected ": " photos · selected ",
     " s": " s",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "Import source is no longer tracked.",
     "No tracked import sources are available to refresh.": "No tracked import sources are available to refresh.",
     "Invalid import source.": "Invalid import source.",
-    "Manage sources": "Manage sources"
+    "Manage sources": "Manage sources",
+    "%1 selected": "%1 selected",
+    "Match Look": "Match Look",
+    "Match Look…": "Match Look…",
+    "Preserve Exposure": "Preserve Exposure",
+    "Preserve White Balance": "Preserve White Balance",
+    "Selected Library photos become references. The current photo is excluded.": "Selected Library photos become references. The current photo is excluded.",
+    "Transfer the editable style of selected Library photos to the current photo.": "Transfer the editable style of selected Library photos to the current photo.",
+    "Edge shift": "Edge shift",
+    "Edge feather": "Edge feather",
+    "People details": "People details",
+    "Face": "Face",
+    "Eyes": "Eyes",
+    "Lips": "Lips",
+    "Click a face in the photo.": "Click a face in the photo."
   }
 }

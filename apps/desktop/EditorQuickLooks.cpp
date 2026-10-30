@@ -1,5 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
+#include "core/quick/MatchLook.h"
 #include "core/quick/QuickLooks.h"
 #include <algorithm>
 #include <cmath>
@@ -42,7 +44,8 @@ void EditorController::applyQuickLook(const QString &recipeID) {
         auto next = history_.current();
         if (next.creative.quickLooks.size() >= 32)
             throw std::runtime_error("A photo supports at most 32 Quick Look layers.");
-        next.creative.quickLooks.push_back({luma::newID(), std::string(recipe.id), 100, true, {}});
+        next.creative.quickLooks.push_back(
+            {luma::newID(), std::string(recipe.id), 100, true, {}, {}, {}});
         applyAdvanced(std::move(next));
     } catch (const std::exception &failure) {
         advancedFailure(failure);
@@ -126,6 +129,46 @@ void EditorController::clearQuickLooks() {
                 masks.insert(layer.mask);
         next.creative.quickLooks.clear();
         std::erase_if(next.localMasks, [&](const auto &mask) { return masks.contains(mask.id); });
+        applyAdvanced(std::move(next));
+    } catch (const std::exception &failure) {
+        advancedFailure(failure);
+    }
+}
+
+void EditorController::applyMatchLook(const QStringList &referenceIDs, double amount,
+                                      bool includeExposure, bool includeWhiteBalance) {
+    if (!editable() || original_ || !std::isfinite(amount))
+        return;
+    try {
+        auto next = history_.current();
+        if (next.creative.quickLooks.size() >= 32)
+            throw std::runtime_error("A photo supports at most 32 Quick Look layers.");
+        const auto activeID = photoID();
+        std::vector<luma::EditDocument> references;
+        std::set<std::string> unique;
+        luma::Catalog catalog(catalog_);
+        for (const auto &id : referenceIDs) {
+            const auto value = id.toStdString();
+            if (value.empty() || id == activeID || !unique.insert(value).second)
+                continue;
+            if (references.size() == 16)
+                throw std::runtime_error("Match Look supports at most 16 reference photos.");
+            const auto asset = catalog.assetByID(value);
+            if (!asset)
+                throw std::runtime_error("A selected Match Look reference no longer exists.");
+            references.push_back(asset->edits);
+        }
+        if (references.empty())
+            throw std::runtime_error(
+                "Select at least one reference photo other than the current photo.");
+        auto deltas = luma::matchLookDeltas(
+            next, references,
+            {.includeExposure = includeExposure, .includeWhiteBalance = includeWhiteBalance});
+        const auto count = references.size();
+        const auto name = count == 1 ? std::string("Match Look · 1 reference")
+                                     : "Match Look · " + std::to_string(count) + " references";
+        next.creative.quickLooks.push_back(
+            {luma::newID(), "", std::clamp(amount, 0.0, 200.0), true, {}, name, std::move(deltas)});
         applyAdvanced(std::move(next));
     } catch (const std::exception &failure) {
         advancedFailure(failure);

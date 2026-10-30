@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "ru",
   "messages": {
+    "%1 copy": "Копия %1",
+    "Duplicate": "Дублировать",
     " mm": " мм",
     " photos · selected ": " фотографий · выбрано ",
     " s": " с",
@@ -884,6 +886,20 @@
     "Import source is no longer tracked.": "Источник импорта больше не отслеживается.",
     "No tracked import sources are available to refresh.": "Нет отслеживаемых источников импорта для обновления.",
     "Invalid import source.": "Недопустимый источник импорта.",
-    "Manage sources": "Управление источниками"
+    "Manage sources": "Управление источниками",
+    "%1 selected": "Выбрано: %1",
+    "Match Look": "Сопоставление стиля",
+    "Match Look…": "Сопоставить стиль…",
+    "Preserve Exposure": "Сохранить экспозицию",
+    "Preserve White Balance": "Сохранить баланс белого",
+    "Selected Library photos become references. The current photo is excluded.": "Выбранные фотографии Библиотеки используются как референсы. Текущая фотография исключается.",
+    "Transfer the editable style of selected Library photos to the current photo.": "Перенести редактируемый стиль выбранных фотографий Библиотеки на текущую фотографию.",
+    "Edge shift": "Смещение края",
+    "Edge feather": "Растушёвка края",
+    "People details": "Детали человека",
+    "Face": "Лицо",
+    "Eyes": "Глаза",
+    "Lips": "Губы",
+    "Click a face in the photo.": "Нажмите на лицо на фотографии."
   }
 }

@@ -4,7 +4,9 @@
 #include "core/export/LinearOutput.h"
 #include "core/render/CpuRenderer.h"
 #include "core/render/CropGeometry.h"
+#include "core/render/MaskCoverage.h"
 #include "tests/unit/LegacyCatalogFixture.h"
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -74,11 +76,12 @@ void documents() {
     const auto encoded = luma::encodeLocalMasks({m});
     require(luma::decodeLocalMasks(encoded) == std::vector{m},
             "Canonical Unicode roundtrip failed.");
-    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 4 0\n", "Neutral document changed.");
-    require(luma::decodeLocalMasks("LUMA_LOCAL_MASKS 2 0\n").empty(),
+    require(luma::encodeLocalMasks({}) == "LUMA_LOCAL_MASKS 5 0\n", "Neutral document changed.");
+    require(luma::decodeLocalMasks("LUMA_LOCAL_MASKS 2 0\n").empty() &&
+                luma::decodeLocalMasks("LUMA_LOCAL_MASKS 4 0\n").empty(),
             "Legacy neutral document did not decode.");
     for (auto text :
-         {encoded + " ", std::string("LUMA_LOCAL_MASKS 5 0\n"),
+         {encoded + " ", std::string("LUMA_LOCAL_MASKS 6 0\n"),
           std::string("LUMA_LOCAL_MASKS 1 129\n"), encoded.substr(0, encoded.size() - 2)})
         rejects([&] { luma::decodeLocalMasks(text); });
     rejects([&] { luma::encodeLocalMasks({m, m}); });
@@ -86,6 +89,7 @@ void documents() {
     const auto old = m;
     rejects([&] { m.setParameter("exposure", 5.01); });
     rejects([&] { m.setParameter("opacity", std::numeric_limits<double>::infinity()); });
+    rejects([&] { m.setParameter("edgeShift", 1); });
     rejects([&] { m.setParameter("unknown", 1); });
     require(m == old, "Failed parameter validation partially changed mask.");
     for (const auto &name :
@@ -114,6 +118,39 @@ void documents() {
     extra.id = luma::newID();
     many.push_back(extra);
     rejects([&] { luma::encodeLocalMasks(many); });
+}
+void bitmapRefinement() {
+    std::vector<std::uint8_t> values(49);
+    values[24] = 255;
+    const luma::BitmapMask source(7, 7, values);
+    const auto expanded = source.refined(1, 0);
+    require(expanded.pixels()[16] == 255 && expanded.pixels()[24] == 255 &&
+                expanded.pixels()[32] == 255 && expanded.pixels()[0] == 0,
+            "Bitmap edge expansion did not use a bounded two-dimensional maximum filter.");
+    const auto contracted = source.refined(-1, 0);
+    require(std::all_of(contracted.pixels().begin(), contracted.pixels().end(),
+                        [](std::uint8_t value) { return value == 0; }),
+            "Bitmap edge contraction did not use a bounded two-dimensional minimum filter.");
+    const auto feathered = source.refined(0, 1);
+    require(feathered.pixels()[24] > 0 && feathered.pixels()[24] < 255 &&
+                feathered.pixels()[23] > 0 && feathered.pixels()[0] == 0,
+            "Bitmap edge feather did not produce a local soft boundary.");
+
+    auto refined = mask();
+    refined.shape = luma::MaskShape::bitmap;
+    refined.bitmap = source;
+    refined.edgeShift = 70;
+    refined.edgeFeather = 35;
+    refined.setParameter("exposure", 1);
+    const auto encoded = luma::encodeLocalMasks({refined});
+    require(luma::decodeLocalMasks(encoded) == std::vector{refined},
+            "Bitmap edge refinement did not survive the mask codec.");
+    auto baseline = refined;
+    baseline.edgeShift = baseline.edgeFeather = 0;
+    const double adjacent = 2.5 / 7;
+    require(luma::MaskCoverage(baseline).coverage(adjacent, .5) == 0 &&
+                luma::MaskCoverage(refined).coverage(adjacent, .5) > 0,
+            "Bitmap edge refinement was not compiled into mask coverage.");
 }
 void geometry() {
     for (const auto size : {std::array{121, 81}, std::array{1, 1}, std::array{1, 17}})
@@ -341,6 +378,7 @@ int main() {
         completeMaskTests();
         coverage();
         documents();
+        bitmapRefinement();
         geometry();
         pixels();
         overlayAlpha();

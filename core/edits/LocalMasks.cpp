@@ -112,6 +112,10 @@ void LocalMask::validate() const {
     MaskGeometry::validate();
     range(opacity, 0, 100);
     range(blur, 0, 100);
+    range(edgeShift, -100, 100);
+    range(edgeFeather, 0, 100);
+    require(shape == MaskShape::bitmap || (edgeShift == 0 && edgeFeather == 0),
+            "Mask edge refinement requires a bitmap selection.");
     for (std::size_t i = 0; i < adjustments.size(); ++i)
         range(adjustments[i], i == 0 ? -5 : -100, i == 0 ? 5 : 100);
     require(components.size() <= 64, "A mask supports at most 64 components.");
@@ -165,6 +169,10 @@ double LocalMask::parameter(std::string_view name) const {
         return opacity;
     if (name == "blur")
         return blur;
+    if (name == "edgeShift")
+        return edgeShift;
+    if (name == "edgeFeather")
+        return edgeFeather;
     if (std::find(localParameters.begin(), localParameters.end(), name) != localParameters.end())
         return adjustments[parameterIndex(name)];
     return MaskGeometry::parameter(name);
@@ -175,6 +183,10 @@ void LocalMask::setParameter(std::string_view name, double value) {
         next.opacity = value;
     else if (name == "blur")
         next.blur = value;
+    else if (name == "edgeShift")
+        next.edgeShift = value;
+    else if (name == "edgeFeather")
+        next.edgeFeather = value;
     else if (std::find(localParameters.begin(), localParameters.end(), name) !=
              localParameters.end())
         next.adjustments[parameterIndex(name)] = value;
@@ -254,6 +266,8 @@ std::string encode(const std::vector<LocalMask> &masks, int version) {
             out << ' ' << mask.enabled << ' ' << mask.inverted << ' ' << mask.opacity;
             if (version >= 4)
                 out << ' ' << mask.blur;
+            if (version >= 5)
+                out << ' ' << mask.edgeShift << ' ' << mask.edgeFeather;
             for (double v : mask.adjustments)
                 out << ' ' << v;
             out << ' ' << mask.components.size() << '\n';
@@ -344,7 +358,7 @@ MaskGeometry geometryIn(std::istream &in, std::size_t &totalPoints, std::size_t 
 }
 } // namespace
 std::string encodeLocalMasks(const std::vector<LocalMask> &masks) {
-    return encode(masks, 4);
+    return encode(masks, 5);
 }
 std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
     require(!text.empty() && text.size() <= 16 * 1048576, "Invalid local mask document size.");
@@ -353,7 +367,7 @@ std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
     std::string marker;
     int version = 0;
     in >> marker >> version;
-    require(in && marker == "LUMA_LOCAL_MASKS" && version >= 1 && version <= 4,
+    require(in && marker == "LUMA_LOCAL_MASKS" && version >= 1 && version <= 5,
             "Unsupported local mask document.");
     const auto size = count(in, 128);
     std::vector<LocalMask> masks;
@@ -379,6 +393,8 @@ std::vector<LocalMask> decodeLocalMasks(std::string_view text) {
             in >> mask.opacity;
             if (version >= 4)
                 in >> mask.blur;
+            if (version >= 5)
+                in >> mask.edgeShift >> mask.edgeFeather;
             for (auto &v : mask.adjustments)
                 in >> v;
             const auto components = count(in, 64);

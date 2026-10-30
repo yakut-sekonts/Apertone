@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(prefix="luma-complete-masks-") as temporary:
     with sqlite3.connect(root / "catalog.sqlite") as database:
         assert database.execute("PRAGMA user_version").fetchone() == (22,)
         before = database.execute("SELECT document FROM edit_local_masks").fetchone()[0]
-        assert before.startswith("LUMA_LOCAL_MASKS 4 2\n") and "\nS 1 " in before
+        assert before.startswith("LUMA_LOCAL_MASKS 5 2\n") and "\nS 1 " in before
     run(root, ["--test-restore", ".35", "--test-export", str(root / "second.png")])
     assert (root / "first.png").read_bytes() == (root / "second.png").read_bytes()
     with sqlite3.connect(root / "catalog.sqlite") as database:
