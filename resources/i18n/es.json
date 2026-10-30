@@ -67,6 +67,7 @@
     "CROP / STRAIGHTEN": "RECORTE / ENDEREZADO",
     "CURVES": "CURVAS",
     "Camera": "Cámara",
+    "Decode": "Decodificación",
     "Camera not in the database; no profile applied": "Cámara no incluida en la base; no se aplicó perfil",
     "Cancel": "Cancelar",
     "Cancel export": "Cancelar exportación",

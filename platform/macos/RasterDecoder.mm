@@ -228,6 +228,7 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
         FloatImage result(info.width, info.height);
         result.alpha.resize(count);
         bool opaque = true;
+        bool hdr = false;
         for (std::size_t i = 0; i < count; ++i) {
             if (i % static_cast<std::size_t>(info.width) == 0) {
                 checkCancellation(stop);
@@ -244,13 +245,26 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
                 if (!std::isfinite(value))
                     throw std::runtime_error("Non-finite decoded image color.");
                 result.rgb[i * 3 + c] = value;
+                hdr = hdr || value > 1.000001F;
             }
         }
         if (opaque)
             std::vector<float>().swap(result.alpha);
         if (progress)
             progress(1);
-        return {std::move(result), info, {}};
+        DecodeDiagnostics diagnostics;
+        diagnostics.decoder = "ImageIO";
+        const auto version = NSProcessInfo.processInfo.operatingSystemVersion;
+        diagnostics.decoderVersion = std::to_string(version.majorVersion) + "." +
+                                     std::to_string(version.minorVersion) + "." +
+                                     std::to_string(version.patchVersion);
+        diagnostics.source = DecodeSource::raster;
+        diagnostics.color = DecodeColorPath::embeddedProfileToLinearSRGB;
+        diagnostics.highlights =
+            hdr ? DecodeHighlightPath::adaptiveHDR : DecodeHighlightPath::sourceRange;
+        diagnostics.sourceWidth = diagnostics.activeWidth = info.width;
+        diagnostics.sourceHeight = diagnostics.activeHeight = info.height;
+        return {std::move(result), info, {}, std::move(diagnostics)};
     }
 }
 } // namespace luma::macos

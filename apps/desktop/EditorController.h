@@ -117,6 +117,8 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString aperture READ aperture NOTIFY stateChanged)
     Q_PROPERTY(QString focalLength READ focalLength NOTIFY stateChanged)
     Q_PROPERTY(QString dimensions READ dimensions NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap decoderDiagnostics READ decoderDiagnostics NOTIFY stateChanged)
+    Q_PROPERTY(QString decoderSummary READ decoderSummary NOTIFY stateChanged)
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY previewChanged)
@@ -329,6 +331,8 @@ class EditorController final : public QObject {
     QString aperture() const;
     QString focalLength() const;
     QString dimensions() const;
+    QVariantMap decoderDiagnostics() const;
+    QString decoderSummary() const;
     QString status() const {
         return status_.text();
     }

@@ -67,6 +67,7 @@
     "CROP / STRAIGHTEN": "КАДРИРОВАНИЕ / ВЫРАВНИВАНИЕ",
     "CURVES": "КРИВЫЕ",
     "Camera": "Камера",
+    "Decode": "Декодирование",
     "Camera not in the database; no profile applied": "Камеры нет в базе; профиль не применён",
     "Cancel": "Отменить",
     "Cancel export": "Отменить экспорт",

@@ -50,6 +50,13 @@ container to LibRaw; final compatibility still depends on that camera model,
 compression and sensor layout. Recognized RAW TIFF containers always use the same
 path and never substitute an embedded preview.
 
+The Develop source panel reports the active decoder, decoder version, source
+kind, reconstruction method, CFA when applicable, color path and HDR/headroom
+handling. The typed decode result also retains active/raw dimensions, sensor
+margins, black/white levels and the number of samples at or above sensor white.
+Diagnostics contain no source path or image content and are regenerated from the
+current original when the decode cache changes.
+
 Supported sensor layouts remain three-channel integer Bayer plus Apertone's own
 identified processed Linear RGB DNG. X-Trans RAF, monochrome RAW, Foveon/layered
 RAW and unrecognized RGB/float DNG fail with an explicit error. RAF remains in the

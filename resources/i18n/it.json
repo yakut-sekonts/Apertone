@@ -67,6 +67,7 @@
     "CROP / STRAIGHTEN": "RITAGLIO / RADDRIZZAMENTO",
     "CURVES": "CURVE",
     "Camera": "Fotocamera",
+    "Decode": "Decodifica",
     "Camera not in the database; no profile applied": "Fotocamera non nel database; nessun profilo applicato",
     "Cancel": "Annulla",
     "Cancel export": "Annulla esportazione",

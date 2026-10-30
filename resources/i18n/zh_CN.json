@@ -67,6 +67,7 @@
     "CROP / STRAIGHTEN": "裁剪 / 拉直",
     "CURVES": "曲线",
     "Camera": "相机",
+    "Decode": "解码",
     "Camera not in the database; no profile applied": "数据库中无此相机；未应用配置文件",
     "Cancel": "取消",
     "Cancel export": "取消导出",

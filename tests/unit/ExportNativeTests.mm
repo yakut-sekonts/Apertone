@@ -156,7 +156,7 @@ std::vector<std::uint8_t> rgba(const std::filesystem::path &path, int width, int
     return result;
 }
 void outputTests(const std::filesystem::path &folder, const std::filesystem::path &source) {
-    luma::DecodedRaw decoded{luma::FloatImage(128, 96), {}, {}};
+    luma::DecodedRaw decoded{luma::FloatImage(128, 96), {}, {}, {}};
     decoded.metadata.width = 128;
     decoded.metadata.height = 96;
     for (int y = 0; y < 96; ++y)
@@ -260,7 +260,7 @@ void adaptiveHDRTests(const std::filesystem::path &folder,
                       const std::filesystem::path &metadataSource) {
     if (@available(macOS 15.0, *)) {
         constexpr int width = 64, height = 32;
-        luma::DecodedRaw decoded{luma::FloatImage(width, height), {}, {}};
+        luma::DecodedRaw decoded{luma::FloatImage(width, height), {}, {}, {}};
         decoded.metadata.width = width;
         decoded.metadata.height = height;
         for (int y = 0; y < height; ++y)

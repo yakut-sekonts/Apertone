@@ -204,6 +204,13 @@ void nativeTests(const std::filesystem::path &folder, const std::filesystem::pat
                 "Raster color/row orientation is incorrect.");
     }
     const auto decoded = decoder.decode(folder / "rgba.png");
+    require(decoded.diagnostics.decoder == "ImageIO" &&
+                !decoded.diagnostics.decoderVersion.empty() &&
+                decoded.diagnostics.source == luma::DecodeSource::raster &&
+                decoded.diagnostics.color == luma::DecodeColorPath::embeddedProfileToLinearSRGB &&
+                decoded.diagnostics.highlights == luma::DecodeHighlightPath::sourceRange &&
+                decoded.diagnostics.activeWidth == 64 && decoded.diagnostics.activeHeight == 48,
+            "Raster decoder diagnostics are incomplete or incorrect.");
     require(decoded.metadata.camera == "Luma Raster Test" &&
                 decoded.metadata.lens == "Luma Test Lens" && decoded.metadata.iso == 200 &&
                 decoded.metadata.aperture == 4 && decoded.metadata.focalLength == 35 &&
@@ -291,6 +298,8 @@ void nativeTests(const std::filesystem::path &folder, const std::filesystem::pat
         const auto highlight = pixel(hdr.image, 12, 2);
         require(shadow[0] > .12 && shadow[0] < .25 && highlight[0] > 1.25 && highlight[0] <= 4.1,
                 "Adaptive HDR gain map did not decode to bounded linear headroom.");
+        require(hdr.diagnostics.highlights == luma::DecodeHighlightPath::adaptiveHDR,
+                "Adaptive HDR decoder diagnostics did not report expanded headroom.");
     }
     const auto gif = decoder.decode(assets / "two-frames.gif");
     require(pixel(gif.image, 2, 2)[0] > .99 && pixel(gif.image, 31, 23)[2] > .99,
@@ -330,7 +339,7 @@ void nativeTests(const std::filesystem::path &folder, const std::filesystem::pat
             "Image extension discovery changed.");
 }
 void coverageTests(const std::filesystem::path &folder) {
-    luma::DecodedImage source{luma::FloatImage(64, 48), {}, {}};
+    luma::DecodedImage source{luma::FloatImage(64, 48), {}, {}, {}};
     source.metadata.width = 64;
     source.metadata.height = 48;
     source.image.alpha.resize(64 * 48);

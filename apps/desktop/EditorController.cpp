@@ -27,6 +27,30 @@ namespace {
 QString display(std::optional<double> value, const QString &suffix = {}) {
     return value ? QString::number(*value, 'g', 4) + suffix : QStringLiteral("—");
 }
+QString decodeSourceName(luma::DecodeSource source) {
+    switch (source) {
+    case luma::DecodeSource::raster:
+        return QStringLiteral("raster");
+    case luma::DecodeSource::renderedLinearDNG:
+        return QStringLiteral("Linear DNG");
+    case luma::DecodeSource::integerBayerRaw:
+        return QStringLiteral("Bayer RAW");
+    case luma::DecodeSource::unknown:
+        return QStringLiteral("unknown");
+    }
+}
+QString decodeColorName(luma::DecodeColorPath color) {
+    switch (color) {
+    case luma::DecodeColorPath::unknown:
+        return QStringLiteral("unknown color path");
+    case luma::DecodeColorPath::embeddedProfileToLinearSRGB:
+        return QStringLiteral("embedded profile → linear sRGB");
+    case luma::DecodeColorPath::dngProfileToLinearSRGB:
+        return QStringLiteral("DNG profile → linear sRGB");
+    case luma::DecodeColorPath::cameraToLinearSRGB:
+        return QStringLiteral("camera profile → linear sRGB");
+    }
+}
 std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
                            int resolution, const std::vector<std::uint8_t> &profile,
                            luma::DetailDiagnostic diagnostic, const luma::MaskOverlay &overlay,
@@ -164,6 +188,50 @@ QString EditorController::dimensions() const {
     return QStringLiteral("%1 × %2")
         .arg(m.orientation & 4 ? m.height : m.width)
         .arg(m.orientation & 4 ? m.width : m.height);
+}
+QVariantMap EditorController::decoderDiagnostics() const {
+    if (!session_)
+        return {};
+    const auto &value = session_->diagnostics;
+    return {
+        {"decoder", QString::fromStdString(value.decoder)},
+        {"decoderVersion", QString::fromStdString(value.decoderVersion)},
+        {"source", decodeSourceName(value.source)},
+        {"reconstruction", value.reconstruction == luma::DecodeReconstruction::edgeAware
+                               ? QStringLiteral("edge-aware")
+                               : QStringLiteral("none")},
+        {"color", decodeColorName(value.color)},
+        {"highlights", static_cast<int>(value.highlights)},
+        {"sourceWidth", value.sourceWidth},
+        {"sourceHeight", value.sourceHeight},
+        {"activeWidth", value.activeWidth},
+        {"activeHeight", value.activeHeight},
+        {"leftMargin", value.leftMargin},
+        {"topMargin", value.topMargin},
+        {"cfa", QString::fromStdString(value.cfa)},
+        {"blackMinimum", value.blackMinimum},
+        {"blackMaximum", value.blackMaximum},
+        {"whiteLevel", value.whiteLevel},
+        {"sensorSamples", QVariant::fromValue<qulonglong>(value.sensorSamples)},
+        {"samplesAtOrAboveWhite", QVariant::fromValue<qulonglong>(value.samplesAtOrAboveWhite)}};
+}
+QString EditorController::decoderSummary() const {
+    if (!session_)
+        return {};
+    const auto &value = session_->diagnostics;
+    QStringList parts{QString::fromStdString(value.decoder) + " " +
+                          QString::fromStdString(value.decoderVersion),
+                      decodeSourceName(value.source)};
+    if (value.reconstruction == luma::DecodeReconstruction::edgeAware)
+        parts.append(QStringLiteral("edge-aware"));
+    if (!value.cfa.empty())
+        parts.append(QString::fromStdString(value.cfa));
+    parts.append(decodeColorName(value.color));
+    if (value.highlights == luma::DecodeHighlightPath::adaptiveHDR)
+        parts.append(QStringLiteral("Adaptive HDR"));
+    else if (value.highlights == luma::DecodeHighlightPath::normalizedSensorHeadroom)
+        parts.append(QStringLiteral("sensor headroom preserved"));
+    return parts.join(QStringLiteral(" · "));
 }
 QString EditorController::catalogPath() const {
     return QString::fromStdString(catalog_.string());

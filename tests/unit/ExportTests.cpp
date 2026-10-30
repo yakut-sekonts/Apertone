@@ -245,6 +245,13 @@ void dng() {
                     raw->imgdata.color.maximum == 65535,
                 "DNG samples/depth/geometry are incorrect.");
         const auto decoded = luma::RawDecoder().decode(path);
+        require(decoded.diagnostics.decoder == "LibRaw" &&
+                    !decoded.diagnostics.decoderVersion.empty() &&
+                    decoded.diagnostics.source == luma::DecodeSource::renderedLinearDNG &&
+                    decoded.diagnostics.reconstruction == luma::DecodeReconstruction::none &&
+                    decoded.diagnostics.color == luma::DecodeColorPath::dngProfileToLinearSRGB &&
+                    decoded.diagnostics.activeWidth == 64 && decoded.diagnostics.activeHeight == 48,
+                "Rendered DNG decoder diagnostics are incomplete or incorrect.");
         const auto inspected = luma::RawDecoder().inspect(path);
         require(inspected.width == 64 && inspected.height == 48 &&
                     decoded.metadata.orientation == 0,

@@ -67,6 +67,7 @@
     "CROP / STRAIGHTEN": "ZUSCHNITT / AUSRICHTEN",
     "CURVES": "KURVEN",
     "Camera": "Kamera",
+    "Decode": "Dekodierung",
     "Camera not in the database; no profile applied": "Kamera nicht in der Datenbank; kein Profil angewendet",
     "Cancel": "Abbrechen",
     "Cancel export": "Export abbrechen",
