@@ -903,6 +903,8 @@
     "Click a face in the photo.": "Haz clic en un rostro de la foto.",
     "Adaptive HDR includes an SDR-compatible base and ISO gain map. Requires macOS 15 or later.": "Adaptive HDR incluye una base compatible con SDR y un mapa de ganancia ISO. Requiere macOS 15 o posterior.",
     "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
-    "HEIC quality": "Calidad HEIC"
+    "HEIC quality": "Calidad HEIC",
+    "Map HDR highlights into the preview": "Mapear las altas luces HDR en la previsualización",
+    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "El mapeo tonal solo para la previsualización conserva el detalle por encima del blanco SDR. El histograma, los avisos de recorte y las exportaciones permanecen lineales en escena."
   }
 }

@@ -30,11 +30,12 @@ QString display(std::optional<double> value, const QString &suffix = {}) {
 std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
                            int resolution, const std::vector<std::uint8_t> &profile,
                            luma::DetailDiagnostic diagnostic, const luma::MaskOverlay &overlay,
-                           bool accelerated, luma::ClippingPreview clipping, bool pointRange) {
+                           bool accelerated, luma::ClippingPreview clipping, bool pointRange,
+                           bool hdrToneMapping) {
     QByteArray identity;
     QDataStream stream(&identity, QIODevice::WriteOnly);
     stream.setVersion(QDataStream::Qt_6_0);
-    stream << QStringLiteral("preview-pipeline-v4") << QString::fromStdString(asset.id)
+    stream << QStringLiteral("preview-pipeline-v5") << QString::fromStdString(asset.id)
            << QString::fromStdString(asset.checksum) << resolution
            << luma::encodePreset({"Preview", {}, edits, luma::allSettingsGroups})
            << QByteArray::fromStdString(luma::encodeLocalMasks(edits.localMasks))
@@ -42,7 +43,7 @@ std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocum
            << QByteArray(reinterpret_cast<const char *>(profile.data()),
                          static_cast<qsizetype>(profile.size()))
            << static_cast<int>(diagnostic) << QString::fromStdString(overlay.id) << overlay.opacity
-           << accelerated << static_cast<int>(clipping) << pointRange;
+           << accelerated << static_cast<int>(clipping) << pointRange << hdrToneMapping;
     for (const auto component : overlay.color)
         stream << component;
     return QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex().toStdString();
@@ -70,6 +71,7 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     previewCacheMiB_ =
         std::clamp(settings.value(QStringLiteral("cacheMiB"), 256).toInt(), 64, 2048);
     metalPreview_ = settings.value(QStringLiteral("metal"), true).toBool();
+    hdrToneMapping_ = settings.value(QStringLiteral("hdrToneMapping"), true).toBool();
     denoiseModelPath_ = settings.value(QStringLiteral("denoiseModel")).toString();
     skyModelPath_ = settings.value(QStringLiteral("skyModel")).toString();
     if (denoiseModelPath_.isEmpty())
@@ -277,6 +279,18 @@ void EditorController::setMetalPreview(bool value) {
                            QStringLiteral("/preview.ini"),
                        QSettings::IniFormat);
     settings.setValue(QStringLiteral("metal"), value);
+    renderedCache_->clear();
+    render();
+    emit stateChanged();
+}
+void EditorController::setHDRToneMapping(bool value) {
+    if (hdrToneMapping_ == value)
+        return;
+    hdrToneMapping_ = value;
+    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+                           QStringLiteral("/preview.ini"),
+                       QSettings::IniFormat);
+    settings.setValue(QStringLiteral("hdrToneMapping"), value);
     renderedCache_->clear();
     render();
     emit stateChanged();
@@ -793,6 +807,7 @@ void EditorController::render(bool fullQuality) {
     const auto profile = displayProfile_;
     const auto diagnostic = diagnostic_;
     const bool pointRange = pointColorRange_ && !original_ && !presetPreview_;
+    const bool hdrToneMapping = hdrToneMapping_;
     const auto clipping = pointRange ? luma::ClippingPreview::none : clippingPreview_;
     const auto detailScale = interactive ? session_->interactiveScale : session_->previewScale;
     const auto asset = session_->asset;
@@ -803,23 +818,25 @@ void EditorController::render(bool fullQuality) {
                                      diagnostic == luma::DetailDiagnostic::none
                                  ? accelerator_
                                  : std::shared_ptr<luma::DevelopAccelerator>{};
-    const auto key = renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
-                                    static_cast<bool>(accelerator), clipping, pointRange);
+    const auto key =
+        renderCacheKey(asset, edits, resolution, profile, diagnostic, overlay,
+                       static_cast<bool>(accelerator), clipping, pointRange, hdrToneMapping);
     const auto quickImage = session_->quickPreview;
     const double quickScale = session_->quickScale;
     const bool quickInteraction = interactive && history_.gestureActive() && quickImage &&
                                   std::max(image->width, image->height) > 512;
-    const auto quickKey = quickInteraction
-                              ? renderCacheKey(asset, edits, 512, profile, diagnostic, overlay,
-                                               static_cast<bool>(accelerator), clipping, pointRange)
-                              : std::string{};
+    const auto quickKey = quickInteraction ? renderCacheKey(asset, edits, 512, profile, diagnostic,
+                                                            overlay, static_cast<bool>(accelerator),
+                                                            clipping, pointRange, hdrToneMapping)
+                                           : std::string{};
     const auto service = service_;
     const QPointer<EditorController> self(this);
     renderJob_ = renderJobs_.submit(
         luma::JobPriority::interactive,
         [self, image, orientation, edits, calibration, profile, revision, diagnostic, detailScale,
          metadata, overlay, asset, service, fullResolution, cache, generation, key, accelerator,
-         interactive, clipping, pointRange, quickInteraction, quickKey, quickImage, quickScale
+         interactive, clipping, pointRange, hdrToneMapping, quickInteraction, quickKey, quickImage,
+         quickScale
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
          ,
          resolution
@@ -847,7 +864,9 @@ void EditorController::render(bool fullQuality) {
                             decoded ? 1
                             : quick ? quickScale
                                     : detailScale,
-                            metadata, overlay, accelerator.get(), {!quick, clipping, pointRange});
+                            metadata, overlay, accelerator.get(), {!quick, clipping, pointRange}, 4,
+                            hdrToneMapping ? luma::DisplayMapping::adaptiveHDR
+                                           : luma::DisplayMapping::clip);
                         QImage output(pixels.rgba.data(), pixels.width, pixels.height,
                                       pixels.width * 4, QImage::Format_RGBA8888);
                         auto owned = output.copy();

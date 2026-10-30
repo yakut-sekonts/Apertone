@@ -1,4 +1,5 @@
 #include "apps/shared/SessionService.h"
+#include "core/color/DisplayTransform.h"
 #include "core/edits/EditHistory.h"
 #include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
@@ -95,6 +96,30 @@ void imageTests() {
     require(raster.rgba[3] == 255, "Display output must be opaque.");
     require(luma::renderCPU(gray, {1}).rgba[0] > raster.rgba[0],
             "Exposure did not change display pixels.");
+    const std::array<float, 9> hdrDisplay{.18F, .18F, .18F, 1.F, 1.F, 1.F, 2.F, 2.F, 2.F};
+    std::array<std::uint8_t, 12> clipped{}, mapped{};
+    luma::DisplayTransform display;
+    display.convert(hdrDisplay, clipped);
+    display.convert(hdrDisplay, mapped, luma::DisplayMapping::adaptiveHDR);
+    require(std::abs(int(mapped[0]) - int(clipped[0])) <= 1,
+            "Adaptive HDR mapping changed mid-gray below its shoulder.");
+    require(clipped[4] == 255 && clipped[8] == 255 && mapped[4] < mapped[8] && mapped[4] >= 235 &&
+                mapped[8] <= 255,
+            "Adaptive HDR mapping did not separate SDR white from HDR highlights.");
+    luma::FloatImage sdrPreview(2, 1);
+    sdrPreview.rgb = {.8F, .8F, .8F, .2F, .2F, .2F};
+    const auto adaptivePreview = [](const luma::FloatImage &image) {
+        return luma::renderCPU(image, {}, 0, {}, {}, {}, luma::DetailDiagnostic::none, 1, {}, {},
+                               nullptr, {}, 4, luma::DisplayMapping::adaptiveHDR);
+    };
+    require(adaptivePreview(sdrPreview).rgba == luma::renderCPU(sdrPreview, {}).rgba,
+            "Adaptive HDR mode changed an SDR-only preview.");
+    luma::FloatImage hdrPreview(2, 1);
+    hdrPreview.rgb = {1.F, 1.F, 1.F, 2.F, 2.F, 2.F};
+    const auto adaptivePixels = adaptivePreview(hdrPreview).rgba;
+    require(adaptivePixels[0] < adaptivePixels[4] && adaptivePixels[0] >= 235 &&
+                adaptivePixels[4] <= 255,
+            "HDR source detection did not activate preview tone mapping.");
     for (int orientation = 0; orientation < 8; ++orientation) {
         const auto image = luma::renderCPU(gray, {}, orientation);
         require(image.width == (orientation & 4 ? 3 : 2), "Rotated width is wrong.");

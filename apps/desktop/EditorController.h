@@ -130,6 +130,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(
         int previewCacheMiB READ previewCacheMiB WRITE setPreviewCacheMiB NOTIFY stateChanged)
     Q_PROPERTY(bool metalPreview READ metalPreview WRITE setMetalPreview NOTIFY stateChanged)
+    Q_PROPERTY(bool hdrToneMapping READ hdrToneMapping WRITE setHDRToneMapping NOTIFY stateChanged)
     Q_PROPERTY(bool aiBusy READ aiBusy NOTIFY stateChanged)
     Q_PROPERTY(bool aiObjectPicking READ aiObjectPicking NOTIFY stateChanged)
     Q_PROPERTY(QString aiPickKind READ aiPickKind NOTIFY stateChanged)
@@ -361,6 +362,10 @@ class EditorController final : public QObject {
         return metalPreview_;
     }
     void setMetalPreview(bool value);
+    bool hdrToneMapping() const {
+        return hdrToneMapping_;
+    }
+    void setHDRToneMapping(bool value);
     bool aiBusy() const {
         return aiBusy_;
     }
@@ -638,6 +643,7 @@ class EditorController final : public QObject {
     void applyPreviewZoom(PreviewZoom mode, double factor);
     void resetPreviewZoom();
     bool metalPreview_ = true;
+    bool hdrToneMapping_ = true;
     std::shared_ptr<luma::DevelopAccelerator> accelerator_;
     std::shared_ptr<luma::ai::ISegmentationProvider> segmentation_;
     luma::JobManager aiJobs_;

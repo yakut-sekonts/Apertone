@@ -14,6 +14,10 @@ format decoder's default color interpretation. HEIF uses its primary image;
 Adaptive HDR gain maps and ISO HDR expand into scene-linear working pixels.
 GIF uses the first frame, TIFF the first page. Animation editing, multi-page
 editing and auxiliary depth/matte data are outside this change.
+When the source contains HDR samples, the default preview-only tone mapping
+compresses highlights into the display range through the shared CPU/Metal output
+transform. It can be disabled in Settings. Histogram, clipping warnings and
+exports continue to use the unmodified scene-linear values.
 EXIF orientation is applied exactly once by the shared geometry, including mirrors.
 Available photographic EXIF fields populate capture data; missing fields stay empty.
 As Shot preserves an ordinary image's existing source white balance. Explicit WB,
