@@ -485,6 +485,8 @@ class EditorController final : public QObject {
     Q_INVOKABLE void removeQuickLook(const QString &id);
     Q_INVOKABLE void moveQuickLook(const QString &id, int direction);
     Q_INVOKABLE void clearQuickLooks();
+    Q_INVOKABLE void applyMatchLook(const QStringList &referenceIDs, double amount = 100,
+                                    bool includeExposure = false, bool includeWhiteBalance = false);
     bool editingLocked() const {
         return editingLocked_;
     }

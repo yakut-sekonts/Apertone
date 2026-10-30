@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.0 / Unreleased
+
+- Added **Match Look** as an editable Quick Look layer. It averages the
+  transferable tone and color treatment from up to 16 selected reference
+  photos and applies the result to the current photo without modifying the
+  references or originals.
+- Match Look preserves Exposure and White Balance by default, offers an Amount
+  range from 0–200%, and can include those controls explicitly when requested.
+  Geometry, masks, retouching, AI results and sampled Point Color ranges are
+  deliberately excluded from style transfer.
+- Match Look layers remain independently adjustable, reorderable, removable and
+  serializable with the edit document. Existing creative documents remain
+  readable through the versioned codec.
+
 ## 1.4.0 / 2026-10-30
 
 - Added **Refresh last import**. Apertone persistently records the exact files

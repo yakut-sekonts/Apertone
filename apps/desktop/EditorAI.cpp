@@ -189,7 +189,11 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                         mask.blur = luma::quickLookBlur(recipe, 100);
                                         next.creative.quickLooks.push_back({luma::newID(),
                                                                             std::string(recipe.id),
-                                                                            100, true, mask.id});
+                                                                            100,
+                                                                            true,
+                                                                            mask.id,
+                                                                            {},
+                                                                            {}});
                                     }
                                     next.localMasks.push_back(mask);
                                     next.validate();

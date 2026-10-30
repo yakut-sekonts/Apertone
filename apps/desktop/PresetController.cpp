@@ -56,14 +56,18 @@ QStringList PresetController::quickCategories() const {
 QVariantList PresetController::quickStack() const {
     QVariantList result;
     for (const auto &layer : editor_.currentSettings().creative.quickLooks) {
-        const auto &recipe = luma::quickLookRecipe(layer.recipe);
-        result.append(QVariantMap{{"id", QString::fromStdString(layer.id)},
-                                  {"recipe", QString::fromStdString(layer.recipe)},
-                                  {"name", QString::fromUtf8(recipe.name)},
-                                  {"category", QString::fromUtf8(recipe.category)},
-                                  {"amount", layer.amount},
-                                  {"enabled", layer.enabled},
-                                  {"adaptive", !layer.mask.empty()}});
+        const auto custom = layer.recipe.empty();
+        const auto *recipe = custom ? nullptr : &luma::quickLookRecipe(layer.recipe);
+        result.append(QVariantMap{
+            {"id", QString::fromStdString(layer.id)},
+            {"recipe", QString::fromStdString(layer.recipe)},
+            {"name", custom ? QString::fromStdString(layer.name) : QString::fromUtf8(recipe->name)},
+            {"category",
+             custom ? QStringLiteral("Match Look") : QString::fromUtf8(recipe->category)},
+            {"amount", layer.amount},
+            {"enabled", layer.enabled},
+            {"adaptive", !layer.mask.empty()},
+            {"custom", custom}});
     }
     return result;
 }

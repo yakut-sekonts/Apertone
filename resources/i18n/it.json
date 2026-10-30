@@ -884,6 +884,13 @@
     "Import source is no longer tracked.": "La sorgente di importazione non è più registrata.",
     "No tracked import sources are available to refresh.": "Non sono disponibili sorgenti di importazione registrate da aggiornare.",
     "Invalid import source.": "Sorgente di importazione non valida.",
-    "Manage sources": "Gestisci sorgenti"
+    "Manage sources": "Gestisci sorgenti",
+    "%1 selected": "%1 selezionate",
+    "Match Look": "Abbina look",
+    "Match Look…": "Abbina look…",
+    "Preserve Exposure": "Mantieni esposizione",
+    "Preserve White Balance": "Mantieni bilanciamento del bianco",
+    "Selected Library photos become references. The current photo is excluded.": "Le foto selezionate nella Libreria diventano riferimenti. La foto corrente è esclusa.",
+    "Transfer the editable style of selected Library photos to the current photo.": "Trasferisci lo stile modificabile delle foto selezionate nella Libreria alla foto corrente."
   }
 }

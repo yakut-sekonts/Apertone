@@ -19,9 +19,17 @@ double bounded(const EditDocument &document, std::string_view name, double delta
     const double value = document.parameter(name) + delta;
     if (name == "exposure")
         return std::clamp(value, -5.0, 5.0);
+    if (name == "temperature")
+        return std::clamp(value, 2000.0, 25000.0);
+    if (name == "tint")
+        return std::clamp(value, -150.0, 150.0);
     if (name.starts_with("presence.") || name.starts_with("grading.") ||
         name.starts_with("vignette.") || name.starts_with("grain.")) {
         const auto &parameter = creativeParameter(name);
+        if (parameter.minimum == 0 && parameter.maximum == 360) {
+            double wrapped = std::fmod(value, 360.0);
+            return wrapped < 0 ? wrapped + 360 : wrapped;
+        }
         return std::clamp(value, parameter.minimum, parameter.maximum);
     }
     return std::clamp(value, -100.0, 100.0);
@@ -381,10 +389,15 @@ EditDocument resolveQuickLooks(const EditDocument &source) {
     for (const auto &layer : layers) {
         if (!layer.enabled || !layer.mask.empty() || layer.amount == 0)
             continue;
-        const auto &recipe = quickLookRecipe(layer.recipe);
         const double scale = layer.amount / 100;
-        for (const auto &[parameter, value] : recipe.deltas)
-            result.setParameter(parameter, bounded(result, parameter, value * scale));
+        if (layer.recipe.empty()) {
+            for (const auto &[parameter, value] : layer.deltas)
+                result.setParameter(parameter, bounded(result, parameter, value * scale));
+        } else {
+            const auto &recipe = quickLookRecipe(layer.recipe);
+            for (const auto &[parameter, value] : recipe.deltas)
+                result.setParameter(parameter, bounded(result, parameter, value * scale));
+        }
     }
     result.validate();
     return result;

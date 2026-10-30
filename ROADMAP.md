@@ -231,3 +231,17 @@ qualification-before-release policy continue to apply.
 - Forget a tracked source without deleting photos, edits, history or files.
 - Clear catalog content atomically while preserving originals, exports, backups
   and empty collection definitions.
+
+## 1.5 — Adaptive editing
+
+- Match Look: transfer the editable tone and color treatment of 1–16 selected
+  reference photos into a self-contained, reorderable Quick Look layer. Preserve
+  Exposure and White Balance by default; exclude geometry, masks, retouching,
+  AI-derived data and sampled Point Color ranges.
+- Detailed People Masks: independently select face, skin, hair, teeth, eyes and
+  clothing when the local segmentation provider exposes reliable regions.
+- Mask Engine improvements: refine boundaries, feathering and reusable mask
+  combinations while preserving the existing non-destructive mask document.
+
+Match Look is the first implemented block. Detailed People Masks and Mask Engine
+improvements remain in development and are not part of the 1.4.0 release.

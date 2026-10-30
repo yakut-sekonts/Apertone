@@ -1,4 +1,5 @@
 #include "core/edits/EditDocument.h"
+#include "core/quick/MatchLook.h"
 #include "core/quick/QuickLooks.h"
 #include <algorithm>
 #include <array>
@@ -84,6 +85,18 @@ void EditDocument::validate() const {
     creative.validate();
     std::set<std::string> linkedMasks;
     for (const auto &layer : creative.quickLooks) {
+        if (layer.recipe.empty()) {
+            if (!layer.mask.empty())
+                throw std::runtime_error("A custom Quick Look cannot own an adaptive mask.");
+            std::set<std::string_view> seenParameters;
+            for (const auto &delta : layer.deltas) {
+                if (!isMatchLookParameter(delta.parameter) ||
+                    !seenParameters.insert(delta.parameter).second)
+                    throw std::runtime_error("Invalid or duplicate Match Look parameter.");
+                (void)this->parameter(delta.parameter);
+            }
+            continue;
+        }
         const auto &recipe = quickLookRecipe(layer.recipe);
         const bool adaptive = recipe.target != QuickLookTarget::global;
         if (adaptive == layer.mask.empty())
