@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 / Unreleased
+## 1.4.0 / 2026-10-30
 
 - Added **Refresh last import**. Apertone persistently records the exact files
   and folders selected for new imports, rescans them with the same Add, Copy or
