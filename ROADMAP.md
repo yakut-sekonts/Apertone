@@ -260,5 +260,6 @@ editor does not substitute geometric approximations.
 
 The first RAW Pipeline 2.0 block replaces bilinear Bayer interpolation with a
 bounded two-pass edge-aware reconstruction. Adaptive HDR gain maps and ISO HDR
-now expand during raster import into scene-linear working pixels. HDR display,
-compatible gain-map export and AI Enhance remain in development.
+expand during raster import into scene-linear working pixels. Export now writes
+HEIC with an SDR-compatible base and verified ISO gain map on macOS 15 or later.
+HDR display mapping and AI Enhance remain in development.

@@ -900,6 +900,9 @@
     "Face": "Gesicht",
     "Eyes": "Augen",
     "Lips": "Lippen",
-    "Click a face in the photo.": "Klicken Sie auf ein Gesicht im Foto."
+    "Click a face in the photo.": "Klicken Sie auf ein Gesicht im Foto.",
+    "Adaptive HDR includes an SDR-compatible base and ISO gain map. Requires macOS 15 or later.": "Adaptive HDR enthält eine SDR-kompatible Basis und eine ISO-Gain-Map. Erfordert macOS 15 oder neuer.",
+    "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
+    "HEIC quality": "HEIC-Qualität"
   }
 }

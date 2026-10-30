@@ -900,6 +900,9 @@
     "Face": "面部",
     "Eyes": "眼睛",
     "Lips": "嘴唇",
-    "Click a face in the photo.": "点按照片中的面部。"
+    "Click a face in the photo.": "点按照片中的面部。",
+    "Adaptive HDR includes an SDR-compatible base and ISO gain map. Requires macOS 15 or later.": "Adaptive HDR 包含兼容 SDR 的基础图像和 ISO 增益图。需要 macOS 15 或更高版本。",
+    "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
+    "HEIC quality": "HEIC 质量"
   }
 }

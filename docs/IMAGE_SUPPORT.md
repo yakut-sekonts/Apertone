@@ -11,8 +11,9 @@ ImageIO decodes full pixels, converts embedded ICC profiles to the linear-sRGB
 working space and retains source precision before Develop. Grayscale and CMYK
 sources use native color conversion. Images without a profile use the native
 format decoder's default color interpretation. HEIF uses its primary image;
+Adaptive HDR gain maps and ISO HDR expand into scene-linear working pixels.
 GIF uses the first frame, TIFF the first page. Animation editing, multi-page
-editing, HDR gain maps and auxiliary depth/matte data are outside this change.
+editing and auxiliary depth/matte data are outside this change.
 EXIF orientation is applied exactly once by the shared geometry, including mirrors.
 Available photographic EXIF fields populate capture data; missing fields stay empty.
 As Shot preserves an ordinary image's existing source white balance. Explicit WB,
@@ -20,8 +21,8 @@ Curves/HSL, filters, Detail, Crop, Optics and Transform use the existing pipelin
 
 PNG/TIFF/WebP transparency is retained in previews and the working image.
 Downsampling, spatial adjustments and geometry normalize by coverage to avoid
-transparent-edge halos. PNG and TIFF export preserve alpha; JPEG and processed
-Linear RGB DNG flatten against black. DNG remains processed output, not a way to
+transparent-edge halos. PNG and TIFF export preserve alpha; JPEG, processed
+Linear RGB DNG and Adaptive HDR HEIC flatten against black. DNG remains processed output, not a way to
 recover sensor RAW or the original editing latitude from a JPEG.
 
 Library selection, edited thumbnails, presets, batch edits, queue and restoration

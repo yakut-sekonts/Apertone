@@ -134,10 +134,11 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     const bool validExtension =
-        options.format == ExportFormat::jpeg  ? (extension == ".jpg" || extension == ".jpeg")
-        : options.format == ExportFormat::png ? extension == ".png"
-        : options.format == ExportFormat::dng ? extension == ".dng"
-                                              : (extension == ".tif" || extension == ".tiff");
+        options.format == ExportFormat::jpeg      ? (extension == ".jpg" || extension == ".jpeg")
+        : options.format == ExportFormat::png     ? extension == ".png"
+        : options.format == ExportFormat::dng     ? extension == ".dng"
+        : options.format == ExportFormat::heicHDR ? extension == ".heic"
+                                                  : (extension == ".tif" || extension == ".tiff");
     if (!validExtension)
         throw std::runtime_error("Destination extension does not match export format.");
     if (!options.overwrite && std::filesystem::exists(target))

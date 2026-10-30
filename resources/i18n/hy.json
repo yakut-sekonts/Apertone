@@ -900,6 +900,9 @@
     "Face": "Դեմք",
     "Eyes": "Աչքեր",
     "Lips": "Շուրթեր",
-    "Click a face in the photo.": "Սեղմեք լուսանկարի դեմքին։"
+    "Click a face in the photo.": "Սեղմեք լուսանկարի դեմքին։",
+    "Adaptive HDR includes an SDR-compatible base and ISO gain map. Requires macOS 15 or later.": "Adaptive HDR-ը ներառում է SDR-համատեղելի հիմք և ISO gain map։ Պահանջվում է macOS 15 կամ ավելի նոր տարբերակ։",
+    "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
+    "HEIC quality": "HEIC որակ"
   }
 }

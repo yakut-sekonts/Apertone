@@ -70,7 +70,7 @@ evidence and owner-accepted exceptions.
 - ✅ Calibrated Lens Corrections with automatic/manual profiles in source.
 - ✅ Manual, Auto and Guided perspective Transform in source.
 - ✅ Eight ready-made Curve/HSL filters with hover and Undo in source.
-- ✅ Advanced JPEG/PNG/TIFF8/16/DNG export, color/resize/metadata/watermark settings and sequential queue.
+- ✅ Advanced JPEG/PNG/TIFF8/16/DNG and Adaptive HDR HEIC export, color/resize/metadata/watermark settings and sequential queue.
 - ✅ Linear/Radial/Brush/Luminance/Color local masks, boolean composition and shared persistent rendering.
 - 🗓 Metal image processing.
 
@@ -414,8 +414,8 @@ See [ADR 0017](docs/adr/0017-edited-thumbnails.md).
 
 ## Advanced export and queue / 0.4.10
 
-The Export panel supports JPEG, PNG, TIFF8/16 with None/LZW/ZIP, and processed
-Linear RGB DNG; sRGB/Display P3/Adobe RGB/ProPhoto; seven resize modes; output
+The Export panel supports JPEG, PNG, TIFF8/16 with None/LZW/ZIP, processed
+Linear RGB DNG, and Adaptive HDR HEIC on macOS 15+; sRGB/Display P3/Adobe RGB/ProPhoto; seven resize modes; output
 sharpening; metadata/location policies; Unicode text and image watermarks.
 Destination/naming/conflict settings can be saved as reusable profiles.
 Active/selected-photo export runs sequentially from immutable saved snapshots,

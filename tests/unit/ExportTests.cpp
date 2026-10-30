@@ -72,6 +72,12 @@ void settings() {
     require(options.dimensions(22, 32) == std::pair{22, 32},
             "DNG minimum reader boundary is wrong.");
     options = {};
+    options.format = luma::ExportFormat::heicHDR;
+    require(options.advanced() && options.extension() == ".heic",
+            "Adaptive HDR does not use its explicit HEIC export path.");
+    options.colorSpace = luma::ExportColorSpace::displayP3;
+    rejects([&] { options.validate(); });
+    options = {};
     options.watermark.kind = luma::WatermarkKind::text;
     rejects([&] { options.validate(); });
     options.watermark.text = "Luma";
