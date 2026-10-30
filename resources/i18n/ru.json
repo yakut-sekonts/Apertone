@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "ru",
   "messages": {
+    "%1 copy": "Копия %1",
+    "Duplicate": "Дублировать",
     " mm": " мм",
     " photos · selected ": " фотографий · выбрано ",
     " s": " с",

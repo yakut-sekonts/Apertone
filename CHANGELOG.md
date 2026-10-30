@@ -22,6 +22,9 @@
   or low-confidence landmarks are refused instead of publishing a guessed mask.
   Skin, hair, teeth and clothing remain unavailable until a suitably licensed
   semantic provider is integrated.
+- Combined selections can now be duplicated with their ordered Add, Subtract
+  and Intersect component stack. The copy receives fresh mask and component IDs,
+  remains independently editable and participates in normal Undo/Redo.
 
 ## 1.4.0 / 2026-10-30
 

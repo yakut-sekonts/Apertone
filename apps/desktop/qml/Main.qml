@@ -245,7 +245,7 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             onClicked: processingVersions.open()
                         }
-                        PresetPanel { id: presetSettings; Layout.fillWidth: true; Layout.fillHeight: true }
+                        PresetPanel { id: presetSettings; libraryModel: library; Layout.fillWidth: true; Layout.fillHeight: true }
                         Label { text: qsTranslate("Apertone", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: Theme.faint; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
                         Label { text: "APERTONE / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }

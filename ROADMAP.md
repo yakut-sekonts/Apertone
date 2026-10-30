@@ -243,9 +243,9 @@ qualification-before-release policy continue to apply.
 - Mask Engine improvements: refine boundaries, feathering and reusable mask
   combinations while preserving the existing non-destructive mask document.
 
-Match Look is the first implemented block. Detailed People Masks and Mask Engine
-improvements remain in development and are not part of the 1.4.0 release. The
-first Mask Engine improvement adds persistent Edge shift and Edge feather for
-bitmap selections. Apple Vision now supplies click-selected Face, Eyes and Lips
-regions with confidence checks. Skin, hair, teeth and clothing still require a
-reliable local semantic provider rather than geometric approximations.
+The available 1.5 scope now includes Match Look, persistent Edge shift and Edge
+feather for bitmap selections, and reusable copies of ordered selection stacks.
+Apple Vision supplies click-selected Face, Eyes and Lips regions with confidence
+checks. Skin, hair, teeth and clothing remain deliberately deferred because the
+current local provider does not expose reliable semantic regions for them; the
+editor does not substitute geometric approximations.

@@ -10,6 +10,7 @@ ColumnLayout {
     property var selected: null
     property string hoverPreviewId: ""
     property var filteredQuickItems: []
+    property var libraryModel: null
     readonly property Item editorScrollView: editScroll
     function previewHoveredPreset(presetId) {
         hoverPreviewId = presetId
@@ -86,7 +87,8 @@ ColumnLayout {
             objectName: "quick.matchLook"
             text: qsTranslate("Apertone", "Match Look…")
             Layout.fillWidth: true
-            enabled: editor.hasPhoto && !editor.busy && !editor.original && library.selectedCount > 0
+            enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                     panel.libraryModel !== null && panel.libraryModel.selectedCount > 0
             onClicked: matchLookDialog.open()
             ToolTip.visible: hovered
             ToolTip.text: qsTranslate("Apertone", "Transfer the editable style of selected Library photos to the current photo.")
@@ -183,9 +185,10 @@ ColumnLayout {
         title: qsTranslate("Apertone", "Match Look")
         standardButtons: Dialog.Ok | Dialog.Cancel
         onOpened: matchAmount.value = 100
-        onAccepted: editor.applyMatchLook(library.selectedAssetIDs(), matchAmount.value,
-                                           !preserveExposure.checked,
-                                           !preserveWhiteBalance.checked)
+        onAccepted: if (panel.libraryModel !== null)
+                        editor.applyMatchLook(panel.libraryModel.selectedAssetIDs(), matchAmount.value,
+                                              !preserveExposure.checked,
+                                              !preserveWhiteBalance.checked)
         ColumnLayout {
             width: parent.width
             spacing: 10
@@ -196,7 +199,8 @@ ColumnLayout {
                 color: Theme.text
             }
             Label {
-                text: qsTranslate("Apertone", "%1 selected").arg(library.selectedCount)
+                text: qsTranslate("Apertone", "%1 selected")
+                          .arg(panel.libraryModel === null ? 0 : panel.libraryModel.selectedCount)
                 color: Theme.muted
                 font.pixelSize: 10
             }

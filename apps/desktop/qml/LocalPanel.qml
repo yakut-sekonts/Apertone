@@ -130,6 +130,7 @@ ColumnLayout {
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
                 ApertoneButton {objectName:"localMaskUp";text: "↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask up");onClicked:editor.moveLocalMask(-1)}
                 ApertoneButton {objectName:"localMaskDown";text: "↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask down");onClicked:editor.moveLocalMask(1)}
+                ApertoneButton {objectName:"localMaskDuplicate";text:qsTranslate("Apertone", "Duplicate");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.duplicateLocalMask()}
                 ApertoneButton {objectName:"localMaskDelete";text:qsTranslate("Apertone", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
             }
             ApertoneComboBox {

@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "hy",
   "messages": {
+    "%1 copy": "%1-ի պատճենը",
+    "Duplicate": "Կրկնօրինակել",
     " mm": " մմ",
     " photos · selected ": " լուսանկար · ընտրված ",
     " s": " վ",

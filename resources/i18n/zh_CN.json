@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "zh_CN",
   "messages": {
+    "%1 copy": "%1 副本",
+    "Duplicate": "复制",
     " mm": " mm",
     " photos · selected ": " 张照片 · 已选 ",
     " s": " s",

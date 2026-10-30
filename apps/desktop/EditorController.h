@@ -234,6 +234,7 @@ class EditorController final : public QObject {
     void setLocalOverlayColor(const QString &value);
     void setLocalOverlayOpacity(double value);
     Q_INVOKABLE QString addLocalMask(const QString &shape);
+    Q_INVOKABLE QString duplicateLocalMask();
     Q_INVOKABLE void selectLocalMask(const QString &id);
     Q_INVOKABLE void removeLocalMask();
     Q_INVOKABLE void moveLocalMask(int direction);

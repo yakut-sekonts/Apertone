@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "en",
   "messages": {
+    "%1 copy": "%1 copy",
+    "Duplicate": "Duplicate",
     " mm": " mm",
     " photos · selected ": " photos · selected ",
     " s": " s",
