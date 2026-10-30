@@ -55,9 +55,38 @@ void imageTests() {
             require(std::abs(image.rgb[i] - expected[i % 3]) < 1e-6,
                     "CFA reconstruction failed, including edges.");
         }
+        const auto edgeAware = luma::demosaicEdgeAware(frame);
+        for (std::size_t i = 0; i < edgeAware.rgb.size(); ++i)
+            require(std::abs(edgeAware.rgb[i] - expected[i % 3]) < 1e-6,
+                    "Edge-aware CFA reconstruction changed a flat field.");
         luma::cameraToLinearSRGB(image, {1, 0, 0, 0, 1, 0, 0, 0, 1});
         require(std::abs(image.rgb[0] - 0.8F) < 1e-6, "Identity camera matrix changed pixels.");
     }
+    luma::BayerFrame hardEdge(16, 12, {0, 1, 1, 2});
+    for (int y = 0; y < hardEdge.height; ++y)
+        for (int x = 0; x < hardEdge.width; ++x)
+            hardEdge.samples[static_cast<std::size_t>(y) * hardEdge.width + x] = x < 8 ? .1F : 2.F;
+    const auto bilinearEdge = luma::demosaicBilinear(hardEdge);
+    const auto resolvedEdge = luma::demosaicEdgeAware(hardEdge);
+    double bilinearError = 0, resolvedError = 0;
+    for (int y = 0; y < hardEdge.height; ++y)
+        for (int x = 0; x < hardEdge.width; ++x) {
+            const float expected = x < 8 ? .1F : 2.F;
+            const auto pixel = (static_cast<std::size_t>(y) * hardEdge.width + x) * 3;
+            for (int color = 0; color < 3; ++color) {
+                bilinearError += std::abs(bilinearEdge.rgb[pixel + color] - expected);
+                resolvedError += std::abs(resolvedEdge.rgb[pixel + color] - expected);
+            }
+            require(resolvedEdge.rgb[pixel + hardEdge.colorAt(x, y)] == hardEdge.samples[pixel / 3],
+                    "Edge-aware reconstruction changed an original sensor sample.");
+        }
+    require(resolvedError < 1e-5 && bilinearError > .5,
+            "Edge-aware reconstruction did not suppress false color on a hard edge.");
+    luma::CancellationSource demosaicStop;
+    demosaicStop.cancel();
+    throws([&] { luma::demosaicEdgeAware(hardEdge, demosaicStop.token()); });
+    hardEdge.samples[0] = std::numeric_limits<float>::quiet_NaN();
+    throws([&] { luma::demosaicEdgeAware(hardEdge); });
     luma::FloatImage gray(2, 3);
     std::fill(gray.rgb.begin(), gray.rgb.end(), 0.18F);
     const auto raster = luma::renderCPU(gray, {});

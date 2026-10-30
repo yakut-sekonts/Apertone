@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.0 / Unreleased
+
+- RAW Pipeline 2.0 now uses a deterministic two-pass edge-aware Bayer
+  reconstruction. It chooses green interpolation by local sensor gradients and
+  reconstructs chroma from color differences, reducing false color across hard
+  edges while preserving linear highlights and the original sensor samples.
+
 ## 1.5.0 / 2026-10-30
 
 - Added **Match Look** as an editable Quick Look layer. It averages the

@@ -338,7 +338,7 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     if (progress) {
         progress(0.45);
     }
-    auto image = demosaicBilinear(frame, stop);
+    auto image = demosaicEdgeAware(frame, stop);
     frame.samples.clear();
     frame.samples.shrink_to_fit();
 
