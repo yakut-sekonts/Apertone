@@ -11,6 +11,49 @@
 #include <algorithm>
 #include <cmath>
 
+namespace {
+luma::ai::Selection selectionFor(const QString &kind) {
+    if (kind == QStringLiteral("subject"))
+        return luma::ai::Selection::subject;
+    if (kind == QStringLiteral("background"))
+        return luma::ai::Selection::background;
+    if (kind == QStringLiteral("object"))
+        return luma::ai::Selection::object;
+    if (kind == QStringLiteral("sky"))
+        return luma::ai::Selection::sky;
+    if (kind == QStringLiteral("face"))
+        return luma::ai::Selection::face;
+    if (kind == QStringLiteral("eyes"))
+        return luma::ai::Selection::eyes;
+    if (kind == QStringLiteral("lips"))
+        return luma::ai::Selection::lips;
+    throw std::runtime_error("Unknown AI selection category.");
+}
+const char *selectionName(luma::ai::Selection selection) {
+    switch (selection) {
+    case luma::ai::Selection::subject:
+        return "Subject";
+    case luma::ai::Selection::background:
+        return "Background";
+    case luma::ai::Selection::object:
+        return "Object";
+    case luma::ai::Selection::sky:
+        return "Sky";
+    case luma::ai::Selection::face:
+        return "Face";
+    case luma::ai::Selection::eyes:
+        return "Eyes";
+    case luma::ai::Selection::lips:
+        return "Lips";
+    }
+    throw std::runtime_error("Unknown AI selection category.");
+}
+bool needsPoint(luma::ai::Selection selection) {
+    return selection == luma::ai::Selection::object || selection == luma::ai::Selection::face ||
+           selection == luma::ai::Selection::eyes || selection == luma::ai::Selection::lips;
+}
+} // namespace
+
 QString EditorController::skyModelName() const {
     return QFileInfo(skyModelPath_).fileName();
 }
@@ -35,7 +78,9 @@ void EditorController::cancelAI() {
     aiJob_.cancel();
     ++aiRevision_;
     pendingQuickLook_.clear();
-    if (!aiBusy_ && !aiObjectPicking_)
+    const bool changed = aiBusy_ || aiObjectPicking_ || !aiPickKind_.isEmpty();
+    aiPickKind_.clear();
+    if (!changed)
         return;
     aiBusy_ = false;
     aiObjectPicking_ = false;
@@ -43,8 +88,19 @@ void EditorController::cancelAI() {
     emit stateChanged();
 }
 void EditorController::beginAIObjectSelection() {
+    beginAIMaskSelection(QStringLiteral("object"));
+}
+void EditorController::beginAIMaskSelection(const QString &kind) {
     if (!editable() || original_)
         return;
+    try {
+        const auto selection = selectionFor(kind);
+        if (!needsPoint(selection) || !segmentation_->supports(selection))
+            throw std::runtime_error("The requested AI selection is not available locally.");
+    } catch (const std::exception &failure) {
+        advancedFailure(failure);
+        return;
+    }
     cancelAI();
     setRetouchMode(QStringLiteral("off"));
     endEdit();
@@ -54,19 +110,19 @@ void EditorController::beginAIObjectSelection() {
     targetedTool_ = QStringLiteral("none");
     setOneToOne(false);
     aiObjectPicking_ = true;
+    aiPickKind_ = kind;
     emit stateChanged();
+}
+void EditorController::pickAIMask(double x, double y) {
+    if (!aiObjectPicking_ || aiPickKind_.isEmpty())
+        return;
+    generateAIMask(aiPickKind_, x, y);
 }
 void EditorController::generateAIMask(const QString &kind, double x, double y) {
     if (!editable() || original_ || aiBusy_)
         return;
     try {
-        if (kind != "subject" && kind != "background" && kind != "object" && kind != "sky")
-            throw std::runtime_error("Unknown AI selection category.");
-        const auto selection = kind == QStringLiteral("subject") ? luma::ai::Selection::subject
-                               : kind == QStringLiteral("background")
-                                   ? luma::ai::Selection::background
-                               : kind == QStringLiteral("object") ? luma::ai::Selection::object
-                                                                  : luma::ai::Selection::sky;
+        const auto selection = selectionFor(kind);
         if ((selection == luma::ai::Selection::sky && !skyModelConfigured()) ||
             (selection != luma::ai::Selection::sky && !segmentation_->supports(selection)))
             throw std::runtime_error("The requested AI selection is not available locally.");
@@ -77,7 +133,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         const auto calibration = session_->calibration;
         const luma::CropGeometry displayed(source->width, source->height, metadata.orientation,
                                            history_.current());
-        if (selection == luma::ai::Selection::object &&
+        if (needsPoint(selection) &&
             !displayed.covered(x * displayed.width() - .5, y * displayed.height() - .5))
             return;
         const auto point =
@@ -171,13 +227,9 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                                     auto next = self->history_.current();
                                     luma::LocalMask mask;
                                     mask.id = luma::newID();
-                                    const char *name =
-                                        selection == luma::ai::Selection::background ? "Background"
-                                        : selection == luma::ai::Selection::object   ? "Object"
-                                        : selection == luma::ai::Selection::sky      ? "Sky"
-                                                                                     : "Subject";
-                                    mask.name =
-                                        QCoreApplication::translate("Apertone", name).toStdString();
+                                    mask.name = QCoreApplication::translate(
+                                                    "Apertone", selectionName(selection))
+                                                    .toStdString();
                                     mask.shape = luma::MaskShape::bitmap;
                                     mask.bitmap = anchored;
                                     if (!pendingRecipe.isEmpty()) {

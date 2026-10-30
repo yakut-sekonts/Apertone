@@ -893,6 +893,11 @@
     "Selected Library photos become references. The current photo is excluded.": "所选图库照片将作为参考，当前照片会被排除。",
     "Transfer the editable style of selected Library photos to the current photo.": "将所选图库照片的可编辑风格应用到当前照片。",
     "Edge shift": "边缘偏移",
-    "Edge feather": "边缘羽化"
+    "Edge feather": "边缘羽化",
+    "People details": "人物细节",
+    "Face": "面部",
+    "Eyes": "眼睛",
+    "Lips": "嘴唇",
+    "Click a face in the photo.": "点按照片中的面部。"
   }
 }

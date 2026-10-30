@@ -75,7 +75,8 @@ int main(int argc, char **argv) {
         if (argc == 7) {
             for (const auto category :
                  {luma::ai::Selection::subject, luma::ai::Selection::background,
-                  luma::ai::Selection::object}) {
+                  luma::ai::Selection::object, luma::ai::Selection::face, luma::ai::Selection::eyes,
+                  luma::ai::Selection::lips}) {
                 require(!provider->supports(category), "Sky advertises an unsupported category");
                 rejected([&] { provider->segment(input, category, {}, {}, {}); },
                          "Sky model cannot select this category.");

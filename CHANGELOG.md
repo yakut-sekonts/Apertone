@@ -17,6 +17,11 @@
   other bitmap masks. Refinement is compiled once per render with bounded linear
   time filters, persists in the versioned mask document and is shared by
   preview, overlay, thumbnails and export.
+- Added local **Face**, **Eyes** and **Lips** selections backed by Apple Vision
+  face landmarks. A click chooses the intended face in group photos; incomplete
+  or low-confidence landmarks are refused instead of publishing a guessed mask.
+  Skin, hair, teeth and clothing remain unavailable until a suitably licensed
+  semantic provider is integrated.
 
 ## 1.4.0 / 2026-10-30
 

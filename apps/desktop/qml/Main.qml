@@ -336,8 +336,8 @@ ApplicationWindow {
                                     if (previewImage.paintedWidth > 0 && previewImage.paintedHeight > 0 &&
                                         mouse.x >= left && mouse.x <= left + previewImage.paintedWidth &&
                                         mouse.y >= top && mouse.y <= top + previewImage.paintedHeight)
-                                        editor.generateAIMask("object", (mouse.x - left) / previewImage.paintedWidth,
-                                                              (mouse.y - top) / previewImage.paintedHeight)
+                                        editor.pickAIMask((mouse.x - left) / previewImage.paintedWidth,
+                                                          (mouse.y - top) / previewImage.paintedHeight)
                                 }
                             }
                             MouseArea {

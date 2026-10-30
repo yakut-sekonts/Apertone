@@ -159,6 +159,13 @@ if(BUILD_TESTING)
     target_link_libraries(luma_quick_look_tests PRIVATE luma_core)
     target_compile_options(luma_quick_look_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME quick-look-stack-and-blur COMMAND luma_quick_look_tests)
+    add_executable(luma_vision_selection_tests tests/unit/VisionSelectionTests.cpp)
+    target_link_libraries(luma_vision_selection_tests PRIVATE luma_macos)
+    target_compile_definitions(luma_vision_selection_tests PRIVATE
+        APERTONE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    target_compile_options(luma_vision_selection_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME vision-people-selections COMMAND luma_vision_selection_tests)
+    set_tests_properties(vision-people-selections PROPERTIES TIMEOUT 30 LABELS "unit;ai;masks")
     # Explicit model qualification uses this bridge; ordinary CTest does not
     # require a downloaded model or silently claim its quality has been tested.
     add_executable(luma_denoise_runtime_probe tests/models/DenoiseRuntime.cpp)

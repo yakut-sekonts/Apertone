@@ -132,6 +132,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool metalPreview READ metalPreview WRITE setMetalPreview NOTIFY stateChanged)
     Q_PROPERTY(bool aiBusy READ aiBusy NOTIFY stateChanged)
     Q_PROPERTY(bool aiObjectPicking READ aiObjectPicking NOTIFY stateChanged)
+    Q_PROPERTY(QString aiPickKind READ aiPickKind NOTIFY stateChanged)
     Q_PROPERTY(double aiProgress READ aiProgress NOTIFY stateChanged)
     Q_PROPERTY(QString aiOperation READ aiOperation NOTIFY stateChanged)
     Q_PROPERTY(QString retouchMode READ retouchMode WRITE setRetouchMode NOTIFY stateChanged)
@@ -365,6 +366,9 @@ class EditorController final : public QObject {
     bool aiObjectPicking() const {
         return aiObjectPicking_;
     }
+    QString aiPickKind() const {
+        return aiPickKind_;
+    }
     double aiProgress() const {
         return aiProgress_;
     }
@@ -377,6 +381,8 @@ class EditorController final : public QObject {
                                          bool boundaryWarp = false);
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
     Q_INVOKABLE void beginAIObjectSelection();
+    Q_INVOKABLE void beginAIMaskSelection(const QString &kind);
+    Q_INVOKABLE void pickAIMask(double x, double y);
     Q_INVOKABLE void cancelAI();
     QString denoiseModelName() const;
     bool denoiseModelConfigured() const {
@@ -640,7 +646,7 @@ class EditorController final : public QObject {
     std::uint64_t aiRevision_ = 0;
     QString denoiseModelPath_;
     QString skyModelPath_;
-    QString aiOperation_;
+    QString aiOperation_, aiPickKind_;
     luma::JobManager retouchJobs_;
     luma::JobHandle retouchJob_;
     std::uint64_t retouchRevision_ = 0;

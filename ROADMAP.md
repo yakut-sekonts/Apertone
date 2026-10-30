@@ -246,5 +246,6 @@ qualification-before-release policy continue to apply.
 Match Look is the first implemented block. Detailed People Masks and Mask Engine
 improvements remain in development and are not part of the 1.4.0 release. The
 first Mask Engine improvement adds persistent Edge shift and Edge feather for
-bitmap selections; additional people regions still require a reliable local
-provider rather than geometric approximations.
+bitmap selections. Apple Vision now supplies click-selected Face, Eyes and Lips
+regions with confidence checks. Skin, hair, teeth and clothing still require a
+reliable local semantic provider rather than geometric approximations.

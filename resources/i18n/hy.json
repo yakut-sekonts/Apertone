@@ -893,6 +893,11 @@
     "Selected Library photos become references. The current photo is excluded.": "Գրադարանի ընտրված լուսանկարները դառնում են հղումներ։ Ընթացիկ լուսանկարը բացառվում է։",
     "Transfer the editable style of selected Library photos to the current photo.": "Ընտրված գրադարանի լուսանկարների խմբագրվող ոճը կիրառել ընթացիկ լուսանկարի վրա։",
     "Edge shift": "Եզրի տեղաշարժ",
-    "Edge feather": "Եզրի փափկեցում"
+    "Edge feather": "Եզրի փափկեցում",
+    "People details": "Մարդու մանրամասներ",
+    "Face": "Դեմք",
+    "Eyes": "Աչքեր",
+    "Lips": "Շուրթեր",
+    "Click a face in the photo.": "Սեղմեք լուսանկարի դեմքին։"
   }
 }

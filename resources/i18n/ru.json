@@ -893,6 +893,11 @@
     "Selected Library photos become references. The current photo is excluded.": "Выбранные фотографии Библиотеки используются как референсы. Текущая фотография исключается.",
     "Transfer the editable style of selected Library photos to the current photo.": "Перенести редактируемый стиль выбранных фотографий Библиотеки на текущую фотографию.",
     "Edge shift": "Смещение края",
-    "Edge feather": "Растушёвка края"
+    "Edge feather": "Растушёвка края",
+    "People details": "Детали человека",
+    "Face": "Лицо",
+    "Eyes": "Глаза",
+    "Lips": "Губы",
+    "Click a face in the photo.": "Нажмите на лицо на фотографии."
   }
 }

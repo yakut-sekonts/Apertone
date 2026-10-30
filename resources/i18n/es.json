@@ -893,6 +893,11 @@
     "Selected Library photos become references. The current photo is excluded.": "Las fotos seleccionadas de la Biblioteca se usan como referencias. La foto actual se excluye.",
     "Transfer the editable style of selected Library photos to the current photo.": "Transferir el estilo editable de las fotos seleccionadas de la Biblioteca a la foto actual.",
     "Edge shift": "Desplazamiento de borde",
-    "Edge feather": "Desvanecimiento de borde"
+    "Edge feather": "Desvanecimiento de borde",
+    "People details": "Detalles de persona",
+    "Face": "Rostro",
+    "Eyes": "Ojos",
+    "Lips": "Labios",
+    "Click a face in the photo.": "Haz clic en un rostro de la foto."
   }
 }

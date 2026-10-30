@@ -893,6 +893,11 @@
     "Selected Library photos become references. The current photo is excluded.": "Selected Library photos become references. The current photo is excluded.",
     "Transfer the editable style of selected Library photos to the current photo.": "Transfer the editable style of selected Library photos to the current photo.",
     "Edge shift": "Edge shift",
-    "Edge feather": "Edge feather"
+    "Edge feather": "Edge feather",
+    "People details": "People details",
+    "Face": "Face",
+    "Eyes": "Eyes",
+    "Lips": "Lips",
+    "Click a face in the photo.": "Click a face in the photo."
   }
 }

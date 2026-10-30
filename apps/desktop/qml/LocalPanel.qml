@@ -78,8 +78,19 @@ ColumnLayout {
             ToolTip.text: qsTranslate("Apertone", "Choose a compatible local Sky model in Settings.")
         }
         Label {
+            text: qsTranslate("Apertone", "People details")
+            font.pixelSize: 10; font.weight: Font.DemiBold; color: Theme.muted
+            Layout.fillWidth: true
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            ApertoneButton { objectName: "localAI.face"; text: qsTranslate("Apertone", "Face"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("face") }
+            ApertoneButton { objectName: "localAI.eyes"; text: qsTranslate("Apertone", "Eyes"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("eyes") }
+            ApertoneButton { objectName: "localAI.lips"; text: qsTranslate("Apertone", "Lips"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("lips") }
+        }
+        Label {
             visible: editor.aiObjectPicking
-            text: qsTranslate("Apertone", "Click the object in the photo.")
+            text: editor.aiPickKind === "object" ? qsTranslate("Apertone", "Click the object in the photo.") : qsTranslate("Apertone", "Click a face in the photo.")
             wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.accent
         }
         ProgressBar { visible: editor.aiBusy && editor.aiOperation === "AI selection"; value: editor.aiProgress; Layout.fillWidth: true }
