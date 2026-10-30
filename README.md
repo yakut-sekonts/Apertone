@@ -41,10 +41,11 @@ evidence and owner-accepted exceptions.
 
 - ✅ CMake project and Qt/QML application shell.
 - ✅ Real sensor decode through LibRaw, with a project-owned floating-point Bayer pipeline.
-- ✅ As Shot white balance, bilinear demosaic and camera-to-linear-sRGB transform.
+- ✅ As Shot white balance, edge-aware Bayer reconstruction and camera-to-linear-sRGB transform.
 - ✅ Temperature/Tint, As Shot and WB presets evaluated before the camera color matrix.
 - ✅ Exposure, Contrast, Highlights, Shadows, Whites, Blacks, Vibrance and Saturation.
 - ✅ Independent correction switches, gesture-based Undo/Redo, reset and original comparison.
+- ✅ Editable local Enhance layers with persisted provider/model provenance and deterministic CPU fallback.
 - ✅ Full-resolution JPEG, PNG and 16-bit TIFF export with embedded sRGB ICC.
 - ✅ Camera, lens information, ISO, shutter, aperture and focal length.
 - ✅ SQLite catalog with WAL, foreign keys, migration, transactions and durable autosave.
@@ -92,9 +93,9 @@ and system-supported AVIF, with ICC color conversion, EXIF orientation and alpha
 See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
-The current bilinear demosaic is a reference implementation; advanced demosaic,
-highlight reconstruction and additional camera-specific qualification remain
-planned.
+The current two-pass edge-aware Bayer reconstruction keeps a bilinear reference
+path for regression comparison. Camera-specific highlight reconstruction and
+additional qualification remain planned.
 
 ## Build and run
 

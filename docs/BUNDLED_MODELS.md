@@ -6,6 +6,20 @@ source implementation under final qualification. Bundle v4 compiled on
 comparisons. Complete photographic, runtime and distribution qualification remain open.
 No installer was published. Stable remains 0.5.1.
 
+## Enhance provenance
+
+The editable Enhance operation does not run the bundled denoise network. That
+model's declared output is a reconstructed pixel tensor; it cannot truthfully
+produce the Develop parameter deltas required by a reversible layer. Apertone
+therefore uses the deterministic `apertone.histogram-enhance` provider version
+`1.0` as the local CPU fallback. The saved layer explicitly stores an empty model
+identity and digest together with `deterministicFallback = true`.
+
+The document schema also reserves model identity and a full lowercase SHA-256
+digest. A future model-backed Enhance provider may use those fields only when its
+declared contract produces editable parameters. Existing layers remain
+self-contained and do not require the provider or model to render or export.
+
 The bounded v4 runtime campaign passes six noisy photographic cases and nine
 source/native tiled comparisons. See the scope and remaining gaps below; this
 does not qualify real sensor noise or the complete 1.0 release.

@@ -263,5 +263,8 @@ bounded two-pass edge-aware reconstruction. Adaptive HDR gain maps and ISO HDR
 expand during raster import into scene-linear working pixels. Export now writes
 HEIC with an SDR-compatible base and verified ISO gain map on macOS 15 or later.
 Preview-only Adaptive HDR tone mapping preserves highlight separation above SDR
-white through the shared CPU/Metal display transform. AI Enhance remains in
-development.
+white through the shared CPU/Metal display transform. AI Enhance now adds an
+editable Quick Look layer in one Undo step. The saved layer records provider,
+provider version, model identity and digest when present, or an explicit
+deterministic CPU fallback with no model. The bundled denoise model is not reused
+for Enhance because its pixel-output contract cannot produce editable parameters.

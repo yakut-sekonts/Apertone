@@ -814,6 +814,8 @@
     "Invalid appearance preferences; system theme is active.": "Արտաքին տեսքի կարգավորումները անվավեր են․ ակտիվ է համակարգային թեման։",
     "Quick": "Արագ",
     "Automatic Light and Color": "Լույսի և գույնի ավտոմատ կարգավորում",
+    "Enhance": "Բարելավել",
+    "Editable local enhancement with explicit processing provenance": "Խմբագրվող տեղային բարելավում՝ մշակման բացահայտ ծագմամբ",
     "B&W": "Սև և սպիտակ",
     "Straighten": "Ուղղել",
     "Layers": "Շերտեր",

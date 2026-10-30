@@ -814,6 +814,8 @@
     "Invalid appearance preferences; system theme is active.": "外观设置无效；已启用系统主题。",
     "Quick": "快速",
     "Automatic Light and Color": "自动调整光线和颜色",
+    "Enhance": "增强",
+    "Editable local enhancement with explicit processing provenance": "可编辑的本地增强，包含明确的处理来源",
     "B&W": "黑白",
     "Straighten": "拉直",
     "Layers": "图层",

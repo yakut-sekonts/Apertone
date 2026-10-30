@@ -814,6 +814,8 @@
     "Invalid appearance preferences; system theme is active.": "Invalid appearance preferences; system theme is active.",
     "Quick": "Quick",
     "Automatic Light and Color": "Automatic Light and Color",
+    "Enhance": "Enhance",
+    "Editable local enhancement with explicit processing provenance": "Editable local enhancement with explicit processing provenance",
     "B&W": "B&W",
     "Straighten": "Straighten",
     "Layers": "Layers",

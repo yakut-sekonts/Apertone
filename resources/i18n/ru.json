@@ -814,6 +814,8 @@
     "Invalid appearance preferences; system theme is active.": "Настройки оформления повреждены; используется системная тема.",
     "Quick": "Быстро",
     "Automatic Light and Color": "Автокоррекция света и цвета",
+    "Enhance": "Улучшить",
+    "Editable local enhancement with explicit processing provenance": "Редактируемое локальное улучшение с явными данными об обработке",
     "B&W": "Ч/Б",
     "Straighten": "Выровнять",
     "Layers": "Слои",

@@ -814,6 +814,8 @@
     "Invalid appearance preferences; system theme is active.": "Las preferencias de apariencia no son válidas; está activo el tema del sistema.",
     "Quick": "Rápido",
     "Automatic Light and Color": "Luz y color automáticos",
+    "Enhance": "Mejorar",
+    "Editable local enhancement with explicit processing provenance": "Mejora local editable con procedencia de procesamiento explícita",
     "B&W": "B/N",
     "Straighten": "Enderezar",
     "Layers": "Capas",
