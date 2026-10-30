@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.0 / Unreleased
+## 1.5.0 / 2026-10-30
 
 - Added **Match Look** as an editable Quick Look layer. It averages the
   transferable tone and color treatment from up to 16 selected reference
