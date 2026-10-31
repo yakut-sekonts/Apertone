@@ -6,11 +6,20 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include <algorithm>
 #include <cmath>
+#include <dlfcn.h>
 #include <set>
 
 namespace luma::macos {
 namespace {
 constexpr std::array orientation{0, 0, 1, 3, 2, 4, 6, 7, 5};
+CFStringRef computeHDRStatsKey() {
+    static const CFStringRef key = [] {
+        const auto *symbol = reinterpret_cast<const CFStringRef *>(
+            dlsym(RTLD_DEFAULT, "kCGComputeHDRStats"));
+        return symbol ? *symbol : nullptr;
+    }();
+    return key;
+}
 bool allowed(CFStringRef type) {
     if (!type)
         return false;
@@ -197,9 +206,11 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
             (__bridge NSString *)
             kCGImageSourceDecodeRequest : (__bridge NSString *)kCGImageSourceDecodeToHDR
         } mutableCopy];
-        if (@available(macOS 16.0, *))
-            options[(__bridge NSString *)kCGImageSourceDecodeRequestOptions] =
-                @{(__bridge NSString *)kCGComputeHDRStats : @YES};
+        if (@available(macOS 16.0, *)) {
+            if (const auto key = computeHDRStatsKey())
+                options[(__bridge NSString *)kCGImageSourceDecodeRequestOptions] =
+                    @{(__bridge NSString *)key : @YES};
+        }
         CFHandle image(
             CGImageSourceCreateImageAtIndex(input.get(), index, (__bridge CFDictionaryRef)options));
         [options release];
