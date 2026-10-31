@@ -6,11 +6,20 @@
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include <algorithm>
 #include <cmath>
+#include <dlfcn.h>
 #include <set>
 
 namespace luma::macos {
 namespace {
 constexpr std::array orientation{0, 0, 1, 3, 2, 4, 6, 7, 5};
+CFStringRef computeHDRStatsKey() {
+    static const CFStringRef key = [] {
+        const auto *symbol =
+            reinterpret_cast<const CFStringRef *>(dlsym(RTLD_DEFAULT, "kCGComputeHDRStats"));
+        return symbol ? *symbol : nullptr;
+    }();
+    return key;
+}
 bool allowed(CFStringRef type) {
     if (!type)
         return false;
@@ -191,12 +200,20 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
         if (progress)
             progress(.05);
         checkCancellation(stop);
-        NSDictionary *options = @{
+        NSMutableDictionary *options = [@{
             (__bridge NSString *)kCGImageSourceShouldAllowFloat : @YES,
-            (__bridge NSString *)kCGImageSourceShouldCache : @NO
-        };
+            (__bridge NSString *)kCGImageSourceShouldCache : @NO,
+            (__bridge NSString *)
+            kCGImageSourceDecodeRequest : (__bridge NSString *)kCGImageSourceDecodeToHDR
+        } mutableCopy];
+        if (@available(macOS 16.0, *)) {
+            if (const auto key = computeHDRStatsKey())
+                options[(__bridge NSString *)kCGImageSourceDecodeRequestOptions] =
+                    @{(__bridge NSString *)key : @YES};
+        }
         CFHandle image(
             CGImageSourceCreateImageAtIndex(input.get(), index, (__bridge CFDictionaryRef)options));
+        [options release];
         checkCancellation(stop);
         if (!image || CGImageGetWidth(image.get()) != static_cast<std::size_t>(info.width) ||
             CGImageGetHeight(image.get()) != static_cast<std::size_t>(info.height) ||
@@ -222,6 +239,7 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
         FloatImage result(info.width, info.height);
         result.alpha.resize(count);
         bool opaque = true;
+        bool hdr = false;
         for (std::size_t i = 0; i < count; ++i) {
             if (i % static_cast<std::size_t>(info.width) == 0) {
                 checkCancellation(stop);
@@ -238,13 +256,26 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
                 if (!std::isfinite(value))
                     throw std::runtime_error("Non-finite decoded image color.");
                 result.rgb[i * 3 + c] = value;
+                hdr = hdr || value > 1.000001F;
             }
         }
         if (opaque)
             std::vector<float>().swap(result.alpha);
         if (progress)
             progress(1);
-        return {std::move(result), info, {}};
+        DecodeDiagnostics diagnostics;
+        diagnostics.decoder = "ImageIO";
+        const auto version = NSProcessInfo.processInfo.operatingSystemVersion;
+        diagnostics.decoderVersion = std::to_string(version.majorVersion) + "." +
+                                     std::to_string(version.minorVersion) + "." +
+                                     std::to_string(version.patchVersion);
+        diagnostics.source = DecodeSource::raster;
+        diagnostics.color = DecodeColorPath::embeddedProfileToLinearSRGB;
+        diagnostics.highlights =
+            hdr ? DecodeHighlightPath::adaptiveHDR : DecodeHighlightPath::sourceRange;
+        diagnostics.sourceWidth = diagnostics.activeWidth = info.width;
+        diagnostics.sourceHeight = diagnostics.activeHeight = info.height;
+        return {std::move(result), info, {}, std::move(diagnostics)};
     }
 }
 } // namespace luma::macos
