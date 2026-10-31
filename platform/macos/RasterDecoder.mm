@@ -14,8 +14,8 @@ namespace {
 constexpr std::array orientation{0, 0, 1, 3, 2, 4, 6, 7, 5};
 CFStringRef computeHDRStatsKey() {
     static const CFStringRef key = [] {
-        const auto *symbol = reinterpret_cast<const CFStringRef *>(
-            dlsym(RTLD_DEFAULT, "kCGComputeHDRStats"));
+        const auto *symbol =
+            reinterpret_cast<const CFStringRef *>(dlsym(RTLD_DEFAULT, "kCGComputeHDRStats"));
         return symbol ? *symbol : nullptr;
     }();
     return key;

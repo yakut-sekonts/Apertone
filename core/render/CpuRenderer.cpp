@@ -99,7 +99,7 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
 #if defined(LUMA_UX_CPU_RENDER_ROWS)
     const PreviewAnalysisOptions analysis{};
     constexpr unsigned maximumWorkers = 1;
-    constexpr DisplayMapping displayMapping = DisplayMapping::clip;
+    DisplayMapping displayMapping = DisplayMapping::clip;
 #endif
     if (maximumWorkers < 1 || maximumWorkers > 4)
         throw std::runtime_error("Render worker budget must be between one and four.");
