@@ -7,19 +7,20 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.5.0
+## Release: v1.6.0
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[1.5.0 release notes](docs/releases/v1.5.0.md)
+[1.6.0 release notes](docs/releases/v1.6.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.5.0 adds editable Match Look transfer,
-persistent bitmap-mask edge refinement, local Face/Eyes/Lips selections and
-independent copies of combined mask stacks. Version 1.4 import-source management,
-the Intelligent Library, broad camera support and 70 stackable Quick Looks are
-included. Existing Luma and Apertone catalogs, settings, presets, DNG output and
-Sparkle update installations are upgraded in place.
+checksums accompany the release. Version 1.6.0 adds edge-aware RAW
+reconstruction, Adaptive HDR import/display/export, editable Enhance layers with
+provenance and typed decode diagnostics. Version 1.5 adaptive editing, Version
+1.4 import-source management, the Intelligent Library, broad camera support and
+70 stackable Quick Looks are included. Existing Luma and Apertone catalogs,
+settings, presets, DNG output and Sparkle update installations are upgraded in
+place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
@@ -27,7 +28,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.5
+## Included in source: phases 0.4–1.6
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -100,7 +101,7 @@ additional qualification remain planned.
 ## Build and run
 
 ```bash
-git clone --branch v1.5.0 https://github.com/yakut-sekonts/Apertone.git
+git clone --branch v1.6.0 https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"

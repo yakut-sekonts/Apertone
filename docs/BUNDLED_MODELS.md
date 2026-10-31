@@ -1,10 +1,11 @@
 # Bundled offline model delivery
 
-Decision: the user requested installer-bundled models on 2026-10-21. This is a
-source implementation under final qualification. Bundle v4 compiled on
-2026-10-21 with Xcode 27.1 and passed synthetic source-quality and native CPU/ALL
-comparisons. Complete photographic, runtime and distribution qualification remain open.
-No installer was published. Stable remains 0.5.1.
+Decision: the user requested installer-bundled models on 2026-10-21. Bundle v4
+compiled with Xcode 27.1 and passed synthetic source-quality and native CPU/ALL
+comparisons. Published Apertone DMG and ZIP releases include the compiled
+models and rebuild their runtime and distribution evidence in the release
+workflow. The remaining representative sensor and provider limitations are
+recorded below.
 
 ## Enhance provenance
 
