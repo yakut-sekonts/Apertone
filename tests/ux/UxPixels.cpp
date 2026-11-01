@@ -128,7 +128,9 @@ QImage fixtureReference(Context &context, const luma::EditDocument &document,
                              : std::vector<std::uint8_t>{};
     const auto pixels =
         luma::renderCPU(decoded.image, document, decoded.metadata.orientation, profile, {},
-                        decoded.calibration, diagnostic, 1, decoded.metadata);
+                        decoded.calibration, diagnostic, 1, decoded.metadata, {}, nullptr, {}, 4,
+                        context.editor.hdrToneMapping() ? luma::DisplayMapping::adaptiveHDR
+                                                        : luma::DisplayMapping::clip);
     return QImage(pixels.rgba.data(), pixels.width, pixels.height, pixels.width * 4,
                   QImage::Format_RGBA8888)
         .copy();

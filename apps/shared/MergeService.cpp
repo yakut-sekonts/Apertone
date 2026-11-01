@@ -30,7 +30,7 @@ FloatImage loadUpright(const AssetRecord &asset, CancellationToken stop, int lim
         if (rendered.rgba[i * 4 + 3] != 1)
             throw std::runtime_error("Merge requires opaque images.");
         for (std::size_t c = 0; c < 3; ++c)
-            result.rgb[i * 3 + c] = rendered.rgba[i * 4 + c];
+            result.rgb[i * 3 + c] = std::max(0.F, rendered.rgba[i * 4 + c]);
     }
     if (macos::sha256File(asset.path, stop) != asset.checksum)
         throw std::runtime_error("Original changed during merge decoding.");

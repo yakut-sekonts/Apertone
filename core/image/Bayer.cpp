@@ -163,7 +163,7 @@ FloatImage demosaicEdgeAware(const BayerFrame &frame, luma::CancellationToken st
                 if (!neighbors)
                     throw std::runtime_error("Bayer frame has no chroma neighbors.");
                 result.rgb[index * 3 + static_cast<std::size_t>(color)] =
-                    static_cast<float>(green[index] + difference / neighbors);
+                    std::max(0.F, static_cast<float>(green[index] + difference / neighbors));
             }
         }
     }

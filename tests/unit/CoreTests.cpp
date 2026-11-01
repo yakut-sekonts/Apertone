@@ -83,6 +83,15 @@ void imageTests() {
         }
     require(resolvedError < 1e-5 && bilinearError > .5,
             "Edge-aware reconstruction did not suppress false color on a hard edge.");
+    luma::BayerFrame chromaEdge(4, 4, {0, 1, 1, 2});
+    for (int y = 0; y < chromaEdge.height; ++y)
+        for (int x = 0; x < chromaEdge.width; ++x)
+            chromaEdge.samples[static_cast<std::size_t>(y) * chromaEdge.width + x] =
+                chromaEdge.colorAt(x, y) == 1 && x == 0 ? 1.F : 0.F;
+    const auto boundedChroma = luma::demosaicEdgeAware(chromaEdge);
+    require(std::all_of(boundedChroma.rgb.begin(), boundedChroma.rgb.end(),
+                        [](float value) { return std::isfinite(value) && value >= 0; }),
+            "Edge-aware reconstruction produced a negative radiometric sample.");
     luma::CancellationSource demosaicStop;
     demosaicStop.cancel();
     throws([&] { luma::demosaicEdgeAware(hardEdge, demosaicStop.token()); });
