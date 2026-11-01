@@ -35,7 +35,10 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
     writeLinearDNG(
         image, rgbToXYZD50(profile),
         [](std::span<const float> source, std::span<float> destination) {
-            std::copy(source.begin(), source.end(), destination.begin());
+            // The working space preserves signed reconstruction values, while this
+            // LinearRaw DNG declares a zero black level.
+            std::transform(source.begin(), source.end(), destination.begin(),
+                           [](float value) { return std::max(0.F, value); });
         },
         temporary, "Apertone Linear sRGB", bytes, stop, progress, DngSamples::floating32);
     const int input = ::open(temporary.c_str(), O_RDONLY);
