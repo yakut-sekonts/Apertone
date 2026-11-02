@@ -320,6 +320,18 @@ void developTests() {
     history.apply({});
     history.undo();
     require(history.current().shadows == 30, "Reset must be one reversible operation.");
+
+    luma::EditHistory provisional;
+    provisional.begin();
+    auto dragged = provisional.current();
+    dragged.exposure = 1.5;
+    provisional.apply(dragged);
+    auto restoredGesture = luma::EditHistory(provisional.persisted());
+    require(restoredGesture.current() == dragged && restoredGesture.canUndo(),
+            "A provisional autosave was not restored as one history step.");
+    restoredGesture.undo();
+    require(restoredGesture.current() == luma::EditDocument{},
+            "Restored provisional history did not retain its gesture base.");
 }
 void dngCalibrationTests() {
     luma::RawColorCalibration calibration;
@@ -471,6 +483,62 @@ void catalogTests() {
             require(catalog.activeAsset()->edits.temperature == 5350,
                     "Legacy Exposure update erased Develop.");
         }
+        {
+            luma::Catalog catalog(path);
+            luma::EditHistory history(catalog.activeAsset()->edits);
+            auto first = history.current();
+            first.exposure = -1.25;
+            history.apply(first, "Exposure pass");
+            auto second = history.current();
+            second.contrast = 30;
+            history.apply(second, "Contrast pass");
+            history.undo();
+            const auto persisted = history.persisted();
+            catalog.saveEditsAndHistory(id, history.current(), persisted);
+            require(catalog.editHistory(id).has_value(),
+                    "Catalog did not store per-photo processing history.");
+            auto mismatch = persisted;
+            mismatch.entries[mismatch.currentIndex].document.exposure = 2;
+            throws([&] { catalog.saveEditsAndHistory(id, history.current(), mismatch); });
+            require(catalog.activeAsset()->edits == history.current(),
+                    "Rejected history mismatch changed the saved edit.");
+
+            sqlite3 *failure = nullptr;
+            require(sqlite3_open(path.c_str(), &failure) == SQLITE_OK &&
+                        sqlite3_exec(failure,
+                                     "CREATE TRIGGER fail_history BEFORE INSERT ON "
+                                     "edit_history_states BEGIN SELECT "
+                                     "RAISE(ABORT,'injected history failure');END;",
+                                     nullptr, nullptr, nullptr) == SQLITE_OK,
+                    "Cannot install processing-history failure fixture.");
+            sqlite3_close(failure);
+            luma::EditHistory failed(persisted);
+            failed.redo();
+            throws([&] { catalog.saveEditsAndHistory(id, failed.current(), failed.persisted()); });
+            require(catalog.activeAsset()->edits == history.current() &&
+                        catalog.editHistory(id)->currentIndex == persisted.currentIndex,
+                    "Failed history write partially committed its edit or cursor.");
+            require(sqlite3_open(path.c_str(), &failure) == SQLITE_OK &&
+                        sqlite3_exec(failure, "DROP TRIGGER fail_history", nullptr, nullptr,
+                                     nullptr) == SQLITE_OK,
+                    "Cannot remove processing-history failure fixture.");
+            sqlite3_close(failure);
+        }
+        {
+            luma::Catalog catalog(path);
+            const auto persisted = catalog.editHistory(id);
+            require(persisted.has_value(), "Restart lost per-photo processing history.");
+            luma::EditHistory restored(*persisted);
+            require(restored.current().exposure == -1.25 && restored.current().contrast == 0 &&
+                        restored.canUndo() && restored.canRedo(),
+                    "Restart did not preserve the history cursor and Redo branch.");
+            restored.redo();
+            require(restored.current().contrast == 30,
+                    "Restarted processing history could not replay Redo.");
+            catalog.saveExposure(id, 0.75);
+            require(!catalog.editHistory(id),
+                    "Legacy edit write did not clear its stale processing history.");
+        }
         sqlite3 *db = nullptr;
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK, "Cannot open schema test database.");
         require(sqlite3_exec(db, fixture::removePostV11Tables, nullptr, nullptr, nullptr) ==
@@ -513,7 +581,7 @@ void catalogTests() {
         }
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
                 "Cannot reopen future schema fixture.");
-        require(sqlite3_exec(db, "PRAGMA user_version=23", nullptr, nullptr, nullptr) == SQLITE_OK,
+        require(sqlite3_exec(db, "PRAGMA user_version=24", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });

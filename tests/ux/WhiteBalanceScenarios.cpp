@@ -575,10 +575,15 @@ bool whiteBalanceRestartScenario(Context &c, const QString &id, const QString &s
             "WB restart lost its typed independent expected documents");
     c.editor.restore(); // Same startup boundary used by the production/restart harness.
     c.loaded();
+    const auto persistedHistory = luma::Catalog(c.catalogFile.toStdString())
+                                      .editHistory(expected["asset_a"].toString().toStdString());
+    const bool expectedUndo = persistedHistory && persistedHistory->currentIndex > 0;
+    const bool expectedRedo =
+        persistedHistory && persistedHistory->currentIndex + 1 < persistedHistory->entries.size();
     require(c.editor.photoID() == expected["asset_a"].toString() &&
-                c.editor.sourcePath() == expected["source_a"].toString() && !c.editor.canUndo() &&
-                !c.editor.canRedo(),
-            "Process restart restored another WB asset or session history");
+                c.editor.sourcePath() == expected["source_a"].toString() &&
+                c.editor.canUndo() == expectedUndo && c.editor.canRedo() == expectedRedo,
+            "Process restart restored another WB asset or the wrong history cursor");
     exact(c, a->edits, "Process restart lost part of Custom WB or another edit group");
     controls(c, a->edits);
     const auto pixels = rendered(c, a->edits);

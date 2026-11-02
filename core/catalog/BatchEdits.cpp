@@ -156,6 +156,7 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
             const auto next = mergeSettings(asset->edits, source, groups, parameters);
             if (next != asset->edits) {
                 writeEdits(ids[index], next);
+                clearEditHistory(ids[index]);
                 Statement changed(db_, "INSERT INTO temp.batch_changed VALUES(?1)");
                 changed.text(1, ids[index]);
                 changed.row();
@@ -257,6 +258,8 @@ BatchEditResult Catalog::restoreBatchEdits(bool redo, CancellationToken stop,
                      destination + "_" + table + ";")
                         .c_str());
         }
+        execute("DELETE FROM main.edit_history_states WHERE asset_id IN "
+                "(SELECT asset_id FROM temp.batch_changed);");
         const auto changed = count(db_);
         check(stop);
         const auto active = batchActiveEdits(activeID);

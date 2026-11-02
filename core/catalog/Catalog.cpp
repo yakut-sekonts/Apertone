@@ -21,6 +21,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
+constexpr int currentCatalogSchema = 23;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -195,9 +196,9 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         };
         int current = schemaVersion();
         // Current-schema readers must remain usable during WAL writes/imports.
-        if (current == 22)
+        if (current == currentCatalogSchema)
             return;
-        if (current > 22)
+        if (current > currentCatalogSchema)
             throw std::runtime_error("Catalog was created by a newer version of Apertone.");
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
@@ -208,7 +209,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         execute("BEGIN IMMEDIATE;");
         // Another connection may have migrated while this one awaited the lock.
         current = schemaVersion();
-        if (current > 22) {
+        if (current > currentCatalogSchema) {
             throw std::runtime_error("Catalog was created by a newer version of Apertone.");
         }
         if (current == 0) {
@@ -405,6 +406,10 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         }
         if (current == 21) {
             migrateIntelligentLibrary();
+            current = 22;
+        }
+        if (current == 22) {
+            migratePersistentWorkflow();
         }
         execute("COMMIT;");
     } catch (...) {
@@ -565,6 +570,7 @@ void Catalog::saveEdits(const std::string &assetID, EditDocument edits) {
     execute("BEGIN IMMEDIATE;");
     try {
         writeEdits(assetID, edits);
+        clearEditHistory(assetID);
 #ifdef LUMA_UX_PERSISTENCE_PROBE
         ux::observePersistenceCheckpoint(sqlite3_db_filename(db_, "main"), "catalog.before-commit",
                                          {}, {});
@@ -697,6 +703,7 @@ void Catalog::saveExposure(const std::string &assetID, double ev) {
         if (sqlite3_changes(db_) != 1) {
             throw std::runtime_error("Cannot save edits: asset is missing from catalog.");
         }
+        clearEditHistory(assetID);
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

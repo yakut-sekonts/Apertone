@@ -552,7 +552,10 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                         if (result) {
                             self->session_ = std::move(result);
                             self->previewReady_ = false;
-                            self->history_ = luma::EditHistory(self->session_->asset.edits);
+                            self->history_ =
+                                self->session_->history
+                                    ? luma::EditHistory(std::move(*self->session_->history))
+                                    : luma::EditHistory(self->session_->asset.edits);
                             ++self->historyGeneration_;
                             self->historyError_.clear();
                             self->original_ = false;
@@ -1035,14 +1038,15 @@ void EditorController::flushSave() {
     ++pendingWrites_;
     const auto id = session_->asset.id;
     const auto edits = history_.current();
+    const auto history = history_.persisted();
     const auto revision = editRevision_;
     const QPointer<EditorController> self(this);
     emit stateChanged();
-    ioJobs_.submit(luma::JobPriority::background, [this, self, id, edits,
+    ioJobs_.submit(luma::JobPriority::background, [this, self, id, edits, history,
                                                    revision](const luma::JobContext &) {
         QString error;
         try {
-            service_.save(id, edits);
+            service_.save(id, edits, history);
         } catch (const std::exception &failure) {
             error = QString::fromUtf8(failure.what());
         }

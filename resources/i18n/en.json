@@ -686,7 +686,7 @@
     "This history state is no longer available. Select a current row.": "This history state is no longer available. Select a current row.",
     "History changed while confirmation was open. Review it and try again.": "History changed while confirmation was open. Review it and try again.",
     "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.": "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.",
-    "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.": "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.",
+    "History keeps up to 200 steps per photo and restores after restart. Applying a batch change starts a new history; named versions remain independent.": "History keeps up to 200 steps per photo and restores after restart. Applying a batch change starts a new history; named versions remain independent.",
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.",
     "HISTOGRAM": "HISTOGRAM",
     "Histogram": "Histogram",
@@ -908,6 +908,9 @@
     "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
     "HEIC quality": "HEIC quality",
     "Map HDR highlights into the preview": "Map HDR highlights into the preview",
-    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear."
+    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.",
+    "Skipped exact duplicates": "Skipped exact duplicates",
+    "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.": "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.",
+    "Duplicates": "Duplicates"
   }
 }

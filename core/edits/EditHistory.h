@@ -24,12 +24,25 @@ struct EditHistoryItem {
     bool redo = false;
 };
 
+struct PersistedEditHistoryEntry {
+    std::uint64_t id = 0;
+    std::string action;
+    EditDocument document;
+};
+
+struct PersistedEditHistory {
+    std::vector<PersistedEditHistoryEntry> entries;
+    std::size_t currentIndex = 0;
+};
+
 class EditHistory {
   public:
     explicit EditHistory(EditDocument initial = {}, std::string action = "Opened photo")
         : current_{std::move(initial), 0, std::move(action), {}} {
         current_.document.validate();
     }
+    explicit EditHistory(PersistedEditHistory persisted);
+    PersistedEditHistory persisted() const;
     const EditDocument &current() const {
         return current_.document;
     }

@@ -1,6 +1,66 @@
 #include "core/edits/EditHistory.h"
+#include <limits>
+#include <set>
+#include <stdexcept>
 
 namespace luma {
+EditHistory::EditHistory(PersistedEditHistory persisted) {
+    if (persisted.entries.empty() || persisted.entries.size() > 201 ||
+        persisted.currentIndex >= persisted.entries.size())
+        throw std::runtime_error("Invalid stored processing history.");
+
+    std::set<std::uint64_t> identities;
+    for (const auto &entry : persisted.entries) {
+        entry.document.validate();
+        if (entry.action.size() > 256 || entry.action.find('\0') != std::string::npos ||
+            !identities.insert(entry.id).second)
+            throw std::runtime_error("Invalid stored processing history.");
+        if (entry.id == std::numeric_limits<std::uint64_t>::max())
+            throw std::runtime_error("Stored processing history identity is exhausted.");
+        nextID_ = std::max(nextID_, entry.id + 1);
+    }
+
+    const auto state = [&](std::size_t index) {
+        const auto &entry = persisted.entries[index];
+        std::vector<EditHistoryChange> changes;
+        if (index)
+            changes = describeEditChange(persisted.entries[index - 1].document, entry.document);
+        return State{entry.document, entry.id, entry.action, std::move(changes)};
+    };
+    undo_.reserve(persisted.currentIndex);
+    for (std::size_t index = 0; index < persisted.currentIndex; ++index)
+        undo_.push_back(state(index));
+    current_ = state(persisted.currentIndex);
+    redo_.reserve(persisted.entries.size() - persisted.currentIndex - 1);
+    for (std::size_t index = persisted.entries.size(); index > persisted.currentIndex + 1; --index)
+        redo_.push_back(state(index - 1));
+}
+
+PersistedEditHistory EditHistory::persisted() const {
+    PersistedEditHistory result;
+    result.entries.reserve(undo_.size() + redo_.size() + 2);
+    const auto append = [&](const State &state) {
+        result.entries.push_back({state.id, state.action, state.document});
+    };
+    for (const auto &state : undo_)
+        append(state);
+
+    if (gesture_ && gesture_->document != current_.document) {
+        append(*gesture_);
+        result.entries.push_back({nextID_, {}, current_.document});
+        if (result.entries.size() > 201)
+            result.entries.erase(result.entries.begin());
+        result.currentIndex = result.entries.size() - 1;
+        return result;
+    }
+
+    append(current_);
+    result.currentIndex = result.entries.size() - 1;
+    for (auto it = redo_.rbegin(); it != redo_.rend(); ++it)
+        append(*it);
+    return result;
+}
+
 std::vector<EditHistoryChange> describeEditChange(const EditDocument &before,
                                                   const EditDocument &after) {
     static_assert(EditDocument::schemaVersion == 8,

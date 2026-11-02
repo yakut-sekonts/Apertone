@@ -148,11 +148,10 @@ Temperature spans 2000–25000 K and Tint spans −150…150. Manual WB uses a
 reference white-point approximation; As Shot uses the RAW camera gains.
 The development branch adds Auto WB and a neutral eyedropper that resolve to
 Custom values with one-step Undo; see [behavior and limits](docs/PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
-Named versions and the session History browser also have source implementations.
-These additions remain unbuilt/unqualified; persistent history and calibrated
-camera profiles are not claimed. The 1.7 highlight reconstruction path is built
-and covered by synthetic Bayer tests, but real-camera qualification remains open.
-Undo/Redo retains up to 200 operations in the current active-photo session.
+Named versions and the History browser retain per-photo timelines across restart.
+The 2.0 development branch also resolves embedded dual-illuminant DNG profiles;
+real-camera qualification remains open. Undo/Redo retains up to 200 operations
+per photo and commits its cursor atomically with the current edit document.
 Double-click resets a slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
 Export uses an immutable edit snapshot, the original resolution, sRGB and no

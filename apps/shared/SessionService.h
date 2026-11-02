@@ -12,6 +12,7 @@
 namespace luma {
 struct PhotoSession {
     AssetRecord asset;
+    std::optional<PersistedEditHistory> history;
     std::shared_ptr<const FloatImage> preview;
     RawColorCalibration calibration;
     DecodeDiagnostics diagnostics;
@@ -30,6 +31,8 @@ class SessionService {
                                         const std::function<void(double)> &progress = {}) const;
     void save(const std::string &assetID, double exposure) const;
     void save(const std::string &assetID, EditDocument edits) const;
+    void save(const std::string &assetID, const EditDocument &edits,
+              const PersistedEditHistory &history) const;
     void exportPhoto(const AssetRecord &asset, EditDocument edits,
                      const std::filesystem::path &destination, ExportOptions options,
                      CancellationToken stop = {},

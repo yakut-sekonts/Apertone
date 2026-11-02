@@ -60,6 +60,14 @@ migrations create a recoverable backup, are transactional and reject future
 schemas. Repair, relink and sidecar reconciliation preserve edits and expose
 conflicts rather than choosing a winner silently. Recovery must be idempotent.
 
+Catalog schema 23 stores at most 200 Undo steps plus the current per-photo state.
+The edit document, chronological history and Undo/Redo cursor commit in one
+SQLite transaction. A debounce that fires during a drag stores the provisional
+value with its gesture base, so an interrupted gesture restores as one Undo step.
+History documents are bounded individually and as a timeline; corrupt, duplicate
+or mismatched state identities are rejected. Batch changes intentionally clear
+the affected per-photo timelines, while named versions remain independent.
+
 ## Detail and Resolution
 
 Every operation records its provider, algorithm/model version and input/output

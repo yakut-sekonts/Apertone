@@ -190,7 +190,7 @@ Rectangle {
                                 text: modelData.sourceName + "\n" + modelData.sourcePath + "\n→ " +
                                       modelData.existingName + "\n" + modelData.existingPath
                                 color: Theme.text; font.pixelSize: 11; wrapMode: Text.WrapAnywhere
-                                textFormat: Text.PlainText; selectByMouse: true
+                                textFormat: Text.PlainText
                             }
                         }
                     }

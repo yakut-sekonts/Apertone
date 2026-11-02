@@ -5,6 +5,7 @@ namespace fixture {
 // edit_documents table. Remove later features instead of leaving a mixed schema
 // that cannot represent an actual historical catalog.
 inline constexpr const char *removePostV11Tables = R"sql(
+    DROP TABLE edit_history_states;
     DROP TABLE burst_members;
     DROP TABLE burst_stacks;
     DROP TABLE face_instances;

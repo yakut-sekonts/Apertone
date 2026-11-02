@@ -217,8 +217,13 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
     require(c.editor.sourcePath() == expected["source"].toString() &&
                 c.editor.currentSettings() == document->edits,
             "Process restart lost/crossed the saved document or mask geometry");
-    require(!c.editor.canUndo() && !c.editor.canRedo(),
-            "Session-local history crossed a process restart");
+    const auto restoredHistory =
+        luma::Catalog(c.catalogFile.toStdString()).editHistory(c.editor.photoID().toStdString());
+    const bool expectedUndo = restoredHistory && restoredHistory->currentIndex > 0;
+    const bool expectedRedo =
+        restoredHistory && restoredHistory->currentIndex + 1 < restoredHistory->entries.size();
+    require(c.editor.canUndo() == expectedUndo && c.editor.canRedo() == expectedRedo,
+            "Process restart did not restore the persisted history cursor");
     if (dailyKill) {
         require(expected["prepare_pid"].toInteger() != QCoreApplication::applicationPid(),
                 "Daily-use recovery did not start a new process");

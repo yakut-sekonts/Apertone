@@ -22,7 +22,7 @@ include(cmake/Sparkle.cmake)
 include(cmake/CrashReporter.cmake)
 
 add_library(luma_core STATIC
-    core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp
+    core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
     core/io/StagingFile.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
@@ -311,7 +311,8 @@ if(BUILD_TESTING)
     # Direct UX objects replace the static library's matching service object;
     # only the test executable compiles the real filesystem checkpoints.
     target_sources(luma_ux_tests PRIVATE tests/ux/PersistenceProbe.cpp apps/shared/MetadataService.cpp
-        core/catalog/Catalog.cpp core/catalog/CatalogBackup.cpp apps/shared/DerivedImage.cpp)
+        core/catalog/Catalog.cpp core/catalog/PersistentWorkflow.cpp core/catalog/CatalogBackup.cpp
+        apps/shared/DerivedImage.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_PERSISTENCE_PROBE)
     target_sources(luma_ux_tests PRIVATE tests/ux/RetouchResultProbe.cpp tests/ux/RetouchScenarios.cpp)
     target_compile_definitions(luma_ux_tests PRIVATE LUMA_UX_RETOUCH_RESULT_PROBE)

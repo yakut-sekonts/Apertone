@@ -686,7 +686,7 @@
     "This history state is no longer available. Select a current row.": "此历史状态已不可用。请从当前列表中选择一项。",
     "History changed while confirmation was open. Review it and try again.": "确认窗口打开期间历史记录已更改。请查看后重试。",
     "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.": "删除此照片的当前会话历史记录？当前编辑、已保存版本和原图将保留。此操作无法撤销。批量编辑历史单独保存。",
-    "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.": "历史记录最多保留当前照片的 200 步。打开其他照片、重新启动或应用批量更改会开始新的历史记录。请保存版本以长期保留状态。",
+    "History keeps up to 200 steps per photo and restores after restart. Applying a batch change starts a new history; named versions remain independent.": "历史记录为每张照片保留最多 200 步，并在重新启动后恢复。应用批量更改会开始新的历史记录；命名版本保持独立。",
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "浏览历史记录时，后续步骤仍可通过重做恢复。新的编辑会替换这些后续步骤。",
     "HISTOGRAM": "直方图",
     "Histogram": "直方图",
@@ -908,6 +908,9 @@
     "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
     "HEIC quality": "HEIC 质量",
     "Map HDR highlights into the preview": "在预览中映射 HDR 高光",
-    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "仅用于预览的色调映射会保留高于 SDR 白点的细节。直方图、裁切警告和导出仍保持场景线性。"
+    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "仅用于预览的色调映射会保留高于 SDR 白点的细节。直方图、裁切警告和导出仍保持场景线性。",
+    "Skipped exact duplicates": "已跳过的完全重复项",
+    "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.": "这些文件与现有原始文件逐字节完全一致。Apertone 保留了现有目录项目，且未删除任何文件。",
+    "Duplicates": "重复项"
   }
 }

@@ -686,7 +686,7 @@
     "This history state is no longer available. Select a current row.": "Պատմության այս վիճակն այլևս հասանելի չէ։ Ընտրեք տող ընթացիկ ցանկից։",
     "History changed while confirmation was open. Review it and try again.": "Հաստատման պատուհանը բաց լինելու ընթացքում պատմությունը փոխվել է։ Դիտեք այն և կրկին փորձեք։",
     "Remove this photo's session history? Current edits, saved versions and the original are kept. This cannot be undone. Batch history is separate.": "Ջնջե՞լ այս լուսանկարի ընթացիկ աշխատաշրջանի պատմությունը։ Ընթացիկ մշակումը, պահպանված տարբերակները և բնօրինակը կմնան։ Սա հնարավոր չէ հետարկել։ Խմբային փոփոխությունների պատմությունն առանձին է։",
-    "History keeps up to 200 steps for the open photo. Opening another photo, restarting or applying a batch change starts a new history. Save a version to keep a state.": "Պատմությունը պահում է բաց լուսանկարի մինչև 200 քայլ։ Այլ լուսանկար բացելը, վերագործարկելը կամ խմբային փոփոխությունը սկսում են նոր պատմություն։ Վիճակը երկարաժամկետ պահելու համար ստեղծեք տարբերակ։",
+    "History keeps up to 200 steps per photo and restores after restart. Applying a batch change starts a new history; named versions remain independent.": "Պատմությունը յուրաքանչյուր լուսանկարի համար պահում է մինչև 200 քայլ և վերականգնվում է վերագործարկումից հետո։ Խմբային փոփոխությունը սկսում է նոր պատմություն, իսկ անվանված տարբերակները մնում են անկախ։",
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "Պատմությամբ անցնելիս հաջորդ քայլերը մնում են հասանելի կրկնելու միջոցով։ Նոր փոփոխությունը փոխարինում է այդ քայլերին։",
     "HISTOGRAM": "ՀԻՍՏՈԳՐԱՄ",
     "Histogram": "Հիստոգրամ",
@@ -908,6 +908,9 @@
     "HEIC · Adaptive HDR": "HEIC · Adaptive HDR",
     "HEIC quality": "HEIC որակ",
     "Map HDR highlights into the preview": "HDR լուսավոր հատվածները տեղավորել նախադիտման մեջ",
-    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "Միայն նախադիտման tone mapping-ը պահպանում է SDR սպիտակից բարձր մանրամասները։ Հիստոգրամը, clipping-ի զգուշացումները և արտահանումը մնում են scene-linear։"
+    "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "Միայն նախադիտման tone mapping-ը պահպանում է SDR սպիտակից բարձր մանրամասները։ Հիստոգրամը, clipping-ի զգուշացումները և արտահանումը մնում են scene-linear։",
+    "Skipped exact duplicates": "Բաց թողնված ճշգրիտ կրկնօրինակներ",
+    "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.": "Այս ֆայլերը բայթ առ բայթ համընկել են գոյություն ունեցող բնօրինակների հետ։ Apertone-ը պահպանել է կատալոգի առկա գրառումը և չի ջնջել ֆայլերից ոչ մեկը։",
+    "Duplicates": "Կրկնօրինակներ"
   }
 }
