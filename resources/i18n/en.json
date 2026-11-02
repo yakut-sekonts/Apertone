@@ -911,6 +911,13 @@
     "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.",
     "Skipped exact duplicates": "Skipped exact duplicates",
     "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.": "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.",
-    "Duplicates": "Duplicates"
+    "Duplicates": "Duplicates",
+    "DERIVED DETAIL": "DERIVED DETAIL",
+    "Creates a new Float DNG from the saved Develop result. Raw Details preserves size; 2× Detail uses deterministic Lanczos-3. Processing stays on this Mac.": "Creates a new Float DNG from the saved Develop result. Raw Details preserves size; 2× Detail uses deterministic Lanczos-3. Processing stays on this Mac.",
+    "Detail amount": "Detail amount",
+    "Create Raw Details DNG": "Create Raw Details DNG",
+    "Create 2× Detail DNG": "Create 2× Detail DNG",
+    "Raw Details": "Raw Details",
+    "2× Detail": "2× Detail"
   }
 }

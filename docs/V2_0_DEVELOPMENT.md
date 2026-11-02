@@ -76,6 +76,22 @@ an ML model when their algorithm and limits are explicit. `AI` or `Super
 Resolution` naming requires redistributable bundled weights, an audited license,
 numerical/runtime checks and a deterministic fallback. No photo leaves the Mac.
 
+The implemented derived-detail path renders the saved Develop document to
+scene-linear sRGB and creates a managed Float DNG. `Raw Details` is available only
+for an original Bayer RAW and applies bounded edge-aware microcontrast at the
+original dimensions. `2× Detail` applies the same detail pass followed by a
+deterministic separable Lanczos-3 resampler with straight-alpha filtering. It
+rejects inputs above 25 MP before allocating the 2× surface because the shared
+derived-image contract is capped at 100 MP.
+
+Derived XMP now uses one validated provenance schema for Raw Details, 2× Detail,
+HDR, Panorama and AI Denoise. It records provider and provider version,
+algorithm and algorithm version, model identity when applicable, source IDs and
+checksums, parameters, execution location, determinism, and exact linear input
+and output contracts. The managed-file journal remains the publication boundary:
+cancellation before install leaves no result, while an installed result is
+recovered and registered after interruption.
+
 ## Final gate
 
 Before tagging `v2.0.0`, the combined branch must pass catalog migration and

@@ -1,5 +1,7 @@
+#include "apps/shared/DerivedProvenance.h"
 #include "core/catalog/Identity.h"
 #include "core/color/DisplayTransform.h"
+#include "core/export/DetailResolution.h"
 #include "core/export/DngWriter.h"
 #include "core/export/LinearOutput.h"
 #include "core/render/DevelopPipeline.h"
@@ -88,6 +90,76 @@ void settings() {
     rejects([&] { options.validate(); });
     options.watermark.anchor = 8;
     options.validate();
+}
+
+void detailResolution() {
+    luma::LinearOutput constant(9, 7);
+    for (std::size_t i = 0; i < constant.rgba.size() / 4; ++i) {
+        constant.rgba[i * 4] = .2F;
+        constant.rgba[i * 4 + 1] = .4F;
+        constant.rgba[i * 4 + 2] = .8F;
+        constant.rgba[i * 4 + 3] = 1;
+    }
+    auto enhanced = constant;
+    luma::enhanceRawDetails(enhanced, .5);
+    require(enhanced.rgba == constant.rgba, "Raw Details changed a constant scene-linear image.");
+    const auto doubled = luma::upscaleDetail2x(constant);
+    require(doubled.width == 18 && doubled.height == 14,
+            "2x Detail returned incorrect dimensions.");
+    for (std::size_t i = 0; i < doubled.rgba.size() / 4; ++i)
+        require(near(doubled.rgba[i * 4], .2, 1e-6) && near(doubled.rgba[i * 4 + 1], .4, 1e-6) &&
+                    near(doubled.rgba[i * 4 + 2], .8, 1e-6) &&
+                    near(doubled.rgba[i * 4 + 3], 1, 1e-6),
+                "2x Detail changed constant color or alpha.");
+
+    luma::LinearOutput edge(5, 5);
+    for (std::size_t i = 0; i < edge.rgba.size() / 4; ++i) {
+        const bool bright = i % 5 >= 3;
+        edge.rgba[i * 4] = edge.rgba[i * 4 + 1] = edge.rgba[i * 4 + 2] = bright ? .8F : .2F;
+        edge.rgba[i * 4 + 3] = 1;
+    }
+    edge.rgba[(2 * 5 + 2) * 4] = edge.rgba[(2 * 5 + 2) * 4 + 1] = edge.rgba[(2 * 5 + 2) * 4 + 2] =
+        .3F;
+    auto first = edge, second = edge;
+    luma::enhanceRawDetails(first, .75);
+    luma::enhanceRawDetails(second, .75);
+    require(first.rgba == second.rgba && first.rgba != edge.rgba,
+            "Raw Details is non-deterministic or did not enhance local detail.");
+    require(first.rgba[(2 * 5 + 2) * 4 + 3] == 1, "Raw Details changed source alpha.");
+
+    luma::LinearOutput tooWide(10001, 1);
+    rejects([&] { (void)luma::upscaleDetail2x(std::move(tooWide)); });
+}
+
+void derivedProvenance() {
+    const std::string checksum(64, 'a');
+    const auto encoded =
+        luma::encodeDerivedProvenance({.operation = "2x Detail",
+                                       .provider = "org.apertone.local.detail",
+                                       .providerVersion = "1",
+                                       .algorithm = "lanczos3-2x",
+                                       .algorithmVersion = "1",
+                                       .inputContract = luma::linearFloatContract(12, 8, false),
+                                       .outputContract = luma::linearFloatContract(24, 16, true),
+                                       .deterministic = true,
+                                       .local = true,
+                                       .sources = {{"source<&", checksum, 7}},
+                                       .parameters = {{"amount", "0.5000"}}});
+    require(encoded.find("luma:ProviderVersion=\"1\"") != std::string::npos &&
+                encoded.find("luma:AlgorithmVersion=\"1\"") != std::string::npos &&
+                encoded.find("luma:InputContract=") != std::string::npos &&
+                encoded.find("luma:OutputContract=") != std::string::npos &&
+                encoded.find("source&lt;&amp;") != std::string::npos,
+            "Derived provenance omitted its versioned contract or XML escaping.");
+    auto invalid = luma::DerivedProvenance{.operation = "Raw Details",
+                                           .provider = "org.apertone.local.detail",
+                                           .providerVersion = "1",
+                                           .algorithm = "edge-aware-microcontrast",
+                                           .algorithmVersion = "1",
+                                           .inputContract = "input",
+                                           .outputContract = "output",
+                                           .sources = {{"source", "bad", 0}}};
+    rejects([&] { (void)luma::encodeDerivedProvenance(invalid); });
 }
 void resampling() {
     luma::LinearOutput input(2, 2);
@@ -285,6 +357,8 @@ void dng() {
 int main() {
     try {
         settings();
+        detailResolution();
+        derivedProvenance();
         resampling();
         sharpening();
         profiles();

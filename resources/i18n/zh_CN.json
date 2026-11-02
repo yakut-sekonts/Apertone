@@ -911,6 +911,13 @@
     "Preview-only tone mapping preserves detail above SDR white. Histogram, clipping warnings and exports remain scene-linear.": "仅用于预览的色调映射会保留高于 SDR 白点的细节。直方图、裁切警告和导出仍保持场景线性。",
     "Skipped exact duplicates": "已跳过的完全重复项",
     "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.": "这些文件与现有原始文件逐字节完全一致。Apertone 保留了现有目录项目，且未删除任何文件。",
-    "Duplicates": "重复项"
+    "Duplicates": "重复项",
+    "DERIVED DETAIL": "派生细节",
+    "Creates a new Float DNG from the saved Develop result. Raw Details preserves size; 2× Detail uses deterministic Lanczos-3. Processing stays on this Mac.": "从已保存的显影结果创建新的 Float DNG。Raw Details 保持原尺寸；2× Detail 使用确定性的 Lanczos-3。处理仅在此 Mac 上进行。",
+    "Detail amount": "细节强度",
+    "Create Raw Details DNG": "创建 Raw Details DNG",
+    "Create 2× Detail DNG": "创建 2× Detail DNG",
+    "Raw Details": "Raw Details",
+    "2× Detail": "2× Detail"
   }
 }

@@ -31,6 +31,38 @@ ColumnLayout {
     DevelopSlider { objectName: "noisecolorDetail"; parameter: "noise.colorDetail"; label: qsTranslate("Apertone", "Detail"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noisecolorSmoothness"; parameter: "noise.colorSmoothness"; label: qsTranslate("Apertone", "Smoothness"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     Label { text: qsTranslate("Apertone", "Option + drag shows diagnostics. Radius uses original-image pixels."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted }
+    Label { text: qsTranslate("Apertone", "DERIVED DETAIL"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
+    Label {
+        text: qsTranslate("Apertone", "Creates a new Float DNG from the saved Develop result. Raw Details preserves size; 2× Detail uses deterministic Lanczos-3. Processing stays on this Mac.")
+        wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted
+    }
+    Slider {
+        id: derivedDetailAmount
+        objectName: "detailDerived.amount"
+        from: 1; to: 100; value: 50
+        enabled: !editor.aiBusy
+        Layout.fillWidth: true
+        Accessible.name: qsTranslate("Apertone", "Detail amount")
+    }
+    RowLayout {
+        Layout.fillWidth: true
+        ApertoneButton {
+            objectName: "detailDerived.raw"
+            text: qsTranslate("Apertone", "Create Raw Details DNG")
+            enabled: editor.hasPhoto && editor.decoderDiagnostics.source === "Bayer RAW" && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
+            onClicked: editor.createRawDetails(derivedDetailAmount.value)
+            Layout.fillWidth: true
+        }
+        ApertoneButton {
+            objectName: "detailDerived.2x"
+            text: qsTranslate("Apertone", "Create 2× Detail DNG")
+            enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
+            onClicked: editor.createDetail2x(derivedDetailAmount.value)
+            Layout.fillWidth: true
+        }
+    }
+    ProgressBar { visible: editor.aiBusy && (editor.aiOperation === "Raw Details" || editor.aiOperation === "2× Detail"); value: editor.aiProgress; Layout.fillWidth: true }
+    ApertoneButton { visible: editor.aiBusy && (editor.aiOperation === "Raw Details" || editor.aiOperation === "2× Detail"); text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
     Label { objectName: "denoise.heading"; text: qsTranslate("Apertone", "AI Denoise"); Layout.fillWidth: true }
     Label {
         text: editor.denoiseModelConfigured

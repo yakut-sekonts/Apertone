@@ -67,7 +67,7 @@ evidence and owner-accepted exceptions.
   selections and reusable independent copies of combined mask stacks.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
-- ✅ Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
+- ✅ Detail sharpening, manual luminance/color noise reduction, local Raw Details and deterministic 2× Detail Float DNG with explicit processing provenance.
 - ✅ Crop, ratios, straighten, flips and guide overlays in source.
 - ✅ Calibrated Lens Corrections with automatic/manual profiles in source.
 - ✅ Manual, Auto and Guided perspective Transform in source.

@@ -1,5 +1,6 @@
 #include "apps/shared/MergeService.h"
 #include "apps/shared/DerivedImage.h"
+#include "apps/shared/DerivedProvenance.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/catalog/Catalog.h"
 #include "core/image/Bayer.h"
@@ -44,22 +45,6 @@ double exposure(const PhotoMetadata &m) {
     if (!std::isfinite(result))
         throw std::runtime_error("Invalid HDR exposure metadata.");
     return result;
-}
-std::string xmlText(std::string_view value) {
-    std::string out;
-    for (char c : value) {
-        if (c == '&')
-            out += "&amp;";
-        else if (c == '<')
-            out += "&lt;";
-        else if (c == '>')
-            out += "&gt;";
-        else if (c == '"')
-            out += "&quot;";
-        else
-            out += c;
-    }
-    return out;
 }
 DisplayImage registrationPreview(const FloatImage &image, CancellationToken stop) {
     EditDocument neutral;
@@ -114,20 +99,28 @@ std::filesystem::path savePanorama(const std::filesystem::path &catalog, FloatIm
         output.rgba[i * 4 + 3] = 1;
     }
     std::vector<float>().swap(image.rgb);
-    std::ostringstream metadata;
-    metadata.imbue(std::locale::classic());
-    metadata << "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF "
-                "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
-                "<rdf:Description rdf:about=\"\" xmlns:luma=\"https://luma.photo/ns/1.0/\" "
-                "luma:Operation=\"Panorama\" luma:Projection=\""
-             << static_cast<int>(options.projection) << "\" luma:FieldOfView=\""
-             << options.fieldOfView << "\" luma:BoundaryWarp=\"" << options.boundaryWarp
-             << "\">"
-                "<luma:Sources><rdf:Seq>";
+    std::vector<DerivedSourceProvenance> provenanceSources;
     for (const auto &source : sources)
-        metadata << "<rdf:li>" << xmlText(source.id + ":" + source.checksum) << "</rdf:li>";
-    metadata << "</rdf:Seq></luma:Sources></rdf:Description></rdf:RDF></x:xmpmeta>";
-    return createDerivedImage(catalog, output, metadata.str(), stop, progress);
+        provenanceSources.push_back({source.id, source.checksum, 0});
+    std::ostringstream fieldOfView;
+    fieldOfView.imbue(std::locale::classic());
+    fieldOfView << options.fieldOfView;
+    const auto metadata = encodeDerivedProvenance(
+        {.operation = "Panorama",
+         .provider = "org.apertone.local.merge",
+         .providerVersion = "1",
+         .algorithm = "homography-panorama-blend",
+         .algorithmVersion = "1",
+         .inputContract =
+             "scene-linear-sRGB/float32/opaque;frames=" + std::to_string(sources.size()),
+         .outputContract = linearFloatContract(output.width, output.height, true),
+         .deterministic = true,
+         .local = true,
+         .sources = std::move(provenanceSources),
+         .parameters = {{"projection", std::to_string(static_cast<int>(options.projection))},
+                        {"field-of-view", fieldOfView.str()},
+                        {"boundary-warp", options.boundaryWarp ? "true" : "false"}}});
+    return createDerivedImage(catalog, output, metadata, stop, progress);
 }
 } // namespace
 std::filesystem::path MergeService::hdr(const std::vector<std::string> &ids, HdrOptions options,
@@ -200,20 +193,27 @@ std::filesystem::path MergeService::hdr(const std::vector<std::string> &ids, Hdr
         output.rgba[i * 4 + 3] = 1;
     }
     std::vector<float>().swap(merged.rgb);
-    std::ostringstream metadata;
-    metadata.imbue(std::locale::classic());
-    metadata << "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF "
-                "xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">"
-                "<rdf:Description rdf:about=\"\" xmlns:luma=\"https://luma.photo/ns/1.0/\" "
-                "luma:Operation=\"HDR\" luma:AlignFrames=\""
-             << options.alignFrames << "\" luma:Deghost=\"" << options.deghost
-             << "\">"
-                "<luma:Sources><rdf:Seq>";
+    std::vector<DerivedSourceProvenance> provenanceSources;
     for (const auto &source : sources)
-        metadata << "<rdf:li>" << xmlText(source.asset.id + ":" + source.asset.checksum)
-                 << "</rdf:li>";
-    metadata << "</rdf:Seq></luma:Sources></rdf:Description></rdf:RDF></x:xmpmeta>";
-    return createDerivedImage(catalog_, output, metadata.str(), stop, [&](double value) {
+        provenanceSources.push_back({source.asset.id, source.asset.checksum, 0});
+    std::ostringstream deghost;
+    deghost.imbue(std::locale::classic());
+    deghost << options.deghost;
+    const auto metadata = encodeDerivedProvenance(
+        {.operation = "HDR",
+         .provider = "org.apertone.local.merge",
+         .providerVersion = "1",
+         .algorithm = "radiometric-hdr-merge",
+         .algorithmVersion = "1",
+         .inputContract =
+             "scene-linear-sRGB/float32/opaque;frames=" + std::to_string(sources.size()),
+         .outputContract = linearFloatContract(output.width, output.height, false),
+         .deterministic = true,
+         .local = true,
+         .sources = std::move(provenanceSources),
+         .parameters = {{"align-frames", options.alignFrames ? "true" : "false"},
+                        {"deghost", deghost.str()}}});
+    return createDerivedImage(catalog_, output, metadata, stop, [&](double value) {
         if (progress)
             progress(.85 + .15 * value);
     });

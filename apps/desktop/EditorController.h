@@ -389,6 +389,8 @@ class EditorController final : public QObject {
                                     bool alignFrames = true);
     Q_INVOKABLE void mergePanoramaPhotos(const QStringList &ids, int projection, double fieldOfView,
                                          bool boundaryWarp = false);
+    Q_INVOKABLE void createRawDetails(double amount = 50);
+    Q_INVOKABLE void createDetail2x(double amount = 50);
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
     Q_INVOKABLE void beginAIObjectSelection();
     Q_INVOKABLE void beginAIMaskSelection(const QString &kind);
@@ -606,6 +608,7 @@ class EditorController final : public QObject {
                   std::function<std::filesystem::path(luma::CancellationToken,
                                                       const std::function<void(double)> &)>
                       work);
+    void createDetailDerived(bool twoX, double amount);
     bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
     QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
     double localOverlayOpacity_ = 0.45;
