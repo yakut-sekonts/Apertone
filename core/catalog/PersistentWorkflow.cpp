@@ -12,7 +12,7 @@ namespace luma {
 namespace {
 using detail::Statement;
 constexpr std::size_t maximumHistoryEntries = 201;
-constexpr std::size_t maximumHistoryBytes = 256 * 1024 * 1024;
+constexpr std::size_t maximumHistoryBytes = std::size_t{256} * 1024 * 1024;
 
 void validateHistory(const PersistedEditHistory &history) {
     if (history.entries.empty() || history.entries.size() > maximumHistoryEntries ||
