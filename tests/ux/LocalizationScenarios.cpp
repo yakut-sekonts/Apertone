@@ -122,7 +122,7 @@ bool localeRestartScenario(Context &c, const QString &id, const QString &stage) 
                     after->asset.checksum == before->asset.checksum &&
                     c.editor.photoID().toStdString() == saved->id &&
                     c.editor.sourcePath().toStdString() == saved->path.string() &&
-                    c.editor.currentSettings() == saved->edits && !c.editor.canUndo() &&
+                    c.editor.currentSettings() == saved->edits && c.editor.canUndo() &&
                     !c.editor.canRedo() && catalog.libraryIDs({}) == oracle.libraryIDs({}) &&
                     luma::macos::sha256File(saved->path) == saved->checksum,
                 "Language-project restart changed library, active identity, edits or original");

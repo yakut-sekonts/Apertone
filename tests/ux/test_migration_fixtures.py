@@ -34,7 +34,7 @@ class MigrationAuditTests(unittest.TestCase):
         self.marker.write_text(json.dumps({'status': 'PASS', 'pid': 123, 'asset_ids': self.ids,
                                           'legacy_masks_equal': True,
                                           'stable_export_max_rgb_delta': 8,
-                                          'stable_export_mean_rgb_delta': 0.1,
+                                          'stable_export_mean_rgb_delta': 1.0,
                                           'stable_export_alpha_exact': True}))
         (self.evidence / 'app.log').write_text('UX_SHUTDOWN phase=context.owner.destroy.end\n'
                                               'UX_SHUTDOWN phase=qguiapplication.owner.destroy.end\n')

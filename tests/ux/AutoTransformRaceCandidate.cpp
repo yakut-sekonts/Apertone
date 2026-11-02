@@ -150,7 +150,7 @@ QString card(Context &c, const QString &id, bool filmstrip) {
     return result;
 }
 void switchPhoto(Context &c, const QString &id, const QString &path, const Document &expected,
-                 const QImage &pixels) {
+                 const QImage &pixels, bool expectsUndo) {
     QSignalSpy opens(&c.library, &LibraryModel::openRequested);
     QSignalSpy loads(&c.editor, &EditorController::photoLoaded);
     require(opens.isValid() && loads.isValid(), "Cannot observe real photo-switch boundaries");
@@ -161,7 +161,7 @@ void switchPhoto(Context &c, const QString &id, const QString &path, const Docum
                 loads.at(0).at(0).toString() == id,
             "Filmstrip input did not open/load the exact requested asset once");
     rendered(c, id, path, expected, pixels);
-    idle(c, false, false); // Load creates a fresh history at persisted edits.
+    idle(c, expectsUndo, false); // Load restores the persisted per-photo history.
 }
 // Signal observations are passive and bounded. Disconnect first during destruction.
 class DocumentAudit final {
@@ -371,7 +371,7 @@ bool autoTransformRaceCandidate(Context &c, const QString &id) {
     seed(c, bID, bPath, "develop.exposureSlider", neutral, bDocument);
     const auto bPixels = fixtureReference(c, bDocument, bPath);
     require(bPixels != bNeutralPixels, "B seed has no positive pixel effect");
-    switchPhoto(c, aID, aPath, neutral, aNeutralPixels);
+    switchPhoto(c, aID, aPath, neutral, aNeutralPixels, false);
     Document aDocument = neutral;
     aDocument.transform.rotate = 45;
     seed(c, aID, aPath, "develop.transform.rotateSlider", neutral, aDocument);
@@ -448,7 +448,7 @@ bool autoTransformRaceCandidate(Context &c, const QString &id) {
                             cancelResult.operation.loadRevision &&
                         switchResult.operation.editRevision > cancelResult.operation.editRevision,
                     "Cancel/switch branches did not compute two distinct genuine OLD results");
-            switchPhoto(c, bID, bPath, bDocument, bPixels);
+            switchPhoto(c, bID, bPath, bDocument, bPixels, true);
             require(gate.snapshot().deliveries == 0,
                     "Original OLD success delivered before actual new-photo readiness");
             const auto bURL = c.editor.previewUrl();
@@ -458,7 +458,7 @@ bool autoTransformRaceCandidate(Context &c, const QString &id) {
                         c.editor.previewUrl() == bURL,
                     "Photo switch did not advance load identity or OLD result rerendered B");
             rendered(c, bID, bPath, bDocument, bPixels);
-            idle(c, false, false);
+            idle(c, true, false);
             unchangedSaved(c, aSavedAfterHistory);
             unchangedSaved(c, bSaved);
             audit.assertClean();
@@ -481,8 +481,8 @@ bool autoTransformRaceCandidate(Context &c, const QString &id) {
             throw;
         }
     }
-    // Actual A→B→A return must load exactly the retained A document, with fresh history.
-    switchPhoto(c, aID, aPath, aDocument, aPixels);
+    // Actual A→B→A return must load the retained A document and its durable history.
+    switchPhoto(c, aID, aPath, aDocument, aPixels, true);
     unchangedSaved(c, aSavedAfterHistory);
     unchangedSaved(c, bSaved);
     require(hash(aPath) == aHash && hash(bPath) == bHash &&

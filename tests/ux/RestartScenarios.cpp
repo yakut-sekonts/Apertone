@@ -320,7 +320,7 @@ bool catalogCommitCrashScenario(Context &c, const QString &id, const QString &st
             current.asset.checksum == newState.asset.checksum &&
             luma::macos::sha256File(current.asset.path) == current.asset.checksum &&
             c.editor.photoID().toStdString() == photo && c.editor.currentSettings() == wanted &&
-            !c.editor.canUndo() && !c.editor.canRedo(),
+            c.editor.canUndo() && !c.editor.canRedo(),
         "Killed catalog transaction lost atomicity, identity, original or complete edit document");
     c.reveal("develop.contrastSlider");
     d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});

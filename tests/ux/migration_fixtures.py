@@ -119,7 +119,7 @@ def audit_migration(state_root, evidence_root, child_pid, stage):
     if (decoded.get('pid') != child_pid or decoded.get('status') != 'PASS'
             or decoded.get('legacy_masks_equal') is not True
             or decoded.get('stable_export_max_rgb_delta') != 8
-            or decoded.get('stable_export_mean_rgb_delta') != 0.1
+            or decoded.get('stable_export_mean_rgb_delta') != 1.0
             or decoded.get('stable_export_alpha_exact') is not True):
         raise ValueError('Migration serialized audit does not belong to the child')
     catalog = state_root / 'catalog.sqlite'

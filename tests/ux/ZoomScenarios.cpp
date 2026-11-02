@@ -300,7 +300,7 @@ void sameSaved(Context &c, const luma::AssetSnapshot &before) {
             "Preview delivery/zoom changed saved document, revision or original identity");
 }
 void filmstrip(Context &c, int row, const QString &path, const luma::EditDocument &document,
-               const QImage &expected) {
+               const QImage &expected, bool expectsUndo) {
     QSignalSpy opens(&c.library, &LibraryModel::openRequested);
     QSignalSpy loads(&c.editor, &EditorController::photoLoaded);
     require(opens.isValid() && loads.isValid(), "Cannot observe photo switch");
@@ -311,8 +311,8 @@ void filmstrip(Context &c, int row, const QString &path, const luma::EditDocumen
     require(opens.count() == 1 && opens.at(0).at(0).toUrl().toLocalFile() == path &&
                 loads.at(0).at(0).toString() == c.editor.photoID() &&
                 c.editor.sourcePath() == path && c.editor.currentSettings() == document &&
-                !c.editor.canUndo() && !c.editor.canRedo(),
-            "Filmstrip switch lost asset identity/document or reset-history policy");
+                c.editor.canUndo() == expectsUndo && !c.editor.canRedo(),
+            "Filmstrip switch lost asset identity/document or durable-history policy");
     fitGeometry(c);
 }
 
@@ -976,9 +976,9 @@ bool zoomSwitchScenario(Context &c, const QString &id) {
                 view->property("contentY").toDouble() != y,
             "Zoom photo switch needs actual non-central pan input");
     const luma::EditDocument neutral;
-    filmstrip(c, 1, second, neutral, reference(c, nextDecoded, neutral, 2560));
+    filmstrip(c, 1, second, neutral, reference(c, nextDecoded, neutral, 2560), false);
     const auto nextSaved = savedSnapshot(c);
-    filmstrip(c, 0, source.path, document, fit);
+    filmstrip(c, 0, source.path, document, fit, true);
     sameSaved(c, before);
     sameSaved(c, nextSaved);
     require(sourceHash(source.path) == source.hash && sourceHash(second) == secondHash,
@@ -988,7 +988,8 @@ bool zoomSwitchScenario(Context &c, const QString &id) {
            {"second_uuid", QString::fromStdString(nextSaved.asset.id)},
            {"first_sha256", QString::fromLatin1(source.hash)},
            {"second_sha256", QString::fromLatin1(secondHash)},
-           {"policy", "reset zoom/pan on each photo load; preserve saved edits; reset history"}});
+           {"policy",
+            "reset zoom/pan on each photo load; preserve saved edits and per-photo history"}});
     require(c.warnings.isEmpty(), "Zoom switch produced QML warnings: " + c.warnings.join('\n'));
     return true;
 }
@@ -1130,7 +1131,7 @@ bool progressiveRaceScenario(Context &c, const QString &id) {
             "actual render success after last cancellation check, before QueuedConnection"}});
     if (switchAsset) {
         sameSaved(c, firstSaved);
-        filmstrip(c, 0, source.path, obsolete, oldExpected);
+        filmstrip(c, 0, source.path, obsolete, oldExpected, true);
     } else {
         d.click("main.undoButton");
         ready(c, oldExpected);

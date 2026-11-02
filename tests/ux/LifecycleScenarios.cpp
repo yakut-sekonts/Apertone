@@ -82,8 +82,8 @@ bool lifecycleScenario(Context &c, const QString &id) {
         d.wait([&] { return c.editor.sourcePath() == firstPath && !c.editor.busy(); },
                "first asset reloaded");
         c.loaded();
-        require(c.editor.currentSettings() == first && !c.editor.canUndo() && !c.editor.canRedo(),
-                "A-B-A switch lost saved edits or retained another session's history");
+        require(c.editor.currentSettings() == first && c.editor.canUndo() && !c.editor.canRedo(),
+                "A-B-A switch lost saved edits or durable per-photo history");
         return true;
     }
     if (id == "UX-APP-006") {
