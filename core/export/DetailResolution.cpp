@@ -251,15 +251,8 @@ void recoverLensBlur(LinearOutput &image, double amount, CancellationToken stop,
                 std::copysign(std::max(0.0, std::abs(residual) - threshold), residual);
             const double limit = .10 * (.05 + std::abs(center));
             const double delta = std::clamp(gain * recovered, -limit, limit);
-            if (std::abs(center) > 1e-8) {
-                const double scale = (center + delta) / center;
-                for (std::size_t channel = 0; channel < 3; ++channel)
-                    image.rgba[pixel + channel] =
-                        static_cast<float>(image.rgba[pixel + channel] * scale);
-            } else {
-                for (std::size_t channel = 0; channel < 3; ++channel)
-                    image.rgba[pixel + channel] += static_cast<float>(delta);
-            }
+            for (std::size_t channel = 0; channel < 3; ++channel)
+                image.rgba[pixel + channel] += static_cast<float>(delta);
         }
         if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
             progress(.9 + .1 * static_cast<double>(y + 1) / image.height);

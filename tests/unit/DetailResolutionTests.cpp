@@ -62,6 +62,16 @@ int main() {
         const double after = luminance(deblurred, 8, 4) - luminance(deblurred, 6, 4);
         require(after > before, "Lens blur recovery did not increase bounded edge separation.");
 
+        auto colored = blurredEdge();
+        const auto coloredOffset = (static_cast<std::size_t>(4) * colored.width + 8) * 4;
+        colored.rgba[coloredOffset] += .04F;
+        colored.rgba[coloredOffset + 1] -= static_cast<float>(.2126 * .04 / .7152);
+        const double chromaBefore = colored.rgba[coloredOffset] - colored.rgba[coloredOffset + 1];
+        luma::recoverLensBlur(colored, .8);
+        require(std::abs((colored.rgba[coloredOffset] - colored.rgba[coloredOffset + 1]) -
+                         chromaBefore) < 1e-7,
+                "Lens blur recovery changed local chroma.");
+
         luma::LinearOutput moire(16, 16);
         for (int y = 0; y < moire.height; ++y)
             for (int x = 0; x < moire.width; ++x) {
