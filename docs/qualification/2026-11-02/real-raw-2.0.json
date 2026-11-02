@@ -1,0 +1,340 @@
+{
+  "release": "2.0.0",
+  "date": "2026-11-02",
+  "source_collection": "raw.pixls.us CC0 mirrors selected by revelraw-sample-raw-files v1",
+  "scope": "real Bayer RAW decode, metadata, Develop render, JPEG export, catalog integrity and source immutability",
+  "results": [
+    {
+      "asset": "Canon-EOS-R.CR3",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/Canon-EOS-R.CR3",
+      "license": "CC0-1.0",
+      "source_sha256": "cfd118af4477ef37538eb953421572a7a5c80694e59764049223107cc0c9ae83",
+      "camera": "Canon EOS R",
+      "dimensions": [
+        6742,
+        4498
+      ],
+      "iso": 100.0,
+      "export_bytes": 3966795,
+      "export_sha256": "22ec3f0a8fdd8c749782cddd5d33820cc170cc1a33b365484bb5121bfb3881cd",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            1,
+            255
+          ],
+          [
+            19,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "channel_mean": [
+          112.0258,
+          116.3492,
+          106.6696
+        ],
+        "channel_stddev": [
+          41.9039,
+          38.6188,
+          48.7714
+        ],
+        "near_black_fraction": 6.554e-05,
+        "near_white_fraction": 2.35e-06,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "Canon-5D-Mark-IV.CR2",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/Canon-5D-Mark-IV.CR2",
+      "license": "CC0-1.0",
+      "source_sha256": "02b23f9cc6dc4c99fb39aa4d1f65ac227804d06461ac1bd0f842aa2f3beb8fe4",
+      "camera": "Canon EOS 5D Mark IV",
+      "dimensions": [
+        6744,
+        4502
+      ],
+      "iso": 100.0,
+      "export_bytes": 4899442,
+      "export_sha256": "6534fe1a27306f8e9cfa8b2c8f51d9e8cdf7bc2c29c325fcb3d3fc03ec61f9e3",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            3,
+            255
+          ],
+          [
+            4,
+            255
+          ]
+        ],
+        "channel_mean": [
+          75.2614,
+          79.3741,
+          86.5546
+        ],
+        "channel_stddev": [
+          42.6868,
+          39.683,
+          42.795
+        ],
+        "near_black_fraction": 0.00039894,
+        "near_white_fraction": 6.29e-06,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "Sony-a7III.ARW",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/Sony-a7III.ARW",
+      "license": "CC0-1.0",
+      "source_sha256": "250784580ea527442c09004417bb0eead484f2bf3ee8f9121a776ac65bb50d0f",
+      "camera": "Sony ILCE-7M3",
+      "dimensions": [
+        6024,
+        4024
+      ],
+      "iso": 400.0,
+      "export_bytes": 13144490,
+      "export_sha256": "21a11a8e890206e989a1ea0ff5e0bdaca38fc6b9ac4e46b233b6d58ad0c542e7",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            16,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "channel_mean": [
+          99.5881,
+          100.7848,
+          97.4763
+        ],
+        "channel_stddev": [
+          37.8702,
+          35.0897,
+          42.5094
+        ],
+        "near_black_fraction": 6.7e-07,
+        "near_white_fraction": 0.00452502,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "Panasonic-G9.RW2",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/Panasonic-G9.RW2",
+      "license": "CC0-1.0",
+      "source_sha256": "cfb015a89d7af92306328868e6d87ac7974c427612608016821dfb336e8e3faa",
+      "camera": "Panasonic DC-G9",
+      "dimensions": [
+        5208,
+        3904
+      ],
+      "iso": 200.0,
+      "export_bytes": 5091084,
+      "export_sha256": "29255e7cc7e793ab5503ec97cd760c2fac910286a3163c6662616b37cba22239",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            163
+          ],
+          [
+            0,
+            166
+          ],
+          [
+            0,
+            187
+          ]
+        ],
+        "channel_mean": [
+          76.7154,
+          68.5573,
+          62.9769
+        ],
+        "channel_stddev": [
+          34.8167,
+          28.341,
+          27.4118
+        ],
+        "near_black_fraction": 0.00039519,
+        "near_white_fraction": 0.0,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "OM-System-OM-1.ORF",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/OM-System-OM-1.ORF",
+      "license": "CC0-1.0",
+      "source_sha256": "bf2eef6becc0851e48231617c3e2eac27a2cdb44c75b93035c561d837952c18b",
+      "camera": "OM Digital OM-1",
+      "dimensions": [
+        5220,
+        3912
+      ],
+      "iso": 200.0,
+      "export_bytes": 8510637,
+      "export_sha256": "dc3af15fcab4e31b0eb7ac2a314921f3363ab55d9f20689666d16cbdbf108033",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ],
+          [
+            0,
+            255
+          ]
+        ],
+        "channel_mean": [
+          105.634,
+          102.7127,
+          94.7109
+        ],
+        "channel_stddev": [
+          44.5414,
+          45.242,
+          53.4866
+        ],
+        "near_black_fraction": 8.3e-07,
+        "near_white_fraction": 0.00713905,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "Ricoh-GR-III.DNG",
+      "source_url": "https://github.com/tellodaniel/revelraw-sample-raw-files/releases/download/v1/Ricoh-GR-III.DNG",
+      "license": "CC0-1.0",
+      "source_sha256": "05513ee72f7cac4165534c9f64995412084f414a033c80c473c79fd94154292e",
+      "camera": "Ricoh GR III",
+      "dimensions": [
+        6020,
+        4024
+      ],
+      "iso": 100.0,
+      "export_bytes": 9642128,
+      "export_sha256": "dd30f0547b81cd9e198f05365357f658fcbdcdc59b777bc5527f2697dd57e92a",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            255
+          ],
+          [
+            1,
+            230
+          ],
+          [
+            0,
+            244
+          ]
+        ],
+        "channel_mean": [
+          78.9395,
+          82.9583,
+          84.4393
+        ],
+        "channel_stddev": [
+          29.9782,
+          31.8616,
+          44.7767
+        ],
+        "near_black_fraction": 5.789e-05,
+        "near_white_fraction": 1e-08,
+        "deterministic_export": true
+      }
+    },
+    {
+      "asset": "Pentax-K-1-Mark-II.PEF",
+      "source_url": "https://raw.pixls.us/getfile.php/7133/nice/Pentax%20-%20K-1%20Mark%20II%20-%2014bit%20%283%3A2%29.PEF",
+      "license": "CC0-1.0",
+      "source_sha256": "fe2330254c5313d4dde97cbd01e2987f6f1137f1c9c687d30e951f4668979381",
+      "camera": "Pentax K-1 Mark II",
+      "dimensions": [
+        4832,
+        3220
+      ],
+      "iso": 200.0,
+      "export_bytes": 6188169,
+      "export_sha256": "47e3e0ddbd0bd3ab6c7c7ce06dfd30ee301e8e52bd34b68eceb41a0f389ff8a6",
+      "catalog_integrity": "ok",
+      "source_unchanged": true,
+      "render_metrics": {
+        "channel_extrema": [
+          [
+            0,
+            207
+          ],
+          [
+            2,
+            171
+          ],
+          [
+            0,
+            184
+          ]
+        ],
+        "channel_mean": [
+          59.8368,
+          62.8772,
+          60.15
+        ],
+        "channel_stddev": [
+          27.8777,
+          32.3685,
+          45.34
+        ],
+        "near_black_fraction": 0.00013503,
+        "near_white_fraction": 0.0,
+        "deterministic_export": true
+      }
+    }
+  ],
+  "source_license_reference": "https://github.com/tellodaniel/revelraw-sample-raw-files/blob/main/README.md",
+  "private_asset_results": [
+    {
+      "camera": "Nikon D7500",
+      "test": "nikon-d7500-restart",
+      "result": "passed",
+      "source_details_retained": false,
+      "contracts": [
+        "true sensor decode",
+        "EXIF",
+        "GUI viewer",
+        "autosave",
+        "restart",
+        "source immutability"
+      ]
+    }
+  ]
+}

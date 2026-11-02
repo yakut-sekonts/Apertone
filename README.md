@@ -96,8 +96,10 @@ Develop never uses the embedded JPEG as its image source.
 
 The current two-pass edge-aware Bayer reconstruction keeps a bilinear reference
 path for regression comparison. The unified 2.0 development cycle adds
-camera-specific highlight reconstruction from LibRaw per-channel linearity metadata;
-representative real-camera qualification remains open.
+camera-specific highlight reconstruction from LibRaw per-channel linearity
+metadata. Representative Canon, Sony, Nikon, Pentax, Panasonic, OM System and
+camera-native DNG qualification is recorded in the
+[2.0 evidence](docs/qualification/2026-11-02/real-raw-2.0.json).
 
 ## Build and run
 

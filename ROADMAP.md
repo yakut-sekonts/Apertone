@@ -279,9 +279,11 @@ color transform. Fully clipped pixels retain measured sensor headroom instead of
 receiving invented color. Decoder diagnostics expose channel limits, clipped
 sensor samples and the number of recovered pixels.
 
-This shared decode result feeds preview, thumbnails and export. Representative
-real-camera highlight qualification across Canon, Sony, Nikon, Pentax, Panasonic,
-OM System/Olympus and DNG remains required before the 2.0.0 release. See
+This shared decode result feeds preview, thumbnails and export. The 2.0 release
+candidate passes real sensor decode, Develop render, deterministic export,
+catalog integrity and source-immutability checks across Canon, Sony, Nikon,
+Pentax, Panasonic, OM System and camera-native DNG. See the
+[qualification record](docs/qualification/2026-11-02/real-raw-2.0.json) and
 [implementation status](docs/V1_7_DEVELOPMENT.md).
 
 Embedded DNG profiles retain up to two standard calibration illuminants and
@@ -289,7 +291,7 @@ resolve `ColorMatrix`, `CameraCalibration`, `AnalogBalance` and `ForwardMatrix`
 for the current White Balance. Interpolation uses reciprocal color temperature.
 The resolved gain and post-gain camera matrix are shared by CPU and Metal.
 Synthetic DNG contracts cover both the `ForwardMatrix` and Bradford fallback
-paths; real-camera color qualification remains a release gate.
+paths; the representative real-camera gate is recorded with the 2.0 evidence.
 
 ## 2.0 — Unified release train
 

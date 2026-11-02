@@ -30,8 +30,12 @@ The DNG transform follows the public DNG 1.7.1 processing model:
 
 Synthetic fixtures prove parsing, endpoint selection, reciprocal-temperature
 interpolation, As Shot behavior, failure on singular metadata and CPU/Metal
-parity. Release qualification still requires representative real RAW files from
-Canon, Sony, Nikon, Pentax, Panasonic, OM/Olympus and a native DNG camera.
+parity. The release candidate also passes real sensor decode, Develop render,
+deterministic export, catalog integrity and source-immutability checks for Canon
+CR3/CR2, Sony ARW, Nikon NEF, Pentax PEF, Panasonic RW2, OM System ORF and a
+camera-native Ricoh DNG. The CC0 assets, SHA-256 identities and non-degenerate
+render metrics are recorded in the
+[2.0 real RAW qualification](qualification/2026-11-02/real-raw-2.0.json).
 
 ## Intelligent Library
 

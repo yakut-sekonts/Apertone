@@ -65,4 +65,5 @@ camera-specific quality claim is made before that evidence exists.
 
 Synthetic dual-illuminant DNG fixtures cover LibRaw tag extraction, endpoint
 selection, White Balance dependent exports, As Shot behavior, CPU/Metal parity
-and singular metadata rejection. They do not replace the real-camera gate.
+and singular metadata rejection. The separate real-camera gate is completed by
+the [2.0 qualification record](qualification/2026-11-02/real-raw-2.0.json).
