@@ -147,7 +147,7 @@ void prepareThumbnailCorruption(const QString &root, const QString &stateRoot) {
     const auto oracle =
         QJsonDocument::fromJson(bytes(stateRoot + "/thumbnail-oracle.json")).object();
     const auto filename = oracle["filename"].toString();
-    const QRegularExpression namePattern("^[0-9a-f]{64}-edited-v4\\.jpg$");
+    const QRegularExpression namePattern("^[0-9a-f]{64}-edited-v5\\.jpg$");
     require(namePattern.match(filename).hasMatch(), "Unsafe thumbnail fixture filename");
     const auto path = stateRoot + "/catalog.sqlite.luma-cache/thumbnails/" + filename;
     const auto beforeHash = QString::fromLatin1(

@@ -32,6 +32,9 @@ three resolved channel white levels and the recovered pixel count. The Develop
 decode summary names camera highlight recovery only when at least one pixel was
 actually reconstructed.
 
+The source decode and persistent thumbnail cache revisions advance with this
+pixel-semantic change, so an upgraded application cannot reuse pre-1.7 previews.
+
 ## Validation boundary
 
 The changed image primitive has deterministic unit coverage for chromatic

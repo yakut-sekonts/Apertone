@@ -109,6 +109,14 @@ void imageTests() {
                 recoverableHighlight.rgb[highlight + 1] == .7F &&
                 recoverableHighlight.rgb[highlight + 2] == .35F,
             "Camera-linear highlight recovery did not restore local chromaticity.");
+    auto unreliableAnchor = recoverableHighlight;
+    unreliableAnchor.rgb[highlight] = 1.8F;
+    unreliableAnchor.rgb[highlight + 1] = .99F;
+    unreliableAnchor.rgb[highlight + 2] = .99F;
+    const auto unreliableBefore = unreliableAnchor.rgb;
+    require(luma::recoverClippedHighlights(unreliableAnchor) == 0 &&
+                unreliableAnchor.rgb == unreliableBefore,
+            "Highlight recovery used a near-clipped chromatic anchor.");
     luma::FloatImage fullyClipped(3, 3);
     std::fill(fullyClipped.rgb.begin(), fullyClipped.rgb.end(), .25F);
     fullyClipped.rgb[12] = 1.2F;

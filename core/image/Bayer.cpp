@@ -226,7 +226,8 @@ std::uint64_t recoverClippedHighlights(FloatImage &image, luma::CancellationToke
                                 continue;
                             const float currentAnchor = source[offset + anchor];
                             const float neighborAnchor = source[neighbor + anchor];
-                            if (!std::isfinite(neighborAnchor) || neighborAnchor < minimumAnchor ||
+                            if (currentAnchor < minimumAnchor || currentAnchor >= reliable ||
+                                !std::isfinite(neighborAnchor) || neighborAnchor < minimumAnchor ||
                                 neighborAnchor >= reliable)
                                 continue;
                             const float ratio = targetSample / neighborAnchor;
