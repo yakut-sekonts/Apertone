@@ -326,6 +326,9 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     const auto stride = sizes.raw_pitch / sizeof(unsigned short);
     double blackMinimum = std::numeric_limits<double>::infinity();
     double blackMaximum = -std::numeric_limits<double>::infinity();
+    std::array<double, 3> channelWhiteLevels{static_cast<double>(color.maximum),
+                                             static_cast<double>(color.maximum),
+                                             static_cast<double>(color.maximum)};
     std::uint64_t samplesAtOrAboveWhite = 0;
     for (int y = 0; y < sizes.height; ++y) {
         checkCancellation(stop);
@@ -340,7 +343,15 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
                 }
                 black += color.cblack[index];
             }
-            const double white = color.maximum;
+            long metadataWhite = color.linear_max[channel];
+            if (metadataWhite == 0 && (channel == 1 || channel == 3))
+                metadataWhite = color.linear_max[channel == 1 ? 3 : 1];
+            const double white =
+                metadataWhite > black && metadataWhite <= static_cast<long>(color.maximum)
+                    ? static_cast<double>(metadataWhite)
+                    : static_cast<double>(color.maximum);
+            const auto colorChannel = static_cast<std::size_t>(channel == 3 ? 1 : channel);
+            channelWhiteLevels[colorChannel] = std::min(channelWhiteLevels[colorChannel], white);
             blackMinimum = std::min(blackMinimum, black);
             blackMaximum = std::max(blackMaximum, black);
             if (black >= white) {
@@ -373,6 +384,7 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     diagnostics.blackMinimum = blackMinimum;
     diagnostics.blackMaximum = blackMaximum;
     diagnostics.whiteLevel = color.maximum;
+    diagnostics.channelWhiteLevels = channelWhiteLevels;
     diagnostics.sensorSamples = pixelCount(sizes.width, sizes.height);
     diagnostics.samplesAtOrAboveWhite = samplesAtOrAboveWhite;
     decoder.recycle();
@@ -382,6 +394,10 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     auto image = demosaicEdgeAware(frame, stop);
     frame.samples.clear();
     frame.samples.shrink_to_fit();
+    if (samplesAtOrAboveWhite > 0)
+        diagnostics.recoveredHighlightPixels = recoverClippedHighlights(image, stop);
+    if (diagnostics.recoveredHighlightPixels > 0)
+        diagnostics.highlights = DecodeHighlightPath::cameraSpecificReconstruction;
 
     if (progress) {
         progress(1);

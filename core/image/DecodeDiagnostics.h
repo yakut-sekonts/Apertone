@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <string>
 
@@ -11,7 +12,13 @@ enum class DecodeColorPath {
     dngProfileToLinearSRGB,
     cameraToLinearSRGB
 };
-enum class DecodeHighlightPath { unknown, sourceRange, adaptiveHDR, normalizedSensorHeadroom };
+enum class DecodeHighlightPath {
+    unknown,
+    sourceRange,
+    adaptiveHDR,
+    normalizedSensorHeadroom,
+    cameraSpecificReconstruction
+};
 
 struct DecodeDiagnostics {
     std::string decoder;
@@ -30,8 +37,10 @@ struct DecodeDiagnostics {
     double blackMinimum = 0;
     double blackMaximum = 0;
     double whiteLevel = 0;
+    std::array<double, 3> channelWhiteLevels{};
     std::uint64_t sensorSamples = 0;
     std::uint64_t samplesAtOrAboveWhite = 0;
+    std::uint64_t recoveredHighlightPixels = 0;
     bool operator==(const DecodeDiagnostics &) const = default;
 };
 } // namespace luma

@@ -2,7 +2,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <limits>
+#include <vector>
 
 namespace luma {
 namespace {
@@ -168,6 +170,87 @@ FloatImage demosaicEdgeAware(const BayerFrame &frame, luma::CancellationToken st
         }
     }
     return result;
+}
+
+std::uint64_t recoverClippedHighlights(FloatImage &image, luma::CancellationToken stop) {
+    image.validateCoverage();
+    constexpr float clip = 1.F;
+    constexpr float reliable = .98F;
+    constexpr float minimumAnchor = .01F;
+    constexpr float maximumRatio = 16.F;
+    constexpr int radius = 3;
+    // Recovery writes only channels that were already outside the reliable
+    // range. Such samples remain excluded from neighboring ratio estimates, so
+    // in-place processing is deterministic and avoids a second full image copy.
+    const auto &source = image.rgb;
+    std::uint64_t recoveredPixels = 0;
+    std::vector<float> estimates;
+    estimates.reserve((radius * 2 + 1) * (radius * 2 + 1) * 2);
+
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            const auto offset = (static_cast<std::size_t>(y) * image.width + x) * 3;
+            std::array<bool, 3> clipped{};
+            int clippedChannels = 0;
+            for (std::size_t channel = 0; channel < 3; ++channel) {
+                const float value = source[offset + channel];
+                if (!std::isfinite(value) || value < 0)
+                    throw std::runtime_error("Invalid camera-linear highlight sample.");
+                clipped[channel] = value >= clip;
+                clippedChannels += clipped[channel] ? 1 : 0;
+            }
+            // A fully clipped pixel has no local chromatic anchor. Preserve its
+            // measured sensor headroom instead of inventing a color.
+            if (clippedChannels == 0 || clippedChannels == 3)
+                continue;
+
+            bool recovered = false;
+            for (std::size_t target = 0; target < 3; ++target) {
+                if (!clipped[target])
+                    continue;
+                estimates.clear();
+                for (int sy = std::max(0, y - radius); sy <= std::min(image.height - 1, y + radius);
+                     ++sy) {
+                    for (int sx = std::max(0, x - radius);
+                         sx <= std::min(image.width - 1, x + radius); ++sx) {
+                        if (sx == x && sy == y)
+                            continue;
+                        const auto neighbor = (static_cast<std::size_t>(sy) * image.width + sx) * 3;
+                        const float targetSample = source[neighbor + target];
+                        if (!std::isfinite(targetSample) || targetSample < minimumAnchor ||
+                            targetSample >= reliable)
+                            continue;
+                        for (std::size_t anchor = 0; anchor < 3; ++anchor) {
+                            if (clipped[anchor])
+                                continue;
+                            const float currentAnchor = source[offset + anchor];
+                            const float neighborAnchor = source[neighbor + anchor];
+                            if (!std::isfinite(neighborAnchor) || neighborAnchor < minimumAnchor ||
+                                neighborAnchor >= reliable)
+                                continue;
+                            const float ratio = targetSample / neighborAnchor;
+                            const float estimate = currentAnchor * ratio;
+                            if (std::isfinite(estimate) && ratio > 0 && ratio <= maximumRatio &&
+                                estimate > 0)
+                                estimates.push_back(estimate);
+                        }
+                    }
+                }
+                if (estimates.size() < 3)
+                    continue;
+                const auto middle = estimates.begin() + estimates.size() / 2;
+                std::nth_element(estimates.begin(), middle, estimates.end());
+                const float estimate = std::clamp(*middle, clip, maximumRatio);
+                if (std::abs(estimate - source[offset + target]) > 1e-6F) {
+                    image.rgb[offset + target] = estimate;
+                    recovered = true;
+                }
+            }
+            recoveredPixels += recovered ? 1 : 0;
+        }
+    }
+    return recoveredPixels;
 }
 
 void cameraToLinearSRGB(FloatImage &image, const std::array<float, 9> &matrix,

@@ -268,3 +268,17 @@ editable Quick Look layer in one Undo step. The saved layer records provider,
 provider version, model identity and digest when present, or an explicit
 deterministic CPU fallback with no model. The bundled denoise model is not reused
 for Enhance because its pixel-output contract cannot produce editable parameters.
+
+## 1.7 — Camera fidelity
+
+In development. The first block uses LibRaw's validated per-channel linearity
+limits for Bayer normalization and reconstructs partially clipped camera-linear
+highlights from robust local channel ratios before White Balance and the camera
+color transform. Fully clipped pixels retain measured sensor headroom instead of
+receiving invented color. Decoder diagnostics expose channel limits, clipped
+sensor samples and the number of recovered pixels.
+
+This shared decode result feeds preview, thumbnails and export. Representative
+real-camera highlight qualification across Canon, Sony, Nikon, Pentax, Panasonic,
+OM System/Olympus and DNG remains required before a 1.7.0 release. See
+[implementation status](docs/V1_7_DEVELOPMENT.md).

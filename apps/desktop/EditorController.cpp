@@ -212,8 +212,13 @@ QVariantMap EditorController::decoderDiagnostics() const {
         {"blackMinimum", value.blackMinimum},
         {"blackMaximum", value.blackMaximum},
         {"whiteLevel", value.whiteLevel},
+        {"channelWhiteLevels",
+         QVariantList{value.channelWhiteLevels[0], value.channelWhiteLevels[1],
+                      value.channelWhiteLevels[2]}},
         {"sensorSamples", QVariant::fromValue<qulonglong>(value.sensorSamples)},
-        {"samplesAtOrAboveWhite", QVariant::fromValue<qulonglong>(value.samplesAtOrAboveWhite)}};
+        {"samplesAtOrAboveWhite", QVariant::fromValue<qulonglong>(value.samplesAtOrAboveWhite)},
+        {"recoveredHighlightPixels",
+         QVariant::fromValue<qulonglong>(value.recoveredHighlightPixels)}};
 }
 QString EditorController::decoderSummary() const {
     if (!session_)
@@ -229,6 +234,8 @@ QString EditorController::decoderSummary() const {
     parts.append(decodeColorName(value.color));
     if (value.highlights == luma::DecodeHighlightPath::adaptiveHDR)
         parts.append(QStringLiteral("Adaptive HDR"));
+    else if (value.highlights == luma::DecodeHighlightPath::cameraSpecificReconstruction)
+        parts.append(QStringLiteral("camera highlight recovery"));
     else if (value.highlights == luma::DecodeHighlightPath::normalizedSensorHeadroom)
         parts.append(QStringLiteral("sensor headroom preserved"));
     return parts.join(QStringLiteral(" · "));

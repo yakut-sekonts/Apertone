@@ -92,9 +92,38 @@ void imageTests() {
     require(std::all_of(boundedChroma.rgb.begin(), boundedChroma.rgb.end(),
                         [](float value) { return std::isfinite(value) && value >= 0; }),
             "Edge-aware reconstruction produced a negative radiometric sample.");
+    luma::FloatImage recoverableHighlight(7, 7);
+    for (std::size_t pixel = 0; pixel < 49; ++pixel) {
+        recoverableHighlight.rgb[pixel * 3] = .8F;
+        recoverableHighlight.rgb[pixel * 3 + 1] = .4F;
+        recoverableHighlight.rgb[pixel * 3 + 2] = .2F;
+    }
+    const auto highlight = (std::size_t{3} * 7 + 3) * 3;
+    // The raw sample can remain above the camera's linearity limit. Recovery
+    // replaces that unreliable value; it is not merely a highlight boost.
+    recoverableHighlight.rgb[highlight] = 1.8F;
+    recoverableHighlight.rgb[highlight + 1] = .7F;
+    recoverableHighlight.rgb[highlight + 2] = .35F;
+    require(luma::recoverClippedHighlights(recoverableHighlight) == 1 &&
+                std::abs(recoverableHighlight.rgb[highlight] - 1.4F) < 1e-6F &&
+                recoverableHighlight.rgb[highlight + 1] == .7F &&
+                recoverableHighlight.rgb[highlight + 2] == .35F,
+            "Camera-linear highlight recovery did not restore local chromaticity.");
+    luma::FloatImage fullyClipped(3, 3);
+    std::fill(fullyClipped.rgb.begin(), fullyClipped.rgb.end(), .25F);
+    fullyClipped.rgb[12] = 1.2F;
+    fullyClipped.rgb[13] = 1.1F;
+    fullyClipped.rgb[14] = 1.F;
+    const auto fullyClippedBefore = fullyClipped.rgb;
+    require(luma::recoverClippedHighlights(fullyClipped) == 0 &&
+                fullyClipped.rgb == fullyClippedBefore,
+            "Highlight recovery invented color for a fully clipped pixel.");
+    fullyClipped.rgb[0] = std::numeric_limits<float>::quiet_NaN();
+    throws([&] { luma::recoverClippedHighlights(fullyClipped); });
     luma::CancellationSource demosaicStop;
     demosaicStop.cancel();
     throws([&] { luma::demosaicEdgeAware(hardEdge, demosaicStop.token()); });
+    throws([&] { luma::recoverClippedHighlights(recoverableHighlight, demosaicStop.token()); });
     hardEdge.samples[0] = std::numeric_limits<float>::quiet_NaN();
     throws([&] { luma::demosaicEdgeAware(hardEdge); });
     luma::FloatImage gray(2, 3);
