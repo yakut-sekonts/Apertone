@@ -38,7 +38,7 @@ claimed. See [workflow and numerical definitions](LOCAL_ADJUSTMENTS.md).
   byte-identical restart, unchanged source SHA and four selection panels in all
   eight languages at the minimum tested 1000-pixel window width.
 - `edited-thumbnail-snapshot-cache`: complete composed masks in the saved render;
-  canonical mask bytes participate in `edited-v4` cache identities.
+  canonical mask bytes participate in `edited-v5` cache identities.
 - Actual previous 0.5.0 app versus new source: legacy gradient catalog upgraded
   from 10 to 11 and the exported PNG remained byte-identical (licensed landscape,
   Crop/Transform and non-neutral local edits).

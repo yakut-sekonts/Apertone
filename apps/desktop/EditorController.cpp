@@ -193,27 +193,31 @@ QVariantMap EditorController::decoderDiagnostics() const {
     if (!session_)
         return {};
     const auto &value = session_->diagnostics;
-    return {
-        {"decoder", QString::fromStdString(value.decoder)},
-        {"decoderVersion", QString::fromStdString(value.decoderVersion)},
-        {"source", decodeSourceName(value.source)},
-        {"reconstruction", value.reconstruction == luma::DecodeReconstruction::edgeAware
-                               ? QStringLiteral("edge-aware")
-                               : QStringLiteral("none")},
-        {"color", decodeColorName(value.color)},
-        {"highlights", static_cast<int>(value.highlights)},
-        {"sourceWidth", value.sourceWidth},
-        {"sourceHeight", value.sourceHeight},
-        {"activeWidth", value.activeWidth},
-        {"activeHeight", value.activeHeight},
-        {"leftMargin", value.leftMargin},
-        {"topMargin", value.topMargin},
-        {"cfa", QString::fromStdString(value.cfa)},
-        {"blackMinimum", value.blackMinimum},
-        {"blackMaximum", value.blackMaximum},
-        {"whiteLevel", value.whiteLevel},
-        {"sensorSamples", QVariant::fromValue<qulonglong>(value.sensorSamples)},
-        {"samplesAtOrAboveWhite", QVariant::fromValue<qulonglong>(value.samplesAtOrAboveWhite)}};
+    return {{"decoder", QString::fromStdString(value.decoder)},
+            {"decoderVersion", QString::fromStdString(value.decoderVersion)},
+            {"source", decodeSourceName(value.source)},
+            {"reconstruction", value.reconstruction == luma::DecodeReconstruction::edgeAware
+                                   ? QStringLiteral("edge-aware")
+                                   : QStringLiteral("none")},
+            {"color", decodeColorName(value.color)},
+            {"highlights", static_cast<int>(value.highlights)},
+            {"sourceWidth", value.sourceWidth},
+            {"sourceHeight", value.sourceHeight},
+            {"activeWidth", value.activeWidth},
+            {"activeHeight", value.activeHeight},
+            {"leftMargin", value.leftMargin},
+            {"topMargin", value.topMargin},
+            {"cfa", QString::fromStdString(value.cfa)},
+            {"blackMinimum", value.blackMinimum},
+            {"blackMaximum", value.blackMaximum},
+            {"whiteLevel", value.whiteLevel},
+            {"channelWhiteLevels",
+             QVariantList{value.channelWhiteLevels[0], value.channelWhiteLevels[1],
+                          value.channelWhiteLevels[2]}},
+            {"sensorSamples", QVariant::fromValue<qulonglong>(value.sensorSamples)},
+            {"samplesAtOrAboveWhite", QVariant::fromValue<qulonglong>(value.samplesAtOrAboveWhite)},
+            {"recoveredHighlightPixels",
+             QVariant::fromValue<qulonglong>(value.recoveredHighlightPixels)}};
 }
 QString EditorController::decoderSummary() const {
     if (!session_)
@@ -229,6 +233,8 @@ QString EditorController::decoderSummary() const {
     parts.append(decodeColorName(value.color));
     if (value.highlights == luma::DecodeHighlightPath::adaptiveHDR)
         parts.append(QStringLiteral("Adaptive HDR"));
+    else if (value.highlights == luma::DecodeHighlightPath::cameraSpecificReconstruction)
+        parts.append(QStringLiteral("camera highlight recovery"));
     else if (value.highlights == luma::DecodeHighlightPath::normalizedSensorHeadroom)
         parts.append(QStringLiteral("sensor headroom preserved"));
     return parts.join(QStringLiteral(" · "));

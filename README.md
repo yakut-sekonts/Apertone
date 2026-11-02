@@ -95,8 +95,9 @@ See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
 The current two-pass edge-aware Bayer reconstruction keeps a bilinear reference
-path for regression comparison. Camera-specific highlight reconstruction and
-additional qualification remain planned.
+path for regression comparison. The 1.7 development branch adds camera-specific
+highlight reconstruction from LibRaw per-channel linearity metadata;
+representative real-camera qualification remains open.
 
 ## Build and run
 
@@ -148,10 +149,11 @@ reference white-point approximation; As Shot uses the RAW camera gains.
 The development branch adds Auto WB and a neutral eyedropper that resolve to
 Custom values with one-step Undo; see [behavior and limits](docs/PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
 Named versions and the session History browser also have source implementations.
-These additions remain unbuilt/unqualified; highlight reconstruction, persistent
-history and calibrated camera profiles are not claimed. Undo/Redo retains up to
-200 operations in the current active-photo session. Double-click resets a
-slider; Cmd+Z / Cmd+Shift+Z undo and redo.
+These additions remain unbuilt/unqualified; persistent history and calibrated
+camera profiles are not claimed. The 1.7 highlight reconstruction path is built
+and covered by synthetic Bayer tests, but real-camera qualification remains open.
+Undo/Redo retains up to 200 operations in the current active-photo session.
+Double-click resets a slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
 Export uses an immutable edit snapshot, the original resolution, sRGB and no
 source EXIF/GPS. JPEG quality is selectable; TIFF is 16-bit. A destination is

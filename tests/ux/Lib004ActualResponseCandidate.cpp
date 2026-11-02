@@ -143,7 +143,7 @@ QString cachePath(Context &c, const Pin &pin) {
                      QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     return c.catalogFile + ".luma-cache/thumbnails/" +
            QString::fromLatin1(QCryptographicHash::hash(key, QCryptographicHash::Sha256).toHex()) +
-           "-edited-v4.jpg";
+           "-edited-v5.jpg";
 }
 const char *kindName(Kind kind) {
     switch (kind) {
