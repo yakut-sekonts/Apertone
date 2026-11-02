@@ -29,13 +29,19 @@ QtObject {
     readonly property color canvasText: "#d6d9de"
     readonly property color canvasMuted: "#8f959e"
 
-    readonly property int toolbarHeight: dark ? 43 : 49
-    readonly property int footerHeight: 24
-    readonly property int controlHeight: 30
-    readonly property int compactControlHeight: 26
-    readonly property int radius: dark ? 3 : 7
-    readonly property int panelPadding: 12
+    readonly property int toolbarHeight: dark ? 39 : 41
+    readonly property int footerHeight: 22
+    readonly property int controlHeight: 26
+    readonly property int compactControlHeight: 22
+    readonly property int sliderHeight: 18
+    readonly property int sliderHandleSize: 10
+    readonly property int sliderTrackHeight: 2
+    readonly property int checkHeight: 18
+    readonly property int checkIndicatorSize: 12
+    readonly property int panelSpacing: 6
+    readonly property int radius: dark ? 3 : 4
+    readonly property int panelPadding: 9
     readonly property int sidebarWidth: dark ? 196 : 210
     readonly property int inspectorWidth: dark ? 276 : 286
-    readonly property int filmstripHeight: 108
+    readonly property int filmstripHeight: 96
 }

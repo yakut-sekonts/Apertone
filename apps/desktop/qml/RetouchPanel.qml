@@ -51,7 +51,7 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
                 Label { text: modelData.title + " · " + Number(editor.retouchState[modelData.key]).toFixed(1) }
-                Slider {
+                ApertoneSlider {
                     Layout.fillWidth: true
                     from: modelData.min; to: modelData.max
                     value: editor.retouchState[modelData.key]
@@ -85,7 +85,7 @@ ColumnLayout {
                 Layout.fillWidth: true
             }
         }
-        CheckBox {
+        ApertoneCheckBox {
             visible: editor.retouchState.selected.length > 0
             text: qsTranslate("Apertone", "Enabled")
             checked: editor.retouchState.enabled

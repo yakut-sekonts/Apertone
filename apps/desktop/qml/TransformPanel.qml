@@ -5,11 +5,11 @@ import QtQuick.Layouts
 ColumnLayout {
     id: panel
     objectName: "transformPanel"
-    spacing: 8
+    spacing: Theme.panelSpacing
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTranslate("Apertone", "TRANSFORM"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
-        CheckBox { objectName: "transformEnabled"; checked: editor.correctionStates.transform; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("transform", checked); Accessible.name: qsTranslate("Apertone", "Enable Transform") }
+        ApertoneCheckBox { objectName: "transformEnabled"; checked: editor.correctionStates.transform; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("transform", checked); Accessible.name: qsTranslate("Apertone", "Enable Transform") }
     }
     RowLayout {
         Layout.fillWidth: true
@@ -36,7 +36,7 @@ ColumnLayout {
         DevelopSlider { objectName: "transformScale"; parameter: "transform.scale"; label: qsTranslate("Apertone", "Scale"); minimum: 50; maximum: 200; defaultValue: 100; correction: "transform"; allowDisable: false }
         DevelopSlider { objectName: "transformXOffset"; parameter: "transform.xOffset"; label: qsTranslate("Apertone", "X Offset"); minimum: -100; maximum: 100; correction: "transform"; allowDisable: false }
         DevelopSlider { objectName: "transformYOffset"; parameter: "transform.yOffset"; label: qsTranslate("Apertone", "Y Offset"); minimum: -100; maximum: 100; correction: "transform"; allowDisable: false }
-        CheckBox {
+        ApertoneCheckBox {
             id: constrain
             objectName: "transformConstrain"
             Layout.fillWidth: true; Layout.minimumWidth: 0

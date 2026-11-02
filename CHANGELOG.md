@@ -20,6 +20,10 @@
 - Added a measured per-photo Auto noise profile with a conservative ISO prior,
   plus linked Before/After split comparison with Fit and full-resolution 100%
   rendering.
+- Reworked the desktop control density with compact sliders, checkboxes,
+  buttons, fields, panel spacing, toolbar and filmstrip sizing in both day and
+  night appearances. Scrollable panels keep extreme slider handles clear of
+  their scrollbars.
 
 ## 1.6.0 / 2026-10-31
 

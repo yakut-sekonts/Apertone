@@ -137,7 +137,7 @@ Dialog {
             id: importSourcesView
             clip: true; contentWidth: availableWidth
             ColumnLayout {
-                width: importSourcesView.availableWidth; spacing: 8
+                width: importSourcesView.availableWidth; spacing: Theme.panelSpacing
                 RowLayout {
                     Layout.fillWidth: true
                     Label {
@@ -295,7 +295,7 @@ Dialog {
             ApertoneButton { text: qsTranslate("Apertone", "Show backups"); onClicked: Qt.openUrlExternally(library.backupFolder); Layout.fillWidth: true }
         }
         ApertoneButton { text: qsTranslate("Apertone", "Restore backup to a new file"); enabled: !library.working; onClicked: backupFile.open(); Layout.fillWidth: true }
-        CheckBox { text: qsTranslate("Apertone", "Automatically write metadata to XMP sidecar"); checked: library.autoWriteXMP; enabled: !library.working; onToggled: library.autoWriteXMP = checked; Layout.fillWidth: true }
+        ApertoneCheckBox { text: qsTranslate("Apertone", "Automatically write metadata to XMP sidecar"); checked: library.autoWriteXMP; enabled: !library.working; onToggled: library.autoWriteXMP = checked; Layout.fillWidth: true }
         ApertoneButton { text: qsTranslate("Apertone", "Write pending XMP sidecars"); enabled: !library.working; onClicked: library.syncSidecars(); Layout.fillWidth: true }
         BusyIndicator { running: library.working; visible: running; Layout.alignment: Qt.AlignHCenter }
         Label { objectName: "catalog.status"; text: library.maintenanceStatus || library.status; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }

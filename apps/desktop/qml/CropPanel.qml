@@ -5,12 +5,12 @@ import QtQuick.Layouts
 ColumnLayout {
     id: panel
     objectName: "cropPanel"
-    spacing: 8
+    spacing: Theme.panelSpacing
     property bool available: editor.hasPhoto && !editor.busy && editor.correctionStates.crop
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTranslate("Apertone", "CROP / STRAIGHTEN"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
-        CheckBox { objectName: "cropEnabled"; checked: editor.correctionStates.crop; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("crop", checked); Accessible.name: qsTranslate("Apertone", "Enable Crop") }
+        ApertoneCheckBox { objectName: "cropEnabled"; checked: editor.correctionStates.crop; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("crop", checked); Accessible.name: qsTranslate("Apertone", "Enable Crop") }
     }
     ApertoneButton { objectName: "cropTool"; text: editor.cropMode ? qsTranslate("Apertone", "Done") : qsTranslate("Apertone", "Edit crop"); highlighted: editor.cropMode; enabled: panel.available && !editor.original; Layout.fillWidth: true; onClicked: editor.cropMode = !editor.cropMode }
     ApertoneComboBox {
@@ -55,11 +55,11 @@ ColumnLayout {
         ApertoneButton { objectName: "cropRotateRight"; Accessible.name: qsTranslate("Apertone", "Rotate crop right 90°"); text: "↷ 90°"; enabled: panel.available; Layout.fillWidth: true; onClicked: editor.rotateCrop(1) }
     }
     RowLayout {
-        CheckBox { objectName: "cropFlipHorizontal"; text: qsTranslate("Apertone", "Flip H"); checked: editor.cropState.flipHorizontal ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipHorizontal", checked ? 1 : 0) }
-        CheckBox { objectName: "cropFlipVertical"; text: qsTranslate("Apertone", "Flip V"); checked: editor.cropState.flipVertical ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipVertical", checked ? 1 : 0) }
+        ApertoneCheckBox { objectName: "cropFlipHorizontal"; text: qsTranslate("Apertone", "Flip H"); checked: editor.cropState.flipHorizontal ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipHorizontal", checked ? 1 : 0) }
+        ApertoneCheckBox { objectName: "cropFlipVertical"; text: qsTranslate("Apertone", "Flip V"); checked: editor.cropState.flipVertical ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipVertical", checked ? 1 : 0) }
     }
     Label { text: qsTranslate("Apertone", "Straighten · ") + Number(editor.cropState.angle ?? 0).toFixed(2) + "°"; color: Theme.text }
-    Slider { objectName: "cropAngleSlider"; Layout.fillWidth: true; from: -45; to: 45; stepSize: 0.05; value: editor.cropState.angle ?? 0; enabled: panel.available; onPressedChanged: pressed ? editor.beginEdit() : editor.endEdit(); onMoved: editor.setParameter("crop.angle", value); Accessible.name: qsTranslate("Apertone", "Straighten angle") }
+    ApertoneSlider { objectName: "cropAngleSlider"; Layout.fillWidth: true; from: -45; to: 45; stepSize: 0.05; value: editor.cropState.angle ?? 0; enabled: panel.available; onPressedChanged: pressed ? editor.beginEdit() : editor.endEdit(); onMoved: editor.setParameter("crop.angle", value); Accessible.name: qsTranslate("Apertone", "Straighten angle") }
     ApertoneComboBox { objectName: "cropGuide"; Layout.fillWidth: true; model: [qsTranslate("Apertone", "Thirds"), qsTranslate("Apertone", "Grid"), qsTranslate("Apertone", "Diagonal"), qsTranslate("Apertone", "Golden ratio")]; currentIndex: ["thirds", "grid", "diagonal", "golden"].indexOf(editor.cropOverlay); onActivated: function(index) {editor.cropOverlay=["thirds", "grid", "diagonal", "golden"][index]}; Accessible.name: qsTranslate("Apertone", "Crop overlay") }
     Label { text: editor.hasPhoto ? (editor.cropState.outputWidth + " × " + editor.cropState.outputHeight + " px") : ""; color: Theme.muted; font.pixelSize: 10 }
     Label { text: qsTranslate("Apertone", "Drag the crop frame or its edges. Straighten automatically removes empty corners."); wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.muted; font.pixelSize: 10 }

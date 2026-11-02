@@ -41,7 +41,7 @@ Dialog {
                 }
             }
             Label { text: qsTranslate("Apertone", "Linked zoom and pan") }
-            Slider {
+            ApertoneSlider {
                 id: zoomControl
                 from: 1; to: 4; value: 1
                 Layout.fillWidth: true

@@ -36,11 +36,11 @@ Dialog {
                 ApertoneButton {text:qsTranslate("Apertone","Choose destination folder");onClicked:destinationPicker.open()}
                 Label {text:dialog.destination.toString()||qsTranslate("Apertone","No folder selected");elide:Text.ElideMiddle;Layout.fillWidth:true}
             }
-            CheckBox {id:dates;visible:mode.currentIndex!==0;text:qsTranslate("Apertone","Date folders · YYYY/MM/DD (UTC)")}
+            ApertoneCheckBox {id:dates;visible:mode.currentIndex!==0;text:qsTranslate("Apertone","Date folders · YYYY/MM/DD (UTC)")}
             ApertoneTextField {id:naming;visible:mode.currentIndex!==0;text:"{name}";maximumLength:230;Layout.fillWidth:true;Accessible.name:qsTranslate("Apertone","Filename template")}
             Label {visible:mode.currentIndex!==0;text:qsTranslate("Apertone","Filename tokens: {name}, {date}, {seq}. The original extension is kept. Missing capture dates use the import date.");wrapMode:Text.Wrap;Layout.fillWidth:true}
-            CheckBox {id:recursive;objectName:"library.importRecursive";text:qsTranslate("Apertone","Include subfolders");checked:true}
-            CheckBox {id:duplicates;objectName:"library.importDuplicates";text:qsTranslate("Apertone","Skip duplicates by SHA-256 and size");checked:true}
+            ApertoneCheckBox {id:recursive;objectName:"library.importRecursive";text:qsTranslate("Apertone","Include subfolders");checked:true}
+            ApertoneCheckBox {id:duplicates;objectName:"library.importDuplicates";text:qsTranslate("Apertone","Skip duplicates by SHA-256 and size");checked:true}
             RowLayout {
                 Layout.fillWidth:true
                 ApertoneButton {text:qsTranslate("Apertone","Second backup folder");onClicked:backupPicker.open()}

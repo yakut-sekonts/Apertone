@@ -11,9 +11,9 @@ ColumnLayout {
     property int selected: 0
     property string band: bands[selected]
     property var parameters: ["hue", "saturation", "luminance"]
-    spacing: 8
+    spacing: Theme.panelSpacing
     RowLayout {
-        CheckBox {
+        ApertoneCheckBox {
             checked: editor.correctionStates.hsl
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("hsl", checked)

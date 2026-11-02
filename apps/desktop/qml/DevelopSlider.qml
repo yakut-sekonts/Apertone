@@ -21,7 +21,7 @@ ColumnLayout {
     RowLayout {
         Layout.minimumWidth: 0
         Layout.fillWidth: true
-        CheckBox {
+        ApertoneCheckBox {
             objectName: "develop." + control.parameter + ".enabled"
             visible: control.allowDisable
             checked: editor.correctionStates[control.correction] ?? true
@@ -41,7 +41,7 @@ ColumnLayout {
             color: Theme.accent; font.pixelSize: 12
         }
     }
-    Slider {
+    ApertoneSlider {
         id: slider
         property bool resetRequested: false
         objectName: control.detailDiagnostic ? control.parameter + "Slider" : "develop." + control.parameter + "Slider"

@@ -143,7 +143,7 @@ ApplicationWindow {
             objectName: "main.toolbar"
             Layout.fillWidth: true; Layout.preferredHeight: Theme.toolbarHeight; color: Theme.panel
             RowLayout {
-                anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: root.width < 1200 ? 6 : 10
+                anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: root.width < 1200 ? 5 : 8
                 Item {
                     implicitWidth: 19; implicitHeight: 19
                     Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 1; border.color: Theme.text }
@@ -222,10 +222,10 @@ ApplicationWindow {
                     ColumnLayout {
                         width: presetsScroll.availableWidth
                         height: Math.max(implicitHeight, presetsScroll.availableHeight)
-                        spacing: 12
+                        spacing: 9
                         Label { text: qsTranslate("Apertone", "WORKSPACE"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Rectangle {
-                            Layout.fillWidth: true; implicitHeight: 30; radius: Theme.radius; color: Theme.accentSoft
+                            Layout.fillWidth: true; implicitHeight: Theme.controlHeight; radius: Theme.radius; color: Theme.accentSoft
                             Label { anchors.centerIn: parent; text: qsTranslate("Apertone", "Photo development"); color: Theme.accent; font.pixelSize: 12 }
                         }
                         Label { text: qsTranslate("Apertone", "SOURCE PHOTO"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
@@ -258,7 +258,7 @@ ApplicationWindow {
                 objectName: "develop.canvasPane"
                 SplitView.fillWidth: true; SplitView.minimumWidth: 360; color: Theme.canvas
                 ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 10; spacing: 8
+                    anchors.fill: parent; anchors.margins: 8; spacing: Theme.panelSpacing
                     RowLayout {
                         Layout.fillWidth: true
                         Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Apertone", editor.detailDiagnostic) : editor.original ? qsTranslate("Apertone", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Apertone", "PRESET PREVIEW") : qsTranslate("Apertone", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
@@ -441,7 +441,7 @@ ApplicationWindow {
                         }
                     }
                     RowLayout {
-                        Layout.alignment: Qt.AlignHCenter; spacing: 8
+                        Layout.alignment: Qt.AlignHCenter; spacing: Theme.panelSpacing
                         ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                         ApertoneButton {
@@ -471,16 +471,17 @@ ApplicationWindow {
                     anchors.fill: parent
                     anchors.margins: Theme.panelPadding
                     clip: true
+                    rightPadding: effectiveScrollBarWidth
                     contentWidth: availableWidth
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
-                        spacing: 9
+                        spacing: Theme.panelSpacing
                         HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
                         CreativePanel { Layout.fillWidth: true }
                         Label { text: qsTranslate("Apertone", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: Theme.text }
                         RowLayout {
-                            CheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Apertone", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
+                            ApertoneCheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Apertone", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
                             Label { text: qsTranslate("Apertone", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
                         }
                         ApertoneComboBox {

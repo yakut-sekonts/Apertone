@@ -17,10 +17,11 @@ The build is ad-hoc signed and not notarized. Installation instructions and
 checksums accompany the release. Version 2.0 adds camera-linear highlight
 recovery, dynamic embedded DNG profiles, inspectable local review, durable
 per-photo History, deterministic Detail DNG operations, measured Auto noise and
-linked Before/After comparison. Adaptive HDR, editable Enhance, adaptive
-editing, import-source management, broad camera support and 70 stackable Quick
-Looks are included. Existing Luma and Apertone catalogs, settings, presets, DNG
-output and Sparkle update installations are upgraded in place.
+linked Before/After comparison, and a denser desktop control layout. Adaptive
+HDR, editable Enhance, adaptive editing, import-source management, broad camera
+support and 70 stackable Quick Looks are included. Existing Luma and Apertone
+catalogs, settings, presets, DNG output and Sparkle update installations are
+upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and

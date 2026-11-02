@@ -49,7 +49,7 @@ Dialog {
         objectName: "metadata.scroll"
         clip: true; contentWidth: availableWidth
         ColumnLayout {
-            width: parent.width; spacing: 8
+            width: parent.width; spacing: Theme.panelSpacing
             Label { objectName: "metadata.path"; text: library.descriptiveMetadata.path || ""; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", library.descriptiveMetadata.readError || ""); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { objectName: "metadata.error"; text: qsTranslate("Apertone", library.error); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
@@ -103,7 +103,7 @@ Dialog {
                 ApertoneButton { objectName: "metadata.locateOriginal"; text: qsTranslate("Apertone", "Locate original"); enabled: dialog.ready; onClicked: locateFile.open(); Layout.fillWidth: true }
                 ApertoneButton { objectName: "metadata.locateFolder"; text: qsTranslate("Apertone", "Locate folder"); enabled: dialog.ready; onClicked: locateFolder.open(); Layout.fillWidth: true }
             }
-            CheckBox { id: nearby; objectName: "metadata.locateNearby"; text: qsTranslate("Apertone", "Also find nearby missing files by name and checksum"); checked: true; Layout.fillWidth: true }
+            ApertoneCheckBox { id: nearby; objectName: "metadata.locateNearby"; text: qsTranslate("Apertone", "Also find nearby missing files by name and checksum"); checked: true; Layout.fillWidth: true }
         }
     }
 }

@@ -5,7 +5,7 @@ ColumnLayout {
     id: panel
     property int section: sectionPicker.currentValue ?? 256
     property string gradingChannel: wheelPicker.currentValue ?? "shadows"
-    spacing: 8
+    spacing: Theme.panelSpacing
     ApertoneButton {
         objectName: "develop.autoAdjust"
         text: qsTranslate("Apertone", "Auto Adjust"); Layout.fillWidth: true
@@ -24,7 +24,7 @@ ColumnLayout {
             enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.creativeBusy
             onClicked: editor.pointColorPicking=!editor.pointColorPicking
         }
-        CheckBox { text: qsTranslate("Apertone","Visualize range"); checked:editor.pointColorRange; onToggled:editor.pointColorRange=checked }
+        ApertoneCheckBox { text: qsTranslate("Apertone","Visualize range"); checked:editor.pointColorRange; onToggled:editor.pointColorRange=checked }
     }
     RowLayout {
         visible: editor.creativeBusy || editor.pointColorPicking; Layout.fillWidth: true

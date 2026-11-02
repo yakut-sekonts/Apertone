@@ -5,7 +5,7 @@ import QtQuick.Layouts
 ColumnLayout {
     id: panel
     objectName: "histogram.panel"
-    spacing: 8
+    spacing: Theme.panelSpacing
     Layout.minimumWidth: 0
     readonly property var histogramData: editor.histogram
     readonly property bool available: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original && !editor.exporting
@@ -52,7 +52,7 @@ ColumnLayout {
             Accessible.name: qsTranslate("Apertone", "Histogram channels")
             onCurrentIndexChanged: { if (graph) graph.requestPaint() }
         }
-        CheckBox {
+        ApertoneCheckBox {
             id: logarithmic
             objectName: "histogram.logScale"
             text: qsTranslate("Apertone", "Log scale")
@@ -186,7 +186,7 @@ ColumnLayout {
     ColumnLayout {
         Layout.fillWidth: true
         spacing: 0
-        CheckBox {
+        ApertoneCheckBox {
             objectName: "histogram.shadowClipping"
             text: qsTranslate("Apertone", "Shadows")
             Accessible.name: qsTranslate("Apertone", "Shadow clipping")
@@ -195,7 +195,7 @@ ColumnLayout {
             onToggled: editor.shadowClipping = checked
             Layout.fillWidth: true
         }
-        CheckBox {
+        ApertoneCheckBox {
             objectName: "histogram.highlightClipping"
             text: qsTranslate("Apertone", "Highlights")
             Accessible.name: qsTranslate("Apertone", "Highlight clipping")

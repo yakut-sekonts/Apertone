@@ -77,13 +77,13 @@ Dialog {
             text: qsTranslate("Apertone", "Clear preview cache")
             onClicked: editor.clearPreviewCache()
         }
-        CheckBox {
+        ApertoneCheckBox {
             objectName: "settings.metalPreview"
             text: qsTranslate("Apertone", "Use Metal for photo previews")
             checked: editor.metalPreview
             onToggled: editor.metalPreview = checked
         }
-        CheckBox {
+        ApertoneCheckBox {
             objectName: "settings.hdrToneMapping"
             text: qsTranslate("Apertone", "Map HDR highlights into the preview")
             checked: editor.hdrToneMapping

@@ -41,7 +41,7 @@ GridLayout {
             Label { text: qsTranslate("Apertone", "Selected photos: ") + library.selectedCount + qsTranslate("Apertone", ". Only the selected groups will change."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             Repeater {
                 model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"),qsTranslate("Apertone","Presence"),qsTranslate("Apertone","Point Color"),qsTranslate("Apertone","Color Grading"),qsTranslate("Apertone","Effects")]
-                CheckBox {
+                ApertoneCheckBox {
                     required property string modelData
                     required property int index
                     text: modelData; checked: (syncDialog.groups & (1 << index)) !== 0

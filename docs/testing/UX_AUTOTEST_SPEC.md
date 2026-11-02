@@ -552,7 +552,7 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-DSC-004 [P1][CURRENT][REGRESSION]` — drag slider then wheel → only intended input changes value.
 - `UX-DSC-005 [P2][CURRENT][REGRESSION]` — dynamic panel height change while deep-scrolled → no large unexpected jump.
 - `UX-DSC-006 [P1][CURRENT][REGRESSION]` — photo change while deep-scrolled → controls immediately show new photo state.
-- `UX-DSC-007 [P2][CURRENT][REGRESSION]` — right panel 250↔400 px while scrolled → no clipped controls.
+- `UX-DSC-007 [P2][CURRENT][REGRESSION]` — right panel 250↔380 px while scrolled → no clipped controls.
 - `UX-DSC-008 [P2][CURRENT][REGRESSION]` — language switch while deep-scrolled → valid relayout/scroll range.
 - `UX-DSC-009 [P1][CURRENT][REGRESSION]` — keyboard-focused control remains reachable/visible.
 - `UX-DSC-010 [P1][CURRENT][STRESS]` — 5 000 scroll events + 1 000 panel interactions → no hang/object leak.

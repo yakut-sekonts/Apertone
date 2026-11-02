@@ -5,14 +5,14 @@ import QtQuick.Layouts
 ColumnLayout {
     id: panel
     objectName: "detailPanel"
-    spacing: 8
+    spacing: Theme.panelSpacing
     readonly property bool derivedBusy: editor.aiBusy &&
         ["Raw Details", "2× Detail", "Lens Blur Recovery", "Color Moire Correction"]
             .indexOf(editor.aiOperation) >= 0
     RowLayout {
         Layout.fillWidth: true
         Label { objectName: "detail.heading"; text: qsTranslate("Apertone", "DETAIL / SHARPENING"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
-        CheckBox { objectName: "sharpenEnabled"; checked: editor.correctionStates.sharpening; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("sharpening", checked); Accessible.name: qsTranslate("Apertone", "Enable sharpening") }
+        ApertoneCheckBox { objectName: "sharpenEnabled"; checked: editor.correctionStates.sharpening; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("sharpening", checked); Accessible.name: qsTranslate("Apertone", "Enable sharpening") }
     }
     DevelopSlider { objectName: "sharpenAmount"; parameter: "sharpen.amount"; label: qsTranslate("Apertone", "Amount"); minimum: 0; maximum: 150; correction: "sharpening"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "sharpenRadius"; parameter: "sharpen.radius"; label: qsTranslate("Apertone", "Radius"); minimum: 0.5; maximum: 3; step: 0.05; defaultValue: 1; correction: "sharpening"; allowDisable: false; detailDiagnostic: true }
@@ -21,7 +21,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTranslate("Apertone", "LUMINANCE NOISE"); color: Theme.muted; font.pixelSize: 10; Layout.fillWidth: true }
-        CheckBox { objectName: "luminanceNoiseEnabled"; checked: editor.correctionStates.luminanceNoise; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("luminanceNoise", checked); Accessible.name: qsTranslate("Apertone", "Enable luminance noise reduction") }
+        ApertoneCheckBox { objectName: "luminanceNoiseEnabled"; checked: editor.correctionStates.luminanceNoise; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("luminanceNoise", checked); Accessible.name: qsTranslate("Apertone", "Enable luminance noise reduction") }
     }
     DevelopSlider { objectName: "noiseluminance"; parameter: "noise.luminance"; label: qsTranslate("Apertone", "Amount"); minimum: 0; maximum: 100; defaultValue: 0; correction: "luminanceNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noiseluminanceDetail"; parameter: "noise.luminanceDetail"; label: qsTranslate("Apertone", "Detail"); minimum: 0; maximum: 100; defaultValue: 50; correction: "luminanceNoise"; allowDisable: false; detailDiagnostic: true }
@@ -29,7 +29,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTranslate("Apertone", "COLOR NOISE"); color: Theme.muted; font.pixelSize: 10; Layout.fillWidth: true }
-        CheckBox { objectName: "colorNoiseEnabled"; checked: editor.correctionStates.colorNoise; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("colorNoise", checked); Accessible.name: qsTranslate("Apertone", "Enable color noise reduction") }
+        ApertoneCheckBox { objectName: "colorNoiseEnabled"; checked: editor.correctionStates.colorNoise; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("colorNoise", checked); Accessible.name: qsTranslate("Apertone", "Enable color noise reduction") }
     }
     DevelopSlider { objectName: "noisecolor"; parameter: "noise.color"; label: qsTranslate("Apertone", "Amount"); minimum: 0; maximum: 100; defaultValue: 0; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noisecolorDetail"; parameter: "noise.colorDetail"; label: qsTranslate("Apertone", "Detail"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
@@ -49,7 +49,7 @@ ColumnLayout {
         text: qsTranslate("Apertone", "Creates a new Float DNG from the saved Develop result. Detail, blur recovery and color moiré correction are deterministic; 2× Detail uses Lanczos-3. Processing stays on this Mac.")
         wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted
     }
-    Slider {
+    ApertoneSlider {
         id: derivedDetailAmount
         objectName: "detailDerived.amount"
         from: 1; to: 100; value: 50
@@ -100,7 +100,7 @@ ColumnLayout {
             : qsTranslate("Apertone", "Choose a compatible local model in Settings to use AI Denoise.")
         wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted
     }
-    Slider {
+    ApertoneSlider {
         id: denoiseAmount
         objectName: "denoise.amount"
         from: 1; to: 100; value: 100
