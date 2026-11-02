@@ -7,20 +7,20 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.6.0
+## Release: v2.0.0
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[1.6.0 release notes](docs/releases/v1.6.0.md)
+[2.0.0 release notes](docs/releases/v2.0.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.6.0 adds edge-aware RAW
-reconstruction, Adaptive HDR import/display/export, editable Enhance layers with
-provenance and typed decode diagnostics. Version 1.5 adaptive editing, Version
-1.4 import-source management, the Intelligent Library, broad camera support and
-70 stackable Quick Looks are included. Existing Luma and Apertone catalogs,
-settings, presets, DNG output and Sparkle update installations are upgraded in
-place.
+checksums accompany the release. Version 2.0 adds camera-linear highlight
+recovery, dynamic embedded DNG profiles, inspectable local review, durable
+per-photo History, deterministic Detail DNG operations, measured Auto noise and
+linked Before/After comparison. Adaptive HDR, editable Enhance, adaptive
+editing, import-source management, broad camera support and 70 stackable Quick
+Looks are included. Existing Luma and Apertone catalogs, settings, presets, DNG
+output and Sparkle update installations are upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
@@ -28,7 +28,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.6
+## Included in source: phases 0.4–2.0
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -102,7 +102,7 @@ representative real-camera qualification remains open.
 ## Build and run
 
 ```bash
-git clone --branch v1.6.0 https://github.com/yakut-sekonts/Apertone.git
+git clone --branch v2.0.0 https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -149,9 +149,9 @@ reference white-point approximation; As Shot uses the RAW camera gains.
 The development branch adds Auto WB and a neutral eyedropper that resolve to
 Custom values with one-step Undo; see [behavior and limits](docs/PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
 Named versions and the History browser retain per-photo timelines across restart.
-The 2.0 development branch also resolves embedded dual-illuminant DNG profiles;
-real-camera qualification remains open. Undo/Redo retains up to 200 operations
-per photo and commits its cursor atomically with the current edit document.
+Version 2.0 resolves embedded dual-illuminant DNG profiles for the active White
+Balance. Undo/Redo retains up to 200 operations per photo and commits its cursor
+atomically with the current edit document.
 Double-click resets a slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
 Export uses an immutable edit snapshot, the original resolution, sRGB and no

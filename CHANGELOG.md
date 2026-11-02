@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.0.0 / 2026-11-02
+
+- Added bounded camera-linear highlight recovery using validated per-channel
+  sensor limits. Fully clipped pixels retain measured headroom instead of
+  receiving invented color.
+- Added dynamic embedded DNG profile resolution for dual illuminants, including
+  `ColorMatrix`, `CameraCalibration`, `AnalogBalance`, `ForwardMatrix` and a
+  Bradford fallback shared by CPU and Metal rendering.
+- Made local culling signals explicit and confidence-aware. Missing Vision eye
+  or face-quality observations no longer reduce a photo's score, and skipped
+  exact duplicates remain available for non-destructive review.
+- Added durable per-photo Undo/Redo timelines with atomic catalog persistence,
+  bounded snapshots and restart-safe cursor restoration. Catalog schema 23 is
+  created through the existing transactional migration and backup path.
+- Added deterministic Raw Details, 2× Detail, bounded lens-blur recovery and
+  luminance-preserving color moiré correction as managed Float DNG operations
+  with exact algorithm and source provenance.
+- Added a measured per-photo Auto noise profile with a conservative ISO prior,
+  plus linked Before/After split comparison with Fit and full-resolution 100%
+  rendering.
+
 ## 1.6.0 / 2026-10-31
 
 - RAW Pipeline 2.0 now uses a deterministic two-pass edge-aware Bayer
