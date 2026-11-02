@@ -27,7 +27,7 @@ add_library(luma_core STATIC
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
-    core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
+    core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/color/DngColorCalibration.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
     core/catalog/SemanticCatalog.cpp
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp

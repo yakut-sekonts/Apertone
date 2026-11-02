@@ -1,4 +1,5 @@
 #include "core/color/WhiteBalance.h"
+#include "core/color/DngColorCalibration.h"
 #include "core/image/Bayer.h"
 #include <algorithm>
 #include <cmath>
@@ -19,8 +20,10 @@ std::array<double, 9> inverse(const std::array<float, 9> &m) {
             (m[0] * m[4] - m[1] * m[3]) / d};
 }
 } // namespace
-std::array<float, 3> whiteBalanceGains(double temperature, double tint,
-                                       const RawColorCalibration &calibration) {
+std::array<double, 3> whitePointXYZ(double temperature, double tint) {
+    if (!std::isfinite(temperature) || temperature < 2000 || temperature > 25000 ||
+        !std::isfinite(tint) || tint < -150 || tint > 150)
+        throw std::runtime_error("White balance is outside the supported range.");
     // Kang et al. 2002 Planckian locus approximation, 2000–25000 K.
     const double t = 1000 / temperature;
     const double x = temperature <= 4000
@@ -33,10 +36,16 @@ std::array<float, 3> whiteBalanceGains(double temperature, double tint,
             ? -0.9549476 * x * x * x - 1.37418593 * x * x + 2.09137015 * x - 0.16748867
             : 3.0817580 * x * x * x - 5.87338670 * x * x + 3.75112997 * x - 0.37001483;
     const double y = y0 + tint * 0.0001;
-    const double X = x / y, Z = (1 - x - y) / y;
-    const std::array<double, 3> rgb{3.2404542 * X - 1.5371385 - 0.4985314 * Z,
-                                    -0.9692660 * X + 1.8760108 + 0.0415560 * Z,
-                                    0.0556434 * X - 0.2040259 + 1.0572252 * Z};
+    if (!std::isfinite(y) || y <= 0 || x <= 0 || x + y >= 1)
+        throw std::runtime_error("White balance produced an invalid chromaticity.");
+    return {x / y, 1, (1 - x - y) / y};
+}
+std::array<float, 3> whiteBalanceGains(double temperature, double tint,
+                                       const RawColorCalibration &calibration) {
+    const auto white = whitePointXYZ(temperature, tint);
+    const std::array<double, 3> rgb{3.2404542 * white[0] - 1.5371385 - 0.4985314 * white[2],
+                                    -0.9692660 * white[0] + 1.8760108 + 0.0415560 * white[2],
+                                    0.0556434 * white[0] - 0.2040259 + 1.0572252 * white[2]};
     const auto m = inverse(calibration.cameraToSRGB);
     std::array<double, 3> neutral{};
     for (std::size_t c = 0; c < 3; ++c)
@@ -65,6 +74,19 @@ WhiteBalanceEstimate estimateWhiteBalance(const std::array<double, 3> &neutral,
     const double red = std::log(desired[0] / desired[1]);
     const double blue = std::log(desired[2] / desired[1]);
     const auto error = [&](double mired, double tint) {
+        if (calibration.dngProfileCount != 0) {
+            const auto resolved = resolveRawColorCalibration(calibration, 1'000'000 / mired, tint);
+            std::array<double, 3> rendered{};
+            for (std::size_t row = 0; row < 3; ++row)
+                for (std::size_t column = 0; column < 3; ++column)
+                    rendered[row] += resolved.cameraToSRGB[row * 3 + column] *
+                                     resolved.gains[column] * neutral[column];
+            if (rendered[0] <= 1e-8 || rendered[1] <= 1e-8 || rendered[2] <= 1e-8)
+                return std::numeric_limits<double>::infinity();
+            const double r = std::log(rendered[0] / rendered[1]);
+            const double b = std::log(rendered[2] / rendered[1]);
+            return r * r + b * b;
+        }
         const auto gains = whiteBalanceGains(1'000'000 / mired, tint, calibration);
         const double r = std::log(gains[0] / gains[1]) - red;
         const double b = std::log(gains[2] / gains[1]) - blue;

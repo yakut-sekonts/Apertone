@@ -3,6 +3,7 @@
 #include "core/jobs/Cancellation.h"
 
 namespace luma {
+std::array<double, 3> whitePointXYZ(double temperature, double tint);
 // The existing Temperature/Tint model shared by rendering and estimation.
 // Callers supply validated values: 2000–25000 K, Tint −150…150.
 std::array<float, 3> whiteBalanceGains(double temperature, double tint,

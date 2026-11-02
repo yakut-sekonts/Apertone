@@ -1,4 +1,5 @@
 #include "core/render/DevelopPipeline.h"
+#include "core/color/DngColorCalibration.h"
 #include "core/color/WhiteBalance.h"
 #include "core/render/CreativeColor.h"
 #include <algorithm>
@@ -16,14 +17,18 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
               ToneCurve(edits.curves[3])} {
     edits.validate();
     creativeColorActive_ = creativeColorActive(edits);
-    for (auto value : calibration.cameraToSRGB)
+    if (edits.customWhiteBalance && edits.enabled(Correction::whiteBalance)) {
+        const auto resolved =
+            resolveRawColorCalibration(calibration, edits.temperature, edits.tint);
+        calibration_.cameraToSRGB = resolved.cameraToSRGB;
+        gains_ = resolved.gains;
+    }
+    for (auto value : calibration_.cameraToSRGB)
         if (!std::isfinite(value))
             throw std::runtime_error("Invalid camera color matrix.");
     for (auto value : gains_)
         if (!std::isfinite(value) || value <= 0)
             throw std::runtime_error("Invalid As Shot WB.");
-    if (edits.customWhiteBalance && edits.enabled(Correction::whiteBalance))
-        gains_ = whiteBalanceGains(edits.temperature, edits.tint, calibration);
     exposureGain_ =
         static_cast<float>(std::exp2(edits.enabled(Correction::exposure) ? edits.exposure : 0));
     curvesActive_ = edits.enabled(Correction::curves) &&

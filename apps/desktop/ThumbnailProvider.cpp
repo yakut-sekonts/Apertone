@@ -75,7 +75,7 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     const auto directory =
         catalog.parent_path() / (catalog.filename().string() + ".luma-cache") / "thumbnails";
-    const auto cached = directory / (fingerprint.toStdString() + "-edited-v5.jpg");
+    const auto cached = directory / (fingerprint.toStdString() + "-edited-v6.jpg");
     {
         std::lock_guard lock(state->cacheMutex);
         QImageReader reader(QString::fromStdString(cached.string()), "JPEG");

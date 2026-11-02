@@ -61,7 +61,7 @@ QString cachePath(Context &c, const luma::AssetSnapshot &snapshot) {
         QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     return c.catalogFile + ".luma-cache/thumbnails/" + QString::fromLatin1(fingerprint) +
-           "-edited-v5.jpg";
+           "-edited-v6.jpg";
 }
 QByteArray thumbnailJPEG(const luma::AssetSnapshot &snapshot) {
     const auto &asset = snapshot.asset;

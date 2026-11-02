@@ -20,7 +20,7 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     const auto checksum = macos::sha256File(path, stop);
     // Only decoded pixels are cached. Selection and saved edits always come
     // from the current catalog transaction, including on a cache hit.
-    const auto key = checksum + "|decode-v3|preview-2560-1024-512";
+    const auto key = checksum + "|decode-v4|preview-2560-1024-512";
     const auto generation = previews_->generation();
     auto cached = previews_->get(key);
     if (!cached) {
@@ -67,7 +67,7 @@ std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRe
         throw std::runtime_error("Image exceeds the input budget.");
     if (macos::sha256File(path, stop) != asset.checksum)
         throw std::runtime_error("Original changed; full-resolution preview refused.");
-    const auto key = asset.checksum + "|decode-v3|full";
+    const auto key = asset.checksum + "|decode-v4|full";
     const auto generation = originals_->generation();
     auto decoded = originals_->get(key);
     if (!decoded)

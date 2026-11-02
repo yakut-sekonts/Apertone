@@ -5,6 +5,7 @@ contract, metadata, recursive import and XMP ownership. They do not claim covera
 of every proprietary compression variant used by real camera bodies.
 """
 
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -85,6 +86,23 @@ def main() -> int:
             metadata = run(cli, root / f"open-{index}.sqlite", "open", source)
             assert metadata["width"] == 128 and metadata["height"] == 96
             assert model.upper() in metadata["camera"].upper(), metadata["camera"]
+
+        dual = root / "dual-illuminant.DNG"
+        create_dng(dual, maker="Apertone fixture", model="Dual Illuminant",
+                   dual_illuminant=True)
+        original_digest = hashlib.sha256(dual.read_bytes()).hexdigest()
+        dual_catalog = root / "dual.sqlite"
+        run(cli, dual_catalog, "open", dual)
+        rendered = []
+        for temperature in (2856, 6504):
+            run(cli, dual_catalog, "develop", f"temperature={temperature}", "tint=0")
+            destination = root / f"dual-{temperature}.png"
+            run(cli, dual_catalog, "export", destination)
+            rendered.append(hashlib.sha256(destination.read_bytes()).hexdigest())
+        assert rendered[0] != rendered[1], (
+            "Dual-illuminant DNG exports ignored the WB-dependent embedded profile"
+        )
+        assert hashlib.sha256(dual.read_bytes()).hexdigest() == original_digest
 
         summary = run(cli, root / "import.sqlite", "import", "add", sources)
         assert summary == {

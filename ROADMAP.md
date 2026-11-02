@@ -271,7 +271,8 @@ for Enhance because its pixel-output contract cannot produce editable parameters
 
 ## 1.7 — Camera fidelity
 
-In development. The first block uses LibRaw's validated per-channel linearity
+In development as the first block of the unified 2.0 release train. There is no
+intermediate 1.7 release. The first block uses LibRaw's validated per-channel linearity
 limits for Bayer normalization and reconstructs partially clipped camera-linear
 highlights from robust local channel ratios before White Balance and the camera
 color transform. Fully clipped pixels retain measured sensor headroom instead of
@@ -280,5 +281,32 @@ sensor samples and the number of recovered pixels.
 
 This shared decode result feeds preview, thumbnails and export. Representative
 real-camera highlight qualification across Canon, Sony, Nikon, Pentax, Panasonic,
-OM System/Olympus and DNG remains required before a 1.7.0 release. See
+OM System/Olympus and DNG remains required before the 2.0.0 release. See
 [implementation status](docs/V1_7_DEVELOPMENT.md).
+
+Embedded DNG profiles retain up to two standard calibration illuminants and
+resolve `ColorMatrix`, `CameraCalibration`, `AnalogBalance` and `ForwardMatrix`
+for the current White Balance. Interpolation uses reciprocal color temperature.
+The resolved gain and post-gain camera matrix are shared by CPU and Metal.
+Synthetic DNG contracts cover both the `ForwardMatrix` and Bradford fallback
+paths; real-camera color qualification remains a release gate.
+
+## 2.0 — Unified release train
+
+Versions 1.7, 1.8 and 1.9 are development blocks, not public releases. Apertone
+will publish the combined result as `v2.0.0` after all blocks and the integrated
+release gate complete. See [2.0 development](docs/V2_0_DEVELOPMENT.md).
+
+- Camera Fidelity: camera-linear highlight recovery, embedded DNG profile
+  interpolation and real RAW qualification across the supported vendor set.
+- Intelligent Library: deterministic local culling, burst grouping, duplicate
+  review, compare/review workflows and observable background work.
+- Persistent Workflow: durable history, snapshots, repair, relink/sidecar
+  conflict handling, recovery and reversible catalog migration.
+- Detail and Resolution: Raw Details, verified 2x derived resolution,
+  sharpen/deblur, moiré and false-color correction, camera/ISO denoise profiles,
+  split comparison and explicit model provenance with deterministic fallback.
+
+Feature names must match the implemented algorithm. `AI` and `Super Resolution`
+are reserved for a licensed bundled model with a verified input/output contract.
+The release remains local-first and must not require a cloud service.
