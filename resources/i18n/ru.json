@@ -918,6 +918,17 @@
     "Create Raw Details DNG": "Создать Raw Details DNG",
     "Create 2× Detail DNG": "Создать 2× Detail DNG",
     "Raw Details": "Raw Details",
-    "2× Detail": "2× Detail"
+    "2× Detail": "2× Detail",
+    "Before": "До",
+    "After": "После",
+    "Before / After": "До / после",
+    "Split comparison": "Сравнение с разделителем",
+    "Auto noise profile": "Автопрофиль шума",
+    "Estimates luminance and color noise from this photo, using ISO as a conservative prior.": "Оценивает яркостный и цветовой шум по снимку, используя ISO как консервативный априорный уровень.",
+    "Creates a new Float DNG from the saved Develop result. Detail, blur recovery and color moiré correction are deterministic; 2× Detail uses Lanczos-3. Processing stays on this Mac.": "Создаёт новый Float DNG из сохранённого результата Develop. Детализация, восстановление размытия и коррекция цветного муара детерминированы; 2× Detail использует Lanczos-3. Обработка выполняется на этом Mac.",
+    "Recover lens blur DNG": "Восстановить оптическое размытие в DNG",
+    "Correct color moiré DNG": "Исправить цветной муар в DNG",
+    "Lens Blur Recovery": "Восстановление оптического размытия",
+    "Color Moire Correction": "Коррекция цветного муара"
   }
 }

@@ -33,6 +33,7 @@ ApplicationWindow {
     property bool libraryMode: true
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
+    CompareDialog { id: developCompareDialog }
     function ensureActiveFocusVisible(scroll) {
         const item = root.activeFocusItem
         const view = scroll ? scroll.contentItem : null
@@ -443,6 +444,12 @@ ApplicationWindow {
                         Layout.alignment: Qt.AlignHCenter; spacing: 8
                         ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
+                        ApertoneButton {
+                            objectName: "develop.beforeAfterButton"
+                            text: qsTranslate("Apertone", "Before / After")
+                            enabled: editor.hasPhoto && !editor.busy && !editor.saving
+                            onClicked: { editor.prepareBeforeAfter(); developCompareDialog.open() }
+                        }
                     }
                     Label {
                         visible: editor.whiteBalancePicking

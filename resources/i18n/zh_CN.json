@@ -918,6 +918,17 @@
     "Create Raw Details DNG": "创建 Raw Details DNG",
     "Create 2× Detail DNG": "创建 2× Detail DNG",
     "Raw Details": "Raw Details",
-    "2× Detail": "2× Detail"
+    "2× Detail": "2× Detail",
+    "Before": "之前",
+    "After": "之后",
+    "Before / After": "之前 / 之后",
+    "Split comparison": "分割对比",
+    "Auto noise profile": "自动噪点配置",
+    "Estimates luminance and color noise from this photo, using ISO as a conservative prior.": "估算此照片的明度与彩色噪点，并将 ISO 作为保守先验。",
+    "Creates a new Float DNG from the saved Develop result. Detail, blur recovery and color moiré correction are deterministic; 2× Detail uses Lanczos-3. Processing stays on this Mac.": "从已保存的显影结果创建新的浮点 DNG。细节、模糊恢复和彩色摩尔纹校正均为确定性处理；2× Detail 使用 Lanczos-3。处理仅在此 Mac 上进行。",
+    "Recover lens blur DNG": "恢复镜头模糊 DNG",
+    "Correct color moiré DNG": "校正彩色摩尔纹 DNG",
+    "Lens Blur Recovery": "镜头模糊恢复",
+    "Color Moire Correction": "彩色摩尔纹校正"
   }
 }

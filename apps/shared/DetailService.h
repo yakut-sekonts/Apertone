@@ -1,11 +1,17 @@
 #pragma once
 #include "core/jobs/Cancellation.h"
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <string>
 
 namespace luma {
-enum class DetailDerivedOperation { rawDetails, detail2x };
+enum class DetailDerivedOperation : std::uint8_t {
+    rawDetails,
+    detail2x,
+    lensBlurRecovery,
+    colorMoireCorrection
+};
 
 class DetailService {
   public:

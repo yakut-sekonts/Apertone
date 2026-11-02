@@ -62,19 +62,35 @@ int main(int argc, char **argv) {
                 "2x Detail DNG has the wrong decoder contract or dimensions.");
         std::ifstream file(created, std::ios::binary);
         const std::string bytes((std::istreambuf_iterator<char>(file)), {});
-        require(bytes.find("luma:ProviderVersion=\"1\"") != std::string::npos &&
+        require(bytes.find("luma:ProviderVersion=\"2\"") != std::string::npos &&
                     bytes.find("luma:AlgorithmVersion=\"1\"") != std::string::npos &&
                     bytes.find("luma:InputContract=") != std::string::npos &&
                     bytes.find("luma:OutputContract=") != std::string::npos &&
                     bytes.find("edge-aware-microcontrast+lanczos3-2x") != std::string::npos,
                 "2x Detail DNG lost its explicit processing provenance.");
+        const auto deblurred =
+            service.create(session.asset.id, luma::DetailDerivedOperation::lensBlurRecovery, .5);
+        const auto corrected = service.create(
+            session.asset.id, luma::DetailDerivedOperation::colorMoireCorrection, .5);
+        require(std::filesystem::is_regular_file(deblurred) &&
+                    std::filesystem::is_regular_file(corrected),
+                "Deterministic Detail corrections did not publish managed DNG files.");
+        std::ifstream deblurFile(deblurred, std::ios::binary),
+            moireFile(corrected, std::ios::binary);
+        const std::string deblurBytes((std::istreambuf_iterator<char>(deblurFile)), {});
+        const std::string moireBytes((std::istreambuf_iterator<char>(moireFile)), {});
+        require(deblurBytes.find("bounded-first-order-gaussian-inverse") != std::string::npos &&
+                    moireBytes.find("luma-guided-chroma-oscillation-suppression") !=
+                        std::string::npos,
+                "Detail corrections lost their explicit algorithm provenance.");
         luma::Catalog after(catalogPath);
-        require(after.libraryCount() == 2 && after.pendingDerived().empty(),
-                "2x Detail did not atomically register its managed DNG.");
+        require(after.libraryCount() == 4 && after.pendingDerived().empty(),
+                "Detail corrections did not atomically register their managed DNG files.");
         require(luma::macos::sha256File(source) == sourceHash,
                 "Detail processing changed the original file.");
         after.verify();
-        std::cout << "Raw rejection, deterministic 2x DNG registration and provenance passed.\n";
+        std::cout
+            << "Raw rejection, deterministic Detail DNG registration and provenance passed.\n";
         return 0;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

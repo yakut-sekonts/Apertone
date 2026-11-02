@@ -25,6 +25,77 @@ double lanczos(double distance) {
 }
 
 using Filter = std::vector<std::vector<std::pair<int, double>>>;
+
+std::vector<double> gaussianKernel(double sigma) {
+    if (!std::isfinite(sigma) || sigma <= 0)
+        throw std::runtime_error("Invalid Detail Gaussian radius.");
+    const int radius = static_cast<int>(std::ceil(2.5 * sigma));
+    std::vector<double> result(static_cast<std::size_t>(radius * 2 + 1));
+    double total = 0;
+    for (int position = -radius; position <= radius; ++position) {
+        const double normalized = static_cast<double>(position) / sigma;
+        const double weight = std::exp(-.5 * normalized * normalized);
+        const auto index = static_cast<std::size_t>(static_cast<std::ptrdiff_t>(position) + radius);
+        result[index] = weight;
+        total += weight;
+    }
+    for (auto &weight : result)
+        weight /= total;
+    return result;
+}
+
+std::vector<float> gaussianLuminance(const LinearOutput &image, double sigma,
+                                     CancellationToken stop,
+                                     const std::function<void(double)> &progress) {
+    const auto kernel = gaussianKernel(sigma);
+    const int radius = static_cast<int>(kernel.size() / 2);
+    const auto count = pixelCount(image.width, image.height);
+    std::vector<float> horizontal(count), blurred(count);
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            double sum = 0, total = 0;
+            for (int offset = -radius; offset <= radius; ++offset) {
+                const int sampleX = std::clamp(x + offset, 0, image.width - 1);
+                const auto sample = (static_cast<std::size_t>(y) * image.width + sampleX) * 4;
+                const double coverage = image.rgba[sample + 3];
+                const auto kernelIndex =
+                    static_cast<std::size_t>(static_cast<std::ptrdiff_t>(offset) + radius);
+                const double weight = kernel[kernelIndex] * coverage;
+                sum += luminance(image, sampleX, y) * weight;
+                total += weight;
+            }
+            const auto index = static_cast<std::size_t>(y) * image.width + x;
+            horizontal[index] =
+                static_cast<float>(total > 1e-12 ? sum / total : luminance(image, x, y));
+        }
+        if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
+            progress(.45 * static_cast<double>(y + 1) / image.height);
+    }
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            double sum = 0, total = 0;
+            for (int offset = -radius; offset <= radius; ++offset) {
+                const int sampleY = std::clamp(y + offset, 0, image.height - 1);
+                const auto sample = (static_cast<std::size_t>(sampleY) * image.width + x) * 4;
+                const double coverage = image.rgba[sample + 3];
+                const auto kernelIndex =
+                    static_cast<std::size_t>(static_cast<std::ptrdiff_t>(offset) + radius);
+                const double weight = kernel[kernelIndex] * coverage;
+                sum += horizontal[static_cast<std::size_t>(sampleY) * image.width + x] * weight;
+                total += weight;
+            }
+            const auto index = static_cast<std::size_t>(y) * image.width + x;
+            blurred[index] =
+                static_cast<float>(total > 1e-12 ? sum / total : luminance(image, x, y));
+        }
+        if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
+            progress(.45 + .45 * static_cast<double>(y + 1) / image.height);
+    }
+    return blurred;
+}
+
 Filter lanczosWeights(int source) {
     if (source > 10000)
         throw std::runtime_error("2x Detail exceeds the 100 MP output budget.");
@@ -149,6 +220,128 @@ void enhanceRawDetails(LinearOutput &image, double amount, CancellationToken sto
         }
         if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
             progress(.65 + .35 * static_cast<double>(y + 1) / image.height);
+    }
+    image.validate();
+}
+
+void recoverLensBlur(LinearOutput &image, double amount, CancellationToken stop,
+                     const std::function<void(double)> &progress) {
+    image.validate();
+    if (!std::isfinite(amount) || amount < 0 || amount > 1)
+        throw std::runtime_error("Lens Blur Recovery amount must be between 0 and 1.");
+    if (amount == 0) {
+        if (progress)
+            progress(1);
+        return;
+    }
+    const auto blurred = gaussianLuminance(image, .65 + .85 * amount, stop, progress);
+    const double gain = .55 + 1.25 * amount;
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            const auto index = static_cast<std::size_t>(y) * image.width + x;
+            const auto pixel = index * 4;
+            if (image.rgba[pixel + 3] <= 1e-8F)
+                continue;
+            const double center = luminance(image, x, y);
+            const double residual = center - blurred[index];
+            const double threshold =
+                (.002 + .008 * std::sqrt(std::max(0.0, std::abs(center)))) * (1.15 - .65 * amount);
+            const double recovered =
+                std::copysign(std::max(0.0, std::abs(residual) - threshold), residual);
+            const double limit = .10 * (.05 + std::abs(center));
+            const double delta = std::clamp(gain * recovered, -limit, limit);
+            if (std::abs(center) > 1e-8) {
+                const double scale = (center + delta) / center;
+                for (std::size_t channel = 0; channel < 3; ++channel)
+                    image.rgba[pixel + channel] =
+                        static_cast<float>(image.rgba[pixel + channel] * scale);
+            } else {
+                for (std::size_t channel = 0; channel < 3; ++channel)
+                    image.rgba[pixel + channel] += static_cast<float>(delta);
+            }
+        }
+        if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
+            progress(.9 + .1 * static_cast<double>(y + 1) / image.height);
+    }
+    image.validate();
+}
+
+void suppressColorMoire(LinearOutput &image, double amount, CancellationToken stop,
+                        const std::function<void(double)> &progress) {
+    image.validate();
+    if (!std::isfinite(amount) || amount < 0 || amount > 1)
+        throw std::runtime_error("Color Moire amount must be between 0 and 1.");
+    if (amount == 0) {
+        if (progress)
+            progress(1);
+        return;
+    }
+    const auto count = pixelCount(image.width, image.height);
+    std::vector<float> correctedU(count), correctedV(count);
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            const auto index = static_cast<std::size_t>(y) * image.width + x;
+            const auto pixel = index * 4;
+            const double centerY = luminance(image, x, y);
+            const double centerU = image.rgba[pixel] - centerY;
+            const double centerV = image.rgba[pixel + 2] - centerY;
+            double sumU = centerU, sumV = centerV, total = 1, gradient = 0;
+            for (int offsetY = -1; offsetY <= 1; ++offsetY)
+                for (int offsetX = -1; offsetX <= 1; ++offsetX) {
+                    if (offsetX == 0 && offsetY == 0)
+                        continue;
+                    const int sampleX = std::clamp(x + offsetX, 0, image.width - 1);
+                    const int sampleY = std::clamp(y + offsetY, 0, image.height - 1);
+                    const auto sample =
+                        (static_cast<std::size_t>(sampleY) * image.width + sampleX) * 4;
+                    const double coverage = image.rgba[sample + 3];
+                    if (coverage <= 1e-8)
+                        continue;
+                    const double sampleYValue = luminance(image, sampleX, sampleY);
+                    const double difference = sampleYValue - centerY;
+                    gradient = std::max(gradient, std::abs(difference));
+                    const double range =
+                        .015 + .08 * std::max(std::abs(centerY), std::abs(sampleYValue));
+                    const double spatial = offsetX == 0 || offsetY == 0 ? 1.0 : .7071067811865476;
+                    const double weight = coverage * spatial *
+                                          std::exp(-.5 * difference * difference / (range * range));
+                    sumU += (image.rgba[sample] - sampleYValue) * weight;
+                    sumV += (image.rgba[sample + 2] - sampleYValue) * weight;
+                    total += weight;
+                }
+            const double averageU = sumU / total, averageV = sumV / total;
+            const double residual = std::hypot(centerU - averageU, centerV - averageV);
+            const double scale = .02 + .08 * std::max(.05, std::abs(centerY));
+            const double flatGate = 1 - std::clamp(gradient / scale, 0.0, 1.0);
+            const double frequencyGate = std::clamp((residual - (.003 + .01 * std::abs(centerY))) /
+                                                        (.025 + .05 * std::abs(centerY)),
+                                                    0.0, 1.0);
+            const double blend = amount * flatGate * frequencyGate;
+            correctedU[index] = static_cast<float>(centerU + blend * (averageU - centerU));
+            correctedV[index] = static_cast<float>(centerV + blend * (averageV - centerV));
+        }
+        if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
+            progress(.7 * static_cast<double>(y + 1) / image.height);
+    }
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            const auto index = static_cast<std::size_t>(y) * image.width + x;
+            const auto pixel = index * 4;
+            if (image.rgba[pixel + 3] <= 1e-8F)
+                continue;
+            const double valueY = luminance(image, x, y);
+            const double red = valueY + correctedU[index];
+            const double blue = valueY + correctedV[index];
+            const double green = (valueY - .2126 * red - .0722 * blue) / .7152;
+            image.rgba[pixel] = static_cast<float>(red);
+            image.rgba[pixel + 1] = static_cast<float>(green);
+            image.rgba[pixel + 2] = static_cast<float>(blue);
+        }
+        if (progress && (y % std::max(1, image.height / 100) == 0 || y + 1 == image.height))
+            progress(.7 + .3 * static_cast<double>(y + 1) / image.height);
     }
     image.validate();
 }

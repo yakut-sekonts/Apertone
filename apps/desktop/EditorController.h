@@ -1,6 +1,7 @@
 #pragma once
 #include "apps/desktop/LocalizedText.h"
 #include "apps/desktop/PreviewProvider.h"
+#include "apps/shared/DetailService.h"
 #include "apps/shared/SessionService.h"
 #include "core/ai/Providers.h"
 #include "core/edits/EditHistory.h"
@@ -391,6 +392,9 @@ class EditorController final : public QObject {
                                          bool boundaryWarp = false);
     Q_INVOKABLE void createRawDetails(double amount = 50);
     Q_INVOKABLE void createDetail2x(double amount = 50);
+    Q_INVOKABLE void createLensBlurRecovery(double amount = 50);
+    Q_INVOKABLE void createColorMoireCorrection(double amount = 50);
+    Q_INVOKABLE void autoNoiseProfile();
     Q_INVOKABLE void generateAIMask(const QString &kind, double x = .5, double y = .5);
     Q_INVOKABLE void beginAIObjectSelection();
     Q_INVOKABLE void beginAIMaskSelection(const QString &kind);
@@ -552,6 +556,7 @@ class EditorController final : public QObject {
     void setPointColorRange(bool value);
     QVariantMap comparison() const;
     Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
+    Q_INVOKABLE void prepareBeforeAfter(bool fullResolution = false);
     Q_INVOKABLE void closeCompare();
     Q_INVOKABLE void autoAdjust();
     Q_INVOKABLE void samplePointColor(double x, double y);
@@ -608,7 +613,7 @@ class EditorController final : public QObject {
                   std::function<std::filesystem::path(luma::CancellationToken,
                                                       const std::function<void(double)> &)>
                       work);
-    void createDetailDerived(bool twoX, double amount);
+    void createDetailDerived(luma::DetailDerivedOperation operation, double amount);
     bool localMode_ = false, localCanvasReady_ = false, localOverlay_ = true;
     QString localSelected_, localOverlayColor_ = QStringLiteral("#ff2666");
     double localOverlayOpacity_ = 0.45;
@@ -679,8 +684,10 @@ class EditorController final : public QObject {
     luma::JobHandle compareJob_;
     std::uint64_t compareRevision_ = 0, compareImageRevision_ = 0;
     bool compareBusy_ = false, compareReady_ = false, compareFull_ = false;
+    bool compareBeforeAfter_ = false;
     QString compareError_;
     QStringList compareIDs_, compareNames_;
+    void prepareCompareImpl(const QStringList &ids, bool fullResolution, bool beforeAfter);
     luma::JobManager creativeJobs_;
     luma::JobHandle creativeJob_;
     std::uint64_t creativeRevision_ = 0;

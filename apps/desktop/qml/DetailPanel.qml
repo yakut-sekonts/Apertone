@@ -3,8 +3,12 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
+    id: panel
     objectName: "detailPanel"
     spacing: 8
+    readonly property bool derivedBusy: editor.aiBusy &&
+        ["Raw Details", "2× Detail", "Lens Blur Recovery", "Color Moire Correction"]
+            .indexOf(editor.aiOperation) >= 0
     RowLayout {
         Layout.fillWidth: true
         Label { objectName: "detail.heading"; text: qsTranslate("Apertone", "DETAIL / SHARPENING"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
@@ -30,10 +34,19 @@ ColumnLayout {
     DevelopSlider { objectName: "noisecolor"; parameter: "noise.color"; label: qsTranslate("Apertone", "Amount"); minimum: 0; maximum: 100; defaultValue: 0; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noisecolorDetail"; parameter: "noise.colorDetail"; label: qsTranslate("Apertone", "Detail"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
     DevelopSlider { objectName: "noisecolorSmoothness"; parameter: "noise.colorSmoothness"; label: qsTranslate("Apertone", "Smoothness"); minimum: 0; maximum: 100; defaultValue: 50; correction: "colorNoise"; allowDisable: false; detailDiagnostic: true }
+    ApertoneButton {
+        objectName: "noise.autoProfile"
+        text: qsTranslate("Apertone", "Auto noise profile")
+        enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.saving && !editor.editingLocked
+        onClicked: editor.autoNoiseProfile()
+        Layout.fillWidth: true
+        ToolTip.visible: hovered
+        ToolTip.text: qsTranslate("Apertone", "Estimates luminance and color noise from this photo, using ISO as a conservative prior.")
+    }
     Label { text: qsTranslate("Apertone", "Option + drag shows diagnostics. Radius uses original-image pixels."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted }
     Label { text: qsTranslate("Apertone", "DERIVED DETAIL"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
     Label {
-        text: qsTranslate("Apertone", "Creates a new Float DNG from the saved Develop result. Raw Details preserves size; 2× Detail uses deterministic Lanczos-3. Processing stays on this Mac.")
+        text: qsTranslate("Apertone", "Creates a new Float DNG from the saved Develop result. Detail, blur recovery and color moiré correction are deterministic; 2× Detail uses Lanczos-3. Processing stays on this Mac.")
         wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 10; color: Theme.muted
     }
     Slider {
@@ -61,8 +74,25 @@ ColumnLayout {
             Layout.fillWidth: true
         }
     }
-    ProgressBar { visible: editor.aiBusy && (editor.aiOperation === "Raw Details" || editor.aiOperation === "2× Detail"); value: editor.aiProgress; Layout.fillWidth: true }
-    ApertoneButton { visible: editor.aiBusy && (editor.aiOperation === "Raw Details" || editor.aiOperation === "2× Detail"); text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
+    RowLayout {
+        Layout.fillWidth: true
+        ApertoneButton {
+            objectName: "detailDerived.deblur"
+            text: qsTranslate("Apertone", "Recover lens blur DNG")
+            enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
+            onClicked: editor.createLensBlurRecovery(derivedDetailAmount.value)
+            Layout.fillWidth: true
+        }
+        ApertoneButton {
+            objectName: "detailDerived.moire"
+            text: qsTranslate("Apertone", "Correct color moiré DNG")
+            enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
+            onClicked: editor.createColorMoireCorrection(derivedDetailAmount.value)
+            Layout.fillWidth: true
+        }
+    }
+    ProgressBar { visible: panel.derivedBusy; value: editor.aiProgress; Layout.fillWidth: true }
+    ApertoneButton { visible: panel.derivedBusy; text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelAI(); Layout.fillWidth: true }
     Label { objectName: "denoise.heading"; text: qsTranslate("Apertone", "AI Denoise"); Layout.fillWidth: true }
     Label {
         text: editor.denoiseModelConfigured

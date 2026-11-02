@@ -4,6 +4,7 @@ CatalogStartup 1.0 CatalogStartup.qml
 ColorWheel 1.0 ColorWheel.qml
 CompareDialog 1.0 CompareDialog.qml
 ComparePane 1.0 ComparePane.qml
+SplitComparePane 1.0 SplitComparePane.qml
 CreativePanel 1.0 CreativePanel.qml
 CropOverlay 1.0 CropOverlay.qml
 CropPanel 1.0 CropPanel.qml

@@ -82,10 +82,26 @@ for an original Bayer RAW and applies bounded edge-aware microcontrast at the
 original dimensions. `2× Detail` applies the same detail pass followed by a
 deterministic separable Lanczos-3 resampler with straight-alpha filtering. It
 rejects inputs above 25 MP before allocating the 2× surface because the shared
-derived-image contract is capped at 100 MP.
+derived-image contract is capped at 100 MP. `Lens Blur Recovery` is a bounded
+first-order inverse of a Gaussian point-spread function; it is explicitly a
+local deconvolution approximation, not an ML reconstruction. `Color Moiré
+Correction` suppresses high-frequency chroma oscillation only where local
+luminance is smooth and preserves luminance and alpha.
+
+`Auto noise profile` measures luminance and chroma residuals in locally flat,
+covered scene-linear preview regions. A bounded ISO prior makes the result
+conservative when measurement is weak. Camera identity is not presented as a
+factory calibration profile. The recommendation updates the existing editable
+luminance and color noise controls in one Undo step.
+
+The Develop comparison renders the same frozen asset twice: once with a neutral
+edit document and once with the active edit document. The split view shares
+zoom and pan, supports Fit and full-resolution 100% rendering, and never mutates
+the catalog asset.
 
 Derived XMP now uses one validated provenance schema for Raw Details, 2× Detail,
-HDR, Panorama and AI Denoise. It records provider and provider version,
+Lens Blur Recovery, Color Moiré Correction, HDR, Panorama and AI Denoise. It
+records provider and provider version,
 algorithm and algorithm version, model identity when applicable, source IDs and
 checksums, parameters, execution location, determinism, and exact linear input
 and output contracts. The managed-file journal remains the publication boundary:

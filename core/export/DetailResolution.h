@@ -6,6 +6,16 @@ namespace luma {
 void enhanceRawDetails(LinearOutput &image, double amount, CancellationToken stop = {},
                        const std::function<void(double)> &progress = {});
 
+// Bounded first-order inverse of a Gaussian point-spread function. This is a
+// deterministic local deconvolution approximation, not an ML reconstruction.
+void recoverLensBlur(LinearOutput &image, double amount, CancellationToken stop = {},
+                     const std::function<void(double)> &progress = {});
+
+// Suppress high-frequency chroma oscillation in locally smooth luminance areas.
+// Luminance and alpha remain unchanged.
+void suppressColorMoire(LinearOutput &image, double amount, CancellationToken stop = {},
+                        const std::function<void(double)> &progress = {});
+
 // Deterministic 2x Lanczos-3 resampling in scene-linear sRGB. Straight alpha is
 // premultiplied for filtering and restored afterward.
 LinearOutput upscaleDetail2x(LinearOutput input, CancellationToken stop = {},

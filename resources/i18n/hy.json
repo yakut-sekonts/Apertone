@@ -918,6 +918,17 @@
     "Create Raw Details DNG": "Ստեղծել Raw Details DNG",
     "Create 2× Detail DNG": "Ստեղծել 2× Detail DNG",
     "Raw Details": "Raw Details",
-    "2× Detail": "2× Detail"
+    "2× Detail": "2× Detail",
+    "Before": "Մինչև",
+    "After": "Հետո",
+    "Before / After": "Մինչև / հետո",
+    "Split comparison": "Բաժանված համեմատություն",
+    "Auto noise profile": "Աղմուկի ավտոմատ պրոֆիլ",
+    "Estimates luminance and color noise from this photo, using ISO as a conservative prior.": "Գնահատում է լուսավորության և գունային աղմուկը՝ ISO-ն օգտագործելով որպես պահպանողական նախնական արժեք։",
+    "Creates a new Float DNG from the saved Develop result. Detail, blur recovery and color moiré correction are deterministic; 2× Detail uses Lanczos-3. Processing stays on this Mac.": "Պահված Develop արդյունքից ստեղծում է նոր Float DNG։ Մանրամասները, մշուշի վերականգնումը և գունային մուարի շտկումը դետերմինացված են, իսկ 2× Detail-ը օգտագործում է Lanczos-3։ Մշակումը մնում է այս Mac-ում։",
+    "Recover lens blur DNG": "Վերականգնել օպտիկական մշուշը DNG-ում",
+    "Correct color moiré DNG": "Շտկել գունային մուարը DNG-ում",
+    "Lens Blur Recovery": "Օպտիկական մշուշի վերականգնում",
+    "Color Moire Correction": "Գունային մուարի շտկում"
   }
 }

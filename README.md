@@ -67,7 +67,7 @@ evidence and owner-accepted exceptions.
   selections and reusable independent copies of combined mask stacks.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
-- ✅ Detail sharpening, manual luminance/color noise reduction, local Raw Details and deterministic 2× Detail Float DNG with explicit processing provenance.
+- ✅ Detail sharpening, measured Auto noise profile, bounded lens-blur and color-moiré correction, local Raw Details and deterministic 2× Detail Float DNG with explicit processing provenance.
 - ✅ Crop, ratios, straighten, flips and guide overlays in source.
 - ✅ Calibrated Lens Corrections with automatic/manual profiles in source.
 - ✅ Manual, Auto and Guided perspective Transform in source.
@@ -95,8 +95,8 @@ See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
 The current two-pass edge-aware Bayer reconstruction keeps a bilinear reference
-path for regression comparison. The 1.7 development branch adds camera-specific
-highlight reconstruction from LibRaw per-channel linearity metadata;
+path for regression comparison. The unified 2.0 development cycle adds
+camera-specific highlight reconstruction from LibRaw per-channel linearity metadata;
 representative real-camera qualification remains open.
 
 ## Build and run

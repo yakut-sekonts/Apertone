@@ -303,9 +303,10 @@ release gate complete. See [2.0 development](docs/V2_0_DEVELOPMENT.md).
   review, compare/review workflows and observable background work.
 - Persistent Workflow: durable history, snapshots, repair, relink/sidecar
   conflict handling, recovery and reversible catalog migration.
-- Detail and Resolution: Raw Details, verified 2x derived resolution,
-  sharpen/deblur, moiré and false-color correction, camera/ISO denoise profiles,
-  split comparison and explicit model provenance with deterministic fallback.
+- Detail and Resolution: Raw Details, deterministic 2x derived resolution,
+  bounded lens-blur recovery, luminance-preserving color moiré correction, a
+  measured per-photo denoise profile with a conservative ISO prior, linked
+  before/after split comparison and explicit processing provenance.
 
 Feature names must match the implemented algorithm. `AI` and `Super Resolution`
 are reserved for a licensed bundled model with a verified input/output contract.

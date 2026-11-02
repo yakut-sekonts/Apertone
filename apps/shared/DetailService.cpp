@@ -11,6 +11,27 @@
 #include <sstream>
 
 namespace luma {
+namespace {
+struct OperationContract {
+    const char *name;
+    const char *algorithm;
+};
+
+OperationContract contract(DetailDerivedOperation operation) {
+    switch (operation) {
+    case DetailDerivedOperation::rawDetails:
+        return {"Raw Details", "edge-aware-microcontrast"};
+    case DetailDerivedOperation::detail2x:
+        return {"2x Detail", "edge-aware-microcontrast+lanczos3-2x"};
+    case DetailDerivedOperation::lensBlurRecovery:
+        return {"Lens Blur Recovery", "bounded-first-order-gaussian-inverse"};
+    case DetailDerivedOperation::colorMoireCorrection:
+        return {"Color Moire Correction", "luma-guided-chroma-oscillation-suppression"};
+    }
+    throw std::runtime_error("Unknown Detail operation.");
+}
+} // namespace
+
 std::filesystem::path DetailService::create(const std::string &id, DetailDerivedOperation operation,
                                             double amount, CancellationToken stop,
                                             const std::function<void(double)> &progress) const {
@@ -42,25 +63,43 @@ std::filesystem::path DetailService::create(const std::string &id, DetailDerived
     });
     const auto inputContract = linearFloatContract(output.width, output.height, true) +
                                ";develop-document=v" + std::to_string(EditDocument::schemaVersion);
-    enhanceRawDetails(output, amount, stop, [&](double value) {
-        if (progress)
-            progress(.5 + .15 * value);
-    });
     const bool detail2x = operation == DetailDerivedOperation::detail2x;
-    if (detail2x)
+    switch (operation) {
+    case DetailDerivedOperation::rawDetails:
+    case DetailDerivedOperation::detail2x:
+        enhanceRawDetails(output, amount, stop, [&](double value) {
+            if (progress)
+                progress(.5 + .15 * value);
+        });
+        break;
+    case DetailDerivedOperation::lensBlurRecovery:
+        recoverLensBlur(output, amount, stop, [&](double value) {
+            if (progress)
+                progress(.5 + .35 * value);
+        });
+        break;
+    case DetailDerivedOperation::colorMoireCorrection:
+        suppressColorMoire(output, amount, stop, [&](double value) {
+            if (progress)
+                progress(.5 + .35 * value);
+        });
+        break;
+    }
+    if (detail2x) {
         output = upscaleDetail2x(std::move(output), stop, [&](double value) {
             if (progress)
                 progress(.65 + .2 * value);
         });
+    }
     std::ostringstream amountText;
     amountText.imbue(std::locale::classic());
     amountText << std::fixed << std::setprecision(4) << amount;
+    const auto operationContract = contract(operation);
     const auto metadata = encodeDerivedProvenance(
-        {.operation = detail2x ? "2x Detail" : "Raw Details",
+        {.operation = operationContract.name,
          .provider = "org.apertone.local.detail",
-         .providerVersion = "1",
-         .algorithm =
-             detail2x ? "edge-aware-microcontrast+lanczos3-2x" : "edge-aware-microcontrast",
+         .providerVersion = "2",
+         .algorithm = operationContract.algorithm,
          .algorithmVersion = "1",
          .inputContract = inputContract,
          .outputContract = linearFloatContract(output.width, output.height, true),
