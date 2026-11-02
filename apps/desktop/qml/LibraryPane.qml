@@ -163,6 +163,41 @@ Rectangle {
         standardButtons: Dialog.Close
         ScrollView { objectName: "library.importReportScroll"; anchors.fill: parent; clip: true; TextArea { objectName: "library.importReportText"; text: library.importReport; readOnly: true; wrapMode: Text.WrapAnywhere; textFormat: TextEdit.PlainText; selectByMouse: true } }
     }
+    Dialog {
+        id: duplicateReviewDialog; objectName: "library.duplicateReviewDialog"
+        title: qsTranslate("Apertone", "Skipped exact duplicates")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(pane.width - 40, 720); height: Math.min(pane.height - 40, 500)
+        standardButtons: Dialog.Close
+        ColumnLayout {
+            anchors.fill: parent; spacing: 8
+            Label {
+                text: qsTranslate("Apertone", "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            ScrollView {
+                Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                Column {
+                    width: parent.width; spacing: 8
+                    Repeater {
+                        model: library.duplicateReview
+                        Rectangle {
+                            required property var modelData
+                            width: parent.width; implicitHeight: duplicateText.implicitHeight + 16
+                            color: Theme.control; radius: 6
+                            Label {
+                                id: duplicateText; anchors.fill: parent; anchors.margins: 8
+                                text: modelData.sourceName + "\n" + modelData.sourcePath + "\n→ " +
+                                      modelData.existingName + "\n" + modelData.existingPath
+                                color: Theme.text; font.pixelSize: 11; wrapMode: Text.WrapAnywhere
+                                textFormat: Text.PlainText; selectByMouse: true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     RowLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
@@ -290,6 +325,7 @@ Rectangle {
             RowLayout {
                 Layout.minimumWidth: 0; Layout.fillWidth: true
                 ApertoneButton { objectName: "library.importReportButton"; visible: library.importReport.length > 0; text: qsTranslate("Apertone", "Import errors"); onClicked: reportDialog.open() }
+                ApertoneButton { objectName: "library.duplicateReviewButton"; visible: library.duplicateReview.length > 0; text: qsTranslate("Apertone", "Duplicates") + " · " + library.duplicateReview.length; onClicked: duplicateReviewDialog.open() }
                 Label { text: library.loading ? qsTranslate("Apertone", "Loading…") : library.count + qsTranslate("Apertone", " photos · selected ") + library.selectedCount; color: Theme.muted; Layout.fillWidth: true }
                 ApertoneButton { objectName: "library.selectAll"; text: qsTranslate("Apertone", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
                 ApertoneButton { objectName: "library.clearSelection"; text: qsTranslate("Apertone", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }

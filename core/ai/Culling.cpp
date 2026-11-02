@@ -16,8 +16,8 @@ double luminance(const std::uint8_t *pixel) {
 } // namespace
 
 void CullingObservation::validate() const {
-    if (!unit(sharpness) || !unit(exposure) || !unit(faceQuality) || !unit(eyesOpen) ||
-        !unit(score) ||
+    if (!unit(sharpness) || !unit(exposure) || (faceQuality && !unit(*faceQuality)) ||
+        (eyesOpen && !unit(*eyesOpen)) || !unit(score) ||
         (recommendation != CullingRecommendation::reject &&
          recommendation != CullingRecommendation::review &&
          recommendation != CullingRecommendation::pick) ||
@@ -26,8 +26,8 @@ void CullingObservation::validate() const {
         throw std::runtime_error("Invalid culling observation.");
     (void)normalizedEmbedding(imageEmbedding);
     for (const auto &face : faces) {
-        if (!unit(face.quality) || !unit(face.eyesOpen) || face.embedding.empty() ||
-            face.embedding.size() > 2048)
+        if ((face.quality && !unit(*face.quality)) || (face.eyesOpen && !unit(*face.eyesOpen)) ||
+            face.embedding.empty() || face.embedding.size() > 2048)
             throw std::runtime_error("Invalid culling face observation.");
         for (const auto value : face.bounds)
             if (!unit(value))
@@ -89,28 +89,35 @@ CullingObservation scoreCullingPreview(RgbaImage image, std::vector<float> image
         std::max(0., darkFraction - .45) * .8 + std::max(0., brightFraction - .20) * 1.4;
     const double exposure = std::clamp(1. - meanPenalty - clipPenalty, 0., 1.);
 
-    double faceQuality = .5, eyesOpen = .5;
-    if (!faces.empty()) {
-        faceQuality =
-            std::min_element(faces.begin(), faces.end(), [](const auto &first, const auto &second) {
-                return first.quality < second.quality;
-            })->quality;
-        eyesOpen =
-            std::min_element(faces.begin(), faces.end(), [](const auto &first, const auto &second) {
-                return first.eyesOpen < second.eyesOpen;
-            })->eyesOpen;
+    std::optional<double> faceQuality, eyesOpen;
+    for (const auto &face : faces) {
+        if (face.quality)
+            faceQuality = faceQuality ? std::min(*faceQuality, *face.quality) : face.quality;
+        if (face.eyesOpen)
+            eyesOpen = eyesOpen ? std::min(*eyesOpen, *face.eyesOpen) : face.eyesOpen;
     }
-    const double score =
-        faces.empty() ? .68 * sharpness + .32 * exposure
-                      : .40 * sharpness + .22 * exposure + .23 * faceQuality + .15 * eyesOpen;
+    double score = .68 * sharpness + .32 * exposure;
+    if (faceQuality || eyesOpen) {
+        double weighted = .40 * sharpness + .22 * exposure;
+        double weight = .62;
+        if (faceQuality) {
+            weighted += .23 * *faceQuality;
+            weight += .23;
+        }
+        if (eyesOpen) {
+            weighted += .15 * *eyesOpen;
+            weight += .15;
+        }
+        score = weighted / weight;
+    }
     std::uint32_t reasons = noCullingReason;
     if (sharpness < .32)
         reasons |= softFocus;
     if (exposure < .48)
         reasons |= exposureIssue;
-    if (!faces.empty() && faceQuality < .35)
+    if (faceQuality && *faceQuality < .35)
         reasons |= lowFaceQuality;
-    if (!faces.empty() && eyesOpen < .30)
+    if (eyesOpen && *eyesOpen < .30)
         reasons |= closedEyes;
     const auto recommendation = score < .36 || (reasons & closedEyes)
                                     ? CullingRecommendation::reject

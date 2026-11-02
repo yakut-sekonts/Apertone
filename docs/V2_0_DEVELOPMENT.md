@@ -42,6 +42,17 @@ Exact duplicates use content identity. Visual similarity must be bounded,
 versioned and reviewable before it can influence grouping. Automatic deletion
 is outside this block.
 
+Face capture quality and eye openness are optional observations. The scorer
+renormalizes its weights over the metrics that Vision actually returned; an
+unavailable landmark or capture-quality result cannot create a negative reason
+or reduce a photo's score. This contract advances the local culling provider
+identity so old and new observations cannot be mixed.
+
+The latest completed import exposes byte-for-byte duplicates as a review list
+showing both the skipped source and the retained catalog original. Review never
+deletes either file. Visual grouping remains provider-versioned and is used for
+bounded burst suggestions only; it is not presented as exact identity.
+
 ## Persistent Workflow
 
 History and named snapshots survive restart without copying originals. Catalog

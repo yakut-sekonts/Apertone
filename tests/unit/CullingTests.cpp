@@ -88,8 +88,16 @@ void scoreChecks() {
     luma::ai::FaceObservation open{{.55, .1, .35, .4}, .9, .95, {0, 1}};
     const auto portrait = luma::ai::scoreCullingPreview({64, 64, detailed}, {1, 0}, {open, closed});
     require(portrait.recommendation == luma::ai::CullingRecommendation::reject &&
-                (portrait.reasons & luma::ai::closedEyes) && portrait.eyesOpen == .05,
+                (portrait.reasons & luma::ai::closedEyes) && portrait.eyesOpen &&
+                *portrait.eyesOpen == .05,
             "One closed-eye face in a group did not force an explainable reject suggestion.");
+    luma::ai::FaceObservation unavailable{{.1, .1, .4, .4}, std::nullopt, std::nullopt, {1, 0}};
+    const auto withoutFaceMetrics =
+        luma::ai::scoreCullingPreview({64, 64, detailed}, {1, 0}, {unavailable});
+    require(!withoutFaceMetrics.faceQuality && !withoutFaceMetrics.eyesOpen &&
+                !(withoutFaceMetrics.reasons & (luma::ai::lowFaceQuality | luma::ai::closedEyes)) &&
+                std::abs(withoutFaceMetrics.score - picked.score) < 1e-12,
+            "Unavailable face metrics changed the score or produced a negative reason.");
     luma::CancellationSource cancelled;
     cancelled.cancel();
     rejects(
@@ -103,7 +111,7 @@ void providerChecks() {
     auto pixels = preview(true);
     const auto provider = luma::macos::makePhotoCulling();
     require(provider->location() == luma::ai::ExecutionLocation::local &&
-                provider->identifier().starts_with("apertone.culling-v1."),
+                provider->identifier().starts_with("apertone.culling-v2."),
             "Culling provider is not a versioned local implementation.");
     double lastProgress = 0;
     const auto result = provider->analyze({64, 64, pixels}, {}, [&](double progress) {

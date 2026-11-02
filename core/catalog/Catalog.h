@@ -139,6 +139,7 @@ class Catalog {
     void finishImport(const std::string &sessionID, const std::string &state);
     std::optional<ImportReplay> latestCompletedImport() const;
     std::vector<ImportSourceRecord> importSources() const;
+    std::vector<DuplicateReviewRecord> latestImportDuplicates() const;
     std::optional<ImportReplay> importSource(const std::filesystem::path &path) const;
     void forgetImportSource(const std::filesystem::path &path);
     std::vector<ImportJournal> unfinishedImports() const;

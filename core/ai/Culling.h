@@ -3,6 +3,7 @@
 #include "core/ai/Providers.h"
 #include <array>
 #include <memory>
+#include <optional>
 #include <vector>
 
 namespace luma::ai {
@@ -20,16 +21,18 @@ enum CullingReason : std::uint32_t {
 struct FaceObservation {
     // Normalized top-left coordinates in the oriented preview.
     std::array<double, 4> bounds{};
-    double quality = .5;
-    double eyesOpen = .5;
+    // Missing or low-confidence Vision observations stay unavailable. They are
+    // never converted into a negative signal by the deterministic scorer.
+    std::optional<double> quality;
+    std::optional<double> eyesOpen;
     std::vector<float> embedding;
 };
 
 struct CullingObservation {
     double sharpness = 0;
     double exposure = 0;
-    double faceQuality = .5;
-    double eyesOpen = .5;
+    std::optional<double> faceQuality;
+    std::optional<double> eyesOpen;
     double score = 0;
     CullingRecommendation recommendation = CullingRecommendation::review;
     std::uint32_t reasons = noCullingReason;
