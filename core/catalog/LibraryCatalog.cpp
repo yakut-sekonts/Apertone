@@ -3,6 +3,7 @@
 #include "core/catalog/SqliteStatement.h"
 #include <algorithm>
 #include <limits>
+#include <memory>
 #include <set>
 
 namespace luma {
@@ -626,6 +627,75 @@ std::vector<DuplicateReviewRecord> Catalog::latestImportDuplicates() const {
     std::vector<DuplicateReviewRecord> result;
     while (query.row())
         result.push_back({query.string(0), query.string(1), query.string(2)});
+    return result;
+}
+DuplicateFingerprintPage
+Catalog::duplicateFingerprintPageFrom(const std::filesystem::path &path,
+                                      const std::optional<DuplicateFingerprintCursor> &after,
+                                      int limit, CancellationToken stop) {
+    const auto validChecksum = [](const std::string &value) {
+        return value.size() == 64 && std::all_of(value.begin(), value.end(), [](char c) {
+                   return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+               });
+    };
+    if (path.empty() || limit < 1 || limit > 128 ||
+        (after && (!validChecksum(after->checksum) || after->size < 0)))
+        throw std::runtime_error("Invalid duplicate fingerprint page bounds.");
+    if (stop.isCancelled())
+        throw std::runtime_error("Duplicate fingerprint query cancelled.");
+    sqlite3 *raw = nullptr;
+    const int openResult =
+        sqlite3_open_v2(path.c_str(), &raw, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
+    const std::unique_ptr<sqlite3, decltype(&sqlite3_close)> db(raw, &sqlite3_close);
+    if (openResult != SQLITE_OK)
+        throw std::runtime_error(std::string("Cannot open catalog read-only: ") +
+                                 (raw ? sqlite3_errmsg(raw) : "out of memory"));
+    sqlite3_progress_handler(
+        db.get(), 1000,
+        [](void *context) {
+            return static_cast<CancellationToken *>(context)->isCancelled() ? 1 : 0;
+        },
+        &stop);
+    if (sqlite3_exec(db.get(), "BEGIN", nullptr, nullptr, nullptr) != SQLITE_OK)
+        throw std::runtime_error(std::string("Cannot start catalog read: ") +
+                                 sqlite3_errmsg(db.get()));
+    const std::string select =
+        "SELECT a.checksum,a.filesize,a.id,a.original_path,a.rowid FROM assets a "
+        "WHERE length(a.checksum)=64 AND length(CAST(a.checksum AS BLOB))=64 "
+        "AND a.checksum NOT GLOB '*[^0-9a-f]*' "
+        "AND EXISTS(SELECT 1 FROM assets b WHERE b.checksum=a.checksum "
+        "AND b.filesize=a.filesize AND b.rowid!=a.rowid) ";
+    DuplicateFingerprintPage result;
+    const auto read = [&](const char *predicate, bool bindRowID) {
+        const auto sql = select + predicate + " ORDER BY a.checksum,a.filesize,a.rowid LIMIT ?4";
+        Statement query(db.get(), sql.c_str());
+        if (after) {
+            query.text(1, after->checksum);
+            query.integer(2, after->size);
+            if (bindRowID)
+                query.integer(3, after->rowID);
+        }
+        query.integer(4, limit + 1 - static_cast<int>(result.rows.size()));
+        while (query.row())
+            result.rows.push_back({query.string(0), query.integer(1), query.string(2),
+                                   query.string(3), query.integer(4)});
+    };
+    if (after) {
+        read("AND a.checksum=?1 AND a.filesize=?2 AND a.rowid>?3", true);
+        if (result.rows.size() <= static_cast<std::size_t>(limit))
+            read("AND (a.checksum,a.filesize)>(?1,?2)", false);
+    } else {
+        read("", false);
+    }
+    if (stop.isCancelled())
+        throw std::runtime_error("Duplicate fingerprint query cancelled.");
+    if (sqlite3_exec(db.get(), "COMMIT", nullptr, nullptr, nullptr) != SQLITE_OK)
+        throw std::runtime_error(std::string("Cannot finish catalog read: ") +
+                                 sqlite3_errmsg(db.get()));
+    if (result.rows.size() > static_cast<std::size_t>(limit)) {
+        result.hasMore = true;
+        result.rows.pop_back();
+    }
     return result;
 }
 std::vector<std::string> Catalog::importProblems(const std::string &sessionID) const {

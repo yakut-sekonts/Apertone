@@ -13,6 +13,7 @@ DetailPanel 1.0 DetailPanel.qml
 DevelopSlider 1.0 DevelopSlider.qml
 DiagnosticsDialog 1.0 DiagnosticsDialog.qml
 ExportPanel 1.0 ExportPanel.qml
+FingerprintReviewDialog 1.0 FingerprintReviewDialog.qml
 HSLPanel 1.0 HSLPanel.qml
 HistogramPanel 1.0 HistogramPanel.qml
 HistoryDialog 1.0 HistoryDialog.qml

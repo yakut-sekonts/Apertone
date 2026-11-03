@@ -50,6 +50,80 @@ void sql(const std::filesystem::path &path, const char *statement) {
     if (result != SQLITE_OK)
         throw std::runtime_error(message);
 }
+void fingerprintModelTests(const std::filesystem::path &root) {
+    {
+        const auto emptyPath = root / "empty-fingerprint-model.sqlite";
+        {
+            luma::Catalog empty(emptyPath);
+        }
+        LibraryModel empty(emptyPath);
+        wait([&] { return !empty.working() && !empty.loading(); });
+        empty.openFingerprintReview();
+        wait([&] { return !empty.fingerprintBusy(); });
+        require(empty.fingerprintRows().isEmpty() && !empty.fingerprintHasNext() &&
+                    empty.fingerprintError().isEmpty(),
+                "Empty fingerprint review failed.");
+        empty.closeFingerprintReview();
+    }
+    const auto path = root / "fingerprint-model.sqlite";
+    {
+        luma::Catalog catalog(path);
+    }
+    sql(path, R"sql(BEGIN;
+        WITH RECURSIVE n(i) AS (VALUES(1) UNION ALL SELECT i+1 FROM n WHERE i<85)
+        INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,width,height,orientation)
+        SELECT printf('%04d',i),'/missing/Фото'||i||'.jpg',printf('%04d.jpg',i),'jpg',1,
+               'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',1,1,1 FROM n;
+        COMMIT;)sql");
+    LibraryModel model(path);
+    wait([&] { return !model.working() && !model.loading(); });
+    model.openFingerprintReview();
+    wait([&] { return !model.fingerprintBusy(); });
+    require(model.fingerprintRows().size() == 40 && model.fingerprintHasNext() &&
+                !model.fingerprintHasPrevious() && model.fingerprintError().isEmpty(),
+            "Fingerprint first page failed.");
+    const auto firstID = model.fingerprintRows().front().toMap().value("assetID").toString();
+    model.nextFingerprintPage();
+    wait([&] { return !model.fingerprintBusy(); });
+    require(model.fingerprintRows().size() == 40 && model.fingerprintHasNext() &&
+                model.fingerprintHasPrevious(),
+            "Fingerprint second page failed.");
+    model.previousFingerprintPage();
+    wait([&] { return !model.fingerprintBusy(); });
+    require(!model.fingerprintHasPrevious() && model.fingerprintRows().size() == 40 &&
+                model.fingerprintRows().front().toMap().value("assetID").toString() == firstID,
+            "Fingerprint previous page failed.");
+    model.nextFingerprintPage();
+    wait([&] { return !model.fingerprintBusy(); });
+    model.nextFingerprintPage();
+    wait([&] { return !model.fingerprintBusy(); });
+    require(model.fingerprintRows().size() == 5 && !model.fingerprintHasNext(),
+            "Fingerprint last page failed.");
+    model.refresh();
+    require(model.fingerprintRows().isEmpty() && !model.fingerprintHasNext() &&
+                model.fingerprintError() == "Catalog changed. Refresh this list.",
+            "Library reload did not invalidate fingerprint review.");
+    wait([&] { return !model.loading(); });
+    model.openFingerprintReview();
+    model.closeFingerprintReview();
+    QElapsedTimer delay;
+    delay.start();
+    while (delay.elapsed() < 50) {
+        QCoreApplication::processEvents();
+        QThread::msleep(1);
+    }
+    require(!model.fingerprintBusy() && model.fingerprintRows().isEmpty(),
+            "Closed fingerprint review retained a pending result.");
+    const auto moved = root / "fingerprint-model-moved.sqlite";
+    std::filesystem::rename(path, moved);
+    model.openFingerprintReview();
+    wait([&] { return !model.fingerprintBusy(); });
+    require(!model.fingerprintError().isEmpty() && model.fingerprintRows().isEmpty() &&
+                !std::filesystem::exists(path),
+            "Unavailable catalog was silently created or shown as a valid result.");
+    model.closeFingerprintReview();
+    std::filesystem::rename(moved, path);
+}
 void automaticCullingImportTests(const std::filesystem::path &root,
                                  const std::filesystem::path &fixture) {
     const auto folder = root / "automatic-culling";
@@ -933,12 +1007,16 @@ int main(int argc, char **argv) {
     if (argc != 2)
         return 2;
     const bool scaleContract = std::string(argv[1]) == "--scale-contract";
+    const bool fingerprintsOnly = std::string(argv[1]) == "--fingerprints";
     const auto root = std::filesystem::temp_directory_path() / ("luma-library-" + luma::newID());
     std::filesystem::create_directories(root);
     try {
-        if (scaleContract) {
+        if (fingerprintsOnly) {
+            fingerprintModelTests(root);
+        } else if (scaleContract) {
             modelTests(root, true);
         } else {
+            fingerprintModelTests(root);
             automaticCullingImportTests(root, argv[1]);
             invalidXmpTextTests(root, argv[1]);
             maintenanceAfterCancelledImportTests(root, argv[1]);
@@ -951,8 +1029,9 @@ int main(int argc, char **argv) {
             sourceAvailabilityTests(root, argv[1]);
         }
         std::filesystem::remove_all(root);
-        std::cout << (scaleContract ? "Library 100k scale contract passed\n"
-                                    : "Library functional unit tests passed\n");
+        std::cout << (fingerprintsOnly ? "Library fingerprint model passed\n"
+                      : scaleContract  ? "Library 100k scale contract passed\n"
+                                       : "Library functional unit tests passed\n");
         return 0;
     } catch (const std::exception &e) {
         std::filesystem::remove_all(root);

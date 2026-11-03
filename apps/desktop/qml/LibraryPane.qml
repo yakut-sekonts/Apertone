@@ -198,6 +198,7 @@ Rectangle {
             }
         }
     }
+    FingerprintReviewDialog { id: fingerprintDialog; libraryModel: library }
     RowLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
@@ -207,6 +208,7 @@ Rectangle {
                 Label { text: qsTranslate("Apertone", "LIBRARY"); font.pixelSize: 10; color: Theme.faint; font.letterSpacing: 1.5 }
                 ApertoneButton { objectName: "library.importButton"; text: qsTranslate("Apertone", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
+                ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
                 ApertoneButton { objectName: "semantic.open"; text: qsTranslate("Apertone", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
                 ApertoneButton {
                     objectName: "library.photoActions"
