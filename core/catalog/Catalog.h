@@ -33,6 +33,7 @@ struct AssetSnapshot {
 struct BatchEditResult {
     std::size_t changed = 0;
     std::optional<EditDocument> active;
+    std::optional<PersistedEditHistory> activeHistory;
 };
 struct DerivedImageRecord {
     std::filesystem::path path;
@@ -209,6 +210,7 @@ class Catalog {
     bool batchStorageConfigured_ = false;
     sqlite3 *db_ = nullptr;
     std::optional<EditDocument> batchActiveEdits(const std::string &id) const;
+    EditHistory batchHistory(const std::string &id, const EditDocument &expected) const;
     void migrateSharpening();
     void migrateNoiseReduction();
     void migrateCrop();

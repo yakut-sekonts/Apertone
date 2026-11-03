@@ -93,7 +93,7 @@ Dialog {
             spacing: 10
             Label { text: editor.filename; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
             Label {
-                text: qsTranslate("Apertone", "History keeps up to 200 steps per photo and restores after restart. Applying a batch change starts a new history; named versions remain independent.")
+                text: qsTranslate("Apertone", "History keeps up to 200 steps per photo and restores after restart. Batch changes add steps; batch Undo is available during this session.")
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             RowLayout {

@@ -293,8 +293,8 @@ void batchArbitration(Context &c) {
     c.driver->click("batchApplyPreset");
     batchIdle(c);
     require(documents(c) == batchDocs && c.editor.currentSettings() == batchDocs.at(photo) &&
-                !c.editor.canUndo() && !c.editor.canRedo() && c.batch.canUndo(),
-            "Committed active-asset batch did not establish its independent history boundary");
+                c.editor.canUndo() && !c.editor.canRedo() && c.batch.canUndo(),
+            "Committed active-asset batch did not preserve its local history");
     c.driver->click("main.developButton");
     const auto edited = exposure(c, {.43, .5});
     saved(c, edited);
@@ -302,7 +302,7 @@ void batchArbitration(Context &c) {
     editedDocs.at(photo) = edited;
     require(c.editor.canUndo() && c.batch.canUndo(), "Arbitration fixture lacks both Undo owners");
     c.driver->click("main.undoButton"); // Develop: editor Undo has priority.
-    require(c.editor.currentSettings() == batchDocs.at(photo) && !c.editor.canUndo() &&
+    require(c.editor.currentSettings() == batchDocs.at(photo) && c.editor.canUndo() &&
                 c.editor.canRedo() && c.batch.canUndo(),
             "Develop Undo did not select editor history");
     saved(c, batchDocs.at(photo));
@@ -314,16 +314,32 @@ void batchArbitration(Context &c) {
     require(documents(c) == editedDocs, "Editor Redo changed another photo");
     c.driver->click("main.undoButton");
     saved(c, batchDocs.at(photo));
-    c.driver->click("main.undoButton"); // No local Undo remains: route to batch.
+    c.driver->click("main.undoButton"); // Develop Undo applies only to the open photo.
+    saved(c, prior);
+    auto locallyUndone = batchDocs;
+    locallyUndone.at(photo) = prior;
+    require(documents(c) == locallyUndone && c.batch.canUndo(),
+            "Local Undo did not retain independent batch journal");
+    c.driver->click("main.libraryButton");
+    c.driver->click("main.undoButton");
     batchIdle(c);
-    require(documents(c) == baseline && c.editor.currentSettings() == prior &&
-                !c.editor.canUndo() && !c.editor.canRedo() && c.batch.canRedo(),
-            "Develop fallback Undo did not atomically restore the prior batch across all photos");
+    require(!c.batch.error().isEmpty() && documents(c) == locallyUndone,
+            "Batch Undo did not reject a local per-photo history conflict");
+    c.driver->click("main.developButton");
+    c.driver->click("main.redoButton");
+    saved(c, batchDocs.at(photo));
+    c.driver->click("main.libraryButton");
+    c.driver->click("main.undoButton");
+    batchIdle(c);
+    require(documents(c) == baseline && c.editor.currentSettings() == prior && c.editor.canUndo() &&
+                c.batch.canRedo(),
+            "Library batch Undo did not preserve per-photo history");
     c.driver->click("main.redoButton");
     batchIdle(c);
     require(documents(c) == batchDocs && c.editor.currentSettings() == batchDocs.at(photo) &&
-                !c.editor.canRedo(),
-            "Develop fallback Redo did not restore batch snapshot");
+                c.editor.canUndo(),
+            "Library batch Redo did not restore snapshots and history");
+    c.driver->click("main.developButton");
     const auto newer = exposure(c, {.4, .5});
     saved(c, newer);
     auto conflicting = batchDocs;
@@ -420,8 +436,16 @@ void batchGrowth(Context &c) {
         require(revisions(c) == expectedRevisions,
                 "One apply/Undo cycle produced missing/duplicate durable revisions");
         const auto measured = footprint(c);
-        require(measured.rows == before.rows,
-                "Repeated batch cycles accumulated permanent catalog rows");
+        for (const auto &[table, count] : before.rows) {
+            if (table == "edit_history_states")
+                continue;
+            require(measured.rows.at(table) == count,
+                    "Repeated batch cycles accumulated unrelated catalog rows");
+        }
+        require(measured.rows.at("edit_history_states") <=
+                    before.rows.at("edit_history_states") +
+                        static_cast<std::int64_t>(selection.size()) * 201,
+                "Repeated batch cycles exceeded the per-photo history bound");
         if (!warmed)
             warmed = measured;
         c.driver->log({{"action", "batch_apply_undo_growth"},
@@ -433,9 +457,11 @@ void batchGrowth(Context &c) {
     }
     checkpoint(c);
     const auto final = footprint(c);
-    require(warmed && final.pageSize == warmed->pageSize && final.pages <= warmed->pages &&
-                final.rows == warmed->rows,
-            "Fixed-size repeated batch workload grew permanent catalog pages after warmup");
+    require(warmed && final.pageSize == warmed->pageSize &&
+                final.rows.at("edit_history_states") <=
+                    before.rows.at("edit_history_states") +
+                        static_cast<std::int64_t>(selection.size()) * 201,
+            "Repeated batch workload exceeded its per-photo history bound");
     require(QFileInfo(c.catalogFile).size() == final.pages * final.pageSize,
             "Checkpointed main catalog file does not match its measured page footprint");
     c.checkData();

@@ -122,6 +122,7 @@ void BatchController::run() {
         QString error;
         LocalizedText status;
         std::optional<luma::EditDocument> updated;
+        std::optional<luma::PersistedEditHistory> history;
         bool committedChanges = false;
         try {
             if (!catalog_)
@@ -138,12 +139,13 @@ void BatchController::run() {
                         },
                         Qt::QueuedConnection);
             };
-            const auto result =
+            auto result =
                 request.action == Action::apply
                     ? catalog_->applyBatchEdits(request.ids, request.source, request.groups, stop,
                                                 progress, active, request.parameters)
                     : catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
-            updated = result.active;
+            updated = std::move(result.active);
+            history = std::move(result.activeHistory);
             committedChanges = result.changed > 0;
             status =
                 result.changed
@@ -159,22 +161,26 @@ void BatchController::run() {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, error, status, undo, redo, updated, committedChanges] {
+                [self, error, status, undo, redo, updated = std::move(updated),
+                 history = std::move(history), committedChanges]() mutable {
                     if (self)
-                        self->finish(error, status, undo, redo, updated, committedChanges);
+                        self->finish(error, status, undo, redo, std::move(updated),
+                                     std::move(history), committedChanges);
                 },
                 Qt::QueuedConnection);
     });
 }
 void BatchController::finish(QString error, LocalizedText status, bool undo, bool redo,
-                             std::optional<luma::EditDocument> active, bool committedChanges) {
+                             std::optional<luma::EditDocument> active,
+                             std::optional<luma::PersistedEditHistory> history,
+                             bool committedChanges) {
     phase_ = Phase::idle;
     undo_ = undo;
     redo_ = redo;
     error_ = std::move(error);
     status_ = std::move(status);
     progress_ = 1;
-    editor_.finishExternalEdits(active);
+    editor_.finishExternalEdits(active, std::move(history));
     if (committedChanges)
         library_.refreshThumbnails();
     library_.setExternalBusy(false);
