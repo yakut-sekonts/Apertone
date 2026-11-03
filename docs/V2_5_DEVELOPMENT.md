@@ -19,6 +19,13 @@ selected from the existing backlog; the 2.0 release remains the first priority.
 - Batch Apply/Paste/Sync and batch Undo/Redo retain each changed photo's history
   in the same transaction as its edits. The session batch journal is not
   persistent across restart; see [ADR 0010](adr/0010-batch-settings.md).
+- Library can review matching stored SHA-256 and byte size across the catalog.
+  These are import-time fingerprints, not proof of current file identity: the
+  originals may have changed or become unavailable. The review does not open
+  or modify originals. Pages contain at most 40 assets, and a large group can
+  span pages. Concurrent catalog changes may alter results between pages;
+  Refresh starts a new traversal. Local Library reload invalidates the view.
+  Back navigation retains up to 128 page positions.
 
 ## Verification still required
 
@@ -28,3 +35,9 @@ release artifacts and updater. Batch history has targeted transaction, restart,
 conflict and UI coverage; the actual 256 MiB history limit and the separate
 UX-BAT-014 load scenario have not been exercised for this change. Do not mark
 them as passed without evidence.
+
+The fingerprint review has targeted read-only, query-plan, pagination,
+asynchronous model and offscreen dialog coverage. Cancellation before a query
+was tested; the SQLite progress handler's interruption of an already executing
+query was not deterministically tested. The dialog has not been tested in a
+native macOS window.
