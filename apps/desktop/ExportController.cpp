@@ -271,7 +271,7 @@ void ExportController::plan() {
                 auto target =
                     folder / settings
                                  .filename(QString::fromStdString(item.asset.path.string()),
-                                           ++sequence, date)
+                                           ++sequence, date, item.asset.metadata)
                                  .toStdString();
                 const auto base = target;
                 if (settings.conflict == luma::ExportConflict::unique) {

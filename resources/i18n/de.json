@@ -173,6 +173,7 @@
     "Exposure": "Belichtung",
     "FILL": "FÜLLEN",
     "FIT": "EINPASSEN",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "Auch: {time}, {camera}, {lens}, {iso} · unknown bei fehlenden Daten",
     "Filename · {filename}, {sequence}, {date}": "Dateiname · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "Dateien mit gleichem Namen werden ersetzt.",
     "File…": "Datei…",

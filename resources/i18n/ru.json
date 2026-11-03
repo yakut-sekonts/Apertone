@@ -173,6 +173,7 @@
     "Exposure": "Экспозиция",
     "FILL": "ЗАПОЛНИТЬ",
     "FIT": "ВПИСАТЬ",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "Также: {time}, {camera}, {lens}, {iso} · unknown при отсутствии данных",
     "Filename · {filename}, {sequence}, {date}": "Имя файла · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "Файлы с совпадающими именами будут заменены.",
     "File…": "Файл…",

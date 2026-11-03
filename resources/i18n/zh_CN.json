@@ -173,6 +173,7 @@
     "Exposure": "曝光",
     "FILL": "填充",
     "FIT": "适合窗口",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "还可用：{time}、{camera}、{lens}、{iso} · 无数据时为 unknown",
     "Filename · {filename}, {sequence}, {date}": "文件名 · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "同名文件将被替换。",
     "File…": "文件…",

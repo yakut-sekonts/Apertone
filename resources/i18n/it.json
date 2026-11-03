@@ -173,6 +173,7 @@
     "Exposure": "Esposizione",
     "FILL": "RIEMPI",
     "FIT": "ADATTA",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "Anche: {time}, {camera}, {lens}, {iso} · unknown se i dati mancano",
     "Filename · {filename}, {sequence}, {date}": "Nome file · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "I file con nomi corrispondenti verranno sostituiti.",
     "File…": "File…",

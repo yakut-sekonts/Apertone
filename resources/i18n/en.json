@@ -173,6 +173,7 @@
     "Exposure": "Exposure",
     "FILL": "FILL",
     "FIT": "FIT",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable",
     "Filename · {filename}, {sequence}, {date}": "Filename · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "Files with matching names will be replaced.",
     "File…": "File…",

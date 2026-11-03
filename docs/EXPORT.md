@@ -57,6 +57,14 @@ output image composite in linear RGB; no source image is modified.
 
 Templates accept `{filename}` (source stem), `{sequence}` (four digits in filename/
 asset-ID order), and `{date}` (capture timestamp as UTC yyyy-MM-dd, or `undated`).
+`{time}` uses the capture timestamp in UTC HH-mm-ss. `{camera}` and `{lens}` use
+catalog metadata; `{iso}` uses the positive finite ISO value in locale-independent
+notation. Missing or invalid values are `unknown-time`, `unknown-camera`,
+`unknown-lens` and `unknown-iso` respectively. Metadata values are NFC-normalized;
+path separators, colons and control characters become underscores. They are treated
+as literal text and cannot introduce paths or further template substitutions. These
+values are frozen during queue planning. Metadata-derived names may expose camera
+information even when the output metadata policy strips it.
 The selected format adds its extension. Paths, unknown tokens and overlong results
 are rejected. Skip preserves existing files, Unique appends `-2`, `-3`, etc., and
 Replace explicitly allows replacement. Duplicate planned destinations under Skip/

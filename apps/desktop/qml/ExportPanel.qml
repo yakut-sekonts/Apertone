@@ -41,6 +41,7 @@ Dialog {
                 ApertoneButton { text: qsTranslate("Apertone", "Choose…"); onClicked: folder.open() }
             }
             Label { text: qsTranslate("Apertone", "Filename · {filename}, {sequence}, {date}"); font.pixelSize: 12 }
+            Label { objectName: "export.namingTokens"; text: qsTranslate("Apertone", "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable"); font.pixelSize: 11; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ApertoneTextField { objectName: "exportNaming"; text: panel.form.naming; Layout.fillWidth: true; onEditingFinished: panel.update("naming", text) }
             ApertoneComboBox { objectName: "export.conflict"; model: [qsTranslate("Apertone", "Existing files: skip"), qsTranslate("Apertone", "Existing files: unique name"), qsTranslate("Apertone", "Existing files: replace")]; currentIndex: panel.form.conflict; onActivated: panel.update("conflict", currentIndex); Layout.fillWidth: true }
             Label { visible: panel.form.conflict === 2; text: qsTranslate("Apertone", "Files with matching names will be replaced."); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }

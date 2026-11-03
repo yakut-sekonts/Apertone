@@ -376,7 +376,7 @@ if(BUILD_TESTING)
     target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
-    qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
+    qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp tests/unit/ExportExifFixture.mm apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
         apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h

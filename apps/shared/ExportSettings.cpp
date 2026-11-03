@@ -1,6 +1,8 @@
 #include "apps/shared/ExportSettings.h"
+#include <QDateTime>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QTimeZone>
 #include <cmath>
 
 namespace luma {
@@ -24,6 +26,21 @@ QString text(const QJsonObject &object, const char *key) {
         throw std::runtime_error("Invalid text export setting.");
     return value.toString();
 }
+// Camera metadata is untrusted filename data, never a template or a path.
+QString filenameComponent(const std::string &value, const QString &fallback) {
+    auto result = QString::fromUtf8(value.data(), static_cast<qsizetype>(value.size()))
+                      .normalized(QString::NormalizationForm_C)
+                      .trimmed();
+    for (qsizetype index = 0; index < result.size(); ++index) {
+        const auto character = result.at(index);
+        if (character.category() == QChar::Other_Control || character == u'/' ||
+            character == u'\\' || character == u':')
+            result[index] = u'_';
+    }
+    if (result.isEmpty() || result == QStringLiteral(".") || result == QStringLiteral(".."))
+        return fallback;
+    return result;
+}
 } // namespace
 void ExportSettings::validate() const {
     options.validate();
@@ -37,14 +54,18 @@ void ExportSettings::validate() const {
         throw std::runtime_error("Invalid export filename template.");
     auto remainder = naming;
     for (const auto &token :
-         {QStringLiteral("{filename}"), QStringLiteral("{sequence}"), QStringLiteral("{date}")})
+         {QStringLiteral("{filename}"), QStringLiteral("{sequence}"), QStringLiteral("{date}"),
+          QStringLiteral("{time}"), QStringLiteral("{camera}"), QStringLiteral("{lens}"),
+          QStringLiteral("{iso}")})
         remainder.replace(token, QString());
     if (remainder.contains('{') || remainder.contains('}'))
         throw std::runtime_error("Unknown export filename token.");
 }
-QString ExportSettings::filename(const QString &source, int sequence, const QString &date) const {
+QString ExportSettings::filename(const QString &source, int sequence, const QString &date,
+                                 const PhotoMetadata &metadata) const {
     // Parse the template once: replacement values are literal filename data.
-    static const QRegularExpression tokens(QStringLiteral("\\{(filename|sequence|date)\\}"));
+    static const QRegularExpression tokens(
+        QStringLiteral("\\{(filename|sequence|date|time|camera|lens|iso)\\}"));
     auto matches = tokens.globalMatch(naming);
     QString result;
     qsizetype cursor = 0;
@@ -56,8 +77,24 @@ QString ExportSettings::filename(const QString &source, int sequence, const QStr
             result += QFileInfo(source).completeBaseName();
         else if (token == QStringLiteral("sequence"))
             result += QStringLiteral("%1").arg(sequence, 4, 10, QChar('0'));
-        else
+        else if (token == QStringLiteral("date"))
             result += date;
+        else if (token == QStringLiteral("camera"))
+            result += filenameComponent(metadata.camera, QStringLiteral("unknown-camera"));
+        else if (token == QStringLiteral("lens"))
+            result += filenameComponent(metadata.lens, QStringLiteral("unknown-lens"));
+        else if (token == QStringLiteral("iso"))
+            result += metadata.iso && std::isfinite(*metadata.iso) && *metadata.iso > 0
+                          ? QString::number(*metadata.iso, 'g', 12)
+                          : QStringLiteral("unknown-iso");
+        else {
+            const auto captured =
+                metadata.captureTimestamp
+                    ? QDateTime::fromSecsSinceEpoch(*metadata.captureTimestamp, QTimeZone::UTC)
+                    : QDateTime();
+            result += captured.isValid() ? captured.toString(QStringLiteral("HH-mm-ss"))
+                                         : QStringLiteral("unknown-time");
+        }
         cursor = match.capturedEnd();
     }
     result += naming.sliced(cursor);

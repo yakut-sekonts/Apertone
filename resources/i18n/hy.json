@@ -173,6 +173,7 @@
     "Exposure": "Լուսակայում",
     "FILL": "ԼՐԱՑՆԵԼ",
     "FIT": "ՏԵՂԱՎՈՐԵԼ",
+    "Also: {time}, {camera}, {lens}, {iso} · unknown when unavailable": "Նաև՝ {time}, {camera}, {lens}, {iso} · տվյալների բացակայության դեպքում՝ unknown",
     "Filename · {filename}, {sequence}, {date}": "Ֆայլի անուն · {filename}, {sequence}, {date}",
     "Files with matching names will be replaced.": "Նույնանուն ֆայլերը կփոխարինվեն։",
     "File…": "Ֆայլ…",
