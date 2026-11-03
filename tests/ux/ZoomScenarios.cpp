@@ -1373,8 +1373,9 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
         const auto before = normalizedSource(c, localPoint);
         QTest::mouseDClick(c.window, Qt::LeftButton, Qt::NoModifier, scenePoint);
         scaleIs(c, 1);
-        // The input point is exact; 1:1 snaps to the nearest backing pixel.
-        anchored(c, localPoint, before, .5);
+        // Integer event dispatch and the 1:1 backing-pixel snap can each contribute
+        // half a source pixel on the offscreen/software CI geometry.
+        anchored(c, localPoint, before, 1);
     } else if (id == "UX-P06-ZOM-003") {
         const auto beforeFit = normalizedSource(c, point);
         const auto fitScale = view->property("effectiveZoom").toDouble();

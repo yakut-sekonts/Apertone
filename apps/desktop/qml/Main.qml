@@ -588,7 +588,7 @@ ApplicationWindow {
             }
             Keys.onRightPressed: function(event) { moveCurrentPhoto(1, event) }
             Keys.onLeftPressed: function(event) { moveCurrentPhoto(-1, event) }
-            delegate: PhotoCard { width: 128; height: 104; compact: true }
+            delegate: PhotoCard { width: 128; height: Theme.filmstripHeight; compact: true }
             ScrollBar.horizontal: ScrollBar { objectName: "develop.filmstripBar" }
         }
         Rectangle {
