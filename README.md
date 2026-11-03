@@ -7,20 +7,21 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v1.6.0
+## Release: v2.0.0
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[1.6.0 release notes](docs/releases/v1.6.0.md)
+[2.0.0 release notes](docs/releases/v2.0.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 1.6.0 adds edge-aware RAW
-reconstruction, Adaptive HDR import/display/export, editable Enhance layers with
-provenance and typed decode diagnostics. Version 1.5 adaptive editing, Version
-1.4 import-source management, the Intelligent Library, broad camera support and
-70 stackable Quick Looks are included. Existing Luma and Apertone catalogs,
-settings, presets, DNG output and Sparkle update installations are upgraded in
-place.
+checksums accompany the release. Version 2.0 adds camera-linear highlight
+recovery, dynamic embedded DNG profiles, inspectable local review, durable
+per-photo History, deterministic Detail DNG operations, measured Auto noise and
+linked Before/After comparison, and a denser desktop control layout. Adaptive
+HDR, editable Enhance, adaptive editing, import-source management, broad camera
+support and 70 stackable Quick Looks are included. Existing Luma and Apertone
+catalogs, settings, presets, DNG output and Sparkle update installations are
+upgraded in place.
 
 Version 1.0 and future releases use the same open-source GitHub distribution:
 standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
@@ -28,7 +29,7 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–1.6
+## Included in source: phases 0.4–2.0
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
@@ -67,7 +68,7 @@ evidence and owner-accepted exceptions.
   selections and reusable independent copies of combined mask stacks.
 - ✅ Point/parametric Curves, HSL and targeted photo adjustments in source.
 - ✅ User presets, subset Copy/Paste and atomic batch preset/Paste/Sync in source.
-- ✅ Detail sharpening and manual luminance/color noise reduction with Option diagnostics in source.
+- ✅ Detail sharpening, measured Auto noise profile, bounded lens-blur and color-moiré correction, local Raw Details and deterministic 2× Detail Float DNG with explicit processing provenance.
 - ✅ Crop, ratios, straighten, flips and guide overlays in source.
 - ✅ Calibrated Lens Corrections with automatic/manual profiles in source.
 - ✅ Manual, Auto and Guided perspective Transform in source.
@@ -95,14 +96,16 @@ See [ordinary image support](docs/IMAGE_SUPPORT.md) for behavior and limits.
 Develop never uses the embedded JPEG as its image source.
 
 The current two-pass edge-aware Bayer reconstruction keeps a bilinear reference
-path for regression comparison. The 1.7 development branch adds camera-specific
-highlight reconstruction from LibRaw per-channel linearity metadata;
-representative real-camera qualification remains open.
+path for regression comparison. The unified 2.0 development cycle adds
+camera-specific highlight reconstruction from LibRaw per-channel linearity
+metadata. Representative Canon, Sony, Nikon, Pentax, Panasonic, OM System and
+camera-native DNG qualification is recorded in the
+[2.0 evidence](docs/qualification/2026-11-02/real-raw-2.0.json).
 
 ## Build and run
 
 ```bash
-git clone --branch v1.6.0 https://github.com/yakut-sekonts/Apertone.git
+git clone --branch v2.0.0 https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
@@ -148,11 +151,10 @@ Temperature spans 2000–25000 K and Tint spans −150…150. Manual WB uses a
 reference white-point approximation; As Shot uses the RAW camera gains.
 The development branch adds Auto WB and a neutral eyedropper that resolve to
 Custom values with one-step Undo; see [behavior and limits](docs/PHASE9_DEVELOPMENT.md#auto-white-balance-and-neutral-eyedropper).
-Named versions and the session History browser also have source implementations.
-These additions remain unbuilt/unqualified; persistent history and calibrated
-camera profiles are not claimed. The 1.7 highlight reconstruction path is built
-and covered by synthetic Bayer tests, but real-camera qualification remains open.
-Undo/Redo retains up to 200 operations in the current active-photo session.
+Named versions and the History browser retain per-photo timelines across restart.
+Version 2.0 resolves embedded dual-illuminant DNG profiles for the active White
+Balance. Undo/Redo retains up to 200 operations per photo and commits its cursor
+atomically with the current edit document.
 Double-click resets a slider; Cmd+Z / Cmd+Shift+Z undo and redo.
 
 Export uses an immutable edit snapshot, the original resolution, sRGB and no

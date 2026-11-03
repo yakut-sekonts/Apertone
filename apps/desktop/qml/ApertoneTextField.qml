@@ -5,10 +5,10 @@ TextField {
     id: control
 
     implicitHeight: Theme.controlHeight
-    leftPadding: 8
-    rightPadding: 8
-    topPadding: 5
-    bottomPadding: 5
+    leftPadding: 7
+    rightPadding: 7
+    topPadding: 3
+    bottomPadding: 3
     font.pixelSize: 11
     color: Theme.text
     placeholderTextColor: Theme.faint

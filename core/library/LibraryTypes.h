@@ -74,6 +74,11 @@ struct ImportSourceRecord {
     ImportOptions options;
     std::string finishedAt;
 };
+struct DuplicateReviewRecord {
+    std::filesystem::path sourcePath;
+    std::string assetID;
+    std::filesystem::path existingPath;
+};
 struct ImportJournalItem {
     std::string sessionID;
     int index = 0;

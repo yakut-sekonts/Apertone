@@ -16,7 +16,7 @@ ColumnLayout {
         Label { text: control.label; wrapMode: Text.Wrap; color: Theme.text; Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width; font.pixelSize: 12 }
         Label { text: Number(editor.localState[control.parameter] ?? 0).toFixed(control.step < 1 ? 2 : 0); color: Theme.accent; font.pixelSize: 12 }
     }
-    Slider {
+    ApertoneSlider {
         objectName: "local_" + control.parameter
         Accessible.name: control.label
         Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: control.width

@@ -82,12 +82,12 @@ Rectangle {
                 Accessible.name: qsTranslate("Apertone", "Projection")
             }
             Label { text: qsTranslate("Apertone", "Frame field of view") + " · " + Math.round(panoramaFOV.value) + "°" }
-            Slider {
+            ApertoneSlider {
                 id: panoramaFOV; from: 10; to: 140; value: 60; stepSize: 1
                 enabled: panoramaProjection.currentIndex !== 0
                 Layout.fillWidth: true; Accessible.name: qsTranslate("Apertone", "Frame field of view")
             }
-            CheckBox { id: panoramaWarp; text: qsTranslate("Apertone", "Boundary warp · stretch edges to reduce cropping"); Layout.fillWidth: true }
+            ApertoneCheckBox { id: panoramaWarp; text: qsTranslate("Apertone", "Boundary warp · stretch edges to reduce cropping"); Layout.fillWidth: true }
             ApertoneButton {
                 objectName: "merge.panorama.create"
                 text: qsTranslate("Apertone", "Create panorama")
@@ -110,12 +110,12 @@ Rectangle {
                 wrapMode: Text.Wrap; Layout.fillWidth: true
             }
             Label { text: qsTranslate("Apertone", "Deghosting") + " · " + Math.round(hdrDeghost.value) + "%" }
-            CheckBox {
+            ApertoneCheckBox {
                 id: hdrAlignment; objectName: "merge.alignment"
                 text: qsTranslate("Apertone", "Align frames"); checked: true
                 Layout.fillWidth: true
             }
-            Slider { id: hdrDeghost; objectName: "merge.deghost"; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Apertone", "Deghosting") }
+            ApertoneSlider { id: hdrDeghost; objectName: "merge.deghost"; from: 0; to: 100; value: 50; Layout.fillWidth: true; Accessible.name: qsTranslate("Apertone", "Deghosting") }
             ApertoneButton {
                 objectName: "merge.hdr.create"
                 text: qsTranslate("Apertone", "Create HDR")
@@ -163,12 +163,47 @@ Rectangle {
         standardButtons: Dialog.Close
         ScrollView { objectName: "library.importReportScroll"; anchors.fill: parent; clip: true; TextArea { objectName: "library.importReportText"; text: library.importReport; readOnly: true; wrapMode: Text.WrapAnywhere; textFormat: TextEdit.PlainText; selectByMouse: true } }
     }
+    Dialog {
+        id: duplicateReviewDialog; objectName: "library.duplicateReviewDialog"
+        title: qsTranslate("Apertone", "Skipped exact duplicates")
+        modal: true; anchors.centerIn: parent
+        width: Math.min(pane.width - 40, 720); height: Math.min(pane.height - 40, 500)
+        standardButtons: Dialog.Close
+        ColumnLayout {
+            anchors.fill: parent; spacing: Theme.panelSpacing
+            Label {
+                text: qsTranslate("Apertone", "These files matched existing originals byte for byte. Apertone kept the existing catalog item and did not delete either file.")
+                wrapMode: Text.Wrap; Layout.fillWidth: true
+            }
+            ScrollView {
+                Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                Column {
+                    width: parent.width; spacing: Theme.panelSpacing
+                    Repeater {
+                        model: library.duplicateReview
+                        Rectangle {
+                            required property var modelData
+                            width: parent.width; implicitHeight: duplicateText.implicitHeight + 16
+                            color: Theme.control; radius: 6
+                            Label {
+                                id: duplicateText; anchors.fill: parent; anchors.margins: 8
+                                text: modelData.sourceName + "\n" + modelData.sourcePath + "\n→ " +
+                                      modelData.existingName + "\n" + modelData.existingPath
+                                color: Theme.text; font.pixelSize: 11; wrapMode: Text.WrapAnywhere
+                                textFormat: Text.PlainText
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     RowLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
             color: Theme.panel; Layout.preferredWidth: Theme.sidebarWidth; Layout.fillHeight: true
             ColumnLayout {
-                anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: 8
+                anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: Theme.panelSpacing
                 Label { text: qsTranslate("Apertone", "LIBRARY"); font.pixelSize: 10; color: Theme.faint; font.letterSpacing: 1.5 }
                 ApertoneButton { objectName: "library.importButton"; text: qsTranslate("Apertone", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
@@ -211,7 +246,7 @@ Rectangle {
             }
         }
         ColumnLayout {
-            Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: Theme.panelPadding; spacing: 8
+            Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: Theme.panelPadding; spacing: Theme.panelSpacing
             RowLayout {
                 Layout.minimumWidth: 0; Layout.fillWidth: true
                 ApertoneTextField { id: search; objectName: "library.search"; Layout.minimumWidth: 0; placeholderTextColor: Theme.muted; placeholderText: qsTranslate("Apertone", "Search: name, path, camera, lens"); selectByMouse: true; maximumLength: 1024; Layout.fillWidth: true; onTextChanged: pane.applyFilter() }
@@ -240,12 +275,12 @@ Rectangle {
                     visible: faceGroupFilter.currentIndex > 0; enabled: !library.working
                     onClicked: faceGroupDialog.open()
                 }
-                CheckBox {
+                ApertoneCheckBox {
                     id: bestOfBurst; objectName: "intelligence.bestOfBurst"
                     text: qsTranslate("Apertone", "Best of burst"); font.pixelSize: 11
                     onToggled: pane.applyIntelligentFilter()
                 }
-                CheckBox {
+                ApertoneCheckBox {
                     objectName: "intelligence.autoAnalyze"
                     text: qsTranslate("Apertone", "Analyze new imports locally"); font.pixelSize: 11
                     checked: library.cullingAutoEnabled
@@ -290,6 +325,7 @@ Rectangle {
             RowLayout {
                 Layout.minimumWidth: 0; Layout.fillWidth: true
                 ApertoneButton { objectName: "library.importReportButton"; visible: library.importReport.length > 0; text: qsTranslate("Apertone", "Import errors"); onClicked: reportDialog.open() }
+                ApertoneButton { objectName: "library.duplicateReviewButton"; visible: library.duplicateReview.length > 0; text: qsTranslate("Apertone", "Duplicates") + " · " + library.duplicateReview.length; onClicked: duplicateReviewDialog.open() }
                 Label { text: library.loading ? qsTranslate("Apertone", "Loading…") : library.count + qsTranslate("Apertone", " photos · selected ") + library.selectedCount; color: Theme.muted; Layout.fillWidth: true }
                 ApertoneButton { objectName: "library.selectAll"; text: qsTranslate("Apertone", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
                 ApertoneButton { objectName: "library.clearSelection"; text: qsTranslate("Apertone", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }

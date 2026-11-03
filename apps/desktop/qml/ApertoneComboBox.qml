@@ -5,10 +5,10 @@ ComboBox {
     id: control
 
     implicitHeight: Theme.controlHeight
-    leftPadding: 9
-    rightPadding: 28
-    topPadding: 5
-    bottomPadding: 5
+    leftPadding: 8
+    rightPadding: 24
+    topPadding: 3
+    bottomPadding: 3
     font.pixelSize: 11
 
     palette.text: Theme.text

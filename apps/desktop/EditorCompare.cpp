@@ -10,6 +10,7 @@ QVariantMap EditorController::comparison() const {
         {"ready", compareReady_},
         {"error", compareError_},
         {"fullResolution", compareFull_},
+        {"beforeAfter", compareBeforeAfter_},
         {"ids", compareIDs_},
         {"names", compareNames_},
         {"left", QStringLiteral("image://preview/compare-left?%1").arg(compareImageRevision_)},
@@ -21,13 +22,24 @@ void EditorController::closeCompare() {
     compareBusy_ = false;
     compareReady_ = false;
     compareError_.clear();
+    compareBeforeAfter_ = false;
     compareIDs_.clear();
     compareNames_.clear();
     provider_->updateCompare({}, {});
     emit stateChanged();
 }
 void EditorController::prepareCompare(const QStringList &ids, bool fullResolution) {
-    if (closing_ || ids.size() != 2 || ids[0] == ids[1])
+    prepareCompareImpl(ids, fullResolution, false);
+}
+void EditorController::prepareBeforeAfter(bool fullResolution) {
+    if (!session_)
+        return;
+    const auto id = QString::fromStdString(session_->asset.id);
+    prepareCompareImpl({id, id}, fullResolution, true);
+}
+void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResolution,
+                                          bool beforeAfter) {
+    if (closing_ || ids.size() != 2 || (!beforeAfter && ids[0] == ids[1]))
         return;
     finishHistoryTools();
     compareJob_.cancel();
@@ -36,6 +48,7 @@ void EditorController::prepareCompare(const QStringList &ids, bool fullResolutio
     compareReady_ = false;
     compareError_.clear();
     compareFull_ = fullResolution;
+    compareBeforeAfter_ = beforeAfter;
     compareIDs_ = ids;
     compareNames_.clear();
     provider_->updateCompare({}, {});
@@ -49,8 +62,8 @@ void EditorController::prepareCompare(const QStringList &ids, bool fullResolutio
     try {
         compareJob_ = compareJobs_.submit(
             luma::JobPriority::interactive,
-            [self, revision, ids, fullResolution, active, activeEdits, catalogPath, service,
-             profile, hdrToneMapping](const luma::JobContext &context) {
+            [self, revision, ids, fullResolution, beforeAfter, active, activeEdits, catalogPath,
+             service, profile, hdrToneMapping](const luma::JobContext &context) {
                 std::array<QImage, 2> images;
                 QStringList names;
                 QString error;
@@ -64,7 +77,9 @@ void EditorController::prepareCompare(const QStringList &ids, bool fullResolutio
                             throw std::runtime_error(
                                 "Comparison photo is no longer in the catalog.");
                         assets[i] = std::move(snapshot->asset);
-                        if (assets[i].id == active)
+                        if (beforeAfter)
+                            assets[i].edits = i == 0 ? luma::EditDocument{} : activeEdits;
+                        else if (assets[i].id == active)
                             assets[i].edits = activeEdits;
                         names.append(QString::fromStdString(assets[i].path.filename().string()));
                     }
@@ -85,7 +100,8 @@ void EditorController::prepareCompare(const QStringList &ids, bool fullResolutio
                             hdrToneMapping ? luma::DisplayMapping::adaptiveHDR
                                            : luma::DisplayMapping::clip);
                         images[i] = QImage(rendered.rgba.data(), rendered.width, rendered.height,
-                                           rendered.width * 4, QImage::Format_RGBA8888)
+                                           static_cast<qsizetype>(rendered.width) * 4,
+                                           QImage::Format_RGBA8888)
                                         .copy();
                         if (images[i].isNull())
                             throw std::runtime_error("Cannot allocate the comparison preview.");

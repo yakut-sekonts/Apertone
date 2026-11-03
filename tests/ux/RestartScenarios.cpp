@@ -217,8 +217,13 @@ void restartScenario(Context &c, const QString &id, const QString &stage) {
     require(c.editor.sourcePath() == expected["source"].toString() &&
                 c.editor.currentSettings() == document->edits,
             "Process restart lost/crossed the saved document or mask geometry");
-    require(!c.editor.canUndo() && !c.editor.canRedo(),
-            "Session-local history crossed a process restart");
+    const auto restoredHistory =
+        luma::Catalog(c.catalogFile.toStdString()).editHistory(c.editor.photoID().toStdString());
+    const bool expectedUndo = restoredHistory && restoredHistory->currentIndex > 0;
+    const bool expectedRedo =
+        restoredHistory && restoredHistory->currentIndex + 1 < restoredHistory->entries.size();
+    require(c.editor.canUndo() == expectedUndo && c.editor.canRedo() == expectedRedo,
+            "Process restart did not restore the persisted history cursor");
     if (dailyKill) {
         require(expected["prepare_pid"].toInteger() != QCoreApplication::applicationPid(),
                 "Daily-use recovery did not start a new process");
@@ -315,7 +320,7 @@ bool catalogCommitCrashScenario(Context &c, const QString &id, const QString &st
             current.asset.checksum == newState.asset.checksum &&
             luma::macos::sha256File(current.asset.path) == current.asset.checksum &&
             c.editor.photoID().toStdString() == photo && c.editor.currentSettings() == wanted &&
-            !c.editor.canUndo() && !c.editor.canRedo(),
+            c.editor.canUndo() && !c.editor.canRedo(),
         "Killed catalog transaction lost atomicity, identity, original or complete edit document");
     c.reveal("develop.contrastSlider");
     d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});

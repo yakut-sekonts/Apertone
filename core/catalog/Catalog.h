@@ -1,7 +1,7 @@
 #pragma once
 #include "core/ai/Culling.h"
 #include "core/ai/Embedding.h"
-#include "core/edits/EditDocument.h"
+#include "core/edits/EditHistory.h"
 #include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
 #include "core/library/SmartCollection.h"
@@ -79,6 +79,9 @@ class Catalog {
                              const PhotoMetadata &metadata);
     std::optional<AssetRecord> activeAsset() const;
     void saveEdits(const std::string &assetID, EditDocument edits);
+    void saveEditsAndHistory(const std::string &assetID, const EditDocument &edits,
+                             const PersistedEditHistory &history);
+    std::optional<PersistedEditHistory> editHistory(const std::string &assetID) const;
     BatchEditResult applyBatchEdits(const std::vector<std::string> &ids, const EditDocument &source,
                                     std::uint32_t groups, CancellationToken stop = {},
                                     const std::function<void(double)> &progress = {},
@@ -139,6 +142,7 @@ class Catalog {
     void finishImport(const std::string &sessionID, const std::string &state);
     std::optional<ImportReplay> latestCompletedImport() const;
     std::vector<ImportSourceRecord> importSources() const;
+    std::vector<DuplicateReviewRecord> latestImportDuplicates() const;
     std::optional<ImportReplay> importSource(const std::filesystem::path &path) const;
     void forgetImportSource(const std::filesystem::path &path);
     std::vector<ImportJournal> unfinishedImports() const;
@@ -223,10 +227,13 @@ class Catalog {
     void migrateSmartCollections();
     void migrateImportPlans();
     void migrateIntelligentLibrary();
+    void migratePersistentWorkflow();
     void writeCreative(const std::string &assetID, const CreativeSettings &settings);
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
+    void writeEditHistory(const std::string &assetID, const PersistedEditHistory &history);
+    void clearEditHistory(const std::string &assetID);
     void execute(const char *sql) const;
     AssetRecord addAssetRecord(const std::filesystem::path &source, const std::string &checksum,
                                const PhotoMetadata &metadata, bool selectActive);

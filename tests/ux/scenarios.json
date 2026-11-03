@@ -816,7 +816,7 @@
     "severity": "P2",
     "scope": "CURRENT",
     "mode": "REGRESSION",
-    "scenario": "right panel 250↔400 px while scrolled → no clipped controls."
+    "scenario": "right panel 250↔380 px while scrolled → no clipped controls."
   },
   {
     "id": "UX-DSC-008",

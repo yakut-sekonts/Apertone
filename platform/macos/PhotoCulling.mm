@@ -78,12 +78,12 @@ double overlap(CGRect a, CGRect b) {
     return total > 0 ? area / total : 0;
 }
 
-double openness(VNFaceLandmarkRegion2D *eye) {
+std::optional<double> openness(VNFaceLandmarkRegion2D *eye) {
     if (!eye || eye.pointCount < 4)
-        return .5;
+        return std::nullopt;
     const auto *points = eye.normalizedPoints;
     if (!points)
-        return .5;
+        return std::nullopt;
     CGFloat minX = 1, maxX = 0, minY = 1, maxY = 0;
     for (NSUInteger i = 0; i < eye.pointCount; ++i) {
         minX = std::min(minX, points[i].x);
@@ -93,7 +93,7 @@ double openness(VNFaceLandmarkRegion2D *eye) {
     }
     const double width = maxX - minX;
     if (width < 1e-5)
-        return .5;
+        return std::nullopt;
     const double ratio = (maxY - minY) / width;
     return std::clamp((ratio - .07) / .18, 0., 1.);
 }
@@ -128,7 +128,7 @@ std::vector<ai::FaceObservation> faces(CGImageRef image, const CancellationToken
         const CGRect box = face.boundingBox;
         if (box.size.width <= 0 || box.size.height <= 0)
             continue;
-        double faceQuality = .5;
+        std::optional<double> faceQuality;
         double bestOverlap = 0;
         for (VNFaceObservation *candidate in qualityFaces) {
             const double value = overlap(box, candidate.boundingBox);
@@ -150,11 +150,18 @@ std::vector<ai::FaceObservation> faces(CGImageRef image, const CancellationToken
             image, CGRectIntersection(crop, CGRectMake(0, 0, imageWidth, imageHeight))));
         if (!faceImage)
             continue;
-        const double leftEye = openness(face.landmarks.leftEye);
-        const double rightEye = openness(face.landmarks.rightEye);
+        const auto leftEye = openness(face.landmarks.leftEye);
+        const auto rightEye = openness(face.landmarks.rightEye);
+        std::optional<double> eyesOpen;
+        if (leftEye && rightEye)
+            eyesOpen = (*leftEye + *rightEye) / 2.;
+        else if (leftEye)
+            eyesOpen = leftEye;
+        else if (rightEye)
+            eyesOpen = rightEye;
         result.push_back({{left, top, normalizedWidth, normalizedHeight},
                           faceQuality,
-                          (leftEye + rightEye) / 2.,
+                          eyesOpen,
                           descriptor(faceImage.get())});
     }
     return result;
@@ -163,7 +170,7 @@ std::vector<ai::FaceObservation> faces(CGImageRef image, const CancellationToken
 class PhotoCulling final : public ai::ICullingProvider {
   public:
     std::string identifier() const override {
-        return "apertone.culling-v1.grid16.face-quality3.landmarks3";
+        return "apertone.culling-v2.grid16.optional-face-quality3.landmarks3";
     }
     ai::ExecutionLocation location() const override {
         return ai::ExecutionLocation::local;

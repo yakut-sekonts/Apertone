@@ -26,6 +26,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantList importSources READ importSources NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList duplicateReview READ duplicateReview NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
     Q_PROPERTY(bool semanticEnabled READ semanticEnabled NOTIFY stateChanged)
     Q_PROPERTY(bool semanticBusy READ semanticBusy NOTIFY stateChanged)
@@ -142,6 +143,9 @@ class LibraryModel final : public QAbstractListModel {
     }
     QVariantList importSources() const {
         return importSources_;
+    }
+    QVariantList duplicateReview() const {
+        return duplicateReview_;
     }
     QVariantList collections() const {
         return collections_;
@@ -290,7 +294,7 @@ class LibraryModel final : public QAbstractListModel {
     LocalizedText status_ = QStringLiteral("Opening catalog…");
     LocalizedText maintenanceStatus_;
     QString error_, importReport_;
-    QVariantList importSources_;
+    QVariantList importSources_, duplicateReview_;
     std::deque<luma::ImportReplay> importSourceRefreshQueue_;
     int importSourceRefreshIndex_ = 0, importSourceRefreshTotal_ = 0;
     bool managedSourceRefresh_ = false;

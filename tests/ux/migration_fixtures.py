@@ -88,7 +88,7 @@ def prepare_migration(state_root, folder=FIXTURE):
 
 
 def compare_historical(before, after):
-    if before['schema'] != 11 or after['schema'] != 22:
+    if before['schema'] != 11 or after['schema'] != 23:
         raise ValueError('Unexpected migration schema transition')
     for name, expected in before['tables'].items():
         actual = after['tables'].get(name)
@@ -119,7 +119,7 @@ def audit_migration(state_root, evidence_root, child_pid, stage):
     if (decoded.get('pid') != child_pid or decoded.get('status') != 'PASS'
             or decoded.get('legacy_masks_equal') is not True
             or decoded.get('stable_export_max_rgb_delta') != 8
-            or decoded.get('stable_export_mean_rgb_delta') != 0.1
+            or decoded.get('stable_export_mean_rgb_delta') != 1.0
             or decoded.get('stable_export_alpha_exact') is not True):
         raise ValueError('Migration serialized audit does not belong to the child')
     catalog = state_root / 'catalog.sqlite'
@@ -149,7 +149,7 @@ def audit_migration(state_root, evidence_root, child_pid, stage):
     previous = state_root / 'first-migration.json'
     if stage == 'verify' and json.loads(previous.read_text()) != after:
         raise ValueError('Catalog changed after migration restart')
-    result = {'status': 'PASS', 'old_schema': 11, 'new_schema': 22,
+    result = {'status': 'PASS', 'old_schema': 11, 'new_schema': 23,
               'historical_tables': len(before['tables']), **data,
               'asset_ids': ids, 'original_sha256': originals,
               'pre_migration_backup_sha256': digest(backups[0]),

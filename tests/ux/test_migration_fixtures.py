@@ -26,7 +26,7 @@ class MigrationAuditTests(unittest.TestCase):
         shutil.copyfile(self.catalog, self.backup)
         # Deliberately minimal auditor control; only the native app exercises real migrations.
         with closing(sqlite3.connect(self.catalog)) as db, db:
-            db.execute('PRAGMA user_version=22')
+            db.execute('PRAGMA user_version=23')
             db.execute('CREATE TABLE derived_images(path TEXT PRIMARY KEY)')
             db.execute("UPDATE edit_local_masks SET document=replace(document,'LUMA_LOCAL_MASKS 2 ','LUMA_LOCAL_MASKS 5 ')")
         self.ids = [r[0] for r in self.before['tables']['assets']['rows']]
@@ -34,7 +34,7 @@ class MigrationAuditTests(unittest.TestCase):
         self.marker.write_text(json.dumps({'status': 'PASS', 'pid': 123, 'asset_ids': self.ids,
                                           'legacy_masks_equal': True,
                                           'stable_export_max_rgb_delta': 8,
-                                          'stable_export_mean_rgb_delta': 0.1,
+                                          'stable_export_mean_rgb_delta': 1.0,
                                           'stable_export_alpha_exact': True}))
         (self.evidence / 'app.log').write_text('UX_SHUTDOWN phase=context.owner.destroy.end\n'
                                               'UX_SHUTDOWN phase=qguiapplication.owner.destroy.end\n')

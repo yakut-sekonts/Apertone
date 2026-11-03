@@ -88,8 +88,16 @@ void scoreChecks() {
     luma::ai::FaceObservation open{{.55, .1, .35, .4}, .9, .95, {0, 1}};
     const auto portrait = luma::ai::scoreCullingPreview({64, 64, detailed}, {1, 0}, {open, closed});
     require(portrait.recommendation == luma::ai::CullingRecommendation::reject &&
-                (portrait.reasons & luma::ai::closedEyes) && portrait.eyesOpen == .05,
+                (portrait.reasons & luma::ai::closedEyes) && portrait.eyesOpen &&
+                *portrait.eyesOpen == .05,
             "One closed-eye face in a group did not force an explainable reject suggestion.");
+    luma::ai::FaceObservation unavailable{{.1, .1, .4, .4}, std::nullopt, std::nullopt, {1, 0}};
+    const auto withoutFaceMetrics =
+        luma::ai::scoreCullingPreview({64, 64, detailed}, {1, 0}, {unavailable});
+    require(!withoutFaceMetrics.faceQuality && !withoutFaceMetrics.eyesOpen &&
+                !(withoutFaceMetrics.reasons & (luma::ai::lowFaceQuality | luma::ai::closedEyes)) &&
+                std::abs(withoutFaceMetrics.score - picked.score) < 1e-12,
+            "Unavailable face metrics changed the score or produced a negative reason.");
     luma::CancellationSource cancelled;
     cancelled.cancel();
     rejects(
@@ -103,7 +111,7 @@ void providerChecks() {
     auto pixels = preview(true);
     const auto provider = luma::macos::makePhotoCulling();
     require(provider->location() == luma::ai::ExecutionLocation::local &&
-                provider->identifier().starts_with("apertone.culling-v1."),
+                provider->identifier().starts_with("apertone.culling-v2."),
             "Culling provider is not a versioned local implementation.");
     double lastProgress = 0;
     const auto result = provider->analyze({64, 64, pixels}, {}, [&](double progress) {
@@ -236,8 +244,8 @@ void catalogChecks() {
     require(sqlite3_open(path.c_str(), &raw) == SQLITE_OK, "Cannot inspect culling schema.");
     sqlite3_stmt *statement = nullptr;
     require(sqlite3_prepare_v2(raw, "PRAGMA user_version", -1, &statement, nullptr) == SQLITE_OK &&
-                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 22,
-            "Catalog did not migrate to Intelligent Library schema 22.");
+                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 23,
+            "Catalog did not migrate through Persistent Workflow schema 23.");
     sqlite3_finalize(statement);
     sqlite3_close(raw);
 }
@@ -248,9 +256,10 @@ void migrationChecks() {
     {
         luma::Catalog current(path);
     }
-    sql(path, "DROP TABLE burst_members;DROP TABLE burst_stacks;DROP TABLE face_instances;"
+    sql(path, "DROP TABLE edit_history_states;DROP TABLE burst_members;DROP TABLE "
+              "burst_stacks;DROP TABLE face_instances;"
               "DROP TABLE face_groups;DROP TABLE culling_analysis;"
-              "DELETE FROM schema_migrations WHERE version=22;PRAGMA user_version=21;");
+              "DELETE FROM schema_migrations WHERE version>=22;PRAGMA user_version=21;");
     {
         luma::Catalog migrated(path, luma::CatalogOpenMode::existingOnly);
         require(migrated.cullingSummary().analyzed == 0,
@@ -261,8 +270,8 @@ void migrationChecks() {
     sqlite3_stmt *version = nullptr;
     require(sqlite3_prepare_v2(database, "PRAGMA user_version", -1, &version, nullptr) ==
                     SQLITE_OK &&
-                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 22,
-            "Schema-21 catalog did not migrate to schema 22.");
+                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 23,
+            "Schema-21 catalog did not migrate through schema 23.");
     sqlite3_finalize(version);
     sqlite3_close(database);
     const auto backups = temporary.root / "catalog.sqlite.luma-backups";

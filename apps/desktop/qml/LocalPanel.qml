@@ -186,9 +186,9 @@ ColumnLayout {
                 visible:editor.localState.shape==="brush"
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
                 Label {Layout.fillWidth:true;Layout.minimumWidth:0;wrapMode:Text.Wrap;text:qsTranslate("Apertone", "Brush size")+" · "+Number(editor.localBrushSize).toFixed(1)+"%";font.pixelSize:11}
-                Slider {objectName:"localBrushSize";from:.1;to:100;value:editor.localBrushSize;onMoved:editor.localBrushSize=value;Layout.fillWidth:true;Accessible.name:qsTranslate("Apertone", "Brush size")}
+                ApertoneSlider {objectName:"localBrushSize";from:.1;to:100;value:editor.localBrushSize;onMoved:editor.localBrushSize=value;Layout.fillWidth:true;Accessible.name:qsTranslate("Apertone", "Brush size")}
                 Label {Layout.fillWidth:true;Layout.minimumWidth:0;wrapMode:Text.Wrap;text:qsTranslate("Apertone", "Brush opacity")+" · "+Number(editor.localBrushOpacity).toFixed(0)+"%";font.pixelSize:11}
-                Slider {objectName:"localBrushOpacity";from:0;to:100;value:editor.localBrushOpacity;onMoved:editor.localBrushOpacity=value;Layout.fillWidth:true;Accessible.name:qsTranslate("Apertone", "Brush opacity")}
+                ApertoneSlider {objectName:"localBrushOpacity";from:0;to:100;value:editor.localBrushOpacity;onMoved:editor.localBrushOpacity=value;Layout.fillWidth:true;Accessible.name:qsTranslate("Apertone", "Brush opacity")}
                 LocalCheckBox {objectName:"localBrushErase";text:qsTranslate("Apertone", "Erase");checked:editor.localBrushErase;onToggled:editor.localBrushErase=checked}
                 ApertoneButton {objectName:"localClearBrush";text:qsTranslate("Apertone", "Clear brush strokes");enabled:(editor.localState.strokeCount ?? 0)>0;Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.clearLocalBrush()}
             }
@@ -228,7 +228,7 @@ ColumnLayout {
                 }
             }
             Label {text:qsTranslate("Apertone", "Overlay opacity");font.pixelSize:11}
-            Slider {objectName:"localOverlayOpacity";from:0;to:1;value:editor.localOverlayOpacity;onMoved:editor.localOverlayOpacity=value;Layout.fillWidth:true;Layout.minimumWidth:0;Accessible.name:qsTranslate("Apertone", "Overlay opacity")}
+            ApertoneSlider {objectName:"localOverlayOpacity";from:0;to:1;value:editor.localOverlayOpacity;onMoved:editor.localOverlayOpacity=value;Layout.fillWidth:true;Layout.minimumWidth:0;Accessible.name:qsTranslate("Apertone", "Overlay opacity")}
             LocalSlider {parameter:"exposure";label:qsTranslate("Apertone", "Exposure");minimum:-5;maximum:5;step:.01}
             LocalSlider {parameter:"contrast";label:qsTranslate("Apertone", "Contrast")}
             LocalSlider {parameter:"highlights";label:qsTranslate("Apertone", "Highlights")}

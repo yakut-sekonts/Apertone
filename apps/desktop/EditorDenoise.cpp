@@ -1,15 +1,17 @@
 #include "apps/desktop/BundledModels.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/DerivedImage.h"
+#include "apps/shared/DerivedProvenance.h"
 #include "core/image/Bayer.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/CoreMLDenoise.h"
 #include <QFileInfo>
 #include <QPointer>
 #include <QSettings>
-#include <QXmlStreamWriter>
 #include <atomic>
 #include <cmath>
+#include <iomanip>
+#include <sstream>
 
 namespace {
 struct DenoiseProgress {
@@ -108,28 +110,28 @@ void EditorController::denoisePhoto(double amount) {
                         for (std::size_t c = 0; c < 3; ++c)
                             base.rgba[i * 4 + c] = result.rgb[i * 3 + c];
                     }
-                    QByteArray metadata;
-                    QXmlStreamWriter writer(&metadata);
-                    writer.writeStartElement("x:xmpmeta");
-                    writer.writeNamespace("adobe:ns:meta/", "x");
-                    writer.writeStartElement("rdf:RDF");
-                    writer.writeNamespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", "rdf");
-                    writer.writeStartElement("rdf:Description");
-                    writer.writeNamespace("https://luma.photo/ns/1.0/", "luma");
-                    writer.writeAttribute("rdf:about", "");
-                    writer.writeAttribute("luma:Operation", "AI Denoise");
-                    writer.writeAttribute("luma:SourceID", QString::fromStdString(asset.id));
-                    writer.writeAttribute("luma:SourceSHA256",
-                                          QString::fromStdString(asset.checksum));
-                    writer.writeAttribute("luma:Amount", QString::number(amount));
-                    writer.writeAttribute("luma:Provider",
-                                          QString::fromStdString(provider->identifier()));
-                    writer.writeEndElement();
-                    writer.writeEndElement();
-                    writer.writeEndElement();
-                    const auto created = luma::createDerivedImage(
-                        catalog, base, metadata.toStdString(), stop,
-                        [&](double value) { progress(.85 + .15 * value); });
+                    std::ostringstream amountText;
+                    amountText.imbue(std::locale::classic());
+                    amountText << std::fixed << std::setprecision(4) << amount / 100;
+                    const auto metadata = luma::encodeDerivedProvenance(
+                        {.operation = "AI Denoise",
+                         .provider = "org.apertone.local.coreml",
+                         .providerVersion = "1",
+                         .algorithm = "coreml-tiled-linear-denoise",
+                         .algorithmVersion = "1",
+                         .inputContract = luma::linearFloatContract(base.width, base.height, false),
+                         .outputContract =
+                             luma::linearFloatContract(base.width, base.height, false),
+                         .model = provider->identifier(),
+                         .modelVersion = "metadata-contract-1",
+                         .deterministic = false,
+                         .local = true,
+                         .sources = {{asset.id, asset.checksum, 0}},
+                         .parameters = {{"amount", amountText.str()}}});
+                    const auto created =
+                        luma::createDerivedImage(catalog, base, metadata, stop, [&](double value) {
+                            progress(.85 + .15 * value);
+                        });
                     if (self)
                         QMetaObject::invokeMethod(
                             self,

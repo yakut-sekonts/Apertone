@@ -8,7 +8,7 @@ bool geometryScenario(Context &c, const QString &id) {
         auto &d = *c.driver;
         auto *pane = d.item("develop.adjustmentsPane");
         auto *viewport = d.item("develop.adjustmentsScroll");
-        for (const int width : {250, 400, 250}) {
+        for (const int width : {250, 380, 250}) {
             const double initial = pane->width();
             d.dragBetween("develop.adjustmentsPane", {-1 / initial, .5}, "develop.adjustmentsPane",
                           {(initial - width - 1) / initial, .5});

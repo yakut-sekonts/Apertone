@@ -405,7 +405,7 @@ bool denoiseWorkflowScenario(Context &c, const QString &id) {
                     output.bytes.contains("luma:Operation=\"AI Denoise\"") &&
                     output.bytes.contains(QByteArray::fromStdString(source->id)) &&
                     output.bytes.contains(QByteArray::fromStdString(source->checksum)) &&
-                    output.bytes.contains("luma:Amount=\"100\"") &&
+                    output.bytes.contains("<rdf:li>amount=1.0000</rdf:li>") &&
                     output.bytes.contains("luma:Provider="),
                 "Denoised Float DNG lost dimensions or provenance");
         luma::EditDocument neutral;
@@ -822,12 +822,14 @@ bool mergeOptionsScenario(Context &c, const QString &id) {
         require(result && catalog.libraryCount() == 4 + pass && catalog.pendingDerived().empty(),
                 "HDR option run did not publish exactly one distinct result");
         const FloatDng output(result->path);
-        require(
-            output.width == reference.width && output.height == reference.height &&
-                output.bytes.contains("luma:AlignFrames=\"" + QByteArray::number(enabled) + "\"") &&
-                output.bytes.contains("luma:Deghost=\"" + QByteArray::number(strength / 100) +
-                                      "\""),
-            "HDR output geometry/provenance differs from the chosen options");
+        const auto alignmentProvenance = QByteArray("<rdf:li>align-frames=") +
+                                         QByteArray(enabled ? "true" : "false") + "</rdf:li>";
+        const auto deghost = QByteArray::number(strength / 100);
+        const auto deghostProvenance = QByteArray("<rdf:li>deghost=") + deghost + "</rdf:li>";
+        require(output.width == reference.width && output.height == reference.height &&
+                    output.bytes.contains(alignmentProvenance) &&
+                    output.bytes.contains(deghostProvenance),
+                "HDR output geometry/provenance differs from the chosen options");
         const auto expected = fixtureReference(c);
         d.wait(
             [&] {
@@ -922,9 +924,9 @@ bool mergeRestartScenario(Context &c, const QString &id, const QString &stage) {
     c.saved();
     require(c.editor.photoID() == expected["id"].toString() &&
                 c.editor.sourcePath() == expected["path"].toString() &&
-                c.editor.currentSettings() == saved->edits && !c.editor.canUndo() &&
+                c.editor.currentSettings() == saved->edits && c.editor.canUndo() &&
                 !c.editor.canRedo(),
-            "Restart lost derived identity/edits or restored session-local Undo");
+            "Restart lost derived identity, edits or durable per-photo Undo");
     luma::Catalog catalog(c.catalogFile.toStdString());
     const auto sources = expected["sources"].toArray();
     require(catalog.libraryCount() == sources.size() && catalog.pendingDerived().empty(),

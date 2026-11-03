@@ -271,14 +271,45 @@ for Enhance because its pixel-output contract cannot produce editable parameters
 
 ## 1.7 — Camera fidelity
 
-In development. The first block uses LibRaw's validated per-channel linearity
+In development as the first block of the unified 2.0 release train. There is no
+intermediate 1.7 release. The first block uses LibRaw's validated per-channel linearity
 limits for Bayer normalization and reconstructs partially clipped camera-linear
 highlights from robust local channel ratios before White Balance and the camera
 color transform. Fully clipped pixels retain measured sensor headroom instead of
 receiving invented color. Decoder diagnostics expose channel limits, clipped
 sensor samples and the number of recovered pixels.
 
-This shared decode result feeds preview, thumbnails and export. Representative
-real-camera highlight qualification across Canon, Sony, Nikon, Pentax, Panasonic,
-OM System/Olympus and DNG remains required before a 1.7.0 release. See
+This shared decode result feeds preview, thumbnails and export. The 2.0 release
+candidate passes real sensor decode, Develop render, deterministic export,
+catalog integrity and source-immutability checks across Canon, Sony, Nikon,
+Pentax, Panasonic, OM System and camera-native DNG. See the
+[qualification record](docs/qualification/2026-11-02/real-raw-2.0.json) and
 [implementation status](docs/V1_7_DEVELOPMENT.md).
+
+Embedded DNG profiles retain up to two standard calibration illuminants and
+resolve `ColorMatrix`, `CameraCalibration`, `AnalogBalance` and `ForwardMatrix`
+for the current White Balance. Interpolation uses reciprocal color temperature.
+The resolved gain and post-gain camera matrix are shared by CPU and Metal.
+Synthetic DNG contracts cover both the `ForwardMatrix` and Bradford fallback
+paths; the representative real-camera gate is recorded with the 2.0 evidence.
+
+## 2.0 — Unified release train
+
+Versions 1.7, 1.8 and 1.9 are development blocks, not public releases. Apertone
+will publish the combined result as `v2.0.0` after all blocks and the integrated
+release gate complete. See [2.0 development](docs/V2_0_DEVELOPMENT.md).
+
+- Camera Fidelity: camera-linear highlight recovery, embedded DNG profile
+  interpolation and real RAW qualification across the supported vendor set.
+- Intelligent Library: deterministic local culling, burst grouping, duplicate
+  review, compare/review workflows and observable background work.
+- Persistent Workflow: durable history, snapshots, repair, relink/sidecar
+  conflict handling, recovery and reversible catalog migration.
+- Detail and Resolution: Raw Details, deterministic 2x derived resolution,
+  bounded lens-blur recovery, luminance-preserving color moiré correction, a
+  measured per-photo denoise profile with a conservative ISO prior, linked
+  before/after split comparison and explicit processing provenance.
+
+Feature names must match the implemented algorithm. `AI` and `Super Resolution`
+are reserved for a licensed bundled model with a verified input/output contract.
+The release remains local-first and must not require a cloud service.

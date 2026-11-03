@@ -1,3 +1,4 @@
+#include "core/color/DngColorCalibration.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/MetalDevelop.h"
@@ -231,6 +232,24 @@ int main() {
         calibration.asShotGains = {1.8F, 1, 1.3F};
         calibration.cameraToSRGB = {1.12F, -.1F, -.02F, -.06F, 1.09F, -.03F, .01F, -.16F, 1.15F};
         compare("camera-white-balance", input, edits, calibration, accelerator);
+        luma::RawColorCalibration dual;
+        dual.dngProfileCount = 2;
+        dual.dngProfiles[0].calibrationTemperature = 2856;
+        dual.dngProfiles[0].colorMatrix = {1.1F,  -.05F, -.05F, -.05F, 1.1F,
+                                           -.05F, -.02F, -.08F, 1.1F};
+        dual.dngProfiles[0].forwardMatrix = {.82F, .1442F, 0, .08F, .84F, .08F, 0, .16F, .6649F};
+        dual.dngProfiles[0].hasForwardMatrix = true;
+        dual.dngProfiles[1].calibrationTemperature = 6504;
+        dual.dngProfiles[1].colorMatrix = {.9F, .08F, .02F, .03F, .94F, .03F, .02F, .1F, .88F};
+        dual.dngProfiles[1].forwardMatrix = {.74F, .2242F, 0, .12F, .78F, .1F, .02F, .2F, .6049F};
+        dual.dngProfiles[1].hasForwardMatrix = true;
+        dual.asShotNeutral = {.8F, 1, 1.35F};
+        luma::finalizeDngColorCalibration(dual);
+        luma::EditDocument dualEdits;
+        dualEdits.customWhiteBalance = true;
+        dualEdits.temperature = 4200;
+        dualEdits.tint = 18;
+        compare("dng-dual-illuminant", input, dualEdits, dual, accelerator);
         for (const double temperature : {2000., 25000.}) {
             for (const double tint : {-150., 0., 150.}) {
                 luma::EditDocument boundary;
@@ -278,7 +297,7 @@ int main() {
         require(rejected, "Metal ignored cancellation before submission.");
         require(input.rgb == originalRGB && input.alpha == originalAlpha,
                 "Metal mutated the input image.");
-        std::cout << "Actual Metal/CPU equivalence: 13 cases, 2 explicit fallbacks, alpha/input "
+        std::cout << "Actual Metal/CPU equivalence: 14 cases, 2 explicit fallbacks, alpha/input "
                      "preservation, pre-cancel.\n";
         return 0;
     } catch (const std::exception &error) {

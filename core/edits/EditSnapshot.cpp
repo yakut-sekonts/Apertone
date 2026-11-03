@@ -32,7 +32,7 @@ static std::string encodeSnapshot(const EditDocument &edits, int version) {
     edits.validate();
     const auto masks = encodeLocalMasks(edits.localMasks);
     const auto retouch = encodeRetouch(edits.retouch);
-    if (retouch.size() > 2 * 1024 * 1024)
+    if (retouch.size() > std::size_t{2} * 1024 * 1024)
         throw std::runtime_error("Processing version exceeds its storage limit.");
     std::ostringstream out;
     out.imbue(std::locale::classic());

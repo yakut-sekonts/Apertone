@@ -5,7 +5,7 @@ from pathlib import Path
 
 def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens=None,
                focal=35, aperture=2.8, width=128, height=96, sample=None, orientation=1, exif_ifd=False,
-               shutter=(1, 125)) -> None:
+               shutter=(1, 125), dual_illuminant=False) -> None:
     entries = []
 
     def tag(identifier, kind, values):
@@ -22,7 +22,7 @@ def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens
 
     for identifier, value in [(256, width), (257, height), (273, 0), (278, height), (279, width * height * 2), (50717, 16383)]:
         tag(identifier, 4, [value])
-    for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, orientation), (277, 1), (284, 1), (50711, 1), (50778, 21), (34855, 100)]:
+    for identifier, value in [(258, 16), (259, 1), (262, 32803), (274, orientation), (277, 1), (284, 1), (50711, 1), (50778, 17 if dual_illuminant else 21), (34855, 100)]:
         tag(identifier, 3, [value])
     tag(271, 2, maker)
     tag(272, 2, model)
@@ -35,8 +35,31 @@ def create_dng(path: Path, *, maker="Luma", model="Synthetic Bayer Camera", lens
     tag(50707, 1, [1, 1, 0, 0])
     tag(50710, 1, [0, 1, 2])
     tag(50714, 5, [(512, 1)])
-    tag(50728, 5, [(1, 1), (1, 1), (1, 1)])
-    tag(50721, 10, [(32406, 10000), (-15372, 10000), (-4986, 10000), (-9689, 10000), (18758, 10000), (415, 10000), (557, 10000), (-2040, 10000), (10570, 10000)])
+    tag(50728, 5, [(4, 5), (1, 1), (27, 20)] if dual_illuminant else
+        [(1, 1), (1, 1), (1, 1)])
+    if dual_illuminant:
+        identity = [(1, 1), (0, 1), (0, 1), (0, 1), (1, 1), (0, 1),
+                    (0, 1), (0, 1), (1, 1)]
+        tag(50721, 10, [(11000, 10000), (-500, 10000), (-500, 10000),
+                        (-500, 10000), (11000, 10000), (-500, 10000),
+                        (-200, 10000), (-800, 10000), (11000, 10000)])
+        tag(50722, 10, [(9000, 10000), (800, 10000), (200, 10000),
+                        (300, 10000), (9400, 10000), (300, 10000),
+                        (200, 10000), (1000, 10000), (8800, 10000)])
+        tag(50723, 10, identity)
+        tag(50724, 10, identity)
+        tag(50727, 5, [(1, 1), (1, 1), (1, 1)])
+        tag(50779, 3, [21])
+        tag(50964, 10, [(8200, 10000), (1442, 10000), (0, 1),
+                        (800, 10000), (8400, 10000), (800, 10000),
+                        (0, 1), (1600, 10000), (6649, 10000)])
+        tag(50965, 10, [(7400, 10000), (2242, 10000), (0, 1),
+                        (1200, 10000), (7800, 10000), (1000, 10000),
+                        (200, 10000), (2000, 10000), (6049, 10000)])
+    else:
+        tag(50721, 10, [(32406, 10000), (-15372, 10000), (-4986, 10000),
+                        (-9689, 10000), (18758, 10000), (415, 10000),
+                        (557, 10000), (-2040, 10000), (10570, 10000)])
     tag(50719, 4, [0, 0])
     tag(50720, 4, [width, height])
     tag(33434, 5, [shutter])

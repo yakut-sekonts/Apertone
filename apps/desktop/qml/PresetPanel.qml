@@ -45,7 +45,7 @@ ColumnLayout {
     onVisibleChanged: if (!visible) panel.clearHoveredPreview()
     Connections { target: presets; function onItemsChanged() { panel.selection() } }
     Component.onCompleted: updateQuickItems()
-    spacing: 8
+    spacing: Theme.panelSpacing
     TabBar {
         id: presetTabs
         objectName: "presetTabs"
@@ -151,7 +151,7 @@ ColumnLayout {
                     anchors.fill: parent; anchors.margins: 5; spacing: 2
                     RowLayout {
                         Layout.fillWidth: true; spacing: 3
-                        CheckBox {
+                        ApertoneCheckBox {
                             objectName: "quick.enabled." + layerRow.modelData.id
                             checked: layerRow.modelData.enabled; implicitWidth: 22; implicitHeight: 22
                             onClicked: presets.setQuickLookEnabled(layerRow.modelData.id, checked)
@@ -163,7 +163,7 @@ ColumnLayout {
                     }
                     RowLayout {
                         Layout.fillWidth: true; spacing: 5
-                        Slider {
+                        ApertoneSlider {
                             id: amount
                             objectName: "quick.amount." + layerRow.modelData.id
                             Layout.fillWidth: true; from: 0; to: 200; stepSize: 1; value: layerRow.modelData.amount
@@ -215,7 +215,7 @@ ColumnLayout {
             RowLayout {
                 Layout.fillWidth: true
                 Label { text: qsTranslate("Apertone", "Amount"); color: Theme.text }
-                Slider {
+                ApertoneSlider {
                     id: matchAmount
                     objectName: "quick.matchLookAmount"
                     Layout.fillWidth: true
@@ -228,13 +228,13 @@ ColumnLayout {
                     horizontalAlignment: Text.AlignRight
                 }
             }
-            CheckBox {
+            ApertoneCheckBox {
                 id: preserveExposure
                 objectName: "quick.matchLookPreserveExposure"
                 text: qsTranslate("Apertone", "Preserve Exposure")
                 checked: true
             }
-            CheckBox {
+            ApertoneCheckBox {
                 id: preserveWhiteBalance
                 objectName: "quick.matchLookPreserveWhiteBalance"
                 text: qsTranslate("Apertone", "Preserve White Balance")
@@ -357,7 +357,7 @@ ColumnLayout {
                 Label { text: qsTranslate("Apertone", "Settings groups"); color: Theme.text }
                 Repeater {
                     model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"), qsTranslate("Apertone", "Presence"), qsTranslate("Apertone", "Point Color"), qsTranslate("Apertone", "Color Grading"), qsTranslate("Apertone", "Effects")]
-                    CheckBox {
+                    ApertoneCheckBox {
                         required property string modelData
                         required property int index
                         objectName: "presetGroup" + index
@@ -365,7 +365,7 @@ ColumnLayout {
                         onClicked: editDialog.groups = checked ? editDialog.groups | (1 << index) : editDialog.groups & ~(1 << index)
                     }
                 }
-                CheckBox {
+                ApertoneCheckBox {
                     id: capture; objectName: "preset.capture"; visible: !editDialog.copyMode && editDialog.presetId.length > 0
                     text: qsTranslate("Apertone", "Replace settings with current edits")
                     enabled: editor.hasPhoto && !editor.busy

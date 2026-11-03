@@ -279,9 +279,9 @@ bool backupDailyRestartScenario(Context &c, const QString &id, const QString &st
     c.loaded();
     c.saved();
     require(c.editor.photoID().toStdString() == original->id &&
-                c.editor.currentSettings() == before.asset.edits && !c.editor.canUndo() &&
+                c.editor.currentSettings() == before.asset.edits && c.editor.canUndo() &&
                 !c.editor.canRedo(),
-            "Fresh process did not load the exact backup document with empty session history");
+            "Fresh process did not load the exact backup document and durable history");
     c.reveal("develop.contrastSlider");
     d.drag("develop.contrastSlider", d.sliderThumb("develop.contrastSlider"), {.7, .5});
     c.saved();

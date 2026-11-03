@@ -1,6 +1,6 @@
 # Apertone 1.7 camera fidelity
 
-Status: in development; not released.
+Status: in development inside the 2.0 release train; there is no separate 1.7 release.
 
 ## Highlight reconstruction
 
@@ -35,6 +35,22 @@ actually reconstructed.
 The source decode and persistent thumbnail cache revisions advance with this
 pixel-semantic change, so an upgraded application cannot reuse pre-1.7 previews.
 
+## Embedded DNG profiles
+
+`RawDecoder` retains two standard DNG calibration slots instead of reducing the
+profile to LibRaw's one-time matrix. `DevelopPipeline` resolves the embedded
+`ColorMatrix`, `CameraCalibration`, `AnalogBalance` and optional `ForwardMatrix`
+for the selected White Balance. Matrix interpolation is linear in reciprocal
+color temperature as required by DNG 1.2 and later. As Shot rendering retains
+the exact `AsShotNeutral` gains and an inferred profile interpolation point.
+
+The resolved post-gain camera matrix and gains are packed once into the existing
+CPU/Metal parameter layout. DNG profiles without `ForwardMatrix` use the linear
+Bradford fallback from the selected white point to D50. Invalid, singular or
+unsupported profile metadata is rejected rather than silently producing a
+miscalibrated render. Decoder and edited-thumbnail cache revisions advance again
+for this color-semantic change.
+
 ## Validation boundary
 
 The changed image primitive has deterministic unit coverage for chromatic
@@ -46,3 +62,8 @@ from camera families whose metadata supplies different linearity limits, plus
 comparison of preview and full-resolution export. These checks must confirm
 highlight hue continuity without hiding genuinely clipped white regions. No
 camera-specific quality claim is made before that evidence exists.
+
+Synthetic dual-illuminant DNG fixtures cover LibRaw tag extraction, endpoint
+selection, White Balance dependent exports, As Shot behavior, CPU/Metal parity
+and singular metadata rejection. The separate real-camera gate is completed by
+the [2.0 qualification record](qualification/2026-11-02/real-raw-2.0.json).

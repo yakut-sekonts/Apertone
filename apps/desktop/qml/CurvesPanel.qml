@@ -10,7 +10,7 @@ ColumnLayout {
     property var samples: []
     property int selected: -1
     property bool available: editor.hasPhoto && !editor.busy && editor.correctionStates.curves
-    spacing: 8
+    spacing: Theme.panelSpacing
     function refresh() {
         samples = editor.curveSamples(channel, mode.currentIndex === 1);
         graph.requestPaint();
@@ -45,7 +45,7 @@ ColumnLayout {
     }
     Component.onCompleted: refresh()
     RowLayout {
-        CheckBox {
+        ApertoneCheckBox {
             checked: editor.correctionStates.curves
             enabled: editor.hasPhoto && !editor.busy
             onToggled: editor.setCorrectionEnabled("curves", checked)

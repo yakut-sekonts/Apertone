@@ -5,11 +5,11 @@ Button {
     id: control
 
     implicitHeight: Theme.controlHeight
-    leftPadding: 10
-    rightPadding: 10
-    topPadding: 5
-    bottomPadding: 5
-    spacing: 6
+    leftPadding: 8
+    rightPadding: 8
+    topPadding: 3
+    bottomPadding: 3
+    spacing: 5
     font.pixelSize: 11
     font.weight: highlighted || checked ? Font.DemiBold : Font.Medium
     opacity: enabled ? 1 : 0.48

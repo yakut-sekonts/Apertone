@@ -197,8 +197,8 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
         write.text(3, provider);
         write.number(4, observation.sharpness);
         write.number(5, observation.exposure);
-        write.number(6, observation.faceQuality);
-        write.number(7, observation.eyesOpen);
+        write.number(6, observation.faceQuality.value_or(.5));
+        write.number(7, observation.eyesOpen.value_or(.5));
         write.number(8, observation.score);
         write.integer(9, static_cast<int>(observation.recommendation));
         write.integer(10, observation.reasons);
@@ -234,8 +234,8 @@ void Catalog::saveCullingAnalysis(const std::string &id, const std::string &chec
             insert.number(6, face.bounds[1]);
             insert.number(7, face.bounds[2]);
             insert.number(8, face.bounds[3]);
-            insert.number(9, face.quality);
-            insert.number(10, face.eyesOpen);
+            insert.number(9, face.quality.value_or(.5));
+            insert.number(10, face.eyesOpen.value_or(.5));
             insert.integer(11, static_cast<std::int64_t>(face.embedding.size()));
             insert.blob(12, faceBytes);
             insert.text(13, namedGroup);

@@ -186,6 +186,14 @@ void importTests(const std::filesystem::path &root, const std::filesystem::path 
     result = service.import({input}, {});
     require(result.added == 0 && result.duplicates == 3 && result.failed == 1,
             "Duplicate reimport changed catalog.");
+    const auto duplicateReview = luma::Catalog(root / "add.sqlite").latestImportDuplicates();
+    require(duplicateReview.size() == 3 &&
+                std::all_of(duplicateReview.begin(), duplicateReview.end(),
+                            [](const auto &item) {
+                                return !item.assetID.empty() && !item.sourcePath.empty() &&
+                                       !item.existingPath.empty();
+                            }),
+            "Latest import did not expose its exact duplicate review records.");
     luma::ImportOptions copy;
     copy.mode = luma::ImportMode::copy;
     copy.destination = destination;

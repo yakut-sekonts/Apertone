@@ -114,9 +114,10 @@ void EditorController::clearHistory(const QString &revision) {
         historyError_ =
             QStringLiteral("History changed while confirmation was open. Review it and try again.");
     } else {
-        // Only the session journal changes; current edits, autosave, named
-        // versions and the independent multi-photo batch journal stay intact.
+        // Current edits, named versions and the independent multi-photo batch
+        // journal stay intact. Persist the cleared per-photo history.
         history_.clear();
+        editsChanged(false);
     }
     emit stateChanged();
 }

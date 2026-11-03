@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-CheckBox {
+ApertoneCheckBox {
     id: control
     Layout.preferredWidth: 200
     Layout.fillWidth: true

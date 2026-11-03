@@ -1,5 +1,7 @@
 #include "apps/shared/SessionService.h"
 #include "core/color/DisplayTransform.h"
+#include "core/color/DngColorCalibration.h"
+#include "core/color/WhiteBalance.h"
 #include "core/edits/EditHistory.h"
 #include "core/export/JpegICC.h"
 #include "core/image/Bayer.h"
@@ -318,6 +320,115 @@ void developTests() {
     history.apply({});
     history.undo();
     require(history.current().shadows == 30, "Reset must be one reversible operation.");
+
+    luma::EditHistory provisional;
+    provisional.begin();
+    auto dragged = provisional.current();
+    dragged.exposure = 1.5;
+    provisional.apply(dragged);
+    auto restoredGesture = luma::EditHistory(provisional.persisted());
+    require(restoredGesture.current() == dragged && restoredGesture.canUndo(),
+            "A provisional autosave was not restored as one history step.");
+    restoredGesture.undo();
+    require(restoredGesture.current() == luma::EditDocument{},
+            "Restored provisional history did not retain its gesture base.");
+}
+void dngCalibrationTests() {
+    luma::RawColorCalibration calibration;
+    calibration.dngProfileCount = 2;
+    calibration.analogBalance = {1.03F, .98F, 1.01F};
+    calibration.dngProfiles[0].calibrationTemperature = 2856;
+    calibration.dngProfiles[0].colorMatrix = {1.1F,  -.05F, -.05F, -.05F, 1.1F,
+                                              -.05F, -.02F, -.08F, 1.1F};
+    calibration.dngProfiles[0].forwardMatrix = {.82F, .1442F, 0, .08F, .84F, .08F, 0, .16F, .6649F};
+    calibration.dngProfiles[0].cameraCalibration = {1.01F, .01F, 0, 0, .99F, .01F, 0, .01F, 1.02F};
+    calibration.dngProfiles[0].hasForwardMatrix = true;
+    calibration.dngProfiles[1].calibrationTemperature = 6504;
+    calibration.dngProfiles[1].colorMatrix = {.9F, .08F, .02F, .03F, .94F, .03F, .02F, .1F, .88F};
+    calibration.dngProfiles[1].forwardMatrix = {.74F, .2242F, 0,   .12F,  .78F,
+                                                .1F,  .02F,   .2F, .6049F};
+    calibration.dngProfiles[1].cameraCalibration = {.99F, .01F, 0, .01F, 1.01F, 0, 0, .02F, .98F};
+    calibration.dngProfiles[1].hasForwardMatrix = true;
+    calibration.asShotNeutral = {.8F, 1, 1.35F};
+    luma::finalizeDngColorCalibration(calibration);
+
+    const auto warm = luma::resolveRawColorCalibration(calibration, 2856, 0);
+    const auto daylight = luma::resolveRawColorCalibration(calibration, 6504, 0);
+    require(warm.cameraToSRGB != daylight.cameraToSRGB,
+            "Dual-illuminant DNG matrix did not follow White Balance.");
+    require(warm.gains != daylight.gains,
+            "Dual-illuminant DNG camera neutral did not follow White Balance.");
+    const auto warmWhite = luma::whitePointXYZ(2856, 0);
+    std::array<double, 3> referenceNeutral{}, warmNeutral{};
+    for (std::size_t row = 0; row < 3; ++row)
+        for (std::size_t column = 0; column < 3; ++column)
+            referenceNeutral[row] +=
+                calibration.dngProfiles[0].colorMatrix[row * 3 + column] * warmWhite[column];
+    for (std::size_t row = 0; row < 3; ++row)
+        for (std::size_t column = 0; column < 3; ++column)
+            warmNeutral[row] += calibration.analogBalance[row] *
+                                calibration.dngProfiles[0].cameraCalibration[row * 3 + column] *
+                                referenceNeutral[column];
+    const auto estimated = luma::estimateWhiteBalance(warmNeutral, calibration);
+    require(std::abs(estimated.temperature - 2856) < 120 && std::abs(estimated.tint) < 3,
+            "DNG WB estimation ignored the WB-dependent color matrix.");
+    const double midpointMired = (1'000'000 / 2856.0 + 1'000'000 / 6504.0) / 2;
+    const auto midpoint =
+        luma::resolveRawColorCalibration(calibration, 1'000'000 / midpointMired, 0);
+    require(midpoint.cameraToSRGB != warm.cameraToSRGB &&
+                midpoint.cameraToSRGB != daylight.cameraToSRGB,
+            "DNG reciprocal-temperature midpoint collapsed to an endpoint profile.");
+    for (float value : midpoint.cameraToSRGB)
+        require(std::isfinite(value), "DNG interpolation produced a non-finite matrix.");
+
+    luma::EditDocument custom;
+    custom.customWhiteBalance = true;
+    custom.temperature = 2856;
+    const luma::DevelopPipeline pipeline(custom, calibration);
+    const auto renderedNeutral =
+        pipeline.pixel({static_cast<float>(warmNeutral[0]), static_cast<float>(warmNeutral[1]),
+                        static_cast<float>(warmNeutral[2])});
+    require(std::abs(renderedNeutral[0] - renderedNeutral[1]) < 2e-5 &&
+                std::abs(renderedNeutral[1] - renderedNeutral[2]) < 2e-5,
+            "DNG ForwardMatrix path did not map the selected camera neutral to D50.");
+    const auto gpu = pipeline.gpuParameters();
+    for (std::size_t i = 0; i < 9; ++i)
+        require(std::abs(gpu[i] - warm.cameraToSRGB[i]) < 1e-6,
+                "CPU/Metal parameters do not share the resolved DNG matrix.");
+    for (std::size_t i = 0; i < 3; ++i)
+        require(std::abs(gpu[9 + i] - warm.gains[i]) < 1e-6,
+                "CPU/Metal parameters do not share the resolved DNG gains.");
+
+    luma::DevelopPipeline asShot({}, calibration);
+    const auto asShotGpu = asShot.gpuParameters();
+    for (std::size_t i = 0; i < 9; ++i)
+        require(std::abs(asShotGpu[i] - calibration.cameraToSRGB[i]) < 1e-6,
+                "As Shot rendering discarded the finalized DNG matrix.");
+    require(std::abs(calibration.asShotGains[0] - 1.25F) < 1e-6 &&
+                std::abs(calibration.asShotGains[2] - 1.F / 1.35F) < 1e-6,
+            "DNG AsShotNeutral was not converted to channel gains.");
+    const auto renderedAsShot = asShot.pixel(calibration.asShotNeutral);
+    require(std::abs(renderedAsShot[0] - renderedAsShot[1]) < 2e-5 &&
+                std::abs(renderedAsShot[1] - renderedAsShot[2]) < 2e-5,
+            "DNG As Shot matrix was not factored with the exact AsShotNeutral gains.");
+
+    auto fallback = calibration;
+    fallback.dngProfiles[0].hasForwardMatrix = false;
+    fallback.dngProfiles[1].hasForwardMatrix = false;
+    luma::finalizeDngColorCalibration(fallback);
+    const auto fallbackNeutral =
+        luma::DevelopPipeline(custom, fallback)
+            .pixel({static_cast<float>(warmNeutral[0]), static_cast<float>(warmNeutral[1]),
+                    static_cast<float>(warmNeutral[2])});
+    require(std::abs(fallbackNeutral[0] - fallbackNeutral[1]) < 2e-5 &&
+                std::abs(fallbackNeutral[1] - fallbackNeutral[2]) < 2e-5,
+            "DNG ColorMatrix Bradford fallback did not preserve the selected neutral.");
+
+    auto invalid = calibration;
+    invalid.dngProfiles[0].colorMatrix = {};
+    throws([&] { luma::finalizeDngColorCalibration(invalid); });
+    require(luma::dngIlluminantTemperature(17) == 2856 && !luma::dngIlluminantTemperature(255),
+            "DNG calibration illuminant validation is wrong.");
 }
 void catalogTests() {
     const auto directory =
@@ -372,6 +483,62 @@ void catalogTests() {
             require(catalog.activeAsset()->edits.temperature == 5350,
                     "Legacy Exposure update erased Develop.");
         }
+        {
+            luma::Catalog catalog(path);
+            luma::EditHistory history(catalog.activeAsset()->edits);
+            auto first = history.current();
+            first.exposure = -1.25;
+            history.apply(first, "Exposure pass");
+            auto second = history.current();
+            second.contrast = 30;
+            history.apply(second, "Contrast pass");
+            history.undo();
+            const auto persisted = history.persisted();
+            catalog.saveEditsAndHistory(id, history.current(), persisted);
+            require(catalog.editHistory(id).has_value(),
+                    "Catalog did not store per-photo processing history.");
+            auto mismatch = persisted;
+            mismatch.entries[mismatch.currentIndex].document.exposure = 2;
+            throws([&] { catalog.saveEditsAndHistory(id, history.current(), mismatch); });
+            require(catalog.activeAsset()->edits == history.current(),
+                    "Rejected history mismatch changed the saved edit.");
+
+            sqlite3 *failure = nullptr;
+            require(sqlite3_open(path.c_str(), &failure) == SQLITE_OK &&
+                        sqlite3_exec(failure,
+                                     "CREATE TRIGGER fail_history BEFORE INSERT ON "
+                                     "edit_history_states BEGIN SELECT "
+                                     "RAISE(ABORT,'injected history failure');END;",
+                                     nullptr, nullptr, nullptr) == SQLITE_OK,
+                    "Cannot install processing-history failure fixture.");
+            sqlite3_close(failure);
+            luma::EditHistory failed(persisted);
+            failed.redo();
+            throws([&] { catalog.saveEditsAndHistory(id, failed.current(), failed.persisted()); });
+            require(catalog.activeAsset()->edits == history.current() &&
+                        catalog.editHistory(id)->currentIndex == persisted.currentIndex,
+                    "Failed history write partially committed its edit or cursor.");
+            require(sqlite3_open(path.c_str(), &failure) == SQLITE_OK &&
+                        sqlite3_exec(failure, "DROP TRIGGER fail_history", nullptr, nullptr,
+                                     nullptr) == SQLITE_OK,
+                    "Cannot remove processing-history failure fixture.");
+            sqlite3_close(failure);
+        }
+        {
+            luma::Catalog catalog(path);
+            const auto persisted = catalog.editHistory(id);
+            require(persisted.has_value(), "Restart lost per-photo processing history.");
+            luma::EditHistory restored(*persisted);
+            require(restored.current().exposure == -1.25 && restored.current().contrast == 0 &&
+                        restored.canUndo() && restored.canRedo(),
+                    "Restart did not preserve the history cursor and Redo branch.");
+            restored.redo();
+            require(restored.current().contrast == 30,
+                    "Restarted processing history could not replay Redo.");
+            catalog.saveExposure(id, 0.75);
+            require(!catalog.editHistory(id),
+                    "Legacy edit write did not clear its stale processing history.");
+        }
         sqlite3 *db = nullptr;
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK, "Cannot open schema test database.");
         require(sqlite3_exec(db, fixture::removePostV11Tables, nullptr, nullptr, nullptr) ==
@@ -414,7 +581,7 @@ void catalogTests() {
         }
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK,
                 "Cannot reopen future schema fixture.");
-        require(sqlite3_exec(db, "PRAGMA user_version=23", nullptr, nullptr, nullptr) == SQLITE_OK,
+        require(sqlite3_exec(db, "PRAGMA user_version=24", nullptr, nullptr, nullptr) == SQLITE_OK,
                 "Cannot create future catalog.");
         sqlite3_close(db);
         throws([&] { luma::Catalog future(path); });
@@ -485,6 +652,7 @@ int main() {
         imageTests();
         retouchSourceTests();
         developTests();
+        dngCalibrationTests();
         jpegProfileTests();
         catalogTests();
         jobTests();

@@ -1,11 +1,12 @@
-"""Reconstruct pre-0.6 schemas from disposable schema-22 test catalogs."""
+"""Reconstruct pre-0.6 schemas from disposable schema-23 test catalogs."""
 
 
 def remove_post_v11_features(database):
     # This is fixture construction, never a production downgrade path. Keep the
     # schema guard: a later schema must explicitly update its historical fixtures.
-    assert database.execute("PRAGMA user_version").fetchone() == (22,)
+    assert database.execute("PRAGMA user_version").fetchone() == (23,)
     for statement in (
+        "DROP TABLE edit_history_states",
         "DROP TABLE burst_members", "DROP TABLE burst_stacks",
         "DROP TABLE face_instances", "DROP TABLE face_groups", "DROP TABLE culling_analysis",
         "DROP TABLE import_item_plans", "DROP TABLE import_options",

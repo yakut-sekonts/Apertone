@@ -1,4 +1,5 @@
 #include "core/raw/RawDecoder.h"
+#include "core/color/DngColorCalibration.h"
 #include "core/color/RGBProfiles.h"
 #include "core/image/Bayer.h"
 #include <algorithm>
@@ -87,7 +88,15 @@ RawColorCalibration linearCalibration(const libraw_data_t &data) {
         result.cameraToSRGB[i] = static_cast<float>(matrix[i]);
     return result;
 }
-RawColorCalibration bayerCalibration(const libraw_colordata_t &color) {
+bool anyMatrixValue(const float *values, std::size_t count) {
+    for (std::size_t i = 0; i < count; ++i)
+        if (!std::isfinite(values[i]) || values[i] != 0)
+            return true;
+    return false;
+}
+
+RawColorCalibration bayerCalibration(const libraw_data_t &data) {
+    const auto &color = data.color;
     const auto green = color.cam_mul[1] > 0 ? color.cam_mul[1] : color.pre_mul[1];
     if (!std::isfinite(green) || green <= 0 || color.maximum == 0)
         throw std::runtime_error("RAW has no usable white balance or white level.");
@@ -117,6 +126,47 @@ RawColorCalibration bayerCalibration(const libraw_colordata_t &color) {
     }
     for (std::size_t index = 0; index < matrix.size(); ++index)
         result.cameraToSRGB[index] = static_cast<float>(matrix[index]);
+
+    if (data.idata.dng_version == 0)
+        return result;
+    for (std::size_t channel = 0; channel < 3; ++channel) {
+        const float analog = color.dng_levels.analogbalance[channel];
+        result.analogBalance[channel] = analog == 0 ? 1 : analog;
+        const float neutral = color.dng_levels.asshotneutral[channel];
+        result.asShotNeutral[channel] = neutral > 0 ? neutral : 1.F / result.asShotGains[channel];
+    }
+    for (const auto &source : color.dng_color) {
+        const bool hasColor = (source.parsedfields & LIBRAW_DNGFM_COLORMATRIX) != 0 ||
+                              anyMatrixValue(&source.colormatrix[0][0], 12);
+        if (!hasColor)
+            continue;
+        if (result.dngProfileCount >= result.dngProfiles.size())
+            throw std::runtime_error("DNG contains too many color profiles.");
+        const auto temperature = dngIlluminantTemperature(source.illuminant);
+        if (!temperature)
+            throw std::runtime_error("DNG uses an unsupported calibration illuminant.");
+        auto &profile = result.dngProfiles[result.dngProfileCount++];
+        profile.calibrationTemperature = *temperature;
+        for (std::size_t row = 0; row < 3; ++row)
+            for (std::size_t column = 0; column < 3; ++column)
+                profile.colorMatrix[row * 3 + column] = source.colormatrix[row][column];
+
+        const bool hasCalibration = (source.parsedfields & LIBRAW_DNGFM_CALIBRATION) != 0 ||
+                                    anyMatrixValue(&source.calibration[0][0], 16);
+        if (hasCalibration)
+            for (std::size_t row = 0; row < 3; ++row)
+                for (std::size_t column = 0; column < 3; ++column)
+                    profile.cameraCalibration[row * 3 + column] = source.calibration[row][column];
+
+        profile.hasForwardMatrix = (source.parsedfields & LIBRAW_DNGFM_FORWARDMATRIX) != 0 ||
+                                   anyMatrixValue(&source.forwardmatrix[0][0], 12);
+        if (profile.hasForwardMatrix)
+            for (std::size_t row = 0; row < 3; ++row)
+                for (std::size_t column = 0; column < 3; ++column)
+                    profile.forwardMatrix[row * 3 + column] = source.forwardmatrix[row][column];
+    }
+    if (result.dngProfileCount != 0)
+        finalizeDngColorCalibration(result);
     return result;
 }
 PhotoMetadata metadataFrom(const libraw_data_t &data) {
@@ -198,7 +248,7 @@ PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, Cancellatio
     if (lumaLinearDNG(data))
         (void)linearCalibration(data);
     else
-        (void)bayerCalibration(data.color);
+        (void)bayerCalibration(data);
     checkCancellation(stop);
     return metadataFrom(data);
 }
@@ -322,7 +372,7 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
     }
     BayerFrame frame(sizes.width, sizes.height, cfa);
     const auto &color = data.color;
-    const auto calibration = bayerCalibration(color);
+    const auto calibration = bayerCalibration(data);
     const auto stride = sizes.raw_pitch / sizeof(unsigned short);
     double blackMinimum = std::numeric_limits<double>::infinity();
     double blackMaximum = -std::numeric_limits<double>::infinity();

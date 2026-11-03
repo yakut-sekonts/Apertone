@@ -552,7 +552,7 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-DSC-004 [P1][CURRENT][REGRESSION]` — drag slider then wheel → only intended input changes value.
 - `UX-DSC-005 [P2][CURRENT][REGRESSION]` — dynamic panel height change while deep-scrolled → no large unexpected jump.
 - `UX-DSC-006 [P1][CURRENT][REGRESSION]` — photo change while deep-scrolled → controls immediately show new photo state.
-- `UX-DSC-007 [P2][CURRENT][REGRESSION]` — right panel 250↔400 px while scrolled → no clipped controls.
+- `UX-DSC-007 [P2][CURRENT][REGRESSION]` — right panel 250↔380 px while scrolled → no clipped controls.
 - `UX-DSC-008 [P2][CURRENT][REGRESSION]` — language switch while deep-scrolled → valid relayout/scroll range.
 - `UX-DSC-009 [P1][CURRENT][REGRESSION]` — keyboard-focused control remains reachable/visible.
 - `UX-DSC-010 [P1][CURRENT][STRESS]` — 5 000 scroll events + 1 000 panel interactions → no hang/object leak.
@@ -792,8 +792,8 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-UND-009 [P1][CURRENT][REGRESSION]` — targeted adjustment one logical Undo.
 - `UX-UND-010 [P1][CURRENT][REGRESSION]` — Reset All + Undo restores complete prior document.
 - `UX-UND-011 [P0][CURRENT][BLOCKING]` — history never crosses asset boundary.
-- `UX-UND-012 [P1][CURRENT][REGRESSION]` — A→B→A switch respects per-session history semantics.
-- `UX-UND-013 [P1][CURRENT][REGRESSION]` — session-local history resets after restart as documented.
+- `UX-UND-012 [P1][CURRENT][REGRESSION]` — A→B→A switch restores the independent history cursor for each photo.
+- `UX-UND-013 [P1][CURRENT][REGRESSION]` — per-photo history and its Undo/Redo cursor restore after restart.
 - `UX-UND-014 [P0][CURRENT][BLOCKING]` — force quit after completed autosave → saved edits survive.
 - `UX-UND-015 [P1][CURRENT][REGRESSION]` — kill during pending debounce → last committed state intact, DB valid.
 - `UX-UND-016 [P1][CURRENT][STRESS]` — history-cap boundary behavior deterministic.

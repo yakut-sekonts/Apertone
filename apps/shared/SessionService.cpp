@@ -20,7 +20,7 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     const auto checksum = macos::sha256File(path, stop);
     // Only decoded pixels are cached. Selection and saved edits always come
     // from the current catalog transaction, including on a cache hit.
-    const auto key = checksum + "|decode-v3|preview-2560-1024-512";
+    const auto key = checksum + "|decode-v4|preview-2560-1024-512";
     const auto generation = previews_->generation();
     auto cached = previews_->get(key);
     if (!cached) {
@@ -46,6 +46,9 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     auto metadata = cached->metadata;
     MetadataService::readSourceMetadata(path, metadata, stop);
     auto asset = catalog.addAndSelect(path, checksum, metadata);
+    auto history = catalog.editHistory(asset.id);
+    if (history && history->entries[history->currentIndex].document != asset.edits)
+        history.reset();
     const auto bytes =
         (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
          cached->interactive->rgb.capacity() + cached->interactive->alpha.capacity() +
@@ -54,9 +57,10 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     previews_->put(key, cached, bytes, generation);
     if (progress)
         progress(1);
-    return {std::move(asset),         cached->standard,      cached->calibration,
-            cached->diagnostics,      cached->standardScale, cached->interactive,
-            cached->interactiveScale, cached->quick,         cached->quickScale};
+    return {std::move(asset),    std::move(history),       cached->standard,
+            cached->calibration, cached->diagnostics,      cached->standardScale,
+            cached->interactive, cached->interactiveScale, cached->quick,
+            cached->quickScale};
 }
 std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRecord &asset,
                                                                    CancellationToken stop) const {
@@ -67,7 +71,7 @@ std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRe
         throw std::runtime_error("Image exceeds the input budget.");
     if (macos::sha256File(path, stop) != asset.checksum)
         throw std::runtime_error("Original changed; full-resolution preview refused.");
-    const auto key = asset.checksum + "|decode-v3|full";
+    const auto key = asset.checksum + "|decode-v4|full";
     const auto generation = originals_->generation();
     auto decoded = originals_->get(key);
     if (!decoded)
@@ -104,6 +108,10 @@ void SessionService::save(const std::string &assetID, double exposure) const {
 }
 void SessionService::save(const std::string &assetID, EditDocument edits) const {
     Catalog(catalogPath_).saveEdits(assetID, edits);
+}
+void SessionService::save(const std::string &assetID, const EditDocument &edits,
+                          const PersistedEditHistory &history) const {
+    Catalog(catalogPath_).saveEditsAndHistory(assetID, edits, history);
 }
 void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
                                  const std::filesystem::path &destination, ExportOptions options,

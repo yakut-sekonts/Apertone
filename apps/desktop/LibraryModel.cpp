@@ -283,7 +283,7 @@ void LibraryModel::reload(bool clear) {
                                                               viewportAnchor](const auto &context) {
         std::int64_t count = 0;
         int anchorRow = -1;
-        QVariantList collections, faceGroups, importSources;
+        QVariantList collections, faceGroups, importSources, duplicateReview;
         QVariantMap cullingSummary;
         QString error;
         try {
@@ -313,6 +313,15 @@ void LibraryModel::reload(bool clear) {
                     {"finishedAt", QString::fromStdString(source.finishedAt)},
                     {"available", !availabilityError && available}});
             }
+            for (const auto &duplicate : db.latestImportDuplicates())
+                duplicateReview.push_back(QVariantMap{
+                    {"sourcePath", QString::fromStdString(duplicate.sourcePath.string())},
+                    {"sourceName",
+                     QString::fromStdString(duplicate.sourcePath.filename().string())},
+                    {"assetID", QString::fromStdString(duplicate.assetID)},
+                    {"existingPath", QString::fromStdString(duplicate.existingPath.string())},
+                    {"existingName",
+                     QString::fromStdString(duplicate.existingPath.filename().string())}});
             int unnamed = 0;
             for (const auto &group : db.faceGroups()) {
                 const auto displayName =
@@ -338,14 +347,15 @@ void LibraryModel::reload(bool clear) {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, count, collections, faceGroups, importSources, cullingSummary, error,
-                 revision, anchorRow] {
+                [self, count, collections, faceGroups, importSources, duplicateReview,
+                 cullingSummary, error, revision, anchorRow] {
                     if (!self || self->revision_ != revision)
                         return;
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
                     self->importSources_ = importSources;
+                    self->duplicateReview_ = duplicateReview;
                     self->faceGroups_ = faceGroups;
                     self->cullingSummary_ = cullingSummary;
                     // Views may request their first metadata page synchronously

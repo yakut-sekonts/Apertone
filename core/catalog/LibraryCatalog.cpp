@@ -616,6 +616,18 @@ ImportSummary Catalog::importSummary(const std::string &sessionID) const {
         result.failed += warnings.integer(0);
     return result;
 }
+std::vector<DuplicateReviewRecord> Catalog::latestImportDuplicates() const {
+    Statement query(
+        db_,
+        "SELECT i.source_path,i.asset_id,a.original_path FROM import_items i JOIN assets a ON "
+        "a.id=i.asset_id WHERE i.state='duplicate' AND i.session_id=(SELECT id FROM "
+        "import_sessions WHERE state='completed' ORDER BY finished_at DESC,rowid DESC LIMIT 1) "
+        "ORDER BY i.position");
+    std::vector<DuplicateReviewRecord> result;
+    while (query.row())
+        result.push_back({query.string(0), query.string(1), query.string(2)});
+    return result;
+}
 std::vector<std::string> Catalog::importProblems(const std::string &sessionID) const {
     Statement query(
         db_,

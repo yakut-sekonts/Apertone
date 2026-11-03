@@ -4,6 +4,7 @@ CatalogStartup 1.0 CatalogStartup.qml
 ColorWheel 1.0 ColorWheel.qml
 CompareDialog 1.0 CompareDialog.qml
 ComparePane 1.0 ComparePane.qml
+SplitComparePane 1.0 SplitComparePane.qml
 CreativePanel 1.0 CreativePanel.qml
 CropOverlay 1.0 CropOverlay.qml
 CropPanel 1.0 CropPanel.qml
@@ -23,7 +24,9 @@ LocalOverlay 1.0 LocalOverlay.qml
 LocalPanel 1.0 LocalPanel.qml
 LocalSlider 1.0 LocalSlider.qml
 ApertoneButton 1.0 ApertoneButton.qml
+ApertoneCheckBox 1.0 ApertoneCheckBox.qml
 ApertoneComboBox 1.0 ApertoneComboBox.qml
+ApertoneSlider 1.0 ApertoneSlider.qml
 ApertoneSpinBox 1.0 ApertoneSpinBox.qml
 ApertoneTextField 1.0 ApertoneTextField.qml
 Main 1.0 Main.qml
