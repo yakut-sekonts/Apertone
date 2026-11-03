@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Վերականգնել օպտիկական մշուշը DNG-ում",
     "Correct color moiré DNG": "Շտկել գունային մուարը DNG-ում",
     "Lens Blur Recovery": "Օպտիկական մշուշի վերականգնում",
-    "Color Moire Correction": "Գունային մուարի շտկում"
+    "Color Moire Correction": "Գունային մուարի շտկում",
+    "Open folder…": "Բացել պանակը…",
+    "Parent folders (outermost first)": "Վերադաս պանակներ (արտաքինից դեպի ներքին)",
+    "Remove parent folder": "Հեռացնել վերադաս պանակը",
+    "Add parent folder": "Ավելացնել վերադաս պանակ",
+    "No presets in this folder.": "Այս պանակում նախադրյալներ չկան։",
+    "Built-in": "Ներկառուցված",
+    "User": "Օգտատիրոջ"
   }
 }

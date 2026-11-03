@@ -12,6 +12,9 @@ struct DevelopPreset {
     EditDocument settings;
     std::uint32_t groups = allSettingsGroups;
     std::vector<std::string> parameters{};
+    // Ancestors are explicit components; the legacy folder string is one leaf,
+    // even when it contains a slash.
+    QStringList folderParents{};
     void validate() const;
 };
 struct StoredPreset {

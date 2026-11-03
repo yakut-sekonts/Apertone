@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Восстановить оптическое размытие в DNG",
     "Correct color moiré DNG": "Исправить цветной муар в DNG",
     "Lens Blur Recovery": "Восстановление оптического размытия",
-    "Color Moire Correction": "Коррекция цветного муара"
+    "Color Moire Correction": "Коррекция цветного муара",
+    "Open folder…": "Открыть папку…",
+    "Parent folders (outermost first)": "Родительские папки (от внешней к внутренней)",
+    "Remove parent folder": "Удалить родительскую папку",
+    "Add parent folder": "Добавить родительскую папку",
+    "No presets in this folder.": "В этой папке нет пресетов.",
+    "Built-in": "Встроенный",
+    "User": "Пользовательский"
   }
 }

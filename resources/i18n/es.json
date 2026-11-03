@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Recuperar desenfoque de lente en DNG",
     "Correct color moiré DNG": "Corregir muaré de color en DNG",
     "Lens Blur Recovery": "Recuperación de desenfoque de lente",
-    "Color Moire Correction": "Corrección de muaré de color"
+    "Color Moire Correction": "Corrección de muaré de color",
+    "Open folder…": "Abrir carpeta…",
+    "Parent folders (outermost first)": "Carpetas superiores (de fuera hacia dentro)",
+    "Remove parent folder": "Quitar carpeta superior",
+    "Add parent folder": "Añadir carpeta superior",
+    "No presets in this folder.": "No hay ajustes preestablecidos en esta carpeta.",
+    "Built-in": "Integrado",
+    "User": "Usuario"
   }
 }

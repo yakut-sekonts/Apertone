@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Objektivunschärfe als DNG korrigieren",
     "Correct color moiré DNG": "Farbmoiré als DNG korrigieren",
     "Lens Blur Recovery": "Objektivunschärfe korrigieren",
-    "Color Moire Correction": "Farbmoiré-Korrektur"
+    "Color Moire Correction": "Farbmoiré-Korrektur",
+    "Open folder…": "Ordner öffnen…",
+    "Parent folders (outermost first)": "Übergeordnete Ordner (von außen nach innen)",
+    "Remove parent folder": "Übergeordneten Ordner entfernen",
+    "Add parent folder": "Übergeordneten Ordner hinzufügen",
+    "No presets in this folder.": "Keine Vorgaben in diesem Ordner.",
+    "Built-in": "Integriert",
+    "User": "Benutzer"
   }
 }

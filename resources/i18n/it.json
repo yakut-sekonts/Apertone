@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Recupera sfocatura obiettivo in DNG",
     "Correct color moiré DNG": "Correggi moiré colore in DNG",
     "Lens Blur Recovery": "Recupero sfocatura obiettivo",
-    "Color Moire Correction": "Correzione moiré colore"
+    "Color Moire Correction": "Correzione moiré colore",
+    "Open folder…": "Apri cartella…",
+    "Parent folders (outermost first)": "Cartelle superiori (dalla più esterna)",
+    "Remove parent folder": "Rimuovi cartella superiore",
+    "Add parent folder": "Aggiungi cartella superiore",
+    "No presets in this folder.": "Nessun predefinito in questa cartella.",
+    "Built-in": "Integrato",
+    "User": "Utente"
   }
 }

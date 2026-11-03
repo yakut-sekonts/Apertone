@@ -11,7 +11,42 @@ ColumnLayout {
     property string hoverPreviewId: ""
     property var filteredQuickItems: []
     property var libraryModel: null
+    property var folderPath: []
+    property var folderChildren: []
+    property var visiblePresets: []
+    property bool preserveFolderSelection: false
     readonly property Item editorScrollView: editScroll
+    function refreshFolders() {
+        const children = []
+        const matching = []
+        for (const item of presets.items) {
+            const path = JSON.parse(item.folderKey)
+            let prefixMatches = path.length >= folderPath.length
+            for (let i = 0; prefixMatches && i < folderPath.length; ++i)
+                prefixMatches = path[i] === folderPath[i]
+            if (!prefixMatches) continue
+            if (path.length === folderPath.length) matching.push(item)
+            else if (!children.includes(path[folderPath.length])) children.push(path[folderPath.length])
+        }
+        folderChildren = children.sort()
+        visiblePresets = matching
+        if (!preserveFolderSelection && selectedId.length && !matching.some(item => item.id === selectedId))
+            selectedId = ""
+    }
+    function enterFolder(name) { folderPath = folderPath.concat([name]) }
+    function goToParentFolder() { folderPath = folderPath.slice(0, -1) }
+    function importFrom(url) {
+        preserveFolderSelection = true
+        const imported = presets.importPreset(url)
+        if (imported) {
+            selectedId = presets.importedId
+            if (selected) folderPath = JSON.parse(selected.folderKey)
+            presetTabs.currentIndex = 2
+        }
+        preserveFolderSelection = false
+        refreshFolders()
+        return imported
+    }
     function previewHoveredPreset(presetId) {
         hoverPreviewId = presetId
         presets.preview(presetId)
@@ -37,14 +72,17 @@ ColumnLayout {
         editDialog.copyMode = false
         nameField.text = create ? "" : selected.name
         folderField.text = create ? "" : selected.folder
+        editDialog.setParents(create ? folderPath.slice(0, -1) : selected.folderParents)
+        if (create && folderPath.length) folderField.text = folderPath[folderPath.length - 1]
         editDialog.groups = create ? 4095 : selected.groups
         capture.checked = create
         editDialog.open()
     }
     onSelectedIdChanged: selection()
+    onFolderPathChanged: refreshFolders()
     onVisibleChanged: if (!visible) panel.clearHoveredPreview()
-    Connections { target: presets; function onItemsChanged() { panel.selection() } }
-    Component.onCompleted: updateQuickItems()
+    Connections { target: presets; function onItemsChanged() { panel.selection(); panel.refreshFolders() } }
+    Component.onCompleted: { updateQuickItems(); refreshFolders() }
     spacing: Theme.panelSpacing
     TabBar {
         id: presetTabs
@@ -281,17 +319,37 @@ ColumnLayout {
             }
         }
     }
+    RowLayout {
+        visible: presetTabs.currentIndex === 2
+        Layout.fillWidth: true
+        ApertoneButton { objectName: "presetFolderUp"; text: "↑"; enabled: panel.folderPath.length > 0; onClicked: panel.goToParentFolder() }
+        ApertoneComboBox {
+            objectName: "presetFolderChildren"
+            Layout.fillWidth: true
+            model: [qsTranslate("Apertone", "Open folder…")].concat(panel.folderChildren)
+            currentIndex: 0
+            enabled: panel.folderChildren.length > 0
+            onActivated: index => { if (index > 0) panel.enterFolder(panel.folderChildren[index - 1]); currentIndex = 0 }
+        }
+    }
+    Label {
+        objectName: "presetFolderPath"
+        visible: presetTabs.currentIndex === 2
+        Layout.fillWidth: true; elide: Text.ElideMiddle; textFormat: Text.PlainText
+        text: panel.folderPath.length ? panel.folderPath.map(part => JSON.stringify(part)).join("  ›  ") : qsTranslate("Apertone", "Presets")
+        color: Theme.muted; font.pixelSize: 10
+    }
     ListView {
         id: list
         objectName: "presetList"
         visible: presetTabs.currentIndex === 2
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
-        clip: true; model: presets.items
-        section.property: "folder"; section.criteria: ViewSection.FullString
+        clip: true; model: panel.visiblePresets
+        section.property: "folderKey"; section.criteria: ViewSection.FullString
         section.delegate: Label {
             required property string section
             objectName: "presetFolderTitle"; textFormat: Text.PlainText
-            text: section.length ? section : qsTranslate("Apertone", "No folder")
+            text: JSON.parse(section).length ? JSON.parse(section).map(part => JSON.stringify(part)).join("  ›  ") : qsTranslate("Apertone", "No folder")
             color: Theme.muted; font.pixelSize: 10; height: 26; topPadding: 7
         }
         delegate: ItemDelegate {
@@ -317,7 +375,7 @@ ColumnLayout {
         ScrollBar.vertical: ScrollBar {}
         Label {
             anchors.centerIn: parent; width: parent.width
-            visible: list.count === 0; text: qsTranslate("Apertone", "Save your settings or import a JSON/XMP preset.")
+            visible: list.count === 0; text: qsTranslate("Apertone", "No presets in this folder.")
             color: Theme.muted; wrapMode: Text.Wrap; font.pixelSize: 11
         }
     }
@@ -337,6 +395,16 @@ ColumnLayout {
         property string presetId: ""
         property bool copyMode: false
         property int groups: 4095
+        function setParents(parts) {
+            parentModel.clear()
+            for (const part of parts) parentModel.append({ folderName: part })
+        }
+        function parents() {
+            const result = []
+            for (let i = 0; i < parentModel.count; ++i) result.push(parentModel.get(i).folderName)
+            return result
+        }
+        ListModel { id: parentModel }
         parent: Overlay.overlay
         anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
@@ -354,6 +422,20 @@ ColumnLayout {
                 width: editScroll.availableWidth; spacing: 10
                 ApertoneTextField { id: nameField; objectName: "presetName"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Apertone", "Name"); maximumLength: 80; Layout.fillWidth: true }
                 ApertoneTextField { id: folderField; objectName: "presetFolder"; visible: !editDialog.copyMode; placeholderText: qsTranslate("Apertone", "Folder (optional)"); maximumLength: 80; Layout.fillWidth: true }
+                Label { visible: !editDialog.copyMode; text: qsTranslate("Apertone", "Parent folders (outermost first)"); color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
+                Repeater {
+                    model: parentModel
+                    RowLayout {
+                        required property int index
+                        required property string folderName
+                        visible: !editDialog.copyMode; Layout.fillWidth: true
+                        ApertoneTextField { objectName: "presetParentFolder" + index; Layout.fillWidth: true; maximumLength: 80; text: folderName; onTextEdited: parentModel.setProperty(index, "folderName", text) }
+                        ApertoneButton { text: "↑"; enabled: index > 0; onClicked: parentModel.move(index, index - 1, 1) }
+                        ApertoneButton { text: "↓"; enabled: index + 1 < parentModel.count; onClicked: parentModel.move(index, index + 1, 1) }
+                        ApertoneButton { text: "×"; Accessible.name: qsTranslate("Apertone", "Remove parent folder"); onClicked: parentModel.remove(index) }
+                    }
+                }
+                ApertoneButton { objectName: "presetAddParentFolder"; visible: !editDialog.copyMode; enabled: parentModel.count < 16; text: qsTranslate("Apertone", "Add parent folder"); onClicked: parentModel.append({ folderName: "" }) }
                 Label { text: qsTranslate("Apertone", "Settings groups"); color: Theme.text }
                 Repeater {
                     model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"), qsTranslate("Apertone", "Presence"), qsTranslate("Apertone", "Point Color"), qsTranslate("Apertone", "Color Grading"), qsTranslate("Apertone", "Effects")]
@@ -392,8 +474,20 @@ ColumnLayout {
                 DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
                 onClicked: {
                     if (editDialog.copyMode) { presets.copySettings(editDialog.groups); editDialog.close() }
-                    else if (presets.save(editDialog.presetId, nameField.text, folderField.text, editDialog.groups,
-                                         !editDialog.presetId.length || (capture.checked && capture.enabled))) editDialog.close()
+                    else {
+                        panel.preserveFolderSelection = true
+                        const saved = presets.saveNested(editDialog.presetId, nameField.text, folderField.text,
+                                              editDialog.parents().map(part => part.trim()), editDialog.groups,
+                                              !editDialog.presetId.length || (capture.checked && capture.enabled))
+                        if (saved) {
+                            const path = editDialog.parents().map(part => part.trim())
+                            if (folderField.text.trim().length) path.push(folderField.text.trim())
+                            panel.folderPath = path
+                            editDialog.close()
+                        }
+                        panel.preserveFolderSelection = false
+                        panel.refreshFolders()
+                    }
                 }
             }
         }
@@ -436,7 +530,7 @@ ColumnLayout {
     FileDialog {
         id: importDialog; objectName: "presetImportDialog"; title: qsTranslate("Apertone", "Import preset")
         nameFilters: [qsTranslate("Apertone", "Preset files (*.json *.xmp)"), "Apertone preset (*.json)", "XMP (*.xmp)"]
-        onAccepted: if (presets.importPreset(selectedFile)) { panel.selectedId = presets.importedId; presetTabs.currentIndex = 2 }
+        onAccepted: panel.importFrom(selectedFile)
     }
     FileDialog {
         id: exportDialog; objectName: "presetExportDialog"; property string presetId: ""

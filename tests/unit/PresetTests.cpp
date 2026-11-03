@@ -14,6 +14,7 @@
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickStyle>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QThread>
 #include <QUuid>
@@ -254,6 +255,48 @@ void documentTests() {
             "Sparse creative preset changed unselected settings or bypass flags.");
 }
 void storeTests(const QString &root) {
+    {
+        luma::PresetStore nestedStore(root + "/nested.json");
+        luma::DevelopPreset legacy{"Legacy", "A/B", sample(), 255};
+        const auto legacyId = nestedStore.put(legacy);
+        auto nested = legacy;
+        nested.name = "Nested";
+        nested.folder = "B";
+        nested.folderParents = {"A", "slash/in parent"};
+        const auto nestedId = nestedStore.put(nested);
+        const auto saved = nestedStore.load();
+        require(saved.size() == 2 && saved[0].id == legacyId && saved[0].preset.folder == "A/B" &&
+                    saved[0].preset.folderParents.isEmpty() && saved[1].id == nestedId &&
+                    saved[1].preset.folderParents == nested.folderParents,
+                "Nested folders changed legacy folders or preset identifiers.");
+        const auto exported = root + "/nested-export.json";
+        luma::PresetStore::exportFile(exported, nested);
+        const auto imported = luma::PresetStore::importFile(exported);
+        require(imported.folder == nested.folder &&
+                    imported.folderParents == nested.folderParents &&
+                    imported.settings == nested.settings,
+                "Nested folder path did not survive export/import.");
+        auto sparse = nested;
+        sparse.groups = luma::settingsParameterGroup("exposure");
+        sparse.parameters = {"exposure"};
+        const auto sparseJson = luma::encodePreset(sparse);
+        require(QJsonDocument::fromJson(sparseJson).object()["schemaVersion"].toInt() == 11 &&
+                    luma::decodePreset(sparseJson).folderParents == sparse.folderParents &&
+                    luma::decodePreset(sparseJson).parameters == sparse.parameters,
+                "Sparse nested preset lost its path or parameter selection.");
+        auto invalid = nested;
+        invalid.folder.clear();
+        throws([&] { nestedStore.put(invalid); });
+        invalid = nested;
+        invalid.folderParents = {"A", ""};
+        throws([&] { nestedStore.put(invalid); });
+        invalid = nested;
+        invalid.folderParents = QStringList(17, QStringLiteral("A"));
+        throws([&] { nestedStore.put(invalid); });
+        auto encoded = QJsonDocument::fromJson(luma::encodePreset(nested)).object();
+        encoded["folderParents"] = QJsonArray{"A", 4};
+        throws([&] { luma::decodePreset(QJsonDocument(encoded).toJson()); });
+    }
     const auto path = root + "/store.json";
     luma::PresetStore a(path), b(path);
     const luma::DevelopPreset preset{"Test", "Folder", sample(), 255};
@@ -294,7 +337,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 10;
+    future["schemaVersion"] = 12;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });
@@ -351,6 +394,16 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     require(child("presetEditor")->property("visible").toBool(), "Create dialog is not visible.");
     child("presetName")->setProperty("text", "QML <b>preset</b>");
     child("presetFolder")->setProperty("text", "<b>QML folder</b>");
+    require(QMetaObject::invokeMethod(child("presetAddParentFolder"), "clicked"),
+            "Cannot add a parent folder.");
+    child("presetParentFolder0")->setProperty("text", "Parent/legacy");
+    require(QMetaObject::invokeMethod(child("presetParentFolder0"), "textEdited"),
+            "Cannot update parent folder.");
+    require(QMetaObject::invokeMethod(child("presetAddParentFolder"), "clicked"),
+            "Cannot add a second parent folder.");
+    child("presetParentFolder1")->setProperty("text", "Second");
+    require(QMetaObject::invokeMethod(child("presetParentFolder1"), "textEdited"),
+            "Cannot update second parent folder.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot save from QML dialog.");
     require(!child("presetEditor")->property("visible").toBool(), "Save did not close dialog.");
@@ -364,9 +417,12 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     require(QMetaObject::invokeMethod(panel, "openEditor", Q_ARG(QVariant, false)),
             "Cannot open edit dialog.");
     require(child("presetName")->property("text").toString() == "QML <b>preset</b>" &&
-                child("presetFolder")->property("text").toString() == "<b>QML folder</b>",
+                child("presetFolder")->property("text").toString() == "<b>QML folder</b>" &&
+                child("presetParentFolder0")->property("text").toString() == "Parent/legacy" &&
+                child("presetParentFolder1")->property("text").toString() == "Second",
             "Edit dialog lost metadata.");
     child("presetName")->setProperty("text", "QML renamed");
+    child("presetFolder")->setProperty("text", "QML moved");
     child("presetGroup0")->setProperty("checked", false);
     require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
             "Cannot select subset group.");
@@ -374,15 +430,123 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
             "Group checkbox ignored subset.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot update from QML dialog.");
+    require(panel->property("selectedId").toString() == id,
+            "Moving a preset cleared the programmatically retained selection.");
     for (const auto &item : presets.items())
         if (item.toMap()["id"].toString() == id)
             require(item.toMap()["name"].toString() == "QML renamed" &&
-                        item.toMap()["groups"].toInt() == 4094,
+                        item.toMap()["groups"].toInt() == 4094 &&
+                        item.toMap()["folderParents"].toStringList() ==
+                            QStringList({"Parent/legacy", "Second"}),
                     "QML update lost name or group selection.");
+    panel->setProperty("folderPath", QVariantList{});
+    require(QMetaObject::invokeMethod(panel, "enterFolder", Q_ARG(QVariant, "Parent/legacy")) &&
+                QMetaObject::invokeMethod(panel, "enterFolder", Q_ARG(QVariant, "Second")) &&
+                QMetaObject::invokeMethod(panel, "enterFolder", Q_ARG(QVariant, "QML moved")),
+            "Cannot navigate nested preset folders.");
     QCoreApplication::processEvents();
     require(child("presetTitle")->property("textFormat").toInt() == Qt::PlainText &&
                 child("presetFolderTitle")->property("textFormat").toInt() == Qt::PlainText,
             "Imported preset labels interpreted markup instead of literal text.");
+    panel->setProperty("selectedId", id);
+    require(QMetaObject::invokeMethod(child("presetFolderUp"), "clicked"),
+            "Cannot navigate to parent folder.");
+    QCoreApplication::processEvents();
+    require(child("presetList")->property("count").toInt() == 0 &&
+                child("presetFolderChildren")->property("count").toInt() == 2 &&
+                panel->property("selectedId").toString().isEmpty() &&
+                !child("preset.actions.edit")->property("enabled").toBool() &&
+                !child("preset.actions.export")->property("enabled").toBool() &&
+                !child("preset.actions.delete")->property("enabled").toBool(),
+            "Parent folder did not show its child without showing descendants as direct presets.");
+    QTemporaryDir importDir;
+    const auto exportUrl = QUrl::fromLocalFile(importDir.filePath("nested.json"));
+    require(importDir.isValid() && presets.exportPreset(id, exportUrl) &&
+                QMetaObject::invokeMethod(panel, "importFrom", Q_ARG(QVariant, exportUrl)),
+            "Cannot export and import the nested preset through the panel.");
+    require(!panel->property("selectedId").toString().isEmpty() &&
+                panel->property("selectedId").toString() != id &&
+                child("presetList")->property("count").toInt() == 2,
+            "Import did not select the new preset in its folder.");
+    require(presets.remove(panel->property("selectedId").toString()),
+            "Cannot remove imported test preset.");
+    require(presets.saveNested({}, "QML renamed", "Different", {"Other › Split"}, 1, true) &&
+                presets.saveNested({}, "QML renamed", "Different", {"Other", "Split"}, 1, true),
+            "Cannot create a duplicate-name preset for the choice controls.");
+    const auto builtinName = presets.builtinItems().front().toMap()["name"].toString();
+    require(presets.saveNested({}, "\"A\" · X", "", {}, 1, true) &&
+                presets.saveNested({}, "X", "A", {}, 1, true) &&
+                presets.saveNested({}, builtinName, "", {}, 1, true),
+            "Cannot create preset display-collision fixtures.");
+    QQmlComponent libraryStub(&engine);
+    libraryStub.setData("import QtQml; QtObject { property int selectedCount: 1; "
+                        "property bool working: false; property bool selecting: false; "
+                        "property string error: ''; property var importMetadataPresets: [] }",
+                        QUrl());
+    std::unique_ptr<QObject> mockLibrary(libraryStub.create());
+    QQmlComponent batchStub(&engine);
+    batchStub.setData("import QtQml; QtObject { property bool canUndo: false; "
+                      "property bool canRedo: false }",
+                      QUrl());
+    std::unique_ptr<QObject> mockBatch(batchStub.create());
+    require(mockLibrary && mockBatch, "Cannot create choice-control fixtures.");
+    engine.rootContext()->setContextProperty("library", mockLibrary.get());
+    engine.rootContext()->setContextProperty("batch", mockBatch.get());
+    QQmlComponent choices(&engine);
+    choices.setData(
+        (QStringLiteral("import QtQuick; import QtQuick.Controls; import \"") +
+         QUrl::fromLocalFile(qmlPath).toString() +
+         QStringLiteral("\"; ApplicationWindow { width: 720; height: 600; visible: true; "
+                        "BatchSettings { width: parent.width } ImportDialog {} }"))
+            .toUtf8(),
+        QUrl());
+    waitUntil([&] { return choices.status() != QQmlComponent::Loading; });
+    if (choices.status() == QQmlComponent::Error)
+        throw std::runtime_error(choices.errorString().toStdString());
+    const std::unique_ptr<QObject> choicesWindow(choices.create());
+    require(choicesWindow != nullptr, "Preset choice controls failed to load.");
+    auto *batchChoice = choicesWindow->findChild<QObject *>("batchPresetChoice");
+    auto *importChoice = choicesWindow->findChild<QObject *>("importDevelopPreset");
+    require(batchChoice && importChoice, "Preset choice controls were not found.");
+    const auto entries = presets.items();
+    QStringList choiceLabels;
+    QString collisionRoot;
+    QString collisionNested;
+    QString matchingBuiltinUser;
+    for (int i = 0; i < entries.size(); ++i) {
+        const auto item = entries[i].toMap();
+        const auto display = QStringLiteral("● User · ") + item["displayName"].toString();
+        if (item["name"].toString() == "\"A\" · X")
+            collisionRoot = display;
+        if (item["name"].toString() == "X" && item["folder"].toString() == "A")
+            collisionNested = display;
+        if (item["name"].toString() == builtinName)
+            matchingBuiltinUser = display;
+        if (item["name"].toString() != "QML renamed")
+            continue;
+        const auto label = display;
+        const int index = presets.builtinItems().size() + i;
+        batchChoice->setProperty("currentIndex", index);
+        importChoice->setProperty("currentIndex", index + 1);
+        require(batchChoice->property("currentText").toString() == label &&
+                    importChoice->property("currentText").toString() == label,
+                "Preset choice did not show the complete folder path.");
+        choiceLabels.append(label);
+    }
+    require(choiceLabels.size() == 3 &&
+                QSet<QString>(choiceLabels.begin(), choiceLabels.end()).size() == 3 &&
+                choiceLabels.join("\n").contains("\"Parent/legacy\"") &&
+                choiceLabels.join("\n").contains("\"Other › Split\"") &&
+                choiceLabels.join("\n").contains("\"Other\" › \"Split\""),
+            "Duplicate preset names in different folders are indistinguishable.");
+    batchChoice->setProperty("currentIndex", 0);
+    importChoice->setProperty("currentIndex", 1);
+    require(!collisionRoot.isEmpty() && !collisionNested.isEmpty() &&
+                collisionRoot != collisionNested && !matchingBuiltinUser.isEmpty() &&
+                batchChoice->property("currentText").toString() ==
+                    importChoice->property("currentText").toString() &&
+                batchChoice->property("currentText").toString() != matchingBuiltinUser,
+            "Root, nested, or built-in preset labels collided.");
     if (!warnings.isEmpty())
         throw std::runtime_error(warnings.join('\n').toStdString());
 }

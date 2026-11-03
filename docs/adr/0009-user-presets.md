@@ -43,3 +43,20 @@ preparing an update clears it. Copy/Paste uses an in-memory subset snapshot in
 this application session; it does not access the system clipboard. Multi-photo
 paste, batch preset application, Sync Settings, ready-made filters and later
 Detail/Optics/Geometry/Crop/Masks/Effects groups remain separate stages.
+
+## Nested folder paths after 2.0
+
+A preset can explicitly carry up to 16 parent names and one leaf folder name.
+Each component follows the existing 80-character, trimmed, non-control-text
+rule. The existing `folder` remains one literal name; a slash in an old folder
+is never parsed as a separator. Schema 10 stores the `folderParents` array;
+schema 11 additionally stores sparse parameter selections. Collections without
+nested paths retain schema 8 or 9. Older readers reject the new schemas instead
+of flattening their paths. Export/import preserves the path and does not export
+local IDs. Updating an existing entry preserves its ID.
+
+The preset panel navigates one level at a time and can move an individual
+preset by editing its path components. Folder nodes are derived from presets:
+empty folders, bulk folder renaming, and moving or deleting whole subtrees are
+not implemented. Breadcrumbs are display labels; the stored array, not the
+visual separator, determines identity.

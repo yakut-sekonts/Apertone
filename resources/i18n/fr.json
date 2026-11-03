@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Récupérer le flou optique en DNG",
     "Correct color moiré DNG": "Corriger le moiré coloré en DNG",
     "Lens Blur Recovery": "Récupération du flou optique",
-    "Color Moire Correction": "Correction du moiré coloré"
+    "Color Moire Correction": "Correction du moiré coloré",
+    "Open folder…": "Ouvrir le dossier…",
+    "Parent folders (outermost first)": "Dossiers parents (de l’extérieur vers l’intérieur)",
+    "Remove parent folder": "Retirer le dossier parent",
+    "Add parent folder": "Ajouter un dossier parent",
+    "No presets in this folder.": "Aucun préréglage dans ce dossier.",
+    "Built-in": "Intégré",
+    "User": "Utilisateur"
   }
 }

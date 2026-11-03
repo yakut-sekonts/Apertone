@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "恢复镜头模糊 DNG",
     "Correct color moiré DNG": "校正彩色摩尔纹 DNG",
     "Lens Blur Recovery": "镜头模糊恢复",
-    "Color Moire Correction": "彩色摩尔纹校正"
+    "Color Moire Correction": "彩色摩尔纹校正",
+    "Open folder…": "打开文件夹…",
+    "Parent folders (outermost first)": "父文件夹（从外到内）",
+    "Remove parent folder": "移除父文件夹",
+    "Add parent folder": "添加父文件夹",
+    "No presets in this folder.": "此文件夹中没有预设。",
+    "Built-in": "内置",
+    "User": "用户"
   }
 }

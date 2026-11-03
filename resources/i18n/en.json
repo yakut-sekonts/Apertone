@@ -929,6 +929,13 @@
     "Recover lens blur DNG": "Recover lens blur DNG",
     "Correct color moiré DNG": "Correct color moiré DNG",
     "Lens Blur Recovery": "Lens Blur Recovery",
-    "Color Moire Correction": "Color Moire Correction"
+    "Color Moire Correction": "Color Moire Correction",
+    "Open folder…": "Open folder…",
+    "Parent folders (outermost first)": "Parent folders (outermost first)",
+    "Remove parent folder": "Remove parent folder",
+    "Add parent folder": "Add parent folder",
+    "No presets in this folder.": "No presets in this folder.",
+    "Built-in": "Built-in",
+    "User": "User"
   }
 }
