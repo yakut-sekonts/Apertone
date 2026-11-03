@@ -1,4 +1,5 @@
 #include "core/render/TransformMapping.h"
+#include "tests/ux/AutoTransformProbe.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
@@ -6,6 +7,7 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QSet>
+#include <QSignalSpy>
 #include <QTest>
 #include <cmath>
 
@@ -40,26 +42,54 @@ void reset(Context &c) {
 void cancelAuto(Context &c) {
     auto &d = *c.driver;
     const auto before = c.editor.currentSettings();
-    const bool undo = c.editor.canUndo();
-    QueuedCallGate gate(
-        c.editor,
-        [&] {
-            const auto *cancel = d.item("transformAutoCancel");
-            return c.editor.transformAutoBusy() && !c.editor.busy() && !c.editor.saving() &&
-                   cancel->isVisible() && cancel->isEnabled();
-        },
-        [&] {
-            d.frame();
-            d.click("transformAutoCancel");
-        });
+    const bool undo = c.editor.canUndo(), redo = c.editor.canRedo();
+    // Hold the real successful worker result, not an unrelated GUI MetaCall.
+    // Driver::frame and click process events, so an arbitrary queued event does
+    // not prevent Auto from completing and hiding Cancel during the click.
+    AutoTransformResultGate gate(c.editor);
+    QSignalSpy cancels(d.object("transformAutoCancel"), SIGNAL(clicked()));
+    require(cancels.isValid(), "Auto has no observable Cancel button");
     d.click("transformAuto");
-    d.wait([&] { return gate.caught; }, "repeated Auto reached queued completion");
-    if (gate.failure)
-        std::rethrow_exception(gate.failure);
+    d.wait([&] { return gate.snapshot().held.has_value() || !c.editor.transformAutoBusy(); },
+           "Repeated Auto result reached the worker boundary", 15000);
+    const auto held = gate.snapshot();
+    require(held.held && held.successfulArrivals == 1 && held.deliveries == 0 && !held.released &&
+                !held.timedOut && !held.hookFailed &&
+                held.held->operation.controller == &c.editor && held.held->operation.job &&
+                held.held->operation.assetID == c.editor.photoID().toStdString() &&
+                held.held->operation.sourcePath == c.editor.sourcePath().toStdString() &&
+                c.editor.transformAutoBusy(),
+            "Repeated Auto did not hold exactly its real successful result");
+    const auto operation = held.held->operation;
+    auto wouldApply = before;
+    wouldApply.transform = held.held->solved;
+    wouldApply.setEnabled(luma::Correction::transform, true);
+    require(wouldApply != before && wouldApply.transform.guided,
+            "Repeated Auto cancellation fixture would not produce a meaningful edit");
+    c.reveal("transformAutoCancel");
+    d.click("transformAutoCancel");
+    require(cancels.count() == 1 && gate.snapshot().deliveries == 0 &&
+                !c.editor.transformAutoBusy() && c.editor.currentSettings() == before &&
+                c.editor.canUndo() == undo && c.editor.canRedo() == redo,
+            "Repeated Cancel committed Auto or left it busy");
+    gate.release();
+    d.wait([&] { return gate.snapshot().deliveries > 0; }, "Repeated Auto callback delivered");
+    d.wait([&] { return operation.job->state.load() == luma::JobState::cancelled; },
+           "Repeated cancelled Auto worker finished");
     d.frame();
-    require(!c.editor.transformAutoBusy() && c.editor.currentSettings() == before &&
-                c.editor.canUndo() == undo && c.editor.error().isEmpty(),
-            "Repeated Auto/Cancel changed history, settings or busy state");
+    const auto delivered = gate.snapshot();
+    require(delivered.successfulArrivals == 1 && delivered.deliveries == 1 &&
+                delivered.rejections == 1 && delivered.lastDelivered && delivered.rejection &&
+                delivered.lastDelivered->sameAs(operation) &&
+                delivered.rejection->operation.sameAs(operation) &&
+                delivered.rejection->controllerPresent &&
+                delivered.rejection->currentRevision != operation.revision && delivered.released &&
+                delivered.leftHold && !delivered.timedOut && !delivered.hookFailed &&
+                !delivered.deliveryBeforeRelease && delivered.mismatchedDeliveries == 0 &&
+                !c.editor.transformAutoBusy() && c.editor.currentSettings() == before &&
+                c.editor.canUndo() == undo && c.editor.canRedo() == redo &&
+                c.editor.error().isEmpty(),
+            "Repeated late Auto success was not rejected exactly once after Cancel");
 }
 } // namespace
 bool transformExtraScenario(Context &c, const QString &id) {
@@ -77,6 +107,10 @@ bool transformExtraScenario(Context &c, const QString &id) {
         c.fixture = flat;
         c.import(1);
         d.doubleClick(c.card(0));
+        c.loaded();
+    } else if (id == "UX-TRN-014") {
+        // The calibrated image yields a meaningful successful Auto result.
+        c.editor.openFile(QUrl::fromLocalFile(c.fixture + "/stress/Building.DNG"));
         c.loaded();
     } else
         c.openFirst();
