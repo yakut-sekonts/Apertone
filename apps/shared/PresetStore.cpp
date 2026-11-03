@@ -353,6 +353,49 @@ void PresetStore::remove(const QString &id) {
     require(count == 1, "Preset no longer exists. Refresh the collection.");
     save(presets);
 }
+void PresetStore::moveFolder(const QStringList &source, const QStringList &destination) {
+    require(!source.isEmpty() && !destination.isEmpty(), "Select a non-empty folder path.");
+    const auto startsWith = [](const QStringList &path, const QStringList &prefix) {
+        return path.size() >= prefix.size() &&
+               std::equal(prefix.begin(), prefix.end(), path.begin());
+    };
+    prepare(path_);
+    QLockFile lock(path_ + ".lock");
+    require(lock.tryLock(0), "Preset collection is being modified by another app instance.");
+    auto presets = load();
+    const auto pathOf = [](const DevelopPreset &preset) {
+        auto path = preset.folderParents;
+        if (!preset.folder.isEmpty())
+            path.append(preset.folder);
+        return path;
+    };
+    bool sourceExists = false;
+    bool targetExists = false;
+    bool parentExists = destination.size() == 1;
+    const auto parent = destination.mid(0, destination.size() - 1);
+    for (const auto &entry : presets) {
+        const auto path = pathOf(entry.preset);
+        sourceExists |= startsWith(path, source);
+        targetExists |= startsWith(path, destination);
+        parentExists |= startsWith(path, parent);
+    }
+    require(sourceExists, "Folder no longer exists. Refresh the collection.");
+    if (source == destination)
+        return;
+    require(!startsWith(destination, source), "Cannot move a folder into itself.");
+    require(parentExists, "Destination folder no longer exists. Refresh the collection.");
+    require(!targetExists, "A folder with that name already exists at the destination.");
+    for (auto &entry : presets) {
+        const auto path = pathOf(entry.preset);
+        if (!startsWith(path, source))
+            continue;
+        const auto updated = destination + path.mid(source.size());
+        entry.preset.folder = updated.last();
+        entry.preset.folderParents = updated.mid(0, updated.size() - 1);
+        entry.preset.validate();
+    }
+    save(presets);
+}
 DevelopPreset PresetStore::importFile(const QString &path) {
     return inspectImport(path).preset;
 }

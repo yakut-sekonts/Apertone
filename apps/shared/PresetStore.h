@@ -38,6 +38,7 @@ class PresetStore {
     std::vector<StoredPreset> load() const;
     QString put(const DevelopPreset &preset, const QString &id = {});
     void remove(const QString &id);
+    void moveFolder(const QStringList &source, const QStringList &destination);
     static DevelopPreset importFile(const QString &path);
     static PresetImport inspectImport(const QString &path);
     static void exportFile(const QString &path, const DevelopPreset &preset);

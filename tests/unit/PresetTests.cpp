@@ -284,6 +284,51 @@ void storeTests(const QString &root) {
                     luma::decodePreset(sparseJson).folderParents == sparse.folderParents &&
                     luma::decodePreset(sparseJson).parameters == sparse.parameters,
                 "Sparse nested preset lost its path or parameter selection.");
+        auto child = nested;
+        child.name = "Child";
+        child.folderParents.append(child.folder);
+        child.folder = "Child";
+        const auto childId = nestedStore.put(child);
+        auto destination = legacy;
+        destination.folder = "Destination";
+        nestedStore.put(destination);
+        const auto beforeMove = read(root + "/nested.json");
+        throws([&] { nestedStore.moveFolder({"A"}, {"A", "inside"}); });
+        throws([&] { nestedStore.moveFolder({"A"}, {"Destination"}); });
+        throws([&] { nestedStore.moveFolder({"A"}, {"Missing", "Moved"}); });
+        throws([&] { nestedStore.moveFolder({"A"}, {""}); });
+        throws([&] { nestedStore.moveFolder({"Unknown"}, {"Moved"}); });
+        require(read(root + "/nested.json") == beforeMove,
+                "Rejected folder operation changed the collection.");
+        {
+            QLockFile lock(root + "/nested.json.lock");
+            require(lock.tryLock(0), "Cannot acquire folder test lock.");
+            throws([&] { nestedStore.moveFolder({"A"}, {"Moved"}); });
+        }
+        require(read(root + "/nested.json") == beforeMove,
+                "Locked folder operation changed the collection.");
+        nestedStore.moveFolder({"A"}, {"Destination", "Moved"});
+        const auto moved = nestedStore.load();
+        require(moved[0].id == legacyId && moved[0].preset.folder == "A/B" &&
+                    moved[1].id == nestedId && moved[1].preset.folder == "B" &&
+                    moved[1].preset.folderParents ==
+                        QStringList({"Destination", "Moved", "slash/in parent"}) &&
+                    moved[1].preset.settings == nested.settings && moved[2].id == childId &&
+                    moved[2].preset.folderParents ==
+                        QStringList({"Destination", "Moved", "slash/in parent", "B"}) &&
+                    moved[2].preset.settings == child.settings,
+                "Folder move lost nested paths, identities, settings, or legacy slash semantics.");
+        const auto movedExport = root + "/moved-export.json";
+        luma::PresetStore::exportFile(movedExport, moved[2].preset);
+        require(luma::PresetStore::importFile(movedExport).folderParents ==
+                    moved[2].preset.folderParents,
+                "Moved folder path did not survive export/import.");
+        const auto movedBytes = read(root + "/nested.json");
+        nestedStore.moveFolder({"Destination", "Moved"}, {"Destination", "Moved"});
+        require(read(root + "/nested.json") == movedBytes, "No-op folder move rewrote the file.");
+        nestedStore.moveFolder({"A/B"}, {"Legacy renamed"});
+        require(nestedStore.load()[0].preset.folder == "Legacy renamed",
+                "Legacy slash folder could not be renamed as one component.");
         auto invalid = nested;
         invalid.folder.clear();
         throws([&] { nestedStore.put(invalid); });
@@ -296,6 +341,54 @@ void storeTests(const QString &root) {
         auto encoded = QJsonDocument::fromJson(luma::encodePreset(nested)).object();
         encoded["folderParents"] = QJsonArray{"A", 4};
         throws([&] { luma::decodePreset(QJsonDocument(encoded).toJson()); });
+    }
+    {
+        // The expanded subtree can exceed the collection byte limit even when the
+        // original is valid. The failed save must leave the original file intact.
+        QStringList destination(10, QString(80, QLatin1Char('D')));
+        luma::DevelopPreset anchor{"Anchor", destination.last(), sample(), 255};
+        anchor.folderParents = destination.mid(0, destination.size() - 1);
+        luma::DevelopPreset original{"Large", QString(80, QLatin1Char('L')), sample(), 255};
+        original.folderParents = {"Source", QString(80, QLatin1Char('C'))};
+        auto expanded = original;
+        expanded.folderParents = destination + QStringList{"Moved", QString(80, QLatin1Char('C'))};
+        const auto jsonFor = [](const luma::DevelopPreset &value) {
+            return QJsonDocument::fromJson(luma::encodePreset(value)).object();
+        };
+        const auto entry = [&](const luma::DevelopPreset &value) {
+            return QJsonObject{{"id", QUuid::createUuid().toString(QUuid::WithoutBraces)},
+                               {"preset", jsonFor(value)}};
+        };
+        QJsonArray current{entry(anchor)}, enlarged{current[0]};
+        const auto serialize = [](const QJsonArray &entries) {
+            return QJsonDocument(QJsonObject{{"format", "luma.preset-library"},
+                                             {"schemaVersion", 10},
+                                             {"presets", entries}})
+                .toJson();
+        };
+        QByteArray valid;
+        for (int i = 0; i < 511; ++i) {
+            const auto item = entry(original);
+            auto larger = item;
+            larger["preset"] = jsonFor(expanded);
+            current.append(item);
+            enlarged.append(larger);
+            const auto candidate = serialize(current);
+            if (candidate.size() > 1024 * 1024)
+                break;
+            if (serialize(enlarged).size() > 1024 * 1024) {
+                valid = candidate;
+                break;
+            }
+        }
+        require(!valid.isEmpty(), "Cannot construct bounded folder save failure fixture.");
+        const auto boundedPath = root + "/bounded-folder.json";
+        write(boundedPath, valid);
+        luma::PresetStore bounded(boundedPath);
+        const auto target = destination + QStringList{"Moved"};
+        throws([&] { bounded.moveFolder({"Source"}, target); });
+        require(read(boundedPath) == valid, "Failed folder save changed the collection.");
+        require(!bounded.load().empty(), "Failed folder save damaged the collection.");
     }
     const auto path = root + "/store.json";
     luma::PresetStore a(path), b(path);
@@ -547,6 +640,40 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
                     importChoice->property("currentText").toString() &&
                 batchChoice->property("currentText").toString() != matchingBuiltinUser,
             "Root, nested, or built-in preset labels collided.");
+    panel->setProperty("folderPath",
+                       QVariantList{QStringLiteral("Parent/legacy"), QStringLiteral("Second"),
+                                    QStringLiteral("QML moved")});
+    panel->setProperty("selectedId", id);
+    QCoreApplication::processEvents();
+    require(QMetaObject::invokeMethod(child("presetFolderEdit"), "clicked") &&
+                child("presetFolderDialog")->property("visible").toBool(),
+            "Cannot open folder editor.");
+    child("presetFolderName")->setProperty("text", "Renamed leaf");
+    require(QMetaObject::invokeMethod(child("presetFolderSave"), "clicked") &&
+                !child("presetFolderDialog")->property("visible").toBool() &&
+                panel->property("folderPath").toList() ==
+                    QVariantList({QStringLiteral("Parent/legacy"), QStringLiteral("Second"),
+                                  QStringLiteral("Renamed leaf")}) &&
+                panel->property("selectedId").toString() == id,
+            "Folder editor did not preserve navigation and selection after renaming.");
+    require(presets.snapshot(id).folder == "Renamed leaf" &&
+                presets.snapshot(id).folderParents == QStringList({"Parent/legacy", "Second"}),
+            "Folder editor did not move the preset.");
+    require(presets.saveNested({}, "Conflict", "Existing", {"Parent/legacy", "Second"}, 1, true),
+            "Cannot create folder conflict fixture.");
+    panel->setProperty("selectedId", id);
+    require(QMetaObject::invokeMethod(child("presetFolderEdit"), "clicked"),
+            "Cannot reopen folder editor.");
+    child("presetFolderName")->setProperty("text", "Existing");
+    require(QMetaObject::invokeMethod(child("presetFolderSave"), "clicked") &&
+                child("presetFolderDialog")->property("visible").toBool() &&
+                child("presetFolderError")->property("visible").toBool() &&
+                panel->property("selectedId").toString() == id &&
+                panel->property("folderPath").toList() ==
+                    QVariantList({QStringLiteral("Parent/legacy"), QStringLiteral("Second"),
+                                  QStringLiteral("Renamed leaf")}) &&
+                presets.snapshot(id).folder == "Renamed leaf",
+            "Rejected folder move changed navigation, selection, or data.");
     if (!warnings.isEmpty())
         throw std::runtime_error(warnings.join('\n').toStdString());
 }

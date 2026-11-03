@@ -191,6 +191,14 @@ bool PresetController::saveNested(const QString &id, const QString &name, const 
         return failure(error);
     }
 }
+bool PresetController::moveFolder(const QStringList &source, const QStringList &destination) {
+    try {
+        store_.moveFolder(source, destination);
+        return refresh();
+    } catch (const std::exception &error) {
+        return failure(error);
+    }
+}
 bool PresetController::remove(const QString &id) {
     try {
         if (luma::builtinPresetID(id))

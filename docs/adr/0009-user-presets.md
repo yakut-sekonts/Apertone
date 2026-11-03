@@ -18,9 +18,8 @@ Adobe preset format. Camera-relative As Shot can look different on another photo
 of the core. A `luma.preset-library` schema-1 collection lives in `presets.json`
 beside the catalog. Catalogs in the same directory share it; selecting an isolated
 catalog directory also isolates presets. Local UUIDs identify entries independently
-of duplicate names. Folder names are flat labels attached to presets; empty and
-nested folder management is not implemented. Renaming or moving preserves the
-saved settings. Removing groups is allowed without recapturing; adding previously
+of duplicate names. Folder names are attached to presets; nested paths are described below.
+Renaming or moving preserves the saved settings. Removing groups is allowed without recapturing; adding previously
 absent groups requires explicit recapture from the active photo.
 
 Collections are limited to 512 presets and 1 MiB, whichever limit is reached first.
@@ -56,7 +55,9 @@ of flattening their paths. Export/import preserves the path and does not export
 local IDs. Updating an existing entry preserves its ID.
 
 The preset panel navigates one level at a time and can move an individual
-preset by editing its path components. Folder nodes are derived from presets:
-empty folders, bulk folder renaming, and moving or deleting whole subtrees are
-not implemented. Breadcrumbs are display labels; the stored array, not the
-visual separator, determines identity.
+preset by editing its path components. Folder nodes are derived from presets; empty folders and subtree deletion are
+not implemented. A folder can be renamed or moved with all its descendants in
+one locked, atomic collection replacement. Existing destination folders and
+moves into the source subtree are rejected; IDs, settings, and relative descendant
+paths remain unchanged. Breadcrumbs are display labels; the stored array, not
+the visual separator, determines identity.

@@ -33,6 +33,29 @@ ColumnLayout {
         if (!preserveFolderSelection && selectedId.length && !matching.some(item => item.id === selectedId))
             selectedId = ""
     }
+    function folderDestinations() {
+        const paths = [[]]
+        const keys = ["[]"]
+        for (const item of presets.items) {
+            const path = JSON.parse(item.folderKey)
+            for (let i = 1; i <= path.length; ++i) {
+                const part = path.slice(0, i)
+                const key = JSON.stringify(part)
+                if (!keys.includes(key)) { keys.push(key); paths.push(part) }
+            }
+        }
+        return paths.filter(path => !folderPath.every((part, i) => path[i] === part))
+    }
+    function openFolderEditor() {
+        panel.clearHoveredPreview()
+        folderDialog.failed = false
+        folderDialog.source = folderPath.slice()
+        folderDialog.destinations = folderDestinations()
+        folderName.text = folderPath[folderPath.length - 1]
+        const currentParent = JSON.stringify(folderPath.slice(0, -1))
+        folderDestination.currentIndex = folderDialog.destinations.findIndex(path => JSON.stringify(path) === currentParent)
+        folderDialog.open()
+    }
     function enterFolder(name) { folderPath = folderPath.concat([name]) }
     function goToParentFolder() { folderPath = folderPath.slice(0, -1) }
     function importFrom(url) {
@@ -331,6 +354,7 @@ ColumnLayout {
             enabled: panel.folderChildren.length > 0
             onActivated: index => { if (index > 0) panel.enterFolder(panel.folderChildren[index - 1]); currentIndex = 0 }
         }
+        ApertoneButton { objectName: "presetFolderEdit"; text: "⋯"; enabled: panel.folderPath.length > 0; Accessible.name: qsTranslate("Apertone", "Rename or move folder"); onClicked: panel.openFolderEditor() }
     }
     Label {
         objectName: "presetFolderPath"
@@ -388,6 +412,45 @@ ColumnLayout {
             onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = 4095; editDialog.open() }
         }
         ApertoneButton { objectName: "preset.paste"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
+    }
+    Dialog {
+        id: folderDialog
+        objectName: "presetFolderDialog"
+        property var source: []
+        property var destinations: []
+        property bool failed: false
+        parent: Overlay.overlay; anchors.centerIn: parent; modal: true
+        width: 430; implicitWidth: 430
+        title: qsTranslate("Apertone", "Rename or move folder")
+        contentItem: ColumnLayout {
+            spacing: 8
+            Label { text: qsTranslate("Apertone", "Folder name"); color: Theme.muted }
+            ApertoneTextField { id: folderName; objectName: "presetFolderName"; Layout.fillWidth: true; maximumLength: 80 }
+            Label { text: qsTranslate("Apertone", "Destination"); color: Theme.muted }
+            ApertoneComboBox {
+                id: folderDestination; objectName: "presetFolderDestination"; Layout.fillWidth: true
+                model: folderDialog.destinations.map(path => path.length ? path.map(part => JSON.stringify(part)).join("  ›  ") : qsTranslate("Apertone", "Presets"))
+            }
+            Label { text: qsTranslate("Apertone", "All presets and subfolders move together."); color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { objectName: "presetFolderError"; text: qsTranslate("Apertone", presets.error); visible: folderDialog.failed && text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        }
+        footer: DialogButtonBox {
+            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: folderDialog.close() }
+            ApertoneButton {
+                objectName: "presetFolderSave"; text: qsTranslate("Apertone", "Save"); DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                enabled: folderName.text.trim().length > 0 && folderDestination.currentIndex >= 0
+                onClicked: {
+                    const destination = folderDialog.destinations[folderDestination.currentIndex].concat([folderName.text.trim()])
+                    panel.preserveFolderSelection = true
+                    if (presets.moveFolder(folderDialog.source, destination)) {
+                        panel.folderPath = destination
+                        folderDialog.close()
+                    } else folderDialog.failed = true
+                    panel.preserveFolderSelection = false
+                    panel.refreshFolders()
+                }
+            }
+        }
     }
     Dialog {
         id: editDialog
