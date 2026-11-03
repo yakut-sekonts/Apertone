@@ -323,6 +323,15 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
 void controllerTests(const std::filesystem::path &source, const std::filesystem::path &root,
                      const QString &qmlPath) {
     const auto f = fixture(source, root, 6);
+    {
+        luma::Catalog db(f.catalog);
+        for (std::size_t i = 0; i < f.ids.size(); ++i) {
+            auto edit = f.edits[i];
+            edit.setParameter("presence.clarity", 10 + static_cast<double>(i));
+            edit.setEnabled(luma::Correction::presence, i % 2 == 0);
+            db.saveEdits(f.ids[i], edit);
+        }
+    }
     PreviewProvider provider;
     EditorController editor(f.catalog, &provider);
     LibraryModel library(f.catalog);
@@ -399,13 +408,18 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     batch.undo();
     wait([&] { return !batch.working(); });
     const auto sparseBaseline = documents(f);
+    for (std::size_t i = 0; i < sparseBaseline.size(); ++i)
+        require(sparseBaseline[i].parameter("presence.clarity") == 10 + static_cast<double>(i) &&
+                    sparseBaseline[i].enabled(luma::Correction::presence) == (i % 2 == 0),
+                "Sparse XMP batch fixture lost its differing Presence states.");
     const auto sparseFile = QString::fromStdString((root / "batch.xmp").string());
     {
         QFile file(sparseFile);
         const QByteArray xml =
             "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
             "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
-            "crs:Name='Sparse XMP' crs:Exposure2012='1.4'/></rdf:RDF>";
+            "crs:Name='Sparse XMP' crs:Exposure2012='1.4' "
+            "crs:Texture='25' crs:Dehaze='-15'/></rdf:RDF>";
         require(file.open(QIODevice::WriteOnly) && file.write(xml) == xml.size(),
                 "Cannot prepare sparse XMP batch fixture.");
     }
@@ -423,6 +437,9 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         auto expected = sparseBaseline[i];
         expected.exposure = 1.4;
         expected.setEnabled(luma::Correction::exposure, true);
+        expected.setParameter("presence.texture", 25);
+        expected.setParameter("presence.dehaze", -15);
+        expected.setEnabled(luma::Correction::presence, true);
         require(sparseApplied[i] == expected, "Batch XMP reset per-photo absent settings.");
     }
     batch.undo();
