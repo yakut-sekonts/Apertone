@@ -1,0 +1,38 @@
+name: Publish verified v2.0.0 recovery candidate
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Build v2.0.0 recovery candidate run ID
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: release-refs/tags/v2.0.0
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Verify source, original tag, recovery run and immutable artifacts before creating release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_RUN_ID: ${{ inputs.build_run_id }}
+        run: |
+          test "$GITHUB_REF" = refs/heads/main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          cp scripts/recovery-v200-publish.py "$RUNNER_TEMP/recovery-v200-publish.py"
+          git checkout --detach refs/tags/v2.0.0
+          python "$RUNNER_TEMP/recovery-v200-publish.py"
