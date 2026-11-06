@@ -42,7 +42,7 @@ class Guard(unittest.TestCase):
         Path('tests/ux/test.cpp').write_text('old test\n')
         Path('product.cpp').write_text('product\n')
         Path('scripts').mkdir()
-        Path('scripts/verify-bundle.py').write_bytes(guard.OLD_SCHEMA_CHECK + b'\n')
+        Path('scripts/verify-bundle.py').write_bytes(guard.OLD_SCHEMA_CHECK + b'\n' + guard.OLD_THUMBNAIL_CHECK + b'\n')
         self.git('add', '.')
         self.git('commit', '-qm', 'product')
         source = self.git('rev-parse', 'HEAD')
@@ -136,6 +136,7 @@ class Guard(unittest.TestCase):
         (release / 'BUILD_INFO.json').write_text(json.dumps({'version': '2.0.0', 'source_commit': guard.SOURCE}))
         guard.bundle_patch(self.evidence)
         self.assertIn(guard.NEW_SCHEMA_CHECK, Path(guard.BUNDLE_PATH).read_bytes())
+        self.assertIn(guard.NEW_THUMBNAIL_CHECK, Path(guard.BUNDLE_PATH).read_bytes())
         guard.bundle_restore(self.evidence)
         guard.seal(self.evidence, release, Path('build'))
         self.assertEqual(set(json.loads(self.evidence.read_text())['asset_sha256']), publisher.ASSETS)
@@ -187,7 +188,7 @@ class Publication(unittest.TestCase):
                     'overlay_source_tree_sha256': 'tree', 'restored_source_tree_sha256': 'restored',
                     'shipping_binary_sha256': 'binary', 'shipping_build_files': {'file': 'hash'},
                     'overlay_diff_sha256': 'patch', 'bundle_verification_passed': True,
-                    'bundle_schema_expected': 23, 'bundle_original_sha256': publisher.BUNDLE_ORIGINAL,
+                    'bundle_schema_expected': 23, 'bundle_thumbnail_expected': 'edited-v6', 'bundle_original_sha256': publisher.BUNDLE_ORIGINAL,
                     'bundle_corrected_sha256': publisher.BUNDLE_CORRECTED}
         return run, jobs, evidence, run_id, sha
 

@@ -16,6 +16,8 @@ OVERLAY_PATH = 'tests/ux/TransformExtraScenarios.cpp'
 BUNDLE_PATH = 'scripts/verify-bundle.py'
 OLD_SCHEMA_CHECK = b'assert catalog_schema == 22, f"Unexpected installed catalog schema: {catalog_schema}"'
 NEW_SCHEMA_CHECK = b'assert catalog_schema == 23, f"Unexpected installed catalog schema: {catalog_schema}"'
+OLD_THUMBNAIL_CHECK = b'p.name.endswith("-edited-v4.jpg")'
+NEW_THUMBNAIL_CHECK = b'p.name.endswith("-edited-v6.jpg")'
 
 
 def git(*arguments, binary=False):
@@ -147,11 +149,15 @@ def bundle_patch(evidence):
     original = path.read_bytes()
     require(original.count(OLD_SCHEMA_CHECK) == 1 and NEW_SCHEMA_CHECK not in original,
             'unexpected original bundle schema check')
-    corrected = original.replace(OLD_SCHEMA_CHECK, NEW_SCHEMA_CHECK)
+    require(original.count(OLD_THUMBNAIL_CHECK) == 1 and NEW_THUMBNAIL_CHECK not in original,
+            'unexpected original thumbnail cache check')
+    corrected = original.replace(OLD_SCHEMA_CHECK, NEW_SCHEMA_CHECK).replace(
+        OLD_THUMBNAIL_CHECK, NEW_THUMBNAIL_CHECK)
     path.write_bytes(corrected)
     data['bundle_original_sha256'] = hashlib.sha256(original).hexdigest()
     data['bundle_corrected_sha256'] = hashlib.sha256(corrected).hexdigest()
     data['bundle_schema_expected'] = 23
+    data['bundle_thumbnail_expected'] = 'edited-v6'
     evidence.write_text(json.dumps(data, indent=2) + '\n')
 
 
@@ -173,7 +179,8 @@ def seal(evidence, release, build):
     require(not tracked_changes(), 'source changed before upload')
     data = json.loads(evidence.read_text())
     require(data.get('restored_source_tree_sha256') == source_fingerprint(), 'restored source tree changed')
-    require(data.get('bundle_verification_passed') is True and data.get('bundle_schema_expected') == 23,
+    require(data.get('bundle_verification_passed') is True and data.get('bundle_schema_expected') == 23
+            and data.get('bundle_thumbnail_expected') == 'edited-v6',
             'corrected bundle verification missing')
     require(data.get('shipping_binary_sha256') and data.get('shipping_build_files') == shipping_hashes(build),
             'shipping build changed before upload')

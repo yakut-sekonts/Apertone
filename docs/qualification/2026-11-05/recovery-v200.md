@@ -30,3 +30,8 @@ application and integration tests use schema 23. The recovery changes only this
 assertion immediately before the unchanged verifier step, restores the tagged
 file afterwards, and records both exact verifier digests in provenance. The
 publisher requires successful verification and the pinned digests.
+
+The same verifier also expects thumbnail cache suffix `edited-v4`; the tagged
+ThumbnailProvider and integration tests use `edited-v6`. This second exact
+assertion is corrected only during the packaged-app verification step and is
+covered by the corrected verifier digest.
