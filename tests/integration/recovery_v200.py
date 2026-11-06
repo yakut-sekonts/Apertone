@@ -41,6 +41,8 @@ class Guard(unittest.TestCase):
         Path('tests/ux').mkdir(parents=True)
         Path('tests/ux/test.cpp').write_text('old test\n')
         Path('product.cpp').write_text('product\n')
+        Path('scripts').mkdir()
+        Path('scripts/verify-bundle.py').write_bytes(guard.OLD_SCHEMA_CHECK + b'\n')
         self.git('add', '.')
         self.git('commit', '-qm', 'product')
         source = self.git('rev-parse', 'HEAD')
@@ -132,11 +134,30 @@ class Guard(unittest.TestCase):
         for name in publisher.ASSETS:
             (release / name).write_bytes(b'asset')
         (release / 'BUILD_INFO.json').write_text(json.dumps({'version': '2.0.0', 'source_commit': guard.SOURCE}))
+        guard.bundle_patch(self.evidence)
+        self.assertIn(guard.NEW_SCHEMA_CHECK, Path(guard.BUNDLE_PATH).read_bytes())
+        guard.bundle_restore(self.evidence)
         guard.seal(self.evidence, release, Path('build'))
         self.assertEqual(set(json.loads(self.evidence.read_text())['asset_sha256']), publisher.ASSETS)
         shipping.write_bytes(b'changed')
         with self.assertRaisesRegex(ValueError, 'shipping build changed'):
             guard.seal(self.evidence, release, Path('build'))
+
+    def test_bundle_verifier_rejects_tampering(self):
+        guard.prepare(self.evidence)
+        self.setup_build()
+        guard.restore(self.evidence, Path('build'))
+        guard.bundle_patch(self.evidence)
+        Path(guard.BUNDLE_PATH).write_bytes(b'tampered')
+        with self.assertRaisesRegex(ValueError, 'bundle verifier changed'):
+            guard.bundle_restore(self.evidence)
+
+    def test_seal_requires_bundle_verification(self):
+        guard.prepare(self.evidence)
+        self.setup_build()
+        guard.restore(self.evidence, Path('build'))
+        with self.assertRaisesRegex(ValueError, 'corrected bundle verification missing'):
+            guard.seal(self.evidence, Path('dist/release'), Path('build'))
 
     def test_refuse_changed_tag_and_dirty_initial_tree(self):
         Path('product.cpp').write_text('dirty\n')
@@ -165,7 +186,9 @@ class Publication(unittest.TestCase):
                                             'test_executable_sha256': 'exe'},
                     'overlay_source_tree_sha256': 'tree', 'restored_source_tree_sha256': 'restored',
                     'shipping_binary_sha256': 'binary', 'shipping_build_files': {'file': 'hash'},
-                    'overlay_diff_sha256': 'patch'}
+                    'overlay_diff_sha256': 'patch', 'bundle_verification_passed': True,
+                    'bundle_schema_expected': 23, 'bundle_original_sha256': publisher.BUNDLE_ORIGINAL,
+                    'bundle_corrected_sha256': publisher.BUNDLE_CORRECTED}
         return run, jobs, evidence, run_id, sha
 
     def test_requires_successful_correct_run_and_sealed_provenance(self):
@@ -174,7 +197,7 @@ class Publication(unittest.TestCase):
         for bad in ('failure', 'cancelled', None):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 publisher.verify_run({**run, 'conclusion': bad}, jobs, evidence, run_id, sha)
-        for key, value in [('product_commit', 'wrong'), ('run_attempt', '1'), ('overlay_blob', 'wrong')]:
+        for key, value in [('product_commit', 'wrong'), ('run_attempt', '1'), ('overlay_blob', 'wrong'), ('bundle_corrected_sha256', 'wrong')]:
             with self.subTest(key=key), self.assertRaises(ValueError):
                 publisher.verify_run(run, jobs, {**evidence, key: value}, run_id, sha)
         with self.assertRaises(ValueError):

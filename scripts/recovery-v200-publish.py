@@ -17,6 +17,8 @@ SOURCE = '5b0915a0a6a2d7b565c0ec7cad7fe023619121a5'
 TAG_OBJECT = '7fff973d060355090eeb86a00893c96a8ce9869e'
 OVERLAY = '572a91b4ef35e9c170567303cc8983025df78554'
 OVERLAY_BLOB = 'cc344928f1f00d9386da8a9e867fed3042f162d3'
+BUNDLE_ORIGINAL = '4ebf8bcc80a40876a7edd4d39925c02acf0a2508ad59d3ab0fa14889b35ae74a'
+BUNDLE_CORRECTED = '9620a73bb303f4502b55eda824c04fd3cef217b7a8be07e8778a07e6367101e0'
 ASSETS = {'Apertone-2.0.0-macos-arm64.zip', 'Apertone-2.0.0-macos-arm64.dmg',
           'BUILD_INFO.json', 'SHA256SUMS', 'appcast.xml'}
 
@@ -103,7 +105,9 @@ def verify_run(run, jobs, evidence, run_id, workflow_sha):
     require(ux.get('source_commit') == SOURCE and ux.get('source_tree_sha256') == evidence.get('overlay_source_tree_sha256')
             and ux.get('test_executable_sha256') and evidence.get('restored_source_tree_sha256')
             and evidence.get('shipping_binary_sha256') and evidence.get('shipping_build_files')
-            and evidence.get('overlay_diff_sha256'),
+            and evidence.get('overlay_diff_sha256') and evidence.get('bundle_verification_passed') is True
+            and evidence.get('bundle_schema_expected') == 23 and evidence.get('bundle_original_sha256') == BUNDLE_ORIGINAL
+            and evidence.get('bundle_corrected_sha256') == BUNDLE_CORRECTED,
             'recovery provenance lacks test and shipping attestations')
 
 
