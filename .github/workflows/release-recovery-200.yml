@@ -297,8 +297,12 @@ jobs:
       - name: Remove isolated Apple signing Keychain
         if: always() && needs.signing-configuration.outputs.apple_configured == 'true'
         run: python3 scripts/configure-apple-signing.py --clean
+      - name: Correct bundle verification schema expectation
+        run: .tools/venv/bin/python "$RUNNER_TEMP/recovery-v200-guard.py" bundle-patch --evidence "$RUNNER_TEMP/recovery-provenance.json"
       - name: Verify standalone application
         run: .tools/venv/bin/python scripts/verify-bundle.py
+      - name: Restore bundle verification source
+        run: .tools/venv/bin/python "$RUNNER_TEMP/recovery-v200-guard.py" bundle-restore --evidence "$RUNNER_TEMP/recovery-provenance.json"
       - name: Verify mounted installer and version
         run: |
           version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/Apertone.app/Contents/Info.plist)

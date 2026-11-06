@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bind a v2.0.0 recovery build to its immutable tag and one UX-only overlay."""
+"""Bind a v2.0.0 recovery build to its immutable tag and two test-only corrections."""
 import argparse
 import hashlib
 import json
@@ -13,6 +13,9 @@ SOURCE = '5b0915a0a6a2d7b565c0ec7cad7fe023619121a5'
 OVERLAY_COMMIT = '572a91b4ef35e9c170567303cc8983025df78554'
 OVERLAY_BLOB = 'cc344928f1f00d9386da8a9e867fed3042f162d3'
 OVERLAY_PATH = 'tests/ux/TransformExtraScenarios.cpp'
+BUNDLE_PATH = 'scripts/verify-bundle.py'
+OLD_SCHEMA_CHECK = b'assert catalog_schema == 22, f"Unexpected installed catalog schema: {catalog_schema}"'
+NEW_SCHEMA_CHECK = b'assert catalog_schema == 23, f"Unexpected installed catalog schema: {catalog_schema}"'
 
 
 def git(*arguments, binary=False):
@@ -135,11 +138,43 @@ def restore(evidence, build):
     evidence.write_text(json.dumps(data, indent=2) + '\n')
 
 
+def bundle_patch(evidence):
+    verify_identity()
+    require(not tracked_changes(), 'tree must be clean before bundle verification')
+    data = json.loads(evidence.read_text())
+    require(data.get('restored_source_tree_sha256') == source_fingerprint(), 'restored source changed')
+    path = Path(BUNDLE_PATH)
+    original = path.read_bytes()
+    require(original.count(OLD_SCHEMA_CHECK) == 1 and NEW_SCHEMA_CHECK not in original,
+            'unexpected original bundle schema check')
+    corrected = original.replace(OLD_SCHEMA_CHECK, NEW_SCHEMA_CHECK)
+    path.write_bytes(corrected)
+    data['bundle_original_sha256'] = hashlib.sha256(original).hexdigest()
+    data['bundle_corrected_sha256'] = hashlib.sha256(corrected).hexdigest()
+    data['bundle_schema_expected'] = 23
+    evidence.write_text(json.dumps(data, indent=2) + '\n')
+
+
+def bundle_restore(evidence):
+    verify_identity()
+    data = json.loads(evidence.read_text())
+    require(tracked_changes() == {f' M {BUNDLE_PATH}'}, 'unexpected change during bundle verification')
+    require(digest(BUNDLE_PATH) == data.get('bundle_corrected_sha256'), 'bundle verifier changed')
+    subprocess.run(['git', 'restore', '--worktree', '--', BUNDLE_PATH], check=True)
+    require(not tracked_changes() and digest(BUNDLE_PATH) == data.get('bundle_original_sha256'),
+            'original bundle verifier not restored')
+    require(data.get('restored_source_tree_sha256') == source_fingerprint(), 'restored source changed')
+    data['bundle_verification_passed'] = True
+    evidence.write_text(json.dumps(data, indent=2) + '\n')
+
+
 def seal(evidence, release, build):
     verify_identity()
     require(not tracked_changes(), 'source changed before upload')
     data = json.loads(evidence.read_text())
     require(data.get('restored_source_tree_sha256') == source_fingerprint(), 'restored source tree changed')
+    require(data.get('bundle_verification_passed') is True and data.get('bundle_schema_expected') == 23,
+            'corrected bundle verification missing')
     require(data.get('shipping_binary_sha256') and data.get('shipping_build_files') == shipping_hashes(build),
             'shipping build changed before upload')
     expected = {'Apertone-2.0.0-macos-arm64.zip', 'Apertone-2.0.0-macos-arm64.dmg',
@@ -153,13 +188,15 @@ def seal(evidence, release, build):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('stage', choices=('prepare', 'record-build', 'restore', 'seal'))
+    parser.add_argument('stage', choices=('prepare', 'record-build', 'restore', 'bundle-patch', 'bundle-restore', 'seal'))
     parser.add_argument('--evidence', type=Path, required=True)
     parser.add_argument('--build', type=Path, default=Path('build'))
     parser.add_argument('--release', type=Path, default=Path('dist/release'))
     args = parser.parse_args()
     {'prepare': lambda: prepare(args.evidence), 'record-build': lambda: record_build(args.evidence, args.build),
      'restore': lambda: restore(args.evidence, args.build),
+     'bundle-patch': lambda: bundle_patch(args.evidence),
+     'bundle-restore': lambda: bundle_restore(args.evidence),
      'seal': lambda: seal(args.evidence, args.release, args.build)}[args.stage]()
 
 

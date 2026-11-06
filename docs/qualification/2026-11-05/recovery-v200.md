@@ -24,3 +24,9 @@ checks cannot substitute for such a rule. This candidate does not in itself demo
 tag-triggered workflow, nor the installed-app end-to-end update or any other
 owner-skipped scenario. Any such outstanding release requirements need their
 own evidence or explicit owner decision before publication.
+
+The packaged-app verifier had a stale schema expectation of 22; the tagged
+application and integration tests use schema 23. The recovery changes only this
+assertion immediately before the unchanged verifier step, restores the tagged
+file afterwards, and records both exact verifier digests in provenance. The
+publisher requires successful verification and the pinned digests.
