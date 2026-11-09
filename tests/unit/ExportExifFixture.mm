@@ -7,6 +7,9 @@
 
 void writeExportExifFixture(const std::filesystem::path &path) {
     @autoreleasepool {
+        NSString *pathString = [NSString stringWithUTF8String:path.c_str()];
+        if (!pathString)
+            throw std::runtime_error("Invalid export EXIF fixture path.");
         constexpr std::size_t width = 64, height = 48;
         const std::vector<unsigned char> pixels(width * height * 4, 180);
         NSData *data = [NSData dataWithBytes:pixels.data() length:pixels.size()];
@@ -15,7 +18,7 @@ void writeExportExifFixture(const std::filesystem::path &path) {
         CGImageRef image =
             CGImageCreate(width, height, 8, 32, width * 4, color, kCGImageAlphaPremultipliedLast,
                           provider, nullptr, false, kCGRenderingIntentDefault);
-        NSURL *url = [NSURL fileURLWithPath:[NSString stringWithUTF8String:path.c_str()]];
+        NSURL *url = [NSURL fileURLWithPath:pathString];
         CGImageDestinationRef target = CGImageDestinationCreateWithURL(
             (__bridge CFURLRef)url, CFSTR("public.png"), 1, nullptr);
         if (!image || !target)
