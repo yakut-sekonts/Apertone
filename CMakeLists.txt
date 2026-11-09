@@ -508,6 +508,8 @@ if(BUILD_TESTING)
     add_test(NAME presets-storage-preview-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/presets.py" "$<TARGET_FILE:luma_preset_tests>")
     set_tests_properties(presets-storage-preview-history PROPERTIES TIMEOUT 180)
+    add_test(NAME ux-launcher-paths COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_SOURCE_DIR}/tests/integration/ux_launcher_paths.py")
     add_test(NAME signed-update-feed COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/appcast.py")
     set_tests_properties(signed-update-feed PROPERTIES TIMEOUT 180)

@@ -47,3 +47,9 @@ thumbnail identities, matching the application and integration tests. The
 complete verifier passed against the published v2.0.0 application using
 temporary catalogs and generated fixtures. The historical v2.0.0 recovery
 continues to verify its original tagged source and recorded test corrections.
+
+The fingerprint dialog's isolated QML test also passed using the Cocoa platform
+and Metal backend; it uses a mock Library model and reported that the window
+was not active, so it does not replace a native application workflow check.
+The UX test launcher now accepts a symlinked build-root path while still
+rejecting executables outside that root; configure and its CTest pass in `/tmp`.
