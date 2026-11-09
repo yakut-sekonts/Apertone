@@ -82,6 +82,22 @@ void checkPlan(sqlite3 *db, const std::string &predicate, bool seekRowID) {
         }
     }
 }
+luma::CancellationSource *queryCancellation = nullptr;
+bool queryStarted = false;
+int cancelAtQueryStart(unsigned event, void *, void *statement, void *) {
+    if (event == SQLITE_TRACE_STMT && queryCancellation) {
+        const char *sql = sqlite3_sql(static_cast<sqlite3_stmt *>(statement));
+        if (sql && std::string(sql).starts_with("SELECT a.checksum,a.filesize")) {
+            queryStarted = true;
+            queryCancellation->cancel();
+        }
+    }
+    return 0;
+}
+int installCancellationTrace(sqlite3 *db, char **, const sqlite3_api_routines *) {
+    return sqlite3_trace_v2(db, SQLITE_TRACE_STMT, cancelAtQueryStart, nullptr);
+}
+
 void cancellationAndLegacy(const std::filesystem::path &path) {
     sqlite3 *db = nullptr;
     require(sqlite3_open(path.c_str(), &db) == SQLITE_OK, "Legacy fixture open failed.");
@@ -98,6 +114,23 @@ void cancellationAndLegacy(const std::filesystem::path &path) {
     sqlite3_close(db);
     require(luma::Catalog::duplicateFingerprintPageFrom(path).rows.empty(),
             "Legacy singleton fixture returned duplicates.");
+    luma::CancellationSource midQuery;
+    queryCancellation = &midQuery;
+    queryStarted = false;
+    require(sqlite3_auto_extension(reinterpret_cast<void (*)()>(installCancellationTrace)) ==
+                SQLITE_OK,
+            "Unable to install query trace.");
+    bool interrupted = false;
+    try {
+        luma::Catalog::duplicateFingerprintPageFrom(path, std::nullopt, 40, midQuery.token());
+    } catch (const std::exception &error) {
+        interrupted = std::string(error.what()).find("interrupted") != std::string::npos;
+    }
+    sqlite3_cancel_auto_extension(reinterpret_cast<void (*)()>(installCancellationTrace));
+    queryCancellation = nullptr;
+    require(queryStarted && interrupted, "In-flight query was not interrupted by SQLite.");
+    require(luma::Catalog::duplicateFingerprintPageFrom(path).rows.empty(),
+            "Interrupted query changed the catalog or prevented a later read.");
     require(sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY, nullptr) == SQLITE_OK,
             "Legacy fixture reopen failed.");
     sqlite3_stmt *statement = nullptr;

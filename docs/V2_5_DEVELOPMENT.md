@@ -37,9 +37,9 @@ UX-BAT-014 load scenario have not been exercised for this change. Do not mark
 them as passed without evidence.
 
 The fingerprint review has targeted read-only, query-plan, pagination,
-asynchronous model and offscreen dialog coverage. Cancellation before a query
-was tested; the SQLite progress handler's interruption of an already executing
-query was not deterministically tested. The dialog has not been tested in a
+asynchronous model and offscreen dialog coverage. Cancellation before a query and SQLite progress-handler interruption after the
+query starts are tested. The in-flight test also rejects a build with the
+progress handler disabled and verifies that a subsequent read still succeeds. The dialog has not been tested in a
 native macOS window.
 
 The standalone release verifier now checks catalog schema 23 and `edited-v6`
