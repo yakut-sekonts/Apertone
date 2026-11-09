@@ -41,3 +41,9 @@ asynchronous model and offscreen dialog coverage. Cancellation before a query
 was tested; the SQLite progress handler's interruption of an already executing
 query was not deterministically tested. The dialog has not been tested in a
 native macOS window.
+
+The standalone release verifier now checks catalog schema 23 and `edited-v6`
+thumbnail identities, matching the application and integration tests. The
+complete verifier passed against the published v2.0.0 application using
+temporary catalogs and generated fixtures. The historical v2.0.0 recovery
+continues to verify its original tagged source and recorded test corrections.
