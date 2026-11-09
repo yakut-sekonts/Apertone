@@ -83,7 +83,8 @@ try:
         xmp_file.write_text("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF "
                             "xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
                             "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
-                            "crs:Exposure2012='1.3' crs:Texture='30'/></rdf:RDF></x:xmpmeta>")
+                            "crs:Exposure2012='1.3' crs:Texture='30' crs:CameraProfile='Adobe Color'/>"
+                            "</rdf:RDF></x:xmpmeta>")
         xmp_catalog = xmp_folder / "catalog.sqlite"
         for arguments in (["--test-edit", str(raw), "--test-exposure", "0.2", "--test-xmp-preset", str(xmp_file), "--test-export", str(xmp_folder / "first.png")],
                           ["--test-restore", "1.3", "--test-export", str(xmp_folder / "repeat.png")]):
@@ -96,7 +97,7 @@ try:
         imported = json.loads((xmp_folder / "presets.json").read_text())
         assert imported["schemaVersion"] == 9, f"Unexpected installed preset-library schema: {imported['schemaVersion']}"
         sparse_preset = imported["presets"][0]["preset"]
-        assert sparse_preset["schemaVersion"] == 9 and sparse_preset["parameters"] == ["exposure"]
+        assert sparse_preset["schemaVersion"] == 9 and sparse_preset["parameters"] == ["exposure", "presence.texture"]
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
         thumbnails = list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))
         assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v6.jpg") for p in thumbnails)
