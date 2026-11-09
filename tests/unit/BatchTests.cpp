@@ -3,8 +3,8 @@
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/UpdateController.h"
-#include "core/presets/SettingsSubset.h"
 #include "core/edits/EditSnapshot.h"
+#include "core/presets/SettingsSubset.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
 #include <QElapsedTimer>
@@ -271,9 +271,10 @@ void historyByteLimitTests(const std::filesystem::path &source, const std::files
         try {
             operation();
         } catch (const std::exception &error) {
-            require(std::string(error.what()).find("Processing history exceeds its storage limit.") !=
-                        std::string::npos,
-                    "Operation failed for a reason other than the history byte limit.");
+            require(
+                std::string(error.what()).find("Processing history exceeds its storage limit.") !=
+                    std::string::npos,
+                "Operation failed for a reason other than the history byte limit.");
             return;
         }
         throw std::runtime_error("Expected history byte limit failure.");
@@ -749,7 +750,7 @@ int main(int argc, char **argv) {
         require(temporary.isValid(), "Cannot create batch test directory.");
         if (argc == 4 && std::string_view(argv[3]) == "--history-size-limit") {
             historyByteLimitTests(argv[1], std::filesystem::path(temporary.path().toStdString()) /
-                                              "history-byte-limit");
+                                               "history-byte-limit");
             std::cout << "History byte limit and rollback passed.\n";
             return 0;
         }
