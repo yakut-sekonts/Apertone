@@ -7,10 +7,11 @@ Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
-## Release: v2.0.0
+## Releases
 
 [Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[2.0.0 release notes](docs/releases/v2.0.0.md)
+[2.0.0 release notes](docs/releases/v2.0.0.md) ·
+[2.5.0 release notes](docs/releases/v2.5.0.md)
 
 DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
 The build is ad-hoc signed and not notarized. Installation instructions and
@@ -105,7 +106,7 @@ camera-native DNG qualification is recorded in the
 ## Build and run
 
 ```bash
-git clone --branch v2.0.0 https://github.com/yakut-sekonts/Apertone.git
+git clone https://github.com/yakut-sekonts/Apertone.git
 cd Apertone
 ./scripts/bootstrap.sh
 export PATH="$PWD/.tools/venv/bin:$PATH"
