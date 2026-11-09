@@ -503,6 +503,11 @@ if(BUILD_TESTING)
     add_test(NAME batch-settings-atomic-history COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_SOURCE_DIR}/tests/integration/batch.py" "$<TARGET_FILE:luma_batch_tests>")
     set_tests_properties(batch-settings-atomic-history PROPERTIES TIMEOUT 180)
+    if(LUMA_ENABLE_SCALE_CONTRACT_TESTS)
+        add_test(NAME batch-history-byte-limit COMMAND ${Python3_EXECUTABLE}
+            "${CMAKE_SOURCE_DIR}/tests/integration/batch_history_limit.py" "$<TARGET_FILE:luma_batch_tests>")
+        set_tests_properties(batch-history-byte-limit PROPERTIES TIMEOUT 900 LABELS "stress;batch")
+    endif()
     add_test(NAME edited-thumbnail-snapshot-cache COMMAND ${Python3_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/integration/thumbnails.py" "$<TARGET_FILE:luma_batch_tests>")
     set_tests_properties(edited-thumbnail-snapshot-cache PROPERTIES TIMEOUT 180)
     add_test(NAME presets-storage-preview-history COMMAND ${Python3_EXECUTABLE}

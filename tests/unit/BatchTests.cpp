@@ -4,6 +4,7 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/UpdateController.h"
 #include "core/presets/SettingsSubset.h"
+#include "core/edits/EditSnapshot.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
 #include <QElapsedTimer>
@@ -264,6 +265,59 @@ void boundedBatchHistoryTests(const std::filesystem::path &source,
                 undone->entries.front().id == full.entries[2].id &&
                 undone->entries.back().document == f.edits[0],
             "Batch Undo did not retain the bounded history contract.");
+}
+void historyByteLimitTests(const std::filesystem::path &source, const std::filesystem::path &root) {
+    const auto expectLimit = [](auto operation) {
+        try {
+            operation();
+        } catch (const std::exception &error) {
+            require(std::string(error.what()).find("Processing history exceeds its storage limit.") !=
+                        std::string::npos,
+                    "Operation failed for a reason other than the history byte limit.");
+            return;
+        }
+        throw std::runtime_error("Expected history byte limit failure.");
+    };
+    const auto f = fixture(source, root, 1);
+    luma::Catalog db(f.catalog);
+    auto edits = f.edits[0];
+    for (int i = 0; i < 4; ++i) {
+        luma::LocalMask mask;
+        mask.id = "00000000-0000-0000-0000-00000000000" + std::to_string(i);
+        mask.name = "Boundary mask";
+        mask.shape = luma::MaskShape::bitmap;
+        mask.bitmap = luma::BitmapMask(1024, 1024, std::vector<std::uint8_t>(1024 * 1024, 127));
+        edits.localMasks.push_back(mask);
+    }
+    const auto snapshotSize = luma::encodeEditSnapshot(edits).size();
+    const std::size_t limit = std::size_t{256} * 1024 * 1024;
+    const auto fitting = limit / snapshotSize;
+    require(fitting >= 1 && fitting < 200, "Boundary fixture does not reach history byte limit.");
+    luma::PersistedEditHistory history;
+    for (std::size_t i = 0; i < fitting; ++i)
+        history.entries.push_back({i, "Boundary", edits});
+    history.currentIndex = history.entries.size() - 1;
+    db.saveEditsAndHistory(f.ids[0], edits, history);
+    const auto loaded = db.editHistory(f.ids[0]);
+    require(loaded && loaded->entries.size() == fitting && loaded->currentIndex == fitting - 1,
+            "History below byte limit did not round-trip.");
+    auto next = edits;
+    next.exposure = 0.75;
+    history.entries.push_back({fitting, "Exceeds byte limit", next});
+    history.currentIndex = history.entries.size() - 1;
+    expectLimit([&] { db.saveEditsAndHistory(f.ids[0], next, history); });
+    require(db.assetByID(f.ids[0])->edits == edits,
+            "Rejected oversized history changed current edits.");
+    const auto after = db.editHistory(f.ids[0]);
+    require(after && after->entries.size() == fitting && after->currentIndex == fitting - 1,
+            "Rejected oversized history changed saved history.");
+    expectLimit([&] { db.applyBatchEdits(f.ids, next, 1); });
+    require(db.assetByID(f.ids[0])->edits == edits && !db.canUndoBatch(),
+            "Oversized batch changed edits or created a batch journal.");
+    const auto afterBatch = db.editHistory(f.ids[0]);
+    require(afterBatch && afterBatch->entries.size() == fitting &&
+                afterBatch->currentIndex == fitting - 1,
+            "Oversized batch changed saved history.");
 }
 void coreTests(const std::filesystem::path &source, const std::filesystem::path &root) {
     const auto f = fixture(source, root, 40);
@@ -688,10 +742,17 @@ int main(int argc, char **argv) {
     QQuickStyle::setStyle("Basic");
     try {
         require(argc == 3 || (argc == 4 && (std::string_view(argv[3]) == "--thumbnails" ||
-                                            std::string_view(argv[3]) == "--export-queue")),
+                                            std::string_view(argv[3]) == "--export-queue" ||
+                                            std::string_view(argv[3]) == "--history-size-limit")),
                 "Expected synthetic RAW and QML directory.");
         QTemporaryDir temporary;
         require(temporary.isValid(), "Cannot create batch test directory.");
+        if (argc == 4 && std::string_view(argv[3]) == "--history-size-limit") {
+            historyByteLimitTests(argv[1], std::filesystem::path(temporary.path().toStdString()) /
+                                              "history-byte-limit");
+            std::cout << "History byte limit and rollback passed.\n";
+            return 0;
+        }
         if (argc == 4 && std::string_view(argv[3]) == "--export-queue") {
             exportQueueTests(QString::fromUtf8(argv[1]), temporary.path(),
                              QString::fromUtf8(argv[2]));

@@ -32,9 +32,11 @@ selected from the existing backlog; the 2.0 release remains the first priority.
 Each change is checked with its direct dependencies. Before the single 2.5
 release, run the integrated gate appropriate to the final scope and verify the
 release artifacts and updater. Batch history has targeted transaction, restart,
-conflict and UI coverage; the actual 256 MiB history limit and the separate
-UX-BAT-014 load scenario have not been exercised for this change. Do not mark
-them as passed without evidence.
+conflict and UI coverage. An opt-in scale test exercises the actual 256 MiB
+history limit using valid bitmap snapshots and checks that direct save and
+batch Apply reject excess data without changing saved edits, history or the
+batch journal. UX-BAT-014 has not passed for this change: the native test
+window could not become active while the Mac was locked.
 
 The fingerprint review has targeted read-only, query-plan, pagination,
 asynchronous model and offscreen dialog coverage. Cancellation before a query and SQLite progress-handler interruption after the
