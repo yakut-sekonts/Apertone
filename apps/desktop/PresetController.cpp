@@ -3,9 +3,32 @@
 #include "apps/shared/BuiltinPresets.h"
 #include "core/quick/QuickLooks.h"
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <algorithm>
 #include <filesystem>
 
+namespace {
+QString folderKey(const luma::DevelopPreset &preset) {
+    auto path = preset.folderParents;
+    if (!preset.folder.isEmpty())
+        path.append(preset.folder);
+    return QString::fromUtf8(
+        QJsonDocument(QJsonArray::fromStringList(path)).toJson(QJsonDocument::Compact));
+}
+QString displayName(const luma::DevelopPreset &preset) {
+    auto path = preset.folderParents;
+    if (!preset.folder.isEmpty())
+        path.append(preset.folder);
+    path.append(preset.name);
+    QStringList components;
+    for (const auto &part : path) {
+        const auto encoded = QJsonDocument(QJsonArray{part}).toJson(QJsonDocument::Compact);
+        components.append(QString::fromUtf8(encoded.mid(1, encoded.size() - 2)));
+    }
+    return components.join(" › ");
+}
+} // namespace
 PresetController::PresetController(QString path, EditorController &editor, QObject *parent)
     : QObject(parent), path_(std::move(path)), store_(path_), editor_(editor) {
     connect(&editor_, &EditorController::stateChanged, this, &PresetController::quickLooksChanged);
@@ -17,6 +40,9 @@ QVariantList PresetController::items() const {
         result.append(QVariantMap{{"id", entry.id},
                                   {"name", entry.preset.name},
                                   {"folder", entry.preset.folder},
+                                  {"folderParents", entry.preset.folderParents},
+                                  {"folderKey", folderKey(entry.preset)},
+                                  {"displayName", displayName(entry.preset)},
                                   {"groups", static_cast<int>(entry.preset.groups)}});
     return result;
 }
@@ -25,6 +51,7 @@ QVariantList PresetController::builtinItems() const {
     for (const auto &entry : luma::builtinPresets())
         result.append(QVariantMap{{"id", entry.id},
                                   {"name", entry.preset.name},
+                                  {"displayName", displayName(entry.preset)},
                                   {"groups", static_cast<int>(entry.preset.groups)}});
     return result;
 }
@@ -106,8 +133,7 @@ bool PresetController::refresh() {
     try {
         auto next = store_.load();
         std::stable_sort(next.begin(), next.end(), [](const auto &a, const auto &b) {
-            const auto folder =
-                QString::compare(a.preset.folder, b.preset.folder, Qt::CaseInsensitive);
+            const auto folder = QString::compare(folderKey(a.preset), folderKey(b.preset));
             return folder != 0
                        ? folder < 0
                        : QString::compare(a.preset.name, b.preset.name, Qt::CaseInsensitive) < 0;
@@ -125,6 +151,15 @@ bool PresetController::refresh() {
 bool PresetController::save(const QString &id, const QString &name, const QString &folder,
                             int groups, bool captureCurrent) {
     try {
+        return saveNested(id, name, folder, id.isEmpty() ? QStringList{} : find(id).folderParents,
+                          groups, captureCurrent);
+    } catch (const std::exception &error) {
+        return failure(error);
+    }
+}
+bool PresetController::saveNested(const QString &id, const QString &name, const QString &folder,
+                                  const QStringList &parents, int groups, bool captureCurrent) {
+    try {
         if (luma::builtinPresetID(id))
             throw std::runtime_error("Built-in filters are read-only. Save a new user preset.");
         if (captureCurrent && (!editor_.hasPhoto() || editor_.busy()))
@@ -140,6 +175,7 @@ bool PresetController::save(const QString &id, const QString &name, const QStrin
             throw std::runtime_error("Capture current settings to add groups to this preset.");
         preset.name = name.trimmed();
         preset.folder = folder.trimmed();
+        preset.folderParents = parents;
         preset.groups = static_cast<std::uint32_t>(groups);
         if (captureCurrent) {
             preset.settings = editor_.currentSettings();
@@ -150,6 +186,14 @@ bool PresetController::save(const QString &id, const QString &name, const QStrin
             });
         }
         store_.put(preset, id);
+        return refresh();
+    } catch (const std::exception &error) {
+        return failure(error);
+    }
+}
+bool PresetController::moveFolder(const QStringList &source, const QStringList &destination) {
+    try {
+        store_.moveFolder(source, destination);
         return refresh();
     } catch (const std::exception &error) {
         return failure(error);

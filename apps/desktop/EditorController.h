@@ -516,7 +516,8 @@ class EditorController final : public QObject {
     bool canPrepareBatch() const;
     QString photoID() const;
     void prepareExternalEdits();
-    void finishExternalEdits(const std::optional<luma::EditDocument> &edits);
+    void finishExternalEdits(const std::optional<luma::EditDocument> &edits,
+                             std::optional<luma::PersistedEditHistory> history = {});
     void restore();
     void setWindow(QQuickWindow *window);
     Q_INVOKABLE void openFile(const QUrl &url);

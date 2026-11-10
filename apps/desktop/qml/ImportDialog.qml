@@ -49,8 +49,13 @@ Dialog {
             }
             Label {text:qsTranslate("Apertone","Develop preset")}
             ApertoneComboBox {
-                id:develop;Layout.fillWidth:true;textRole:"name";valueRole:"id"
-                model:[{id:"",name:qsTranslate("Apertone","None")}].concat(presets.builtinItems).concat(presets.items)
+                id:develop;objectName:"importDevelopPreset";Layout.fillWidth:true;textRole:"displayName";valueRole:"id"
+                model:[{id:"",displayName:qsTranslate("Apertone","None")}]
+                      .concat(presets.builtinItems.map(item => ({id:item.id,displayName:"◆ "+qsTranslate("Apertone","Built-in")+" · "+item.displayName})))
+                      .concat(presets.items.map(item => ({id:item.id,displayName:"● "+qsTranslate("Apertone","User")+" · "+item.displayName})))
+                delegate: ItemDelegate { required property var modelData; width: develop.width; contentItem: Label { text: modelData.displayName; textFormat: Text.PlainText; elide: Text.ElideRight } ToolTip.visible: hovered; ToolTip.text: modelData.displayName }
+                contentItem: Label { text: develop.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
+                ToolTip.visible: hovered && currentText.length > 0; ToolTip.text: currentText
             }
             Label {text:qsTranslate("Apertone","Metadata preset")}
             RowLayout {

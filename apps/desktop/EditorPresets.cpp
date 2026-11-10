@@ -70,11 +70,12 @@ void EditorController::prepareExternalEdits() {
     flushSave();
     emit stateChanged();
 }
-void EditorController::finishExternalEdits(const std::optional<luma::EditDocument> &edits) {
+void EditorController::finishExternalEdits(const std::optional<luma::EditDocument> &edits,
+                                           std::optional<luma::PersistedEditHistory> history) {
     if (edits && session_) {
         edits->validate();
         session_->asset.edits = *edits;
-        history_ = luma::EditHistory(*edits, "After batch change");
+        history_ = luma::EditHistory(std::move(*history));
         ++historyGeneration_;
         historyError_.clear();
         render();

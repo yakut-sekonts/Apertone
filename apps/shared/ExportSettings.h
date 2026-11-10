@@ -1,5 +1,6 @@
 #pragma once
 #include "core/export/ExportOptions.h"
+#include "core/metadata/PhotoMetadata.h"
 #include <QJsonObject>
 #include <QString>
 
@@ -13,6 +14,7 @@ struct ExportSettings {
     void validate() const;
     QJsonObject json() const;
     static ExportSettings fromJson(const QJsonObject &object);
-    QString filename(const QString &source, int sequence, const QString &date) const;
+    QString filename(const QString &source, int sequence, const QString &date,
+                     const PhotoMetadata &metadata = {}) const;
 };
 } // namespace luma

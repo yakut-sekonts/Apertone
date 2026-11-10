@@ -18,9 +18,8 @@ Adobe preset format. Camera-relative As Shot can look different on another photo
 of the core. A `luma.preset-library` schema-1 collection lives in `presets.json`
 beside the catalog. Catalogs in the same directory share it; selecting an isolated
 catalog directory also isolates presets. Local UUIDs identify entries independently
-of duplicate names. Folder names are flat labels attached to presets; empty and
-nested folder management is not implemented. Renaming or moving preserves the
-saved settings. Removing groups is allowed without recapturing; adding previously
+of duplicate names. Folder names are attached to presets; nested paths are described below.
+Renaming or moving preserves the saved settings. Removing groups is allowed without recapturing; adding previously
 absent groups requires explicit recapture from the active photo.
 
 Collections are limited to 512 presets and 1 MiB, whichever limit is reached first.
@@ -43,3 +42,22 @@ preparing an update clears it. Copy/Paste uses an in-memory subset snapshot in
 this application session; it does not access the system clipboard. Multi-photo
 paste, batch preset application, Sync Settings, ready-made filters and later
 Detail/Optics/Geometry/Crop/Masks/Effects groups remain separate stages.
+
+## Nested folder paths after 2.0
+
+A preset can explicitly carry up to 16 parent names and one leaf folder name.
+Each component follows the existing 80-character, trimmed, non-control-text
+rule. The existing `folder` remains one literal name; a slash in an old folder
+is never parsed as a separator. Schema 10 stores the `folderParents` array;
+schema 11 additionally stores sparse parameter selections. Collections without
+nested paths retain schema 8 or 9. Older readers reject the new schemas instead
+of flattening their paths. Export/import preserves the path and does not export
+local IDs. Updating an existing entry preserves its ID.
+
+The preset panel navigates one level at a time and can move an individual
+preset by editing its path components. Folder nodes are derived from presets; empty folders and subtree deletion are
+not implemented. A folder can be renamed or moved with all its descendants in
+one locked, atomic collection replacement. Existing destination folders and
+moves into the source subtree are rejected; IDs, settings, and relative descendant
+paths remain unchanged. Breadcrumbs are display labels; the stored array, not
+the visual separator, determines identity.

@@ -11,7 +11,8 @@ changes without reading or decoding their source files.
 One dedicated worker retains a Catalog connection. Batch writes start with
 `BEGIN IMMEDIATE`, load the latest target edits, merge selected groups and write
 parent/curve/HSL rows through the same internal writer used by single-photo save.
-The transaction commits once for the whole selection. Missing/duplicate IDs,
+The transaction commits once for the whole selection, including each changed
+photo’s persistent edit history. Missing/duplicate IDs,
 invalid edits, SQL failure and cancellation roll back the entire operation.
 SQLite VM progress callbacks make long snapshot/restore SQL cancellable; they are
 removed before rollback so cancellation cannot interrupt rollback itself. WAL
@@ -34,12 +35,18 @@ before a batch can start. Pending/failed saves keep the batch in preparation;
 the modal offers retry or cancel without losing the draft. Library writes and
 selection activation are blocked. The worker returns the active photo's edit
 snapshot from inside the transaction. After commit it becomes the editor's new
-history baseline without an additional autosave; an unaffected active photo
-retains its history. Local photo history preceding an affected batch is replaced;
-batch Undo restores its values, not the earlier local history stack.
+document and committed history without an additional autosave; an unaffected active
+photo retains its history. Apply, batch Undo and batch Redo append a per-photo
+history step, preserving previous states and discarding that photo’s redo branch.
+Missing history starts at the current document; corrupt or mismatched history
+rejects the whole transaction. Each history remains bounded by the existing per-photo
+limits. Batch Undo/Redo remains session-local even though the per-photo steps survive
+restart.
 
 Library's Cmd+Z/toolbar arrows target the batch. Develop first uses its local
 history and falls back to the latest batch when local history is unavailable.
+Undoing the local batch step changes only the active photo; batch Undo then detects
+a conflict until all target documents match the expected batch snapshot.
 Explicit Undo batch/Redo batch controls are also available. A later manual edit
 can block batch Undo until its stored values match again. There is no force-undo
 that overwrites newer work.

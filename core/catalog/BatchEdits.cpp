@@ -155,8 +155,10 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
                 throw std::runtime_error("Batch target is missing from the catalog.");
             const auto next = mergeSettings(asset->edits, source, groups, parameters);
             if (next != asset->edits) {
+                auto history = batchHistory(ids[index], asset->edits);
+                history.apply(next, "Apply settings");
                 writeEdits(ids[index], next);
-                clearEditHistory(ids[index]);
+                writeEditHistory(ids[index], history.persisted());
                 Statement changed(db_, "INSERT INTO temp.batch_changed VALUES(?1)");
                 changed.text(1, ids[index]);
                 changed.row();
@@ -185,15 +187,27 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
         }
         execute("DROP TABLE temp.batch_targets;");
         check(stop);
-        const auto active = batchActiveEdits(activeID);
+        auto active = batchActiveEdits(activeID);
+        auto activeHistory = active ? editHistory(activeID) : std::nullopt;
+        if (active && !activeHistory)
+            throw std::runtime_error("Batch processing history is missing.");
         execute("COMMIT;");
         batchState_ = BatchState::applied;
-        return {changed, active};
+        return {changed, std::move(active), std::move(activeHistory)};
     } catch (...) {
         interrupt.clear(); // Cancellation must never interrupt rollback itself.
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
         throw;
     }
+}
+EditHistory Catalog::batchHistory(const std::string &id, const EditDocument &expected) const {
+    auto persisted = editHistory(id);
+    if (!persisted)
+        return EditHistory(expected);
+    if (persisted->entries[persisted->currentIndex].document != expected)
+        throw std::runtime_error(
+            "Processing history conflicts with the current edit. No photos were changed.");
+    return EditHistory(std::move(*persisted));
 }
 bool Catalog::batchAffects(const std::string &id) const {
     if (batchState_ == BatchState::none)
@@ -237,6 +251,21 @@ BatchEditResult Catalog::restoreBatchEdits(bool redo, CancellationToken stop,
                         "Batch Undo/Redo conflicts with newer edits. No photos were changed.");
             }
         }
+        // Validate every photo's history against the pre-restore document before
+        // changing any edits. Establish a baseline where no history exists.
+        {
+            Statement targets(db_, "SELECT asset_id FROM temp.batch_changed ORDER BY asset_id");
+            while (targets.row()) {
+                check(stop);
+                const auto id = targets.string(0);
+                const auto asset = assetByID(id);
+                if (!asset)
+                    throw std::runtime_error("Batch target is missing from the catalog.");
+                auto history = batchHistory(id, asset->edits);
+                if (!editHistory(id))
+                    writeEditHistory(id, history.persisted());
+            }
+        }
         std::string assignments;
         for (const auto *column : columns) {
             if (!assignments.empty())
@@ -258,14 +287,29 @@ BatchEditResult Catalog::restoreBatchEdits(bool redo, CancellationToken stop,
                      destination + "_" + table + ";")
                         .c_str());
         }
-        execute("DELETE FROM main.edit_history_states WHERE asset_id IN "
-                "(SELECT asset_id FROM temp.batch_changed);");
+        {
+            Statement targets(db_, "SELECT asset_id FROM temp.batch_changed ORDER BY asset_id");
+            while (targets.row()) {
+                check(stop);
+                const auto id = targets.string(0);
+                const auto asset = assetByID(id);
+                auto persisted = editHistory(id);
+                if (!asset || !persisted)
+                    throw std::runtime_error("Batch processing history is missing.");
+                EditHistory history(std::move(*persisted));
+                history.apply(asset->edits, redo ? "Redo batch" : "Undo batch");
+                writeEditHistory(id, history.persisted());
+            }
+        }
         const auto changed = count(db_);
         check(stop);
-        const auto active = batchActiveEdits(activeID);
+        auto active = batchActiveEdits(activeID);
+        auto activeHistory = active ? editHistory(activeID) : std::nullopt;
+        if (active && !activeHistory)
+            throw std::runtime_error("Batch processing history is missing.");
         execute("COMMIT;");
         batchState_ = redo ? BatchState::applied : BatchState::undone;
-        return {changed, active};
+        return {changed, std::move(active), std::move(activeHistory)};
     } catch (...) {
         interrupt.clear();
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

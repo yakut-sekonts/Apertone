@@ -27,6 +27,11 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantList importSources READ importSources NOTIFY stateChanged)
     Q_PROPERTY(QVariantList duplicateReview READ duplicateReview NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList fingerprintRows READ fingerprintRows NOTIFY stateChanged)
+    Q_PROPERTY(bool fingerprintBusy READ fingerprintBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool fingerprintHasNext READ fingerprintHasNext NOTIFY stateChanged)
+    Q_PROPERTY(bool fingerprintHasPrevious READ fingerprintHasPrevious NOTIFY stateChanged)
+    Q_PROPERTY(QString fingerprintError READ fingerprintError NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
     Q_PROPERTY(bool semanticEnabled READ semanticEnabled NOTIFY stateChanged)
     Q_PROPERTY(bool semanticBusy READ semanticBusy NOTIFY stateChanged)
@@ -147,6 +152,25 @@ class LibraryModel final : public QAbstractListModel {
     QVariantList duplicateReview() const {
         return duplicateReview_;
     }
+    QVariantList fingerprintRows() const {
+        return fingerprintRows_;
+    }
+    bool fingerprintBusy() const {
+        return fingerprintBusy_;
+    }
+    bool fingerprintHasNext() const {
+        return fingerprintHasNext_;
+    }
+    bool fingerprintHasPrevious() const {
+        return fingerprintPage_ > 0;
+    }
+    QString fingerprintError() const {
+        return fingerprintError_;
+    }
+    Q_INVOKABLE void openFingerprintReview();
+    Q_INVOKABLE void closeFingerprintReview();
+    Q_INVOKABLE void nextFingerprintPage();
+    Q_INVOKABLE void previousFingerprintPage();
     QVariantList collections() const {
         return collections_;
     }
@@ -295,6 +319,17 @@ class LibraryModel final : public QAbstractListModel {
     LocalizedText maintenanceStatus_;
     QString error_, importReport_;
     QVariantList importSources_, duplicateReview_;
+    QVariantList fingerprintRows_;
+    QString fingerprintError_;
+    luma::JobHandle fingerprintJob_;
+    std::uint64_t fingerprintRevision_ = 0;
+    bool fingerprintOpen_ = false, fingerprintBusy_ = false, fingerprintHasNext_ = false;
+    std::size_t fingerprintPage_ = 0;
+    std::vector<std::optional<luma::DuplicateFingerprintCursor>> fingerprintCursors_;
+    std::optional<luma::DuplicateFingerprintCursor> fingerprintLast_;
+    void loadFingerprintPage(std::optional<luma::DuplicateFingerprintCursor> cursor,
+                             std::size_t index);
+    void invalidateFingerprintReview();
     std::deque<luma::ImportReplay> importSourceRefreshQueue_;
     int importSourceRefreshIndex_ = 0, importSourceRefreshTotal_ = 0;
     bool managedSourceRefresh_ = false;

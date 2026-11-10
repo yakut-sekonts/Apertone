@@ -3,6 +3,7 @@
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/UpdateController.h"
+#include "core/edits/EditSnapshot.h"
 #include "core/presets/SettingsSubset.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
@@ -15,6 +16,7 @@
 #include <QQuickStyle>
 #include <QTemporaryDir>
 #include <QThread>
+#include <algorithm>
 #include <iostream>
 #include <sqlite3.h>
 
@@ -109,6 +111,214 @@ std::vector<luma::EditDocument> documents(const Fixture &fixture) {
     for (const auto &id : fixture.ids)
         result.push_back(db.assetByID(id)->edits);
     return result;
+}
+bool sameHistory(const std::optional<luma::PersistedEditHistory> &left,
+                 const std::optional<luma::PersistedEditHistory> &right) {
+    if (left.has_value() != right.has_value())
+        return false;
+    if (!left)
+        return true;
+    if (left->currentIndex != right->currentIndex || left->entries.size() != right->entries.size())
+        return false;
+    for (std::size_t i = 0; i < left->entries.size(); ++i)
+        if (left->entries[i].id != right->entries[i].id ||
+            left->entries[i].action != right->entries[i].action ||
+            left->entries[i].document != right->entries[i].document)
+            return false;
+    return true;
+}
+void persistentBatchHistoryTests(const std::filesystem::path &source,
+                                 const std::filesystem::path &root) {
+    const auto f = fixture(source, root, 3);
+    luma::Catalog db(f.catalog);
+    std::vector<luma::PersistedEditHistory> initial;
+    for (std::size_t i = 0; i < f.ids.size(); ++i) {
+        auto earlier = f.edits[i];
+        earlier.exposure -= 0.4;
+        luma::EditHistory history(earlier);
+        history.apply(f.edits[i], "Prior edit");
+        auto redo = f.edits[i];
+        redo.exposure += 0.5;
+        history.apply(redo, "Future edit");
+        history.undo();
+        initial.push_back(history.persisted());
+        db.saveEditsAndHistory(f.ids[i], f.edits[i], initial.back());
+    }
+    luma::EditDocument sourceEdits;
+    sourceEdits.exposure = f.edits[2].exposure; // third target is a no-op
+    const auto applied = db.applyBatchEdits(f.ids, sourceEdits, 1, {}, {}, f.ids[0]);
+    require(applied.changed == 2 && applied.active && applied.activeHistory &&
+                applied.activeHistory->entries[applied.activeHistory->currentIndex].document ==
+                    *applied.active,
+            "Batch did not return the committed active history.");
+    const auto after = documents(f);
+    for (std::size_t i = 0; i < 2; ++i) {
+        const auto history = db.editHistory(f.ids[i]);
+        require(history && history->entries.size() == 3 && history->currentIndex == 2 &&
+                    history->entries[0].document == initial[i].entries[0].document &&
+                    history->entries[1].id == initial[i].entries[1].id &&
+                    history->entries[2].document == after[i],
+                "Batch did not preserve local past and replace redo with the batch step.");
+    }
+    require(sameHistory(db.editHistory(f.ids[2]), initial[2]),
+            "A no-op target lost its history or redo branch.");
+    const auto after0 = db.editHistory(f.ids[0]);
+    const auto after1 = db.editHistory(f.ids[1]);
+    luma::CancellationSource stop;
+    auto nextSource = sourceEdits;
+    nextSource.exposure += 1.0;
+    throws([&] {
+        db.applyBatchEdits(f.ids, nextSource, 1, stop.token(), [&](double progress) {
+            if (progress >= 0.34)
+                stop.cancel();
+        });
+    });
+    require(documents(f) == after && sameHistory(db.editHistory(f.ids[0]), after0) &&
+                sameHistory(db.editHistory(f.ids[1]), after1) && db.canUndoBatch(),
+            "Cancelled batch partially committed local histories or discarded its journal.");
+    sql(f.catalog, "UPDATE edit_history_states SET document='{}' WHERE asset_id='" + f.ids[1] +
+                       "' AND is_current=1");
+    throws([&] { db.applyBatchEdits({f.ids[0], f.ids[1]}, nextSource, 1); });
+    require(documents(f) == after && sameHistory(db.editHistory(f.ids[0]), after0) &&
+                db.canUndoBatch(),
+            "Corrupt history caused a partial batch Apply.");
+    db.saveEditsAndHistory(f.ids[1], after[1], *after1);
+    sql(f.catalog, "UPDATE edit_history_states SET document=(SELECT document FROM "
+                   "edit_history_states WHERE asset_id='" +
+                       f.ids[0] + "' AND is_current=1) WHERE asset_id='" + f.ids[1] +
+                       "' AND is_current=1");
+    throws([&] { db.applyBatchEdits({f.ids[0], f.ids[1]}, nextSource, 1); });
+    require(documents(f) == after && sameHistory(db.editHistory(f.ids[0]), after0) &&
+                db.canUndoBatch(),
+            "Mismatched history caused a partial batch Apply.");
+    db.saveEditsAndHistory(f.ids[1], after[1], *after1);
+    const auto lastTarget = std::max(f.ids[0], f.ids[1]);
+    sql(f.catalog, "CREATE TRIGGER fail_history BEFORE INSERT ON edit_history_states "
+                   "WHEN NEW.asset_id='" +
+                       lastTarget + "' BEGIN SELECT RAISE(ABORT,'injected'); END");
+    throws([&] { db.applyBatchEdits(f.ids, nextSource, 1); });
+    throws([&] { db.restoreBatchEdits(false); });
+    require(documents(f) == after && sameHistory(db.editHistory(f.ids[0]), after0) &&
+                sameHistory(db.editHistory(f.ids[1]), after1) && db.canUndoBatch(),
+            "History write failure partially committed batch Undo.");
+    sql(f.catalog, "DROP TRIGGER fail_history");
+    auto newer = after[1];
+    newer.exposure += 0.3;
+    luma::EditHistory concurrent(*after1);
+    concurrent.apply(newer, "Concurrent edit");
+    luma::Catalog(f.catalog).saveEditsAndHistory(f.ids[1], newer, concurrent.persisted());
+    const auto conflicting = documents(f);
+    throws([&] { db.restoreBatchEdits(false); });
+    require(documents(f) == conflicting && sameHistory(db.editHistory(f.ids[0]), after0),
+            "Batch Undo changed another history despite an edit conflict.");
+    luma::Catalog(f.catalog).saveEditsAndHistory(f.ids[1], after[1], *after1);
+    const auto undone = db.restoreBatchEdits(false, {}, f.ids[0]);
+    require(undone.active && undone.activeHistory && documents(f) == f.edits &&
+                undone.activeHistory->entries.back().action == "Undo batch" &&
+                undone.activeHistory->entries.back().document == f.edits[0],
+            "Batch Undo lost persistent per-photo history.");
+    db.restoreBatchEdits(true);
+    require(documents(f) == after &&
+                db.editHistory(f.ids[0])->entries.back().action == "Redo batch",
+            "Batch Redo lost persistent per-photo history.");
+    luma::Catalog restarted(f.catalog);
+    require(!restarted.canUndoBatch() &&
+                sameHistory(restarted.editHistory(f.ids[0]), db.editHistory(f.ids[0])),
+            "Restart lost per-photo history or retained the session-only batch journal.");
+    const auto beforeCorruption = db.editHistory(f.ids[1]);
+    sql(f.catalog, "UPDATE edit_history_states SET document='{}' WHERE asset_id='" + f.ids[1] +
+                       "' AND is_current=1");
+    const auto stable0 = db.editHistory(f.ids[0]);
+    throws([&] { db.restoreBatchEdits(false); });
+    require(documents(f) == after && sameHistory(db.editHistory(f.ids[0]), stable0) &&
+                db.canUndoBatch(),
+            "Corrupt history caused a partial batch Undo.");
+    db.saveEditsAndHistory(f.ids[1], after[1], *beforeCorruption);
+    db.restoreBatchEdits(false);
+    require(documents(f) == f.edits, "Valid history could not recover after a rejected Undo.");
+}
+void boundedBatchHistoryTests(const std::filesystem::path &source,
+                              const std::filesystem::path &root) {
+    const auto f = fixture(source, root, 1);
+    luma::Catalog db(f.catalog);
+    luma::EditHistory history(f.edits[0]);
+    for (int i = 0; i < 200; ++i) {
+        auto edit = f.edits[0];
+        edit.exposure += i % 2 == 0 ? 0.2 : 0;
+        history.apply(edit);
+    }
+    const auto full = history.persisted();
+    require(full.entries.size() == 201 && full.entries.back().document == f.edits[0],
+            "Could not construct a full per-photo history.");
+    db.saveEditsAndHistory(f.ids[0], f.edits[0], full);
+    auto sourceEdits = f.edits[0];
+    sourceEdits.exposure = 1.0;
+    db.applyBatchEdits(f.ids, sourceEdits, 1);
+    const auto applied = db.editHistory(f.ids[0]);
+    require(applied && applied->entries.size() == 201 &&
+                applied->entries.front().id == full.entries[1].id &&
+                applied->entries.back().document.exposure == 1.0,
+            "Batch Apply did not prune the oldest state at the history limit.");
+    db.restoreBatchEdits(false);
+    const auto undone = db.editHistory(f.ids[0]);
+    require(undone && undone->entries.size() == 201 &&
+                undone->entries.front().id == full.entries[2].id &&
+                undone->entries.back().document == f.edits[0],
+            "Batch Undo did not retain the bounded history contract.");
+}
+void historyByteLimitTests(const std::filesystem::path &source, const std::filesystem::path &root) {
+    const auto expectLimit = [](auto operation) {
+        try {
+            operation();
+        } catch (const std::exception &error) {
+            require(
+                std::string(error.what()).find("Processing history exceeds its storage limit.") !=
+                    std::string::npos,
+                "Operation failed for a reason other than the history byte limit.");
+            return;
+        }
+        throw std::runtime_error("Expected history byte limit failure.");
+    };
+    const auto f = fixture(source, root, 1);
+    luma::Catalog db(f.catalog);
+    auto edits = f.edits[0];
+    for (int i = 0; i < 4; ++i) {
+        luma::LocalMask mask;
+        mask.id = "00000000-0000-0000-0000-00000000000" + std::to_string(i);
+        mask.name = "Boundary mask";
+        mask.shape = luma::MaskShape::bitmap;
+        mask.bitmap = luma::BitmapMask(1024, 1024, std::vector<std::uint8_t>(1024 * 1024, 127));
+        edits.localMasks.push_back(mask);
+    }
+    const auto snapshotSize = luma::encodeEditSnapshot(edits).size();
+    const std::size_t limit = std::size_t{256} * 1024 * 1024;
+    const auto fitting = limit / snapshotSize;
+    require(fitting >= 1 && fitting < 200, "Boundary fixture does not reach history byte limit.");
+    luma::PersistedEditHistory history;
+    for (std::size_t i = 0; i < fitting; ++i)
+        history.entries.push_back({i, "Boundary", edits});
+    history.currentIndex = history.entries.size() - 1;
+    db.saveEditsAndHistory(f.ids[0], edits, history);
+    const auto loaded = db.editHistory(f.ids[0]);
+    require(loaded && loaded->entries.size() == fitting && loaded->currentIndex == fitting - 1,
+            "History below byte limit did not round-trip.");
+    auto next = edits;
+    next.exposure = 0.75;
+    history.entries.push_back({fitting, "Exceeds byte limit", next});
+    history.currentIndex = history.entries.size() - 1;
+    expectLimit([&] { db.saveEditsAndHistory(f.ids[0], next, history); });
+    require(db.assetByID(f.ids[0])->edits == edits,
+            "Rejected oversized history changed current edits.");
+    const auto after = db.editHistory(f.ids[0]);
+    require(after && after->entries.size() == fitting && after->currentIndex == fitting - 1,
+            "Rejected oversized history changed saved history.");
+    expectLimit([&] { db.applyBatchEdits(f.ids, next, 1); });
+    require(db.assetByID(f.ids[0])->edits == edits && !db.canUndoBatch(),
+            "Oversized batch changed edits or created a batch journal.");
+    const auto afterBatch = db.editHistory(f.ids[0]);
+    require(afterBatch && afterBatch->entries.size() == fitting &&
+                afterBatch->currentIndex == fitting - 1,
+            "Oversized batch changed saved history.");
 }
 void coreTests(const std::filesystem::path &source, const std::filesystem::path &root) {
     const auto f = fixture(source, root, 40);
@@ -323,6 +533,15 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
 void controllerTests(const std::filesystem::path &source, const std::filesystem::path &root,
                      const QString &qmlPath) {
     const auto f = fixture(source, root, 6);
+    {
+        luma::Catalog db(f.catalog);
+        for (std::size_t i = 0; i < f.ids.size(); ++i) {
+            auto edit = f.edits[i];
+            edit.setParameter("presence.clarity", 10 + static_cast<double>(i));
+            edit.setEnabled(luma::Correction::presence, i % 2 == 0);
+            db.saveEdits(f.ids[i], edit);
+        }
+    }
     PreviewProvider provider;
     EditorController editor(f.catalog, &provider);
     LibraryModel library(f.catalog);
@@ -339,6 +558,7 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     const auto presetID = presets.items()[0].toMap()["id"].toString();
     editor.setExposure(0.75);
     editor.setParameter("temperature", 7500);
+    const auto previousHistoryHandle = editor.processingHistory().front().toMap()["id"].toString();
     batch.applyPreset(presetID);
     require(editor.editingLocked() && library.working() && batch.waitingForSave(),
             "Batch did not lock/wait for autosave.");
@@ -348,6 +568,11 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     require(batch.error().isEmpty() && batch.canUndo() && editor.exposure() == 1.5 &&
                 !editor.saving(),
             "Batch failed or autosave overwrote the applied edit.");
+    const auto committedHistory = editor.processingHistory();
+    require(editor.canUndo() && committedHistory.size() >= 3 &&
+                committedHistory.front().toMap()["id"].toString() != previousHistoryHandle &&
+                committedHistory.back().toMap()["title"].toString() == "Apply settings",
+            "Batch did not refresh active persistent history or invalidate old handles.");
     auto after = documents(f);
     require(after[0].temperature == 7500 && after[0].customWhiteBalance,
             "Batch lost an excluded pending WB edit.");
@@ -355,8 +580,9 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         require(doc.exposure == 1.5, "Preset missed a selected photo.");
     batch.undo();
     wait([&] { return !batch.working(); });
-    require(editor.exposure() == 0.75 && batch.canRedo(),
-            "Batch Undo did not refresh the active photo.");
+    require(editor.exposure() == 0.75 && batch.canRedo() && editor.canUndo() &&
+                editor.processingHistory().back().toMap()["title"].toString() == "Undo batch",
+            "Batch Undo did not refresh the active photo and its history.");
     batch.redo();
     wait([&] { return !batch.working(); });
     require(documents(f) == after, "Controller Redo changed applied settings.");
@@ -399,13 +625,18 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
     batch.undo();
     wait([&] { return !batch.working(); });
     const auto sparseBaseline = documents(f);
+    for (std::size_t i = 0; i < sparseBaseline.size(); ++i)
+        require(sparseBaseline[i].parameter("presence.clarity") == 10 + static_cast<double>(i) &&
+                    sparseBaseline[i].enabled(luma::Correction::presence) == (i % 2 == 0),
+                "Sparse XMP batch fixture lost its differing Presence states.");
     const auto sparseFile = QString::fromStdString((root / "batch.xmp").string());
     {
         QFile file(sparseFile);
         const QByteArray xml =
             "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
             "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
-            "crs:Name='Sparse XMP' crs:Exposure2012='1.4'/></rdf:RDF>";
+            "crs:Name='Sparse XMP' crs:Exposure2012='1.4' "
+            "crs:Texture='25' crs:Dehaze='-15'/></rdf:RDF>";
         require(file.open(QIODevice::WriteOnly) && file.write(xml) == xml.size(),
                 "Cannot prepare sparse XMP batch fixture.");
     }
@@ -423,6 +654,9 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
         auto expected = sparseBaseline[i];
         expected.exposure = 1.4;
         expected.setEnabled(luma::Correction::exposure, true);
+        expected.setParameter("presence.texture", 25);
+        expected.setParameter("presence.dehaze", -15);
+        expected.setEnabled(luma::Correction::presence, true);
         require(sparseApplied[i] == expected, "Batch XMP reset per-photo absent settings.");
     }
     batch.undo();
@@ -509,10 +743,17 @@ int main(int argc, char **argv) {
     QQuickStyle::setStyle("Basic");
     try {
         require(argc == 3 || (argc == 4 && (std::string_view(argv[3]) == "--thumbnails" ||
-                                            std::string_view(argv[3]) == "--export-queue")),
+                                            std::string_view(argv[3]) == "--export-queue" ||
+                                            std::string_view(argv[3]) == "--history-size-limit")),
                 "Expected synthetic RAW and QML directory.");
         QTemporaryDir temporary;
         require(temporary.isValid(), "Cannot create batch test directory.");
+        if (argc == 4 && std::string_view(argv[3]) == "--history-size-limit") {
+            historyByteLimitTests(argv[1], std::filesystem::path(temporary.path().toStdString()) /
+                                               "history-byte-limit");
+            std::cout << "History byte limit and rollback passed.\n";
+            return 0;
+        }
         if (argc == 4 && std::string_view(argv[3]) == "--export-queue") {
             exportQueueTests(QString::fromUtf8(argv[1]), temporary.path(),
                              QString::fromUtf8(argv[2]));
@@ -527,6 +768,10 @@ int main(int argc, char **argv) {
                          "source integrity passed.\n";
             return 0;
         }
+        persistentBatchHistoryTests(argv[1], std::filesystem::path(temporary.path().toStdString()) /
+                                                 "history");
+        boundedBatchHistoryTests(argv[1],
+                                 std::filesystem::path(temporary.path().toStdString()) / "bounded");
         coreTests(argv[1], std::filesystem::path(temporary.path().toStdString()) / "core");
         controllerTests(argv[1],
                         std::filesystem::path(temporary.path().toStdString()) / "controller",

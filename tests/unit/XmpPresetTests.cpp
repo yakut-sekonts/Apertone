@@ -67,12 +67,13 @@ void documentTests(const QString &root) {
     const auto imported = luma::decodeXmpPreset(fixture, "Fallback");
     const auto &preset = imported.preset;
     require(preset.name == "Test <b>XMP</b>" && preset.folder == "Imported" &&
-                preset.groups == 31 && preset.settings.exposure == 1.25 &&
+                preset.groups == (31 | 256) && preset.settings.exposure == 1.25 &&
                 preset.settings.temperature == 5100 && preset.settings.tint == -12 &&
                 preset.settings.customWhiteBalance && preset.settings.hsl[0].hue == 25 &&
                 preset.settings.noiseColor == 35 && preset.settings.sharpenRadius == 1.8 &&
                 preset.settings.curves[3].points[1].y == 150.0 / 255 &&
-                imported.unsupported == QStringList{"CameraProfile", "Look", "Texture"},
+                preset.settings.parameter("presence.texture") == 20 &&
+                imported.unsupported == QStringList{"CameraProfile", "Look"},
             "XMP namespace, metadata, scalar, array or nested-resource mapping failed.");
     luma::EditDocument baseline;
     baseline.contrast = 43;
@@ -82,6 +83,9 @@ void documentTests(const QString &root) {
     baseline.hsl[0].saturation = 15;
     baseline.curves[0].points = {{0, 0.1}, {1, 0.9}};
     baseline.setEnabled(luma::Correction::contrast, false);
+    baseline.setParameter("presence.clarity", 42);
+    baseline.setParameter("presence.dehaze", -17);
+    baseline.setEnabled(luma::Correction::presence, false);
     const auto applied =
         luma::mergeSettings(baseline, preset.settings, preset.groups, preset.parameters);
     require(applied.exposure == 1.25 && applied.contrast == baseline.contrast &&
@@ -91,8 +95,31 @@ void documentTests(const QString &root) {
                 applied.curves[0] == baseline.curves[0] &&
                 applied.curves[3] == preset.settings.curves[3] &&
                 applied.sharpenAmount == baseline.sharpenAmount &&
-                applied.noiseLuminance == baseline.noiseLuminance,
+                applied.noiseLuminance == baseline.noiseLuminance &&
+                applied.parameter("presence.texture") == 20 &&
+                applied.parameter("presence.clarity") == 42 &&
+                applied.parameter("presence.dehaze") == -17 &&
+                applied.enabled(luma::Correction::presence),
             "Sparse XMP overwrote absent settings within a group.");
+    const auto presence = luma::decodeXmpPreset(
+        wrap("p:Texture='-100' p:Clarity2012='100'", "<p:Dehaze>-32</p:Dehaze>"), "Presence");
+    require(presence.unsupported.isEmpty() && presence.preset.groups == 256 &&
+                presence.preset.parameters == std::vector<std::string>{"presence.texture",
+                                                                       "presence.clarity",
+                                                                       "presence.dehaze"} &&
+                presence.preset.settings.parameter("presence.texture") == -100 &&
+                presence.preset.settings.parameter("presence.clarity") == 100 &&
+                presence.preset.settings.parameter("presence.dehaze") == -32,
+            "XMP Presence mapping, bounds or element form failed.");
+    const auto presenceDecoded = luma::decodePreset(luma::encodePreset(presence.preset));
+    require(presenceDecoded.parameters == presence.preset.parameters &&
+                luma::mergeSettings(baseline, presenceDecoded.settings, presenceDecoded.groups,
+                                    presenceDecoded.parameters) ==
+                    luma::mergeSettings(baseline, presence.preset.settings, presence.preset.groups,
+                                        presence.preset.parameters),
+            "Presence XMP changed after sparse JSON round-trip.");
+    const auto legacy = luma::decodeXmpPreset(wrap("p:Exposure2012='1' p:Clarity='2'"), "Legacy");
+    require(legacy.unsupported == QStringList{"Clarity"}, "Legacy Clarity was silently mapped.");
     const auto encoded = luma::encodePreset(preset);
     const auto decoded = luma::decodePreset(encoded);
     require(decoded.parameters == preset.parameters &&
@@ -127,6 +154,8 @@ void documentTests(const QString &root) {
           simple.left(simple.size() - 5), wrap("p:Exposure2012='nan'"), wrap("p:Exposure2012='99'"),
           wrap("p:Exposure2012='1,5'"), wrap("p:Temperature='50000'"),
           wrap("p:Exposure2012='1'", "<p:Exposure2012>2</p:Exposure2012>"),
+          wrap("p:Texture='-101'"), wrap("p:Clarity2012='101'"), wrap("p:Dehaze='nan'"),
+          wrap("p:Texture='1'", "<p:Texture>2</p:Texture>"),
           wrap("p:CameraProfile='Only unsupported data'"),
           QByteArray(simple).replace("camera-raw-settings/1.0/", "other/1.0/"),
           QByteArray(1'048'577, ' '),
@@ -168,12 +197,15 @@ void xmpPresetTests(const QString &source, const QString &root, const QString &q
     editor.setParameter("contrast", 37);
     editor.setParameter("highlights", -25);
     editor.setParameter("saturation", 16);
+    editor.setParameter("presence.clarity", 35);
+    editor.setParameter("presence.dehaze", -15);
+    editor.setCorrectionEnabled("presence", false);
     wait([&] { return !editor.saving(); });
     const auto baseline = editor.currentSettings();
     const auto importUrl = editor.previewUrl();
     require(presets.importPreset(QUrl::fromLocalFile(file)), "Controller refused XMP import.");
     require(editor.currentSettings() == baseline && editor.previewUrl() == importUrl &&
-                !presets.importNotice().isEmpty() && presets.importUnsupported().size() == 2,
+                !presets.importNotice().isEmpty() && presets.importUnsupported().size() == 1,
             "Import applied settings or lost compatibility report.");
     const auto id = presets.items()[0].toMap()["id"].toString();
     const auto beforeHover = editor.previewUrl();
@@ -185,6 +217,8 @@ void xmpPresetTests(const QString &source, const QString &root, const QString &q
     presets.apply(id);
     auto expected = baseline;
     expected.exposure = 1.3;
+    expected.setParameter("presence.texture", 30);
+    expected.setEnabled(luma::Correction::presence, true);
     require(editor.currentSettings() == expected, "XMP apply reset absent Light settings.");
     wait([&] { return !editor.saving(); });
     require(luma::SessionService(catalog.toStdString()).restore()->asset.edits == expected,
@@ -198,17 +232,22 @@ void xmpPresetTests(const QString &source, const QString &root, const QString &q
     const auto exportPath = root + "/xmp-export.json";
     require(presets.exportPreset(id, QUrl::fromLocalFile(exportPath)), "XMP JSON export failed.");
     require(luma::PresetStore::importFile(exportPath).parameters ==
-                std::vector<std::string>{"exposure"},
+                std::vector<std::string>{"exposure", "presence.texture"},
             "Export/reimport expanded sparse settings.");
-    require(presets.save(id, "Renamed XMP", "Imported", 1, false) &&
-                presets.snapshot(id).parameters == std::vector<std::string>{"exposure"},
+    require(presets.save(id, "Renamed XMP", "Imported", 1 | 256, false) &&
+                presets.snapshot(id).parameters ==
+                    std::vector<std::string>{"exposure", "presence.texture"},
             "Renaming discarded sparse selection.");
     const auto stored = read(collection);
     write(file, "<invalid>");
     require(!presets.importPreset(QUrl::fromLocalFile(file)) && read(collection) == stored &&
                 editor.currentSettings() == expected,
             "Failed XMP import modified storage or active edits.");
-    write(file, wrap("p:Exposure2012='1.3' p:Texture='30'"));
+    write(file, wrap("p:Texture='101' p:Exposure2012='1.4'"));
+    require(!presets.importPreset(QUrl::fromLocalFile(file)) && read(collection) == stored &&
+                editor.currentSettings() == expected,
+            "Out-of-range Presence import changed storage or active edits.");
+    write(file, wrap("p:Exposure2012='1.3' p:Texture='30' p:CameraProfile='Adobe Color'"));
     require(presets.importPreset(QUrl::fromLocalFile(file)), "Cannot restore import report.");
     QQmlEngine engine;
     engine.rootContext()->setContextProperty("editor", &editor);

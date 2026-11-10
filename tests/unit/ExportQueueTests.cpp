@@ -3,6 +3,7 @@
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/UpdateController.h"
+#include "apps/shared/LibraryService.h"
 #include "core/image/Bayer.h"
 #include "core/raw/RawDecoder.h"
 #include "platform/macos/FileHasher.h"
@@ -14,9 +15,11 @@
 #include <QThread>
 #include <atomic>
 #include <fstream>
+#include <limits>
 #include <mutex>
 #include <sqlite3.h>
 
+void writeExportExifFixture(const std::filesystem::path &path);
 namespace {
 void require(bool value, const char *message) {
     if (!value)
@@ -89,6 +92,30 @@ void settingsTests(const QString &destination) {
     require(settings.filename(literal + ".png", 7, "date-{sequence}") ==
                 literal + "-" + literal + "-date-{sequence}-0007.jpg",
             "Export recursively expanded repeated source/date replacement values.");
+    settings.naming = "{camera}_{lens}_{iso}_{time}";
+    settings.validate();
+    require(settings.filename("photo.raw", 1, "undated") ==
+                "unknown-camera_unknown-lens_unknown-iso_unknown-time.jpg",
+            "Missing capture metadata did not use explicit defaults.");
+    luma::PhotoMetadata metadata;
+    metadata.camera = " Nikon/{sequence}:Z ";
+    metadata.lens = "O\u0308ptik\\50\nmm";
+    metadata.iso = 125.5;
+    metadata.captureTimestamp = 0;
+    require(settings.filename("photo.raw", 1, "1970-01-01", metadata) ==
+                QString::fromUtf8("Nikon_{sequence}_Z_\u00d6ptik_50_mm_125.5_00-00-00.jpg"),
+            "Metadata naming was unsafe, locale-dependent, or recursively expanded.");
+    require(luma::ExportSettings::fromJson(settings.json()).json() == settings.json(),
+            "New naming tokens did not round-trip in existing profile schema.");
+    metadata.camera = "..";
+    metadata.lens.clear();
+    metadata.iso = std::numeric_limits<double>::infinity();
+    metadata.captureTimestamp.reset();
+    require(settings.filename("photo.raw", 1, "undated", metadata) ==
+                "unknown-camera_unknown-lens_unknown-iso_unknown-time.jpg",
+            "Invalid metadata did not use explicit defaults.");
+    metadata.camera = std::string(231, 'x');
+    rejects([&] { settings.filename("photo.raw", 1, "undated", metadata); });
     for (const auto &name : {"../{filename}", "{unknown}", "a/b", "a:b", ""}) {
         auto invalid = settings;
         invalid.naming = QString::fromUtf8(name);
@@ -135,17 +162,21 @@ void qmlTest(ExportController &exporter, EditorController &editor, LibraryModel 
     auto *panel = window->findChild<QObject *>("exportPanel");
     auto *format = window->findChild<QObject *>("exportFormat");
     auto *naming = window->findChild<QObject *>("exportNaming");
-    require(panel && format && naming, "Export panel controls are missing.");
+    auto *tokens = window->findChild<QObject *>("export.namingTokens");
+    require(panel && format && naming && tokens &&
+                tokens->property("text").toString().contains("{camera}") &&
+                tokens->property("text").toString().contains("{time}"),
+            "Export panel controls or naming-token guidance are missing.");
     require(format->setProperty("currentIndex", 5), "Cannot select Adaptive HDR in QML.");
     require(QMetaObject::invokeMethod(format, "activated", Q_ARG(int, 5)),
             "Cannot activate export format.");
-    naming->setProperty("text", "QML-{sequence}");
+    naming->setProperty("text", "QML-{camera}-{time}-{sequence}");
     require(QMetaObject::invokeMethod(naming, "editingFinished"), "Cannot edit QML naming.");
     require(exporter.configure(panel->property("form").toMap()),
             "Cannot apply actual export QML settings.");
     require(exporter.settings().value("format").toInt() == 5 &&
                 exporter.settings().value("colorSpace").toInt() == 0 &&
-                exporter.settings().value("naming").toString() == "QML-{sequence}",
+                exporter.settings().value("naming").toString() == "QML-{camera}-{time}-{sequence}",
             "QML did not update export settings.");
     if (!warnings.isEmpty())
         throw std::runtime_error(warnings.join('\n').toStdString());
@@ -160,7 +191,11 @@ void exportQueueTests(const QString &source, const QString &root, const QString 
     {
         luma::Catalog db(catalog);
         const auto checksum = luma::macos::sha256File(source.toStdString());
-        const auto metadata = luma::RawDecoder().inspect(source.toStdString());
+        auto metadata = luma::RawDecoder().inspect(source.toStdString());
+        metadata.camera = "Nikon/Z";
+        metadata.lens = "50mm";
+        metadata.iso = 400;
+        metadata.captureTimestamp = 0;
         for (int i = 0; i < 3; ++i) {
             const auto path = directory / ("photo-" + std::to_string(i) + ".DNG");
             std::filesystem::copy_file(source.toStdString(), path);
@@ -194,6 +229,26 @@ void exportQueueTests(const QString &source, const QString &root, const QString 
         changed["quality"] = 91;
         require(restored.configure(changed), "Cannot save second export instance.");
         require(!exporter.configure(config), "Concurrent export settings overwrite was accepted.");
+    }
+    {
+        ExportController saved(catalog, editor, library, gate.runner());
+        auto metadataProfile = config;
+        metadataProfile["naming"] = "{camera}_{lens}_{iso}_{time}";
+        require(saved.configure(metadataProfile), "Cannot configure metadata export profile.");
+        saved.saveProfile("Capture metadata");
+        QString newProfileID;
+        for (const auto &profile : saved.profiles()) {
+            const auto entry = profile.toMap();
+            if (entry.value("name").toString() == "Capture metadata")
+                newProfileID = entry.value("id").toString();
+        }
+        require(!newProfileID.isEmpty(), "Metadata export profile was not saved.");
+        ExportController reopened(catalog, editor, library, gate.runner());
+        reopened.loadProfile(newProfileID);
+        require(reopened.settings() == metadataProfile,
+                "Metadata export profile did not survive reopening.");
+        reopened.loadProfile(profileID);
+        require(reopened.settings() == config, "Legacy export profile no longer loads.");
     }
     // Reload a fresh controller after the deliberate conflict; its queue settings are independent.
     Gate snapshotGate;
@@ -252,6 +307,28 @@ void exportQueueTests(const QString &source, const QString &root, const QString 
     require(std::filesystem::exists(directory / "output/cancel-photo-0.jpg") &&
                 !std::filesystem::exists(directory / "output/cancel-photo-1.jpg"),
             "Cancelled queue wrote pending files.");
+    Gate metadataGate;
+    metadataGate.permitted = 3;
+    ExportController metadataQueue(catalog, editor, library, metadataGate.runner());
+    config["naming"] = "{camera}_{lens}_{iso}_{time}";
+    require(metadataQueue.configure(config), "Cannot configure metadata naming queue.");
+    metadataQueue.startIDs(ids);
+    wait([&] { return !metadataQueue.working(); });
+    require(metadataQueue.succeeded() == 3 && metadataQueue.failures().isEmpty() &&
+                std::filesystem::exists(directory / "output/Nikon_Z_50mm_400_00-00-00.jpg") &&
+                std::filesystem::exists(directory / "output/Nikon_Z_50mm_400_00-00-00-2.jpg") &&
+                std::filesystem::exists(directory / "output/Nikon_Z_50mm_400_00-00-00-3.jpg"),
+            "Metadata queue did not safely disambiguate identical filenames.");
+    for (const auto conflict : {0, 2}) {
+        config["conflict"] = conflict;
+        require(metadataQueue.configure(config), "Cannot configure metadata conflict policy.");
+        metadataQueue.startIDs(ids);
+        wait([&] { return !metadataQueue.working(); });
+        require(metadataQueue.succeeded() == 0 &&
+                    metadataQueue.error().contains("duplicate destinations"),
+                "Skip or Replace accepted colliding metadata-derived filenames.");
+    }
+    config["conflict"] = 1;
     Gate updateGate;
     ExportController updating(catalog, editor, library, updateGate.runner());
     config["naming"] = "update-{sequence}";
@@ -296,6 +373,42 @@ void exportQueueTests(const QString &source, const QString &root, const QString 
     wait([&] { return native.paused(); });
     native.cancel();
     require(!native.working(), "Paused queue cancellation did not complete.");
+    {
+        const auto fixture = directory / "capture.png";
+        const auto fixtureCatalog = directory / "exif-catalog.sqlite";
+        writeExportExifFixture(fixture);
+        const auto imported = luma::LibraryService(fixtureCatalog).import({fixture}, {});
+        require(imported.added == 1 && imported.failed == 0, "Cannot import EXIF fixture.");
+        luma::Catalog db(fixtureCatalog);
+        const auto importedIDs = db.libraryIDs({});
+        require(importedIDs.size() == 1, "Imported EXIF fixture is missing from catalog.");
+        const auto asset = db.assetByID(importedIDs.front());
+        require(asset && asset->metadata.camera == "Luma Raster Test" &&
+                    asset->metadata.lens == "Luma Test Lens" && asset->metadata.iso == 200 &&
+                    asset->metadata.captureTimestamp == 1791968400,
+                "Imported EXIF metadata or capture timezone changed.");
+        PreviewProvider fixtureProvider;
+        EditorController fixtureEditor(fixtureCatalog, &fixtureProvider);
+        LibraryModel fixtureLibrary(fixtureCatalog);
+        ExportController fixtureQueue(fixtureCatalog, fixtureEditor, fixtureLibrary);
+        auto fixtureConfig = fixtureQueue.settings();
+        fixtureConfig["destination"] = QString::fromStdString((directory / "output").string());
+        fixtureConfig["format"] = 0;
+        fixtureConfig["naming"] = "{camera}_{lens}_{iso}_{date}_{time}";
+        require(fixtureQueue.configure(fixtureConfig), "Cannot configure EXIF naming queue.");
+        wait([&] {
+            return fixtureEditor.canPrepareBatch() && !fixtureLibrary.working() &&
+                   !fixtureLibrary.selecting();
+        });
+        fixtureQueue.startIDs(importedIDs);
+        wait([&] { return !fixtureQueue.working(); });
+        if (fixtureQueue.succeeded() != 1 || !fixtureQueue.failures().isEmpty() ||
+            !std::filesystem::exists(
+                directory / "output/Luma Raster Test_Luma Test Lens_200_2026-10-14_09-00-00.jpg"))
+            throw std::runtime_error(
+                "Imported EXIF export failed: " + fixtureQueue.error().toStdString() + " " +
+                fixtureQueue.failures().join("; ").toStdString());
+    }
     const auto sql = [&](const char *statement) {
         sqlite3 *raw = nullptr;
         require(sqlite3_open(catalog.c_str(), &raw) == SQLITE_OK, "Cannot open autosave fixture.");

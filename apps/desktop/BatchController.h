@@ -84,6 +84,8 @@ class BatchController final : public QObject {
     void start(Request request);
     void run();
     void finish(QString error, LocalizedText status, bool undo, bool redo,
-                std::optional<luma::EditDocument> active, bool committedChanges = false);
+                std::optional<luma::EditDocument> active,
+                std::optional<luma::PersistedEditHistory> history = {},
+                bool committedChanges = false);
     void failure(const std::exception &error);
 };

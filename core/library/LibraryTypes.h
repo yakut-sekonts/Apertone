@@ -79,6 +79,23 @@ struct DuplicateReviewRecord {
     std::string assetID;
     std::filesystem::path existingPath;
 };
+// Stored import fingerprints; originals are not re-read or verified by this view.
+struct DuplicateFingerprintCursor {
+    std::string checksum;
+    std::int64_t size = 0;
+    std::int64_t rowID = 0;
+};
+struct DuplicateFingerprintRecord {
+    std::string checksum;
+    std::int64_t size = 0;
+    std::string assetID;
+    std::filesystem::path originalPath;
+    std::int64_t rowID = 0;
+};
+struct DuplicateFingerprintPage {
+    std::vector<DuplicateFingerprintRecord> rows;
+    bool hasMore = false;
+};
 struct ImportJournalItem {
     std::string sessionID;
     int index = 0;

@@ -88,7 +88,8 @@ int header(const QJsonObject &root, const QString &format) {
             "Unsupported preset format.");
     const auto version = number(root.value("schemaVersion"));
     require(version == 1 || version == 2 || version == 3 || version == 4 || version == 5 ||
-                version == 6 || version == 7 || version == 8 || version == 9,
+                version == 6 || version == 7 || version == 8 || version == 9 || version == 10 ||
+                version == 11,
             "Unsupported preset schema version.");
     return static_cast<int>(version);
 }
@@ -122,7 +123,9 @@ QJsonObject toJson(const DevelopPreset &preset) {
         settings.insert(groupNames()[group], values);
     }
     QJsonObject result{{"format", "luma.develop-preset"},
-                       {"schemaVersion", preset.parameters.empty() ? 8 : 9},
+                       {"schemaVersion", preset.folderParents.isEmpty()
+                                             ? (preset.parameters.empty() ? 8 : 9)
+                                             : (preset.parameters.empty() ? 10 : 11)},
                        {"name", preset.name},
                        {"folder", preset.folder},
                        {"settings", settings}};
@@ -132,17 +135,30 @@ QJsonObject toJson(const DevelopPreset &preset) {
             selection.append(QString::fromStdString(name));
         result.insert("parameters", selection);
     }
+    if (!preset.folderParents.isEmpty())
+        result.insert("folderParents", QJsonArray::fromStringList(preset.folderParents));
     return result;
 }
 DevelopPreset fromJson(const QJsonObject &root) {
     const auto version = header(root, "luma.develop-preset");
     QStringList fields{"format", "schemaVersion", "name", "folder", "settings"};
-    if (version == 7 || version == 9)
+    if (version == 7 || version == 9 || version == 11)
         fields.append("parameters");
+    if (version == 10 || version == 11)
+        fields.append("folderParents");
     keys(root, fields);
     require(root.value("name").isString() && root.value("folder").isString(),
             "Preset name and folder must be strings.");
     DevelopPreset preset{root.value("name").toString(), root.value("folder").toString(), {}, 0};
+    if (version == 10 || version == 11) {
+        require(root.value("folderParents").isArray(), "Preset folder parents must be an array.");
+        const auto parents = root.value("folderParents").toArray();
+        require(!parents.isEmpty() && parents.size() <= 16, "Invalid preset folder depth.");
+        for (const auto &parent : parents) {
+            require(parent.isString(), "Preset folder parent must be a string.");
+            preset.folderParents.append(parent.toString());
+        }
+    }
     const auto settings = object(root.value("settings"));
     for (auto entry = settings.begin(); entry != settings.end(); ++entry) {
         const auto index = groupNames().indexOf(entry.key());
@@ -206,7 +222,7 @@ DevelopPreset fromJson(const QJsonObject &root) {
             }
         }
     }
-    if (version == 7 || version == 9) {
+    if (version == 7 || version == 9 || version == 11) {
         require(root.value("parameters").isArray(), "Sparse preset parameters must be an array.");
         const auto selection = root.value("parameters").toArray();
         require(!selection.isEmpty() && selection.size() <= 128,
@@ -257,6 +273,10 @@ void DevelopPreset::validate() const {
     };
     require(validText(name, false) && validText(folder, true),
             "Preset name and folder must be trimmed text of up to 80 characters.");
+    require(folderParents.size() <= 16 && (folderParents.isEmpty() || !folder.isEmpty()) &&
+                std::all_of(folderParents.begin(), folderParents.end(),
+                            [&](const auto &part) { return validText(part, false); }),
+            "Preset folder parents must contain 1 to 16 valid folder names and a leaf folder.");
 }
 QByteArray encodePreset(const DevelopPreset &preset) {
     return QJsonDocument(toJson(preset)).toJson();
@@ -296,9 +316,13 @@ void PresetStore::save(const std::vector<StoredPreset> &presets) const {
     const bool sparse = std::any_of(presets.begin(), presets.end(), [](const auto &entry) {
         return !entry.preset.parameters.empty();
     });
-    write(path_, QJsonDocument(QJsonObject{{"format", "luma.preset-library"},
-                                           {"schemaVersion", sparse ? 9 : 8},
-                                           {"presets", entries}})
+    const bool nested = std::any_of(presets.begin(), presets.end(), [](const auto &entry) {
+        return !entry.preset.folderParents.isEmpty();
+    });
+    write(path_, QJsonDocument(
+                     QJsonObject{{"format", "luma.preset-library"},
+                                 {"schemaVersion", nested ? (sparse ? 11 : 10) : (sparse ? 9 : 8)},
+                                 {"presets", entries}})
                      .toJson());
 }
 QString PresetStore::put(const DevelopPreset &preset, const QString &id) {
@@ -327,6 +351,49 @@ void PresetStore::remove(const QString &id) {
     auto presets = load();
     const auto count = std::erase_if(presets, [&](const auto &p) { return p.id == id; });
     require(count == 1, "Preset no longer exists. Refresh the collection.");
+    save(presets);
+}
+void PresetStore::moveFolder(const QStringList &source, const QStringList &destination) {
+    require(!source.isEmpty() && !destination.isEmpty(), "Select a non-empty folder path.");
+    const auto startsWith = [](const QStringList &path, const QStringList &prefix) {
+        return path.size() >= prefix.size() &&
+               std::equal(prefix.begin(), prefix.end(), path.begin());
+    };
+    prepare(path_);
+    QLockFile lock(path_ + ".lock");
+    require(lock.tryLock(0), "Preset collection is being modified by another app instance.");
+    auto presets = load();
+    const auto pathOf = [](const DevelopPreset &preset) {
+        auto path = preset.folderParents;
+        if (!preset.folder.isEmpty())
+            path.append(preset.folder);
+        return path;
+    };
+    bool sourceExists = false;
+    bool targetExists = false;
+    bool parentExists = destination.size() == 1;
+    const auto parent = destination.mid(0, destination.size() - 1);
+    for (const auto &entry : presets) {
+        const auto path = pathOf(entry.preset);
+        sourceExists |= startsWith(path, source);
+        targetExists |= startsWith(path, destination);
+        parentExists |= startsWith(path, parent);
+    }
+    require(sourceExists, "Folder no longer exists. Refresh the collection.");
+    if (source == destination)
+        return;
+    require(!startsWith(destination, source), "Cannot move a folder into itself.");
+    require(parentExists, "Destination folder no longer exists. Refresh the collection.");
+    require(!targetExists, "A folder with that name already exists at the destination.");
+    for (auto &entry : presets) {
+        const auto path = pathOf(entry.preset);
+        if (!startsWith(path, source))
+            continue;
+        const auto updated = destination + path.mid(source.size());
+        entry.preset.folder = updated.last();
+        entry.preset.folderParents = updated.mid(0, updated.size() - 1);
+        entry.preset.validate();
+    }
     save(presets);
 }
 DevelopPreset PresetStore::importFile(const QString &path) {

@@ -74,7 +74,7 @@ try:
         assert (mask_folder/"first.png").read_bytes()==(mask_folder/"second.png").read_bytes()
         with sqlite3.connect(mask_folder/"catalog.sqlite") as db:
             catalog_schema = db.execute("PRAGMA user_version").fetchone()[0]
-            assert catalog_schema == 22, f"Unexpected installed catalog schema: {catalog_schema}"
+            assert catalog_schema == 23, f"Unexpected installed catalog schema: {catalog_schema}"
             masks = db.execute("SELECT document FROM edit_local_masks").fetchone()[0]
             assert masks.startswith("LUMA_LOCAL_MASKS 5 2\n"), "Installed mask document lost its version or two saved masks"
         assert hashlib.sha256(raw.read_bytes()).hexdigest()==checksum
@@ -83,7 +83,8 @@ try:
         xmp_file.write_text("<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF "
                             "xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
                             "<rdf:Description xmlns:crs='http://ns.adobe.com/camera-raw-settings/1.0/' "
-                            "crs:Exposure2012='1.3' crs:Texture='30'/></rdf:RDF></x:xmpmeta>")
+                            "crs:Exposure2012='1.3' crs:Texture='30' crs:CameraProfile='Adobe Color'/>"
+                            "</rdf:RDF></x:xmpmeta>")
         xmp_catalog = xmp_folder / "catalog.sqlite"
         for arguments in (["--test-edit", str(raw), "--test-exposure", "0.2", "--test-xmp-preset", str(xmp_file), "--test-export", str(xmp_folder / "first.png")],
                           ["--test-restore", "1.3", "--test-export", str(xmp_folder / "repeat.png")]):
@@ -96,10 +97,10 @@ try:
         imported = json.loads((xmp_folder / "presets.json").read_text())
         assert imported["schemaVersion"] == 9, f"Unexpected installed preset-library schema: {imported['schemaVersion']}"
         sparse_preset = imported["presets"][0]["preset"]
-        assert sparse_preset["schemaVersion"] == 9 and sparse_preset["parameters"] == ["exposure"]
+        assert sparse_preset["schemaVersion"] == 9 and sparse_preset["parameters"] == ["exposure", "presence.texture"]
         assert hashlib.sha256(raw.read_bytes()).hexdigest() == checksum
         thumbnails = list((folder / "catalog.sqlite.luma-cache/thumbnails").glob("*.jpg"))
-        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v4.jpg") for p in thumbnails)
+        assert len(thumbnails) >= 2 and all(p.name.endswith("-edited-v6.jpg") for p in thumbnails)
         lens_source = folder / "calibrated.DNG"
         create_dng(lens_source, maker="NIKON CORPORATION", model="NIKON D7500",
                    lens="AF-S DX Nikkor 18-140mm f/3.5-5.6G ED VR", focal=18, aperture=5.6)

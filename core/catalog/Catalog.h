@@ -33,6 +33,7 @@ struct AssetSnapshot {
 struct BatchEditResult {
     std::size_t changed = 0;
     std::optional<EditDocument> active;
+    std::optional<PersistedEditHistory> activeHistory;
 };
 struct DerivedImageRecord {
     std::filesystem::path path;
@@ -143,6 +144,11 @@ class Catalog {
     std::optional<ImportReplay> latestCompletedImport() const;
     std::vector<ImportSourceRecord> importSources() const;
     std::vector<DuplicateReviewRecord> latestImportDuplicates() const;
+    // A cursor applies to the current catalog state; refresh after catalog changes or VACUUM.
+    static DuplicateFingerprintPage duplicateFingerprintPageFrom(
+        const std::filesystem::path &path,
+        const std::optional<DuplicateFingerprintCursor> &after = std::nullopt, int limit = 40,
+        CancellationToken stop = {});
     std::optional<ImportReplay> importSource(const std::filesystem::path &path) const;
     void forgetImportSource(const std::filesystem::path &path);
     std::vector<ImportJournal> unfinishedImports() const;
@@ -209,6 +215,7 @@ class Catalog {
     bool batchStorageConfigured_ = false;
     sqlite3 *db_ = nullptr;
     std::optional<EditDocument> batchActiveEdits(const std::string &id) const;
+    EditHistory batchHistory(const std::string &id, const EditDocument &expected) const;
     void migrateSharpening();
     void migrateNoiseReduction();
     void migrateCrop();

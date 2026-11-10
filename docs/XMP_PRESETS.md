@@ -21,17 +21,24 @@ The import notice and **XMP compatibility** dialog list skipped properties.
 - Hue, Saturation and Luminance adjustments for all eight HSL bands.
 - Sharpening Amount, Radius, Detail, Masking; luminance/color noise reduction,
   their Detail controls, luminance Contrast and color Smoothness.
+- Texture, Clarity2012 and Dehaze map to the corresponding Apertone Presence
+  values, within the supported range -100 to 100. Rendering is an approximation:
+  the two applications do not use identical processing algorithms.
 
 Only explicitly present supported parameters are applied. For example, an XMP
 containing Exposure2012 alone changes Exposure and its enable switch; existing
 Contrast, Highlights, WB and other settings remain unchanged. This also applies
 to batch presets, preview, JSON export/reimport and preset rename/move. Recapturing
 current settings through the edit dialog intentionally creates whole-group data.
+Presence has one shared enable switch: applying any of these three settings
+enables Presence, including any existing values of the other two. Those unselected
+numerical values are preserved, and Undo restores the prior state.
 
 ## Compatibility and validation
 
 Profiles and embedded looks/LUTs, masks/local adjustments, calibration, geometry,
-lens corrections, Texture, Clarity, Dehaze and AI settings are not converted.
+lens corrections and AI settings are not converted. Legacy `Clarity` is not
+mapped to `Clarity2012`.
 An XMP containing only unsupported settings is rejected instead of adding an
 empty preset. This feature imports presets; it is not photo-sidecar synchronization
 or XMP metadata export. Native export remains Apertone JSON.
@@ -64,3 +71,7 @@ restarts and compares output while Qt/Sparkle SDK directories are unavailable.
 
 See [ADR 0023](adr/0023-xmp-preset-import.md) and
 [Adobe Camera Raw namespace](https://developer.adobe.com/xmp/docs/xmp-namespaces/crs/).
+The three Presence property names also appear in Adobe's
+[XMP sample](https://github.com/AdobeDocs/cis-photoshop-api-docs/blob/main/sample-code/lr-sample-app/crs.xml);
+the corresponding control ranges are documented for the
+[Lightroom Edit API](https://developer.adobe.com/firefly-services/docs/lightroom/guides/apply-edits/).

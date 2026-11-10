@@ -11,18 +11,21 @@ GridLayout {
     Layout.minimumWidth: 0
     Layout.fillWidth: true
     property bool ready: library.selectedCount > 0 && !library.working && !library.selecting && !editor.busy && !editor.exporting
-    property var availablePresets: presets.builtinItems.concat(presets.items)
+    property var availablePresets: presets.builtinItems.map(item => ({ id: item.id, displayName: "◆ " + qsTranslate("Apertone", "Built-in") + " · " + item.displayName }))
+                                  .concat(presets.items.map(item => ({ id: item.id, displayName: "● " + qsTranslate("Apertone", "User") + " · " + item.displayName })))
     ApertoneComboBox {
         Layout.minimumWidth: 0;
         id: presetChoice; objectName: "batchPresetChoice"
-        model: row.availablePresets; textRole: "name"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
+        model: row.availablePresets; textRole: "displayName"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
         enabled: row.ready && row.availablePresets.length > 0
         delegate: ItemDelegate {
             required property var modelData
             width: presetChoice.width
-            contentItem: Label { text: modelData.folder ? modelData.folder + " / " + modelData.name : modelData.name; textFormat: Text.PlainText; elide: Text.ElideRight }
+            contentItem: Label { text: modelData.displayName; textFormat: Text.PlainText; elide: Text.ElideRight }
+            ToolTip.visible: hovered; ToolTip.text: modelData.displayName
         }
         contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
+        ToolTip.visible: hovered && currentText.length > 0; ToolTip.text: currentText
     }
     ApertoneButton { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
     ApertoneButton { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }

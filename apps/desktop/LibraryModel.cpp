@@ -89,6 +89,7 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     });
 }
 LibraryModel::~LibraryModel() {
+    fingerprintJob_.cancel();
     cullingJob_.cancel();
     cullingJobs_.shutdown();
     semanticJob_.cancel();
@@ -252,6 +253,7 @@ void LibraryModel::page(int number) {
 void LibraryModel::reload(bool clear) {
     if (closing_)
         return;
+    invalidateFingerprintReview();
     emit reloadStarted(!clear);
     const auto viewportAnchor = clear ? std::string{} : viewportAnchor_.toStdString();
     ++revision_;
@@ -372,6 +374,123 @@ void LibraryModel::reload(bool clear) {
 }
 void LibraryModel::refresh() {
     reload(false);
+}
+void LibraryModel::openFingerprintReview() {
+    fingerprintJob_.cancel();
+    ++fingerprintRevision_;
+    fingerprintOpen_ = true;
+    fingerprintBusy_ = false;
+    fingerprintHasNext_ = false;
+    fingerprintError_.clear();
+    fingerprintRows_.clear();
+    fingerprintLast_.reset();
+    fingerprintPage_ = 0;
+    fingerprintCursors_.clear();
+    loadFingerprintPage(std::nullopt, 0);
+}
+void LibraryModel::closeFingerprintReview() {
+    fingerprintJob_.cancel();
+    ++fingerprintRevision_;
+    fingerprintOpen_ = false;
+    fingerprintBusy_ = false;
+    fingerprintHasNext_ = false;
+    fingerprintRows_.clear();
+    fingerprintError_.clear();
+    fingerprintLast_.reset();
+    fingerprintCursors_.clear();
+    fingerprintPage_ = 0;
+    emit stateChanged();
+}
+void LibraryModel::invalidateFingerprintReview() {
+    if (!fingerprintOpen_)
+        return;
+    fingerprintJob_.cancel();
+    ++fingerprintRevision_;
+    fingerprintBusy_ = false;
+    fingerprintHasNext_ = false;
+    fingerprintRows_.clear();
+    fingerprintLast_.reset();
+    fingerprintCursors_.clear();
+    fingerprintPage_ = 0;
+    fingerprintError_ = QStringLiteral("Catalog changed. Refresh this list.");
+}
+void LibraryModel::nextFingerprintPage() {
+    if (!fingerprintOpen_ || fingerprintBusy_ || !fingerprintHasNext_ || !fingerprintLast_)
+        return;
+    loadFingerprintPage(fingerprintLast_, fingerprintPage_ + 1);
+}
+void LibraryModel::previousFingerprintPage() {
+    if (!fingerprintOpen_ || fingerprintBusy_ || fingerprintPage_ == 0 ||
+        fingerprintCursors_.size() <= fingerprintPage_)
+        return;
+    const auto previous = fingerprintPage_ - 1;
+    loadFingerprintPage(fingerprintCursors_[previous], previous);
+}
+void LibraryModel::loadFingerprintPage(std::optional<luma::DuplicateFingerprintCursor> cursor,
+                                       std::size_t index) {
+    fingerprintJob_.cancel();
+    const auto revision = ++fingerprintRevision_;
+    fingerprintBusy_ = true;
+    fingerprintError_.clear();
+    emit stateChanged();
+    const auto path = catalog_;
+    const QPointer<LibraryModel> self(this);
+    fingerprintJob_ = reads_.submit(luma::JobPriority::background, [self, path, cursor, index,
+                                                                    revision](const auto &context) {
+        QVariantList rows;
+        bool hasMore = false;
+        std::optional<luma::DuplicateFingerprintCursor> last;
+        QString error;
+        try {
+            if (context.stopToken().isCancelled())
+                return;
+            const auto page =
+                luma::Catalog::duplicateFingerprintPageFrom(path, cursor, 40, context.stopToken());
+            hasMore = page.hasMore;
+            for (const auto &row : page.rows) {
+                rows.push_back(
+                    QVariantMap{{"checksum", QString::fromStdString(row.checksum)},
+                                {"size", static_cast<qlonglong>(row.size)},
+                                {"assetID", QString::fromStdString(row.assetID)},
+                                {"path", QString::fromStdString(row.originalPath.string())}});
+                last = luma::DuplicateFingerprintCursor{row.checksum, row.size, row.rowID};
+            }
+            if (context.stopToken().isCancelled())
+                return;
+        } catch (const std::exception &e) {
+            error = QString::fromUtf8(e.what());
+        }
+        if (self)
+            QMetaObject::invokeMethod(
+                self,
+                [self, cursor, index, revision, rows, hasMore, last, error] {
+                    if (!self || !self->fingerprintOpen_ || self->fingerprintRevision_ != revision)
+                        return;
+                    self->fingerprintBusy_ = false;
+                    self->fingerprintError_ = error;
+                    if (error.isEmpty()) {
+                        self->fingerprintRows_ = rows;
+                        self->fingerprintHasNext_ = hasMore;
+                        self->fingerprintLast_ = last;
+                        self->fingerprintCursors_.resize(index + 1);
+                        self->fingerprintCursors_[index] = cursor;
+                        self->fingerprintPage_ = index;
+                        // Keep navigation state bounded for arbitrarily large catalogs.
+                        if (self->fingerprintCursors_.size() > 128) {
+                            self->fingerprintCursors_.erase(self->fingerprintCursors_.begin());
+                            --self->fingerprintPage_;
+                        }
+                    } else {
+                        self->fingerprintRows_.clear();
+                        self->fingerprintHasNext_ = false;
+                        self->fingerprintLast_.reset();
+                        self->fingerprintCursors_.clear();
+                        self->fingerprintPage_ = 0;
+                    }
+                    emit self->stateChanged();
+                },
+                Qt::QueuedConnection);
+    });
 }
 void LibraryModel::filter(const QString &search, int rating, int flag, const QString &label,
                           const QString &collection) {

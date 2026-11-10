@@ -422,7 +422,7 @@ int main(int argc, char **argv) {
                             if (!presets.importPreset(QUrl::fromLocalFile(xmp)) ||
                                 presets.importedId().isEmpty() ||
                                 presets.importUnsupported() !=
-                                    QStringList{QStringLiteral("Texture")} ||
+                                    QStringList{QStringLiteral("CameraProfile")} ||
                                 editor.currentSettings() != before) {
                                 std::cerr << "XMP import or compatibility report failed\n";
                                 app.exit(1);
@@ -431,6 +431,8 @@ int main(int argc, char **argv) {
                             presets.apply(presets.importedId());
                             auto expected = before;
                             expected.exposure = 1.3;
+                            expected.setParameter("presence.texture", 30);
+                            expected.setEnabled(luma::Correction::presence, true);
                             if (editor.currentSettings() != expected) {
                                 std::cerr << "XMP apply changed absent parameters\n";
                                 app.exit(1);

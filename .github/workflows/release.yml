@@ -1,7 +1,7 @@
 name: macOS Release
 on:
   push:
-    branches: ['codex/release-*', '!codex/release-recovery-*']
+    branches: ['codex/release-*', 'codex/2.1-2.5-roadmap', '!codex/release-recovery-*']
     tags: ['v*']
 permissions:
   contents: read
@@ -130,6 +130,8 @@ jobs:
           .tools/venv/bin/ctest --test-dir build --output-on-failure --label-exclude load
           ./scripts/check-format.sh
           ./scripts/check-tidy.sh build
+      - name: Verify batch history byte limit
+        run: .tools/venv/bin/python tests/integration/batch_history_limit.py build/luma_batch_tests
       - name: Build and attest UX executable
         run: .tools/venv/bin/python tests/ux/build_ux.py --build build
       - name: Bounded functional blocking UX checks before packaging
