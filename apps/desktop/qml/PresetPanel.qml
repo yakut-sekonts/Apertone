@@ -338,6 +338,15 @@ ColumnLayout {
                 MenuItem { objectName: "preset.actions.export"; text: qsTranslate("Apertone", "Export JSON…"); enabled: panel.selected !== null; onTriggered: { exportDialog.presetId = panel.selectedId; exportDialog.open() } }
                 MenuItem { objectName: "preset.actions.delete"; text: qsTranslate("Apertone", "Delete…"); enabled: panel.selected !== null; onTriggered: deleteDialog.open() }
                 MenuSeparator {}
+                MenuItem {
+                    objectName: "preset.actions.applyXmp"
+                    text: qsTranslate("Apertone", "Apply XMP to photo…")
+                    enabled: editor.hasPhoto && !editor.busy
+                    onTriggered: {
+                        photoXmpDialog.photoId = editor.photoID
+                        photoXmpDialog.open()
+                    }
+                }
                 MenuItem { objectName: "preset.actions.refresh"; text: qsTranslate("Apertone", "Refresh"); onTriggered: presets.refresh() }
             }
         }
@@ -594,6 +603,14 @@ ColumnLayout {
         id: importDialog; objectName: "presetImportDialog"; title: qsTranslate("Apertone", "Import preset")
         nameFilters: [qsTranslate("Apertone", "Preset files (*.json *.xmp)"), "Apertone preset (*.json)", "XMP (*.xmp)"]
         onAccepted: panel.importFrom(selectedFile)
+    }
+    FileDialog {
+        id: photoXmpDialog
+        objectName: "photoXmpDialog"
+        property string photoId: ""
+        title: qsTranslate("Apertone", "Apply XMP to photo…")
+        nameFilters: ["XMP (*.xmp)"]
+        onAccepted: presets.applyXmpToPhoto(selectedFile, photoId)
     }
     FileDialog {
         id: exportDialog; objectName: "presetExportDialog"; property string presetId: ""

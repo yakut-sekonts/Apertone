@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/shared/SessionService.h"
 #include "apps/shared/MetadataService.h"
 #include "apps/shared/PhotoDecoder.h"
@@ -130,15 +131,15 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
         throw std::runtime_error("Export cannot replace the original image.");
     if (Catalog(catalogPath_).originalAtPath(target, stop))
         throw std::runtime_error("Export cannot replace a catalog original.");
-    for (const auto &name : {catalog.filename().string() + "-wal",
-                             catalog.filename().string() + "-shm", std::string("presets.json"),
+    for (const auto &name : {luma::pathUtf8(catalog.filename()) + "-wal",
+                             luma::pathUtf8(catalog.filename()) + "-shm", std::string("presets.json"),
                              std::string("export-settings.json"), std::string("preview.ini")}) {
-        const auto state = catalog.parent_path() / name;
+        const auto state = catalog.parent_path() / pathFromUtf8(name);
         if (target == state || (std::filesystem::exists(target) && std::filesystem::exists(state) &&
                                 std::filesystem::equivalent(target, state)))
             throw std::runtime_error("Export cannot replace application state.");
     }
-    auto extension = destination.extension().string();
+    auto extension = luma::pathUtf8(destination.extension());
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     const bool validExtension =

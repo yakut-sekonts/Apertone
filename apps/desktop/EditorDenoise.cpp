@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/BundledModels.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/DerivedImage.h"
@@ -36,7 +37,7 @@ void EditorController::setDenoiseModel(const QUrl &url) {
     denoiseModelPath_ = overridePath.isEmpty()
                             ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::denoise)
                             : overridePath;
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
                        QSettings::IniFormat);
     // Persist only the user's override. Bundled paths are resolved again after
     // updates or moving the application to a different directory.
@@ -54,7 +55,7 @@ void EditorController::denoisePhoto(double amount) {
     const auto asset = session_->asset;
     const auto service = service_;
     const auto catalog = catalog_;
-    const auto path = std::filesystem::path(denoiseModelPath_.toStdString());
+    const auto path = luma::pathFromUtf8(denoiseModelPath_.toStdString());
     const QPointer<EditorController> self(this);
     aiBusy_ = true;
     aiOperation_ = QStringLiteral("AI Denoise");
@@ -88,6 +89,8 @@ void EditorController::denoisePhoto(double amount) {
                     // This action is for RAW/Linear DNG, not an embedded JPEG preview.
                     (void)luma::RawDecoder().inspect(asset.path, stop);
                     const auto provider = luma::macos::makeCoreMLDenoise(path);
+                    if (!provider)
+                        throw std::runtime_error("The local AI Denoise model is unavailable.");
                     luma::checkCancellation(stop);
                     const auto decoded = service.fullResolution(asset, stop);
                     luma::EditDocument neutral;
@@ -142,7 +145,7 @@ void EditorController::denoisePhoto(double amount) {
                                 self->aiProgress_ = 1;
                                 emit self->stateChanged();
                                 self->openFile(
-                                    QUrl::fromLocalFile(QString::fromStdString(created.string())));
+                                    QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(created))));
                             },
                             Qt::QueuedConnection);
                 } catch (const std::exception &failure) {

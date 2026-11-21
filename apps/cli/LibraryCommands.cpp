@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/cli/LibraryCommands.h"
 #include "apps/cli/Json.h"
 #include "apps/shared/LibraryService.h"
@@ -24,7 +25,7 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
         std::size_t start = 2;
         if (args[1] == "copy") {
             options.mode = ImportMode::copy;
-            options.destination = args[2];
+            options.destination = pathFromUtf8(args[2]);
             start = 3;
         } else if (args[1] != "add")
             throw std::runtime_error("Import mode must be add or copy.");
@@ -35,7 +36,7 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
             else if (args[i] == "--allow-duplicates")
                 options.skipDuplicates = false;
             else
-                sources.emplace_back(args[i]);
+                sources.emplace_back(pathFromUtf8(args[i]));
         }
         summary(LibraryService(catalog).import(sources, options));
         std::cout << '\n';
@@ -83,7 +84,7 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
             if (i)
                 std::cout << ',';
             const auto &r = rows[i];
-            std::cout << "{\"id\":" << quoted(r.id) << ",\"path\":" << quoted(r.path.string())
+            std::cout << "{\"id\":" << quoted(r.id) << ",\"path\":" << quoted(luma::pathUtf8(r.path))
                       << ",\"filename\":" << quoted(r.filename)
                       << ",\"checksum\":" << quoted(r.checksum) << ",\"rating\":" << r.rating
                       << ",\"flag\":" << r.flag << ",\"label\":" << quoted(r.label) << '}';

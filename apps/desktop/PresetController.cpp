@@ -1,4 +1,5 @@
 #include "apps/desktop/PresetController.h"
+#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/BuiltinPresets.h"
 #include "core/quick/QuickLooks.h"
@@ -239,6 +240,34 @@ bool PresetController::importPreset(const QUrl &url) {
         return failure(error);
     }
 }
+bool PresetController::applyXmpToPhoto(const QUrl &url, const QString &photoID) {
+    importNotice_ = {};
+    importUnsupported_.clear();
+    importedId_.clear();
+    try {
+        if (!url.isLocalFile() ||
+            QFileInfo(url.toLocalFile()).suffix().compare(QStringLiteral("xmp"),
+                                                         Qt::CaseInsensitive) != 0)
+            throw std::runtime_error("Select a local XMP file.");
+        if (photoID.isEmpty() || editor_.photoID() != photoID)
+            throw std::runtime_error("The active photo changed. Open the XMP file again.");
+        const auto imported = luma::PresetStore::inspectImport(url.toLocalFile());
+        const auto &preset = imported.preset;
+        if (!editor_.applySettings(preset.settings, preset.groups, preset.parameters))
+            throw std::runtime_error("The current photo cannot be edited.");
+        error_.clear();
+        importUnsupported_ = imported.unsupported;
+        importNotice_ = QStringLiteral("XMP settings applied to this photo.");
+        if (!importUnsupported_.isEmpty())
+            importNotice_ = LocalizedText(QStringLiteral(
+                "XMP applied with partial compatibility. Unsupported settings (%1)."))
+                .arg(importUnsupported_.size());
+        emit stateChanged();
+        return true;
+    } catch (const std::exception &error) {
+        return failure(error);
+    }
+}
 bool PresetController::exportPreset(const QString &id, const QUrl &url) {
     try {
         if (!url.isLocalFile())
@@ -250,8 +279,9 @@ bool PresetController::exportPreset(const QString &id, const QUrl &url) {
             if (protectedPath.isEmpty())
                 continue;
             std::error_code error;
-            const bool equivalent = std::filesystem::equivalent(destination.toStdString(),
-                                                                protectedPath.toStdString(), error);
+            const bool equivalent =
+                std::filesystem::equivalent(luma::pathFromUtf8(destination.toStdString()),
+                                            luma::pathFromUtf8(protectedPath.toStdString()), error);
             if (QFileInfo(destination).absoluteFilePath() ==
                     QFileInfo(protectedPath).absoluteFilePath() ||
                 (!error && equivalent))

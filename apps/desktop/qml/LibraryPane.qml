@@ -209,7 +209,7 @@ Rectangle {
                 ApertoneButton { objectName: "library.importButton"; text: qsTranslate("Apertone", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
                 ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
-                ApertoneButton { objectName: "semantic.open"; text: qsTranslate("Apertone", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
+                ApertoneButton { objectName: "semantic.open"; visible: Qt.platform.os !== "windows"; text: qsTranslate("Apertone", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
                 ApertoneButton {
                     objectName: "library.photoActions"
                     text: qsTranslate("Apertone", "Photo actions")

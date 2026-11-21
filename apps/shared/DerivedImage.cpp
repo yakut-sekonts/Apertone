@@ -7,6 +7,8 @@
 #include "core/export/DngWriter.h"
 #include "core/image/Bayer.h"
 #include "core/io/StagingFile.h"
+#include "core/io/FileSystem.h"
+#include "core/io/Path.h"
 #include "platform/macos/FileHasher.h"
 #include <algorithm>
 #include <cerrno>
@@ -23,8 +25,9 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
     checkCancellation(stop);
     if (provenance.size() > 1048576)
         throw std::runtime_error("Derived image metadata exceeds its budget.");
-    const auto directory = std::filesystem::absolute(catalog).parent_path() /
-                           (catalog.filename().string() + ".luma-derived");
+    auto cacheName = catalog.filename();
+    cacheName += ".luma-derived";
+    const auto directory = std::filesystem::absolute(catalog).parent_path() / cacheName;
     std::filesystem::create_directories(directory);
     const auto target = directory / (newID() + ".dng");
     StagingFile staging(directory, ".luma-derived-");
@@ -41,16 +44,11 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
                            [](float value) { return std::max(0.F, value); });
         },
         temporary, "Apertone Linear sRGB", bytes, stop, progress, DngSamples::floating32);
-    const int input = ::open(temporary.c_str(), O_RDONLY);
-    if (input < 0)
-        throw std::runtime_error("Cannot reopen derived image.");
-    const int synced = fsync(input);
-    close(input);
-    if (synced != 0)
+    if (files::syncFile(temporary) != 0)
         throw std::runtime_error("Cannot sync derived image.");
     const auto checksum = macos::sha256File(temporary, stop);
     Catalog database(catalog);
-    const DerivedImageRecord record{target, checksum, image.width, image.height, getpid()};
+    const DerivedImageRecord record{target, checksum, image.width, image.height, files::processID()};
     checkCancellation(stop);
     database.stageDerived(record);
     // Staging can wait for catalog I/O. A cancellation received during that
@@ -59,17 +57,13 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
         database.discardDerived(target);
         checkCancellation(stop);
     }
-    if (link(temporary.c_str(), target.c_str()) != 0) {
+    if (files::publish(temporary, target) != 0) {
         database.discardDerived(target);
         throw std::runtime_error("Cannot install derived image: " +
                                  std::string(std::strerror(errno)));
     }
     // Installation is the commit point. Cancellation after it keeps the output.
-    const int parent = ::open(directory.c_str(), O_RDONLY);
-    if (parent >= 0) {
-        (void)fsync(parent);
-        close(parent);
-    }
+    (void)files::syncDirectory(directory);
     // Persist registration even when the UI has closed or cancelled meanwhile.
     // If registration fails, the journal and installed file remain recoverable.
 #ifdef LUMA_UX_PERSISTENCE_PROBE

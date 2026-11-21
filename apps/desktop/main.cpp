@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/BatchController.h"
 #include "apps/desktop/CatalogStartup.h"
@@ -34,7 +35,7 @@ int main(int argc, char **argv) {
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(
-        QStringLiteral("Apertone — non-destructive photo editor for macOS"));
+        QStringLiteral("Apertone — non-destructive photo editor"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption(
@@ -124,14 +125,14 @@ int main(int argc, char **argv) {
     diagnosticSession.record(luma::desktop::LogLevel::info, luma::desktop::LogEvent::catalogReady);
     const auto catalog = startup.catalogPath();
     auto *provider = new PreviewProvider;
-    EditorController editor(std::filesystem::path(catalog.toStdString()), provider);
-    DiagnosticsController diagnostics(std::filesystem::path(catalog.toStdString()), editor,
+    EditorController editor(luma::pathFromUtf8(catalog.toStdString()), provider);
+    DiagnosticsController diagnostics(luma::pathFromUtf8(catalog.toStdString()), editor,
                                       diagnosticSession);
     PresetController presets(QFileInfo(catalog).absolutePath() + QStringLiteral("/presets.json"),
                              editor);
-    LibraryModel library(std::filesystem::path(catalog.toStdString()));
-    BatchController batch(std::filesystem::path(catalog.toStdString()), editor, library, presets);
-    ExportController exporter(std::filesystem::path(catalog.toStdString()), editor, library);
+    LibraryModel library(luma::pathFromUtf8(catalog.toStdString()));
+    BatchController batch(luma::pathFromUtf8(catalog.toStdString()), editor, library, presets);
+    ExportController exporter(luma::pathFromUtf8(catalog.toStdString()), editor, library);
     QObject::connect(&library, &LibraryModel::stateChanged, &library, [&] {
         diagnosticSession.observe(luma::desktop::LoggedWorkflow::library, library.working(),
                                   !library.error().isEmpty() ||
@@ -186,7 +187,7 @@ int main(int argc, char **argv) {
         return 2;
     }
     engine.addImageProvider(QStringLiteral("thumbnail"),
-                            new ThumbnailProvider(std::filesystem::path(catalog.toStdString())));
+                            new ThumbnailProvider(luma::pathFromUtf8(catalog.toStdString())));
     engine.addImageProvider(QStringLiteral("preview"), provider);
     engine.rootContext()->setContextProperty(QStringLiteral("editor"), &editor);
     engine.rootContext()->setContextProperty(QStringLiteral("diagnostics"), &diagnostics);
@@ -450,6 +451,25 @@ int main(int argc, char **argv) {
                                 app.exit(1);
                                 return;
                             }
+                            editor.undo();
+                            const auto presetCount = presets.items().size();
+                            if (!presets.applyXmpToPhoto(QUrl::fromLocalFile(xmp), editor.photoID()) ||
+                                editor.currentSettings() != expected ||
+                                presets.items().size() != presetCount ||
+                                !presets.importedId().isEmpty() ||
+                                presets.importUnsupported() !=
+                                    QStringList{QStringLiteral("CameraProfile")}) {
+                                std::cerr << "Photo XMP apply failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.undo();
+                            if (editor.currentSettings() != before) {
+                                std::cerr << "Photo XMP Undo failed\n";
+                                app.exit(1);
+                                return;
+                            }
+                            editor.redo();
                         }
                         if (localMasks) {
                             const auto before = editor.currentSettings();

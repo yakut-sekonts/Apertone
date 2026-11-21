@@ -1,3 +1,5 @@
+#include "core/io/Path.h"
+#include "core/io/FileSystem.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/BackupService.h"
 #include "apps/shared/MetadataService.h"
@@ -20,7 +22,7 @@ QVariantMap map(const luma::MetadataSnapshot &snapshot) {
         creators.append(QString::fromStdString(name));
     return {{"id", QString::fromStdString(snapshot.id)},
             {"revision", QString::number(snapshot.revision)},
-            {"path", QString::fromStdString(snapshot.path.string())},
+            {"path", QString::fromStdString(luma::pathUtf8(snapshot.path))},
             {"title", QString::fromStdString(snapshot.values.title)},
             {"caption", QString::fromStdString(snapshot.values.caption)},
             {"copyright", QString::fromStdString(snapshot.values.copyright)},
@@ -34,7 +36,7 @@ QVariantMap map(const luma::MetadataSnapshot &snapshot) {
             {"readError", QString::fromStdString(snapshot.readError)}};
 }
 QString preferences(const std::filesystem::path &catalog) {
-    return QString::fromStdString(catalog.parent_path().string()) + QStringLiteral("/preview.ini");
+    return QString::fromStdString(luma::pathUtf8(catalog.parent_path())) + QStringLiteral("/preview.ini");
 }
 } // namespace
 void LibraryModel::initializeMaintenance() {
@@ -90,7 +92,7 @@ void LibraryModel::clearLibrary() {
 void LibraryModel::forgetImportSource(const QUrl &source) {
     if (working() || loading_ || !source.isLocalFile())
         return;
-    const auto path = std::filesystem::path(source.toLocalFile().toStdString());
+    const auto path = luma::pathFromUtf8(source.toLocalFile().toStdString());
     mutate([path](luma::Catalog &catalog) { catalog.forgetImportSource(path); },
            [this] {
                maintenanceStatus_ =
@@ -160,7 +162,7 @@ void LibraryModel::watchVisibleFolders() {
             // of that directory (or one of its ancestors). Watch existing parents
             // too, so moved folders and their restoration refresh availability.
             for (auto path = row.path.parent_path(); !path.empty() && wanted.size() < 512;) {
-                const auto name = QString::fromStdString(path.string());
+                const auto name = QString::fromStdString(luma::pathUtf8(path));
                 if (wanted.contains(name))
                     break; // This ancestor chain has already been considered.
                 if (QFileInfo(name).isDir())
@@ -186,10 +188,9 @@ void LibraryModel::watchVisibleFolders() {
         sourceWatcher_.addPaths(add);
 }
 QUrl LibraryModel::backupFolder() const {
-    return QUrl::fromLocalFile(
-        QString::fromStdString((std::filesystem::absolute(catalog_).parent_path() /
-                                (catalog_.filename().string() + ".luma-backups"))
-                                   .string()));
+    const auto absolute = std::filesystem::absolute(catalog_);
+    const auto path = luma::pathWithSuffix(absolute, ".luma-backups");
+    return QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(path)));
 }
 void LibraryModel::setBackupSchedule(int value) {
     if (value < 0 || value > 3)
@@ -232,14 +233,14 @@ void LibraryModel::backupNow() {
 void LibraryModel::restoreCatalog(const QUrl &backup, const QUrl &destination) {
     if (!backup.isLocalFile() || !destination.isLocalFile())
         return;
-    const auto source = std::filesystem::path(backup.toLocalFile().toStdString());
-    const auto target = std::filesystem::path(destination.toLocalFile().toStdString());
+    const auto source = luma::pathFromUtf8(backup.toLocalFile().toStdString());
+    const auto target = luma::pathFromUtf8(destination.toLocalFile().toStdString());
     const auto stop = maintenanceCancellation_.token();
     mutate([source, target, stop](auto &) { luma::Catalog::restoreBackupTo(source, target, stop); },
            [this, target] {
                maintenanceStatus_ =
                    LocalizedText(QStringLiteral("Catalog restored to a new file: %1"))
-                       .arg(QString::fromStdString(target.string()));
+                       .arg(QString::fromStdString(luma::pathUtf8(target)));
                status_ = maintenanceStatus_;
                return true;
            });
@@ -253,7 +254,7 @@ void LibraryModel::openCatalog(const QUrl &file, bool create) {
         [target, create, stop](auto &) {
             if (create) {
                 // Reserve the requested path without replacing an existing catalog.
-                const int descriptor = ::open(target.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+                const int descriptor = luma::files::createExclusive(target);
                 if (descriptor < 0)
                     throw std::runtime_error(
                         "Cannot create catalog: choose a new writable filename.");
@@ -264,7 +265,7 @@ void LibraryModel::openCatalog(const QUrl &file, bool create) {
             }
         },
         [this, target] {
-            const auto path = QString::fromStdString(target.string());
+            const auto path = QString::fromStdString(luma::pathUtf8(target));
             if (!QProcess::startDetached(QCoreApplication::applicationFilePath(),
                                          {QStringLiteral("--catalog"), path}))
                 error_ = QStringLiteral("Cannot open another catalog window.");
@@ -371,7 +372,7 @@ void LibraryModel::locateOriginal(const QUrl &file) {
     const auto id = descriptiveMetadata_.value("id").toString();
     const auto path = catalog_;
     const auto stop = maintenanceCancellation_.token();
-    const auto source = std::filesystem::path(file.toLocalFile().toStdString());
+    const auto source = luma::pathFromUtf8(file.toLocalFile().toStdString());
     mutate([path, id, source,
             stop](auto &) { luma::RelinkService(path).locate(id.toStdString(), source, stop); },
            [this, id] {
@@ -383,9 +384,9 @@ void LibraryModel::locateFolder(const QUrl &folder, bool nearby) {
     if (!folder.isLocalFile() || descriptiveMetadata_.isEmpty())
         return;
     const auto old =
-        std::filesystem::path(descriptiveMetadata_.value("path").toString().toStdString())
+        luma::pathFromUtf8(descriptiveMetadata_.value("path").toString().toStdString())
             .parent_path();
-    const auto destination = std::filesystem::path(folder.toLocalFile().toStdString());
+    const auto destination = luma::pathFromUtf8(folder.toLocalFile().toStdString());
     const auto path = catalog_;
     const auto stop = maintenanceCancellation_.token();
     const auto id = descriptiveMetadata_.value("id").toString();

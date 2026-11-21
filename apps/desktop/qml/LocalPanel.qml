@@ -55,22 +55,26 @@ ColumnLayout {
         }
         Label {
             text: qsTranslate("Apertone", "Local AI · photos stay on this Mac")
+            visible: Qt.platform.os !== "windows"
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         RowLayout {
+            visible: Qt.platform.os !== "windows"
             Layout.fillWidth: true
             ApertoneButton { objectName: "localAI.subject"; text: qsTranslate("Apertone", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
             ApertoneButton { text: qsTranslate("Apertone", "Background"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("background") }
         }
         ApertoneButton {
             text: qsTranslate("Apertone", "Select object")
+            visible: Qt.platform.os !== "windows"
             enabled: !editor.aiBusy
             Layout.fillWidth: true
             onClicked: editor.beginAIObjectSelection()
         }
         ApertoneButton {
             text: qsTranslate("Apertone", "Sky")
+            visible: Qt.platform.os !== "windows"
             enabled: !editor.aiBusy && editor.skyModelConfigured
             Layout.fillWidth: true
             onClicked: editor.generateAIMask("sky")
@@ -79,10 +83,12 @@ ColumnLayout {
         }
         Label {
             text: qsTranslate("Apertone", "People details")
+            visible: Qt.platform.os !== "windows"
             font.pixelSize: 10; font.weight: Font.DemiBold; color: Theme.muted
             Layout.fillWidth: true
         }
         RowLayout {
+            visible: Qt.platform.os !== "windows"
             Layout.fillWidth: true
             ApertoneButton { objectName: "localAI.face"; text: qsTranslate("Apertone", "Face"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("face") }
             ApertoneButton { objectName: "localAI.eyes"; text: qsTranslate("Apertone", "Eyes"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("eyes") }

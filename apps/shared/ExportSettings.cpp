@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/shared/ExportSettings.h"
 #include <QDateTime>
 #include <QFileInfo>
@@ -116,7 +117,7 @@ QJsonObject ExportSettings::json() const {
             {"metadata", int(options.metadata)},
             {"watermarkKind", int(options.watermark.kind)},
             {"watermarkText", QString::fromStdString(options.watermark.text)},
-            {"watermarkImage", QString::fromStdString(options.watermark.image.string())},
+            {"watermarkImage", QString::fromStdString(luma::pathUtf8(options.watermark.image))},
             {"watermarkOpacity", options.watermark.opacity},
             {"watermarkSize", options.watermark.size},
             {"watermarkMargin", options.watermark.margin},
@@ -145,7 +146,7 @@ ExportSettings ExportSettings::fromJson(const QJsonObject &object) {
     o.metadata = static_cast<MetadataPolicy>(integer(object, "metadata"));
     o.watermark.kind = static_cast<WatermarkKind>(integer(object, "watermarkKind"));
     o.watermark.text = text(object, "watermarkText").toStdString();
-    o.watermark.image = text(object, "watermarkImage").toStdString();
+    o.watermark.image = luma::pathFromUtf8(text(object, "watermarkImage").toStdString());
     o.watermark.opacity = number(object, "watermarkOpacity");
     o.watermark.size = number(object, "watermarkSize");
     o.watermark.margin = number(object, "watermarkMargin");

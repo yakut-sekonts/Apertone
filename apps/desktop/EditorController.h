@@ -46,6 +46,7 @@ class EditorController final : public QObject {
     friend class ux::MetalPreviewProbe;
 #endif
     Q_PROPERTY(QVariantMap comparison READ comparison NOTIFY stateChanged)
+    Q_PROPERTY(QString photoID READ photoID NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)
     Q_PROPERTY(bool localSampling READ localSampling NOTIFY stateChanged)
     Q_PROPERTY(bool localGestureActive READ localGestureActive NOTIFY stateChanged)
@@ -496,7 +497,7 @@ class EditorController final : public QObject {
     }
     QString detailDiagnostic() const;
     Q_INVOKABLE void setDetailControl(const QString &parameter);
-    void applySettings(const luma::EditDocument &settings, std::uint32_t groups,
+    bool applySettings(const luma::EditDocument &settings, std::uint32_t groups,
                        std::span<const std::string> parameters = {});
     void previewSettings(const luma::EditDocument &settings, std::uint32_t groups,
                          std::span<const std::string> parameters = {});

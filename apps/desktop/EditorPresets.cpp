@@ -1,10 +1,10 @@
 #include "apps/desktop/EditorController.h"
 #include "core/presets/SettingsSubset.h"
 
-void EditorController::applySettings(const luma::EditDocument &settings, std::uint32_t groups,
+bool EditorController::applySettings(const luma::EditDocument &settings, std::uint32_t groups,
                                      std::span<const std::string> parameters) {
     if (!editable())
-        return;
+        return false;
     try {
         setRetouchMode(QStringLiteral("off"));
         cancelAI();
@@ -15,11 +15,13 @@ void EditorController::applySettings(const luma::EditDocument &settings, std::ui
         validateGeometry(next);
         endEdit();
         if (next == history_.current())
-            return;
+            return true;
         history_.apply(next, "Apply settings");
         editsChanged();
+        return true;
     } catch (const std::exception &failure) {
         advancedFailure(failure);
+        return false;
     }
 }
 void EditorController::previewSettings(const luma::EditDocument &settings, std::uint32_t groups,

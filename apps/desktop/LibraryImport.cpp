@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/PresetStore.h"
 #include <QDir>
@@ -116,7 +117,7 @@ bool LibraryModel::importAdvanced(const QList<QUrl> &urls, const QVariantMap &se
         for (const auto &url : urls) {
             if (!url.isLocalFile())
                 throw std::runtime_error("Import supports local files");
-            sources.emplace_back(url.toLocalFile().toStdString());
+            sources.emplace_back(luma::pathFromUtf8(url.toLocalFile().toStdString()));
         }
         if (sources.empty())
             throw std::runtime_error("No supported photos found in the selected sources.");
@@ -131,7 +132,7 @@ bool LibraryModel::importAdvanced(const QList<QUrl> &urls, const QVariantMap &se
                 return std::filesystem::path{};
             if (!url.isLocalFile())
                 throw std::runtime_error("Import supports local files");
-            return std::filesystem::path(url.toLocalFile().toStdString());
+            return luma::pathFromUtf8(url.toLocalFile().toStdString());
         };
         options.destination = localPath(settings.value("destination"));
         options.backupDestination = localPath(settings.value("backup"));
@@ -178,7 +179,7 @@ bool LibraryModel::refreshImportSource(const QUrl &source) {
         if (!source.isLocalFile())
             throw std::runtime_error("Import supports local files");
         auto replay = luma::Catalog(catalog_).importSource(
-            std::filesystem::path(source.toLocalFile().toStdString()));
+            luma::pathFromUtf8(source.toLocalFile().toStdString()));
         if (!replay)
             throw std::runtime_error("Import source is no longer tracked.");
         replay->options.skipDuplicates = true;

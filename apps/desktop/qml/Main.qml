@@ -154,7 +154,7 @@ ApplicationWindow {
                 ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
                 ApertoneButton { objectName: "settingsButton"; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
-                UpdateBell {}
+                UpdateBell { visible: Qt.platform.os !== "windows" }
                 ApertoneButton { objectName: "main.undoButton"; text: qsTranslate("Apertone", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
                 ApertoneButton { objectName: "main.redoButton"; text: qsTranslate("Apertone", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
                 ApertoneButton { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }

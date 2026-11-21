@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/BundledModels.h"
 #include "apps/desktop/EditorController.h"
 #include "core/catalog/Identity.h"
@@ -69,7 +70,7 @@ void EditorController::setSkyModel(const QUrl &url) {
     skyModelPath_ = overridePath.isEmpty()
                         ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky)
                         : overridePath;
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
                        QSettings::IniFormat);
     settings.setValue("skyModel", overridePath);
     emit stateChanged();
@@ -95,7 +96,7 @@ void EditorController::beginAIMaskSelection(const QString &kind) {
         return;
     try {
         const auto selection = selectionFor(kind);
-        if (!needsPoint(selection) || !segmentation_->supports(selection))
+        if (!needsPoint(selection) || !segmentation_ || !segmentation_->supports(selection))
             throw std::runtime_error("The requested AI selection is not available locally.");
     } catch (const std::exception &failure) {
         advancedFailure(failure);
@@ -124,7 +125,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
     try {
         const auto selection = selectionFor(kind);
         if ((selection == luma::ai::Selection::sky && !skyModelConfigured()) ||
-            (selection != luma::ai::Selection::sky && !segmentation_->supports(selection)))
+            (selection != luma::ai::Selection::sky &&
+             (!segmentation_ || !segmentation_->supports(selection))))
             throw std::runtime_error("The requested AI selection is not available locally.");
         if (!std::isfinite(x) || !std::isfinite(y) || x < 0 || y < 0 || x > 1 || y > 1)
             return;
@@ -151,7 +153,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         error_.clear();
         const auto revision = ++aiRevision_;
         const auto provider = segmentation_;
-        const auto skyModel = std::filesystem::path(skyModelPath_.toStdString());
+        const auto skyModel = luma::pathFromUtf8(skyModelPath_.toStdString());
         auto referenceEdits = history_.current();
         referenceEdits.localMasks.clear();
         referenceEdits.setEnabled(luma::Correction::crop, false);
@@ -182,6 +184,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                     const auto activeProvider = selection == luma::ai::Selection::sky
                                                     ? luma::macos::makeCoreMLSky(skyModel)
                                                     : provider;
+                    if (!activeProvider)
+                        throw std::runtime_error("The requested AI selection is not available locally.");
                     luma::checkCancellation(stop);
                     const auto bitmap = activeProvider->segment(
                         {pixels.width, pixels.height, pixels.rgba}, selection, uprightPoint, stop,

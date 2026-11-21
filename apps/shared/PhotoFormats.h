@@ -1,4 +1,5 @@
 #pragma once
+#include "core/io/Path.h"
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -13,7 +14,7 @@ inline constexpr std::array<std::string_view, 29> supportedRawExtensions{
     ".pef", ".ptx", ".raf", ".raw", ".rw2", ".rwl", ".sr2", ".srf", ".srw"};
 
 inline std::string lowerPhotoExtension(const std::filesystem::path &path) {
-    auto extension = path.extension().string();
+    auto extension = luma::pathUtf8(path.extension());
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char character) { return std::tolower(character); });
     return extension;

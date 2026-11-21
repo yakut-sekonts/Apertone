@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/shared/BackupService.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
@@ -16,7 +17,7 @@ BackupService::run(BackupSchedule schedule, int keep, bool force, CancellationTo
     if (!force && schedule == BackupSchedule::manual)
         return std::nullopt;
     const auto folder = std::filesystem::absolute(catalog_).parent_path() /
-                        (catalog_.filename().string() + ".luma-backups");
+                        pathWithSuffix(catalog_.filename(), ".luma-backups");
     std::filesystem::create_directories(folder);
     struct Saved {
         std::filesystem::path path;
@@ -25,7 +26,7 @@ BackupService::run(BackupSchedule schedule, int keep, bool force, CancellationTo
     std::vector<Saved> saved;
     for (const auto &entry : std::filesystem::directory_iterator(folder)) {
         checkCancellation(stop);
-        const auto name = entry.path().filename().string();
+        const auto name = luma::pathUtf8(entry.path().filename());
         if (!entry.is_symlink() && entry.is_regular_file() && name.starts_with("auto-") &&
             name.size() == 49 && entry.path().extension() == ".sqlite3")
             saved.push_back({entry.path(), entry.last_write_time()});

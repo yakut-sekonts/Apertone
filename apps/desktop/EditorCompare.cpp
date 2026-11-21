@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
@@ -81,7 +82,7 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                             assets[i].edits = i == 0 ? luma::EditDocument{} : activeEdits;
                         else if (assets[i].id == active)
                             assets[i].edits = activeEdits;
-                        names.append(QString::fromStdString(assets[i].path.filename().string()));
+                        names.append(QString::fromStdString(luma::pathUtf8(assets[i].path.filename())));
                     }
                     for (int i = 0; i < 2; ++i) {
                         luma::checkCancellation(context.stopToken());

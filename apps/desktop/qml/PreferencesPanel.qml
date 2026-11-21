@@ -79,6 +79,7 @@ Dialog {
         }
         ApertoneCheckBox {
             objectName: "settings.metalPreview"
+            visible: Qt.platform.os !== "windows"
             text: qsTranslate("Apertone", "Use Metal for photo previews")
             checked: editor.metalPreview
             onToggled: editor.metalPreview = checked
@@ -97,9 +98,11 @@ Dialog {
             text: qsTranslate("Apertone", "Local AI Denoise model") + ": " +
                   (editor.denoiseModelConfigured ? editor.denoiseModelName : qsTranslate("Apertone", "Not configured")) +
                   (editor.denoiseModelBundled ? " · " + qsTranslate("Apertone", "Included with Apertone") : "")
+            visible: Qt.platform.os !== "windows"
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
+            visible: Qt.platform.os !== "windows"
             Layout.fillWidth: true
             ApertoneButton { text: qsTranslate("Apertone", "Choose model"); onClicked: denoiseModelDialog.open(); Layout.fillWidth: true }
             ApertoneButton { text: qsTranslate("Apertone", "Use bundled model"); enabled: !editor.denoiseModelBundled; onClicked: editor.setDenoiseModel(""); Layout.fillWidth: true }
@@ -108,14 +111,16 @@ Dialog {
         Label {
             text: qsTranslate("Apertone", "Local Sky model") + ": " + (editor.skyModelConfigured ? editor.skyModelName : qsTranslate("Apertone", "Not configured")) +
                   (editor.skyModelBundled ? " · " + qsTranslate("Apertone", "Included with Apertone") : "")
+            visible: Qt.platform.os !== "windows"
             textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true
         }
         RowLayout {
+            visible: Qt.platform.os !== "windows"
             Layout.fillWidth: true
             ApertoneButton { text: qsTranslate("Apertone", "Choose model"); onClicked: skyModelDialog.open(); Layout.fillWidth: true }
             ApertoneButton { text: qsTranslate("Apertone", "Use bundled model"); enabled: !editor.skyModelBundled; onClicked: editor.setSkyModel(""); Layout.fillWidth: true }
         }
-        Label { text: qsTranslate("Apertone", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Label { visible: Qt.platform.os !== "windows"; text: qsTranslate("Apertone", "Included models work offline. Photos stay on this Mac."); textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
       }
     }
 }

@@ -1,3 +1,5 @@
+#include "core/io/Path.h"
+#include "core/io/FileSystem.h"
 #include "apps/desktop/DiagnosticSession.h"
 #include "platform/macos/CrashCapture.h"
 #include <QCoreApplication>
@@ -102,14 +104,20 @@ DiagnosticSession::DiagnosticSession(bool enabled) {
         const auto root = base + QStringLiteral("/diagnostics");
         if (QFileInfo(root).isSymLink() || !QDir().mkpath(root))
             return;
+#ifndef _WIN32
         if (chmod(QFile::encodeName(root).constData(), 0700) != 0)
             return;
+#endif
         const auto name =
             QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMdd'T'hhmmsszzz'Z'-")) +
             QUuid::createUuid().toString(QUuid::WithoutBraces);
         const auto session = root + "/" + name;
-        if (!QDir().mkdir(session) || chmod(QFile::encodeName(session).constData(), 0700) != 0)
+        if (!QDir().mkdir(session))
             return;
+#ifndef _WIN32
+        if (chmod(QFile::encodeName(session).constData(), 0700) != 0)
+            return;
+#endif
         auto lock = std::make_unique<QLockFile>(session + QStringLiteral("/session.lock"));
         lock->setStaleLockTime(0);
         if (!lock->tryLock())
@@ -129,7 +137,7 @@ DiagnosticSession::DiagnosticSession(bool enabled) {
         writer_ = std::thread([this] { writeLoop(); });
         record(LogLevel::info, LogEvent::sessionStarted);
         crashCaptureEnabled_ =
-            macos::enableCrashCapture(std::filesystem::path(session.toStdString()));
+            macos::enableCrashCapture(luma::pathFromUtf8(session.toStdString()));
         if (!crashCaptureEnabled_)
             record(LogLevel::warning, LogEvent::crashCaptureUnavailable);
     } catch (...) {
@@ -204,7 +212,7 @@ void DiagnosticSession::maintainHistory() {
         file.close();
         if (retained++ < retainedSessions) {
             (void)macos::formatCrashReport(
-                std::filesystem::path(entry.absoluteFilePath().toStdString()));
+                luma::pathFromUtf8(entry.absoluteFilePath().toStdString()));
         } else if (!QDir(entry.absoluteFilePath()).removeRecursively()) {
             record(LogLevel::warning, LogEvent::historyUnavailable);
         }
@@ -215,8 +223,8 @@ void DiagnosticSession::writeLoop() noexcept {
     bool inFlight = false;
     try {
         const auto path = session_ + QStringLiteral("/events.jsonl");
-        constexpr int flags = O_WRONLY | O_CREAT | O_EXCL | O_APPEND | O_NOFOLLOW | O_CLOEXEC;
-        fd = open(QFile::encodeName(path).constData(), flags, 0600);
+        const auto nativePath = pathFromUtf8(path.toStdString());
+        fd = files::createExclusive(nativePath);
         logAvailable_ = fd >= 0;
         qint64 size = 0;
         bool historyDone = false;
@@ -243,7 +251,7 @@ void DiagnosticSession::writeLoop() noexcept {
                     .toJson(QJsonDocument::Compact) +
                 '\n';
             if (size + bytes.size() > logLimit) {
-                if (fsync(fd) != 0)
+                if (files::flush(fd) != 0)
                     break;
                 close(fd);
                 fd = -1;
@@ -261,7 +269,7 @@ void DiagnosticSession::writeLoop() noexcept {
                 }
                 if (!rotated)
                     break;
-                fd = open(QFile::encodeName(path).constData(), flags, 0600);
+                fd = files::createExclusive(nativePath);
                 if (fd < 0)
                     break;
                 size = 0;
@@ -271,7 +279,7 @@ void DiagnosticSession::writeLoop() noexcept {
             size += bytes.size();
             if ((value.level == LogLevel::warning || value.level == LogLevel::error ||
                  !historyDone) &&
-                fsync(fd) != 0)
+                files::flush(fd) != 0)
                 break;
             inFlight = false;
             if (!historyDone) {
@@ -286,7 +294,7 @@ void DiagnosticSession::writeLoop() noexcept {
     } catch (...) { /* Preserve existing files and allow the app to continue. */
     }
     if (fd >= 0) {
-        (void)fsync(fd);
+        (void)files::flush(fd);
         close(fd);
     }
     logAvailable_ = false;

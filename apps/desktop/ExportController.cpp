@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/LibraryModel.h"
@@ -30,7 +31,7 @@ QByteArray readFile(const QString &path) {
 ExportController::ExportController(std::filesystem::path catalog, EditorController &editor,
                                    LibraryModel &library, Runner runner, QObject *parent)
     : QObject(parent), catalog_(std::move(catalog)),
-      storePath_(QString::fromStdString(catalog_.parent_path().string()) +
+      storePath_(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
                  QStringLiteral("/export-settings.json")),
       editor_(editor), library_(library), runner_(std::move(runner)) {
     settings_.destination = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
@@ -238,7 +239,8 @@ void ExportController::plan() {
         QString error;
         auto frozen = settings;
         try {
-            const auto folder = std::filesystem::canonical(settings.destination.toStdString());
+            const auto folder = std::filesystem::canonical(
+                luma::pathFromUtf8(settings.destination.toStdString()));
             if (!std::filesystem::is_directory(folder))
                 throw std::runtime_error("Export folder is not a directory.");
             luma::Catalog db(path);
@@ -257,7 +259,7 @@ void ExportController::plan() {
             });
             std::set<QString> targets;
             const auto targetKey = [](const std::filesystem::path &target) {
-                return QString::fromStdString(target.string())
+                return QString::fromStdString(luma::pathUtf8(target))
                     .normalized(QString::NormalizationForm_C)
                     .toCaseFolded();
             };
@@ -269,10 +271,10 @@ void ExportController::plan() {
                                               .toString(QStringLiteral("yyyy-MM-dd"))
                                         : QStringLiteral("undated");
                 auto target =
-                    folder / settings
-                                 .filename(QString::fromStdString(item.asset.path.string()),
+                    folder / luma::pathFromUtf8(settings
+                                 .filename(QString::fromStdString(luma::pathUtf8(item.asset.path)),
                                            ++sequence, date, item.asset.metadata)
-                                 .toStdString();
+                                 .toStdString());
                 const auto base = target;
                 if (settings.conflict == luma::ExportConflict::unique) {
                     int suffix = 1;
@@ -280,9 +282,10 @@ void ExportController::plan() {
                         luma::checkCancellation(stop);
                         if (++suffix > 100000)
                             throw std::runtime_error("Cannot find a unique export filename.");
-                        target = base.parent_path() /
-                                 (base.stem().string() + "-" + std::to_string(suffix) +
-                                  base.extension().string());
+                        auto name = base.stem();
+                        name += "-" + std::to_string(suffix);
+                        name += base.extension();
+                        target = base.parent_path() / name;
                     }
                 } else if (targets.contains(targetKey(target)))
                     throw std::runtime_error(
@@ -300,7 +303,7 @@ void ExportController::plan() {
                 if (std::filesystem::file_size(original) > 64000000)
                     throw std::runtime_error("Watermark exceeds 64 MB.");
                 const auto copy =
-                    std::filesystem::path(watermarkFolder.toStdString()) / "watermark";
+                    luma::pathFromUtf8(watermarkFolder.toStdString()) / "watermark";
                 std::filesystem::copy_file(original, copy,
                                            std::filesystem::copy_options::overwrite_existing);
                 frozen.options.watermark.image = copy;
@@ -352,7 +355,7 @@ void ExportController::next() {
     }
     phase_ = Phase::running;
     const auto item = items_[static_cast<std::size_t>(completed_)];
-    current_ = QString::fromStdString(item.destination.filename().string());
+    current_ = QString::fromStdString(luma::pathUtf8(item.destination.filename()));
     progress_ = 0;
     status_ = LocalizedText(QStringLiteral("Export %1 / %2")).arg(completed_ + 1).arg(total());
     emit changed();
@@ -401,7 +404,7 @@ void ExportController::next() {
                                 ++self->skipped_;
                             else
                                 self->failures_.append(
-                                    QString::fromStdString(item.destination.filename().string()) +
+                                    QString::fromStdString(luma::pathUtf8(item.destination.filename())) +
                                     QStringLiteral(": ") + error);
                         }
                         self->next();

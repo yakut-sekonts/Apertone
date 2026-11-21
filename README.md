@@ -1,9 +1,9 @@
 # Apertone
 
-Open-source, local-first, non-destructive photo editor for macOS.
+Open-source, local-first, non-destructive photo editor.
 
-Apertone is a local-first photo workspace for Apple Silicon, built with C++20,
-Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
+Apertone is a photo workspace built with C++20, Qt 6/QML, LibRaw, SQLite
+and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
@@ -78,8 +78,10 @@ evidence and owner-accepted exceptions.
 - ✅ Linear/Radial/Brush/Luminance/Color local masks, boolean composition and shared persistent rendering.
 - 🗓 Metal image processing.
 
-Supported platform: **macOS 14+ / Apple Silicon / arm64**. Intel, Windows and
-Linux are outside the current scope.
+Published releases target **macOS 14+ / Apple Silicon / arm64**.
+The repository also includes a **Windows x64 development build** with its own
+[build and packaging instructions](BUILDING.md#windows-x64-development-build)
+and [Lightroom parity backlog](docs/LIGHTROOM_PARITY.md).
 
 ### Image support
 

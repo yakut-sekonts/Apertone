@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
 namespace luma {
@@ -23,8 +24,8 @@ void Catalog::stageImportPlan(const ImportJournalItem &item) {
                                     "path,move_state,metadata_document) VALUES(?1,?2,?3,?4,?5,?6)");
         plan.text(1, item.sessionID);
         plan.integer(2, item.index);
-        plan.text(3, item.backup.string());
-        plan.text(4, item.sourceHold.string());
+        plan.text(3, luma::pathUtf8(item.backup));
+        plan.text(4, luma::pathUtf8(item.sourceHold));
         plan.text(5, item.sourceHold.empty() ? "done" : "pending");
         plan.text(6, item.metadataDocument);
         plan.row();
@@ -36,7 +37,7 @@ void Catalog::stageImportPlan(const ImportJournalItem &item) {
 }
 bool Catalog::referencesSource(const std::filesystem::path &path) const {
     detail::Statement query(db_, "SELECT 1 FROM assets WHERE original_path=?1 LIMIT 1");
-    query.text(1, path.lexically_normal().string());
+    query.text(1, luma::pathUtf8(path.lexically_normal()));
     return query.row();
 }
 void Catalog::finishImportMove(const ImportJournalItem &item, const std::string &state,

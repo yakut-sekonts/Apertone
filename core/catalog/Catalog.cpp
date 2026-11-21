@@ -9,6 +9,7 @@
 #include "core/catalog/RetouchStorage.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/render/TransformMapping.h"
 #include <array>
 #include <chrono>
@@ -130,8 +131,8 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
                                edits.transform, true);
-    return {query.string(0), query.string(1), query.string(2),
-            metadata,        edits,           detail::readMetadataOverlay(db, query.string(0))};
+    return {query.string(0), pathFromUtf8(query.string(1)), query.string(2),
+            metadata, edits, detail::readMetadataOverlay(db, query.string(0))};
 }
 constexpr auto selectFields =
     "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
@@ -155,7 +156,7 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
     if (mode == CatalogOpenMode::createIfMissing && !path.parent_path().empty()) {
         std::filesystem::create_directories(path.parent_path());
     }
-    if (sqlite3_open_v2(path.c_str(), &db_,
+    if (sqlite3_open_v2(pathUtf8(path).c_str(), &db_,
                         SQLITE_OPEN_READWRITE | SQLITE_OPEN_NOMUTEX |
                             (mode == CatalogOpenMode::createIfMissing ? SQLITE_OPEN_CREATE : 0),
                         nullptr) != SQLITE_OK) {
@@ -203,7 +204,9 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         if (current > 0) {
             // Preserve a restorable pre-migration SQLite snapshot, including WAL.
             // Failure leaves the old schema intact; never migrate without a backup.
-            const auto folder = path.parent_path() / (path.filename().string() + ".luma-backups");
+            auto name = path.filename();
+            name += ".luma-backups";
+            const auto folder = path.parent_path() / name;
             backupTo(folder / ("schema-" + std::to_string(current) + "-" + newID() + ".sqlite3"));
         }
         execute("BEGIN IMMEDIATE;");
@@ -447,7 +450,7 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
                                     bool selectActive) {
     const auto path = std::filesystem::canonical(source);
     Statement query(db_, (std::string(selectFields) + "WHERE a.original_path=?1").c_str());
-    query.text(1, path.string());
+    query.text(1, luma::pathUtf8(path));
     AssetRecord result;
     if (query.row()) {
         result = readAsset(db_, query);
@@ -463,9 +466,9 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
                  "width,height,orientation,camera,lens,focal_length,aperture,shutter_seconds,"
                  "iso) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)");
         insert.text(1, result.id);
-        insert.text(2, path.string());
-        insert.text(3, path.filename().string());
-        insert.text(4, path.extension().string());
+        insert.text(2, luma::pathUtf8(path));
+        insert.text(3, luma::pathUtf8(path.filename()));
+        insert.text(4, luma::pathUtf8(path.extension()));
         insert.number(5, static_cast<double>(std::filesystem::file_size(path)));
         insert.text(6, checksum);
         insert.number(7, metadata.captureTimestamp
@@ -510,7 +513,7 @@ std::optional<AssetRecord> Catalog::assetByID(const std::string &id) const {
 bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
                              CancellationToken stop) const {
     Statement query(db_, "SELECT 1 FROM assets WHERE original_path=?1 LIMIT 1");
-    query.text(1, canonicalPath.string());
+    query.text(1, luma::pathUtf8(canonicalPath));
     if (query.row())
         return true;
     if (!std::filesystem::exists(canonicalPath))
@@ -519,7 +522,7 @@ bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
     while (paths.row()) {
         checkCancellation(stop);
         std::error_code error;
-        if (std::filesystem::equivalent(canonicalPath, paths.string(0), error) && !error)
+        if (std::filesystem::equivalent(canonicalPath, pathFromUtf8(paths.string(0)), error) && !error)
             return true;
     }
     return false;

@@ -2,6 +2,7 @@
 #include "apps/shared/PhotoFormats.h"
 #include "core/image/Bayer.h"
 #include "core/io/StagingFile.h"
+#include "core/io/FileSystem.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
 #ifdef LUMA_UX_PERSISTENCE_PROBE
@@ -22,7 +23,7 @@ struct Descriptor {
     }
 };
 std::vector<std::uint8_t> readBytes(const std::filesystem::path &path) {
-    const Descriptor file{::open(path.c_str(), O_RDONLY | O_NOFOLLOW)};
+    const Descriptor file{files::openRead(path, true)};
     if (file.value < 0) {
         if (errno == ENOENT)
             return {};
@@ -61,14 +62,13 @@ struct Temporary {
                 throw std::runtime_error("Cannot write XMP sidecar.");
             offset += static_cast<std::size_t>(count);
         }
-        if (fsync(file.descriptor()) != 0)
+        if (files::flush(file.descriptor()) != 0)
             throw std::runtime_error("Cannot sync XMP sidecar.");
     }
 };
 
 void syncFolder(const std::filesystem::path &path) {
-    const Descriptor folder{::open(path.c_str(), O_RDONLY)};
-    if (folder.value < 0 || fsync(folder.value) != 0)
+    if (files::syncDirectory(path) != 0)
         throw std::runtime_error("Cannot sync XMP folder.");
 }
 } // namespace
@@ -210,13 +210,14 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id,
     Temporary staged(path.parent_path(), output, stop);
     const auto hash = macos::sha256File(staged.path, stop);
     if (!bytes.empty()) {
-        const auto backups =
-            catalog_.parent_path() / (catalog_.filename().string() + ".luma-xmp-backups");
+        auto backupName = catalog_.filename();
+        backupName += ".luma-xmp-backups";
+        const auto backups = catalog_.parent_path() / backupName;
         std::filesystem::create_directories(backups);
         const auto backup = backups / (oldHash + ".xmp");
         if (!std::filesystem::exists(backup)) {
             Temporary saved(backups, bytes, stop);
-            if (link(saved.path.c_str(), backup.c_str()) != 0 && errno != EEXIST)
+            if (files::publish(saved.path, backup) != 0 && errno != EEXIST)
                 throw std::runtime_error("Cannot preserve the existing XMP packet.");
             syncFolder(backups);
         }
@@ -232,8 +233,8 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id,
 #ifdef LUMA_UX_PERSISTENCE_PROBE
         ux::observePersistenceCheckpoint(catalog_, "xmp.before-install", path, staged.path);
 #endif
-        const int installed = bytes.empty() ? link(staged.path.c_str(), path.c_str())
-                                            : rename(staged.path.c_str(), path.c_str());
+        const int installed = bytes.empty() ? files::publish(staged.path, path)
+                                            : files::move(staged.path, path, true);
         if (installed != 0)
             throw std::runtime_error("Cannot install XMP sidecar.");
         syncFolder(path.parent_path());

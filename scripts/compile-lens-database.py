@@ -110,7 +110,7 @@ def build(source, destination):
         lines.append(f"static constexpr std::array<{kind}, {len(entries)}> {name}" +
                      "{{" + ",\n".join(entries) + "}};")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text("\n".join(lines) + "\n")
+    destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/MetadataStorage.h"
 #include "core/catalog/SqliteStatement.h"
@@ -147,7 +148,7 @@ MetadataSnapshot Catalog::metadataSnapshot(const std::string &id) const {
             throw std::runtime_error("Photo metadata is missing from the catalog.");
         MetadataSnapshot result;
         result.id = id;
-        result.path = query.string(0);
+        result.path = pathFromUtf8(query.string(0));
         result.checksum = query.string(1);
         result.values.title = query.string(2);
         result.values.caption = query.string(3);
@@ -228,7 +229,7 @@ void Catalog::installSidecar(const MetadataSnapshot &snapshot, const std::string
         write.text(2, snapshot.id);
         write.integer(3, snapshot.revision);
         write.text(4, snapshot.sidecarHash);
-        write.text(5, snapshot.path.string());
+        write.text(5, luma::pathUtf8(snapshot.path));
         write.text(6, snapshot.checksum);
         write.row();
         if (sqlite3_changes(db_) != 1)

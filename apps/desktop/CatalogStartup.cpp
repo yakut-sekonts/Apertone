@@ -1,7 +1,9 @@
+#include "core/io/Path.h"
 #include "apps/desktop/CatalogStartup.h"
 #include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/LocalizationController.h"
 #include "core/catalog/Catalog.h"
+#include "core/io/FileSystem.h"
 #include "core/image/Bayer.h"
 #include "platform/macos/ApplicationAlert.h"
 #include <QDateTime>
@@ -30,7 +32,7 @@ QString preferencesPath() {
            QStringLiteral("/startup.ini");
 }
 void createEmpty(const std::filesystem::path &path) {
-    const int file = ::open(path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0600);
+    const int file = luma::files::createExclusive(path);
     if (file < 0)
         throw std::runtime_error("Cannot create catalog: choose a new writable filename.");
     close(file);
@@ -82,7 +84,7 @@ bool CatalogStartup::prepare(const QString &path, bool allowCreate, bool interac
         // change the user's default catalog, or create a session marker.
         try {
             acquire(path);
-            luma::Catalog catalog(std::filesystem::path(catalogPath_.toStdString()));
+            luma::Catalog catalog(luma::pathFromUtf8(catalogPath_.toStdString()));
             return true;
         } catch (const std::exception &failure) {
             std::cerr << "Cannot open catalog: " << failure.what() << '\n';
@@ -134,8 +136,8 @@ void CatalogStartup::start(const QString &path, Operation operation, const QStri
     lock_.reset();
     try {
         acquire(path);
-        const auto target = std::filesystem::path(catalogPath_.toStdString());
-        const auto source = std::filesystem::path(backup.toStdString());
+        const auto target = luma::pathFromUtf8(catalogPath_.toStdString());
+        const auto source = luma::pathFromUtf8(backup.toStdString());
         const bool interrupted = QFileInfo::exists(markerPath_);
         cancellation_ = luma::CancellationSource{};
         const auto stop = cancellation_.token();

@@ -2,6 +2,9 @@
 #include "apps/desktop/DiagnosticSession.h"
 #include "apps/desktop/EditorController.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/io/FileSystem.h"
+#include "core/io/Path.h"
+#include "core/io/StagingFile.h"
 #include "platform/macos/SystemDiagnostics.h"
 #include <QCoreApplication>
 #include <QDateTime>
@@ -11,7 +14,6 @@
 #include <QJsonObject>
 #include <QPointer>
 #include <QSysInfo>
-#include <QTemporaryFile>
 #include <sqlite3.h>
 #include <unistd.h>
 
@@ -19,7 +21,7 @@ namespace {
 int schemaVersion(const std::filesystem::path &path) {
     sqlite3 *db = nullptr;
     const int opened =
-        sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
+        sqlite3_open_v2(luma::pathUtf8(path).c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
     struct Connection {
         sqlite3 *db;
         ~Connection() {
@@ -44,14 +46,17 @@ void writeReport(const QString &destination, const QVariantMap &report) {
     if (!destination.endsWith(QStringLiteral(".json"), Qt::CaseInsensitive))
         throw std::runtime_error("Choose a new JSON filename for the diagnostic report.");
     const QFileInfo target(destination);
-    QTemporaryFile file(target.absolutePath() + QStringLiteral("/.luma-diagnostics-XXXXXX"));
+    luma::StagingFile temporary(luma::pathFromUtf8(target.absolutePath().toStdString()),
+                                ".luma-diagnostics-");
+    QFile file(temporary.path());
     const auto bytes = QJsonDocument(QJsonObject::fromVariantMap(report)).toJson();
-    if (bytes.size() > 65536 || !file.open() || file.write(bytes) != bytes.size() ||
-        !file.flush() || fsync(file.handle()) != 0)
+    if (bytes.size() > 65536 || !file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() ||
+        !file.flush() || luma::files::flush(file.handle()) != 0)
         throw std::runtime_error("Cannot save the diagnostic report.");
     // No replacement, including a file created after the save dialog closed.
-    if (link(QFile::encodeName(file.fileName()).constData(),
-             QFile::encodeName(target.absoluteFilePath()).constData()) != 0)
+    file.close();
+    if (luma::files::publish(temporary.path(),
+                             luma::pathFromUtf8(target.absoluteFilePath().toStdString())) != 0)
         throw std::runtime_error(
             "Cannot save the diagnostic report. Choose a new writable filename.");
 }

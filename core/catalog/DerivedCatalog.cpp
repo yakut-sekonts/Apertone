@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
 
@@ -19,7 +20,7 @@ void Catalog::stageDerived(const DerivedImageRecord &record) {
     detail::Statement insert(
         db_,
         "INSERT INTO derived_images(path,checksum,width,height,owner_pid) VALUES(?1,?2,?3,?4,?5)");
-    insert.text(1, record.path.string());
+    insert.text(1, luma::pathUtf8(record.path));
     insert.text(2, record.checksum);
     insert.integer(3, record.width);
     insert.integer(4, record.height);
@@ -31,7 +32,7 @@ void Catalog::finishDerived(const DerivedImageRecord &record) {
     try {
         detail::Statement entry(db_,
                                 "SELECT checksum,width,height FROM derived_images WHERE path=?1");
-        entry.text(1, record.path.string());
+        entry.text(1, luma::pathUtf8(record.path));
         if (!entry.row() || entry.string(0) != record.checksum ||
             entry.integer(1) != record.width || entry.integer(2) != record.height)
             throw std::runtime_error("Derived image journal changed before registration.");
@@ -49,7 +50,7 @@ void Catalog::finishDerived(const DerivedImageRecord &record) {
 }
 void Catalog::discardDerived(const std::filesystem::path &path) {
     detail::Statement remove(db_, "DELETE FROM derived_images WHERE path=?1");
-    remove.text(1, path.string());
+    remove.text(1, luma::pathUtf8(path));
     remove.row();
 }
 std::vector<DerivedImageRecord> Catalog::pendingDerived() const {
@@ -57,7 +58,7 @@ std::vector<DerivedImageRecord> Catalog::pendingDerived() const {
         db_, "SELECT path,checksum,width,height,owner_pid FROM derived_images ORDER BY path");
     std::vector<DerivedImageRecord> result;
     while (query.row())
-        result.push_back({query.string(0), query.string(1), static_cast<int>(query.integer(2)),
+        result.push_back({pathFromUtf8(query.string(0)), query.string(1), static_cast<int>(query.integer(2)),
                           static_cast<int>(query.integer(3)), query.integer(4)});
     return result;
 }

@@ -15,7 +15,9 @@ void WatermarkOptions::validate() const {
         opacity > 100 || !std::isfinite(size) || size < 1 || size > 100 || !std::isfinite(margin) ||
         margin < 0 || margin > 25 || anchor < 0 || anchor > 8 || text.size() > 1024 ||
         text.find('\0') != std::string::npos || text.find_first_of("\r\n") != std::string::npos ||
-        image.native().size() > 4096 || image.native().find('\0') != std::string::npos)
+        image.native().size() > 4096 ||
+        image.native().find(std::filesystem::path::value_type{}) !=
+            std::filesystem::path::string_type::npos)
         throw std::runtime_error("Invalid watermark settings.");
     if (kind == WatermarkKind::text && text.find_first_not_of(" \t\r\n") == std::string::npos)
         throw std::runtime_error("Watermark text is empty.");

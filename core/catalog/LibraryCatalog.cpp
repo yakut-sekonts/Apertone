@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/SqliteStatement.h"
@@ -142,7 +143,7 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
     std::vector<LibraryItem> rows;
     while (query.row()) {
         LibraryItem item{query.string(0),
-                         query.string(1),
+                         pathFromUtf8(query.string(1)),
                          query.string(2),
                          query.string(3),
                          static_cast<int>(query.integer(4)),
@@ -318,7 +319,7 @@ std::string Catalog::beginImport(ImportMode mode, const std::filesystem::path &d
                  "VALUES(?1,?2,?3,'running',?4,?5)");
         session.text(1, id);
         session.text(2, mode == ImportMode::add ? "add" : "copy");
-        session.text(3, destination.string());
+        session.text(3, luma::pathUtf8(destination));
         session.integer(4, ownerPID);
         session.integer(5, skipDuplicates ? 1 : 0);
         session.row();
@@ -335,7 +336,7 @@ std::string Catalog::beginImport(ImportMode mode, const std::filesystem::path &d
                            "VALUES(?1,?2,?3,?4,?5)");
             item.text(1, id);
             item.integer(2, static_cast<std::int64_t>(i));
-            item.text(3, sources[i].string());
+            item.text(3, luma::pathUtf8(sources[i]));
             item.text(4, failure == sourceErrors.end() ? "queued" : "failed");
             item.text(5, failure == sourceErrors.end() ? "" : failure->second);
             item.row();
@@ -351,8 +352,8 @@ void Catalog::stageImport(const ImportJournalItem &item) {
     Statement query(db_, "UPDATE import_items SET "
                          "target_path=?1,temporary_path=?2,checksum=?3,filesize=?4,state='staged'"
                          " WHERE session_id=?5 AND position=?6 AND state IN ('queued','staged')");
-    query.text(1, item.target.string());
-    query.text(2, item.temporary.string());
+    query.text(1, luma::pathUtf8(item.target));
+    query.text(2, luma::pathUtf8(item.temporary));
     query.text(3, item.checksum);
     query.integer(4, item.size);
     query.text(5, item.sessionID);
@@ -371,7 +372,7 @@ bool Catalog::commitImport(const ImportJournalItem &item, const PhotoMetadata &m
         bool inserted = !existing.has_value();
         if (!existing) {
             Statement path(db_, "SELECT id FROM assets WHERE original_path=?1");
-            path.text(1, std::filesystem::canonical(item.target).string());
+            path.text(1, luma::pathUtf8(std::filesystem::canonical(item.target)));
             inserted = !path.row();
             existing = addAssetRecord(item.target, item.checksum, metadata, false);
         }
@@ -449,7 +450,7 @@ std::optional<ImportReplay> Catalog::latestCompletedImport() const {
             replay.options = decodeImportOptions(document);
         else {
             replay.options.mode = sessions.string(1) == "copy" ? ImportMode::copy : ImportMode::add;
-            replay.options.destination = sessions.string(2);
+            replay.options.destination = pathFromUtf8(sessions.string(2));
             replay.options.skipDuplicates = sessions.integer(3) != 0;
         }
         replay.sources = replay.options.sourceRoots;
@@ -459,7 +460,7 @@ std::optional<ImportReplay> Catalog::latestCompletedImport() const {
             items.text(1, sessionID);
             std::set<std::filesystem::path> unique;
             while (items.row()) {
-                std::filesystem::path source(items.string(0));
+                auto source = pathFromUtf8(items.string(0));
                 if (unique.insert(source).second)
                     replay.sources.push_back(std::move(source));
             }
@@ -544,7 +545,7 @@ std::vector<ImportJournal> Catalog::unfinishedImports() const {
                               sessions.string(1),
                               sessions.string(2) == "copy" ? ImportMode::copy : ImportMode::add,
                               sessions.integer(3),
-                              sessions.string(4),
+                              pathFromUtf8(sessions.string(4)),
                               {},
                               sessions.integer(5) != 0,
                               std::nullopt};
@@ -565,9 +566,9 @@ std::vector<ImportJournal> Catalog::unfinishedImports() const {
         while (items.row()) {
             journal.items.push_back({journal.id,
                                      static_cast<int>(items.integer(0)),
-                                     items.string(1),
-                                     items.string(2),
-                                     items.string(3),
+                                     pathFromUtf8(items.string(1)),
+                                     pathFromUtf8(items.string(2)),
+                                     pathFromUtf8(items.string(3)),
                                      items.string(4),
                                      items.string(5),
                                      items.string(6),
@@ -582,8 +583,8 @@ std::vector<ImportJournal> Catalog::unfinishedImports() const {
             plan.text(1, journal.id);
             plan.integer(2, item.index);
             if (plan.row()) {
-                item.backup = plan.string(0);
-                item.sourceHold = plan.string(1);
+                item.backup = pathFromUtf8(plan.string(0));
+                item.sourceHold = pathFromUtf8(plan.string(1));
                 item.moveState = plan.string(2);
                 item.metadataDocument = plan.string(3);
             }
@@ -626,7 +627,8 @@ std::vector<DuplicateReviewRecord> Catalog::latestImportDuplicates() const {
         "ORDER BY i.position");
     std::vector<DuplicateReviewRecord> result;
     while (query.row())
-        result.push_back({query.string(0), query.string(1), query.string(2)});
+        result.push_back({pathFromUtf8(query.string(0)), query.string(1),
+                          pathFromUtf8(query.string(2))});
     return result;
 }
 DuplicateFingerprintPage
@@ -645,7 +647,7 @@ Catalog::duplicateFingerprintPageFrom(const std::filesystem::path &path,
         throw std::runtime_error("Duplicate fingerprint query cancelled.");
     sqlite3 *raw = nullptr;
     const int openResult =
-        sqlite3_open_v2(path.c_str(), &raw, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
+        sqlite3_open_v2(pathUtf8(path).c_str(), &raw, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
     const std::unique_ptr<sqlite3, decltype(&sqlite3_close)> db(raw, &sqlite3_close);
     if (openResult != SQLITE_OK)
         throw std::runtime_error(std::string("Cannot open catalog read-only: ") +

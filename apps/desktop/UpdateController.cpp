@@ -40,6 +40,10 @@ UpdateController::UpdateController(std::function<bool()> ready, bool enabled, QO
              restarting_ = false;
              emit changed();
          }});
+    if (!native_) {
+        message_ = QStringLiteral("Automatic updates are unavailable on this platform");
+        return;
+    }
     QTimer::singleShot(0, this, [this] {
         QString error;
         if (!native_->start(error))

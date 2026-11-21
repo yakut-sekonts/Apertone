@@ -1,5 +1,7 @@
 # Roadmap
 
+[Windows port and Lightroom Classic 14.4 parity backlog](docs/LIGHTROOM_PARITY.md)
+
 This follows the supplied requirements, renamed from Photon to Apertone. Each stage
 implements an end-to-end workflow with persistent data and error handling.
 No dates are promised before measuring scope and performance.

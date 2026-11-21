@@ -19,8 +19,8 @@ struct DerivedProvenance {
     std::string algorithmVersion;
     std::string inputContract;
     std::string outputContract;
-    std::string model;
-    std::string modelVersion;
+    std::string model{};
+    std::string modelVersion{};
     bool deterministic = true;
     bool local = true;
     std::vector<DerivedSourceProvenance> sources;

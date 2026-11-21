@@ -5,6 +5,8 @@
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
 #include "core/io/StagingFile.h"
+#include "core/io/FileSystem.h"
+#include "core/io/Path.h"
 #include <chrono>
 #include <fcntl.h>
 #include <sqlite3.h>
@@ -16,7 +18,7 @@ namespace {
 struct ReadConnection {
     sqlite3 *db = nullptr;
     explicit ReadConnection(const std::filesystem::path &path) {
-        if (sqlite3_open_v2(path.c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX,
+        if (sqlite3_open_v2(pathUtf8(path).c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX,
                             nullptr) != SQLITE_OK) {
             if (db)
                 sqlite3_close(db);
@@ -67,13 +69,14 @@ void snapshot(sqlite3 *source, const std::filesystem::path &destination, Cancell
         std::filesystem::path path;
         ~Temporary() {
             std::error_code ignored;
-            std::filesystem::remove(path.string() + "-journal", ignored);
-            std::filesystem::remove(path.string() + "-wal", ignored);
-            std::filesystem::remove(path.string() + "-shm", ignored);
+            for (const auto suffix : {"-journal", "-wal", "-shm"}) {
+                auto companion = path;
+                std::filesystem::remove(companion += suffix, ignored);
+            }
         }
     } temporary{staging.path()};
     sqlite3 *output = nullptr;
-    if (sqlite3_open_v2(temporary.path.c_str(), &output, SQLITE_OPEN_READWRITE, nullptr) !=
+    if (sqlite3_open_v2(pathUtf8(temporary.path).c_str(), &output, SQLITE_OPEN_READWRITE, nullptr) !=
         SQLITE_OK) {
         if (output)
             sqlite3_close(output);
@@ -132,21 +135,12 @@ void snapshot(sqlite3 *source, const std::filesystem::path &destination, Cancell
     if (sqlite3_close(output) != SQLITE_OK)
         throw std::runtime_error("Cannot finalize catalog backup.");
     connection.db = nullptr;
-    const int file = ::open(temporary.path.c_str(), O_RDONLY);
-    if (file < 0)
-        throw std::runtime_error("Cannot reopen catalog backup.");
-    const int synced = fsync(file);
-    close(file);
-    if (synced != 0)
+    if (files::syncFile(temporary.path) != 0)
         throw std::runtime_error("Cannot sync catalog backup.");
     checkCancellation(stop);
-    if (link(temporary.path.c_str(), target.c_str()) != 0)
+    if (files::publish(temporary.path, target) != 0)
         throw std::runtime_error("Cannot install catalog backup without replacing a file.");
-    const int folder = ::open(target.parent_path().c_str(), O_RDONLY);
-    if (folder >= 0) {
-        (void)fsync(folder);
-        close(folder);
-    }
+    (void)files::syncDirectory(target.parent_path());
     if (progress)
         progress(1);
 }

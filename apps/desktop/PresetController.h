@@ -55,6 +55,7 @@ class PresetController final : public QObject {
     Q_INVOKABLE bool remove(const QString &id);
     Q_INVOKABLE bool moveFolder(const QStringList &source, const QStringList &destination);
     Q_INVOKABLE bool importPreset(const QUrl &url);
+    Q_INVOKABLE bool applyXmpToPhoto(const QUrl &url, const QString &photoID);
     Q_INVOKABLE bool exportPreset(const QString &id, const QUrl &url);
     Q_INVOKABLE void apply(const QString &id);
     Q_INVOKABLE void preview(const QString &id);

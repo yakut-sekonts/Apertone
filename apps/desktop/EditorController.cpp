@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
 #include "tests/ux/PreviewResultProbe.h"
@@ -38,6 +39,7 @@ QString decodeSourceName(luma::DecodeSource source) {
     case luma::DecodeSource::unknown:
         return QStringLiteral("unknown");
     }
+    return QStringLiteral("unknown");
 }
 QString decodeColorName(luma::DecodeColorPath color) {
     switch (color) {
@@ -50,6 +52,7 @@ QString decodeColorName(luma::DecodeColorPath color) {
     case luma::DecodeColorPath::cameraToLinearSRGB:
         return QStringLiteral("camera profile → linear sRGB");
     }
+    return QStringLiteral("unknown color path");
 }
 std::string renderCacheKey(const luma::AssetRecord &asset, const luma::EditDocument &edits,
                            int resolution, const std::vector<std::uint8_t> &profile,
@@ -89,7 +92,7 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
         if (!busy_ && !closing_ && !history_.gestureActive())
             render(true);
     });
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
                            QStringLiteral("/preview.ini"),
                        QSettings::IniFormat);
     previewCacheMiB_ =
@@ -103,6 +106,7 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
     if (skyModelPath_.isEmpty())
         skyModelPath_ = luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky);
     accelerator_ = luma::macos::makeMetalDevelopAccelerator();
+    metalPreview_ = metalPreview_ && bool(accelerator_);
     segmentation_ = luma::macos::makeVisionSegmentation();
     applyCacheBudget();
     const QPointer<EditorController> self(this);
@@ -151,7 +155,7 @@ bool EditorController::readyForUpdate() const {
            transformJobs_.idle();
 }
 QString EditorController::filename() const {
-    return session_ ? QString::fromStdString(session_->asset.path.filename().string()) : QString();
+    return session_ ? QString::fromStdString(luma::pathUtf8(session_->asset.path.filename())) : QString();
 }
 QString EditorController::camera() const {
     return session_ ? QString::fromStdString(session_->asset.metadata.camera) : QStringLiteral("—");
@@ -240,10 +244,10 @@ QString EditorController::decoderSummary() const {
     return parts.join(QStringLiteral(" · "));
 }
 QString EditorController::catalogPath() const {
-    return QString::fromStdString(catalog_.string());
+    return QString::fromStdString(luma::pathUtf8(catalog_));
 }
 QString EditorController::sourcePath() const {
-    return session_ ? QString::fromStdString(session_->asset.path.string()) : QString();
+    return session_ ? QString::fromStdString(luma::pathUtf8(session_->asset.path)) : QString();
 }
 QString EditorController::previewUrl() const {
     return previewReady_ ? QStringLiteral("image://preview/current?v=%1").arg(imageRevision_)
@@ -331,7 +335,7 @@ void EditorController::setPreviewCacheMiB(int value) {
     if (value < 64 || value > 2048 || previewCacheMiB_ == value)
         return;
     previewCacheMiB_ = value;
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
                            QStringLiteral("/preview.ini"),
                        QSettings::IniFormat);
     settings.setValue(QStringLiteral("cacheMiB"), value);
@@ -346,10 +350,11 @@ void EditorController::applyCacheBudget() {
     renderedCache_->setBudget(bytes / 4);
 }
 void EditorController::setMetalPreview(bool value) {
+    value = value && bool(accelerator_);
     if (metalPreview_ == value)
         return;
     metalPreview_ = value;
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
                            QStringLiteral("/preview.ini"),
                        QSettings::IniFormat);
     settings.setValue(QStringLiteral("metal"), value);
@@ -361,7 +366,7 @@ void EditorController::setHDRToneMapping(bool value) {
     if (hdrToneMapping_ == value)
         return;
     hdrToneMapping_ = value;
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) +
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
                            QStringLiteral("/preview.ini"),
                        QSettings::IniFormat);
     settings.setValue(QStringLiteral("hdrToneMapping"), value);
@@ -424,7 +429,7 @@ void EditorController::openFile(const QUrl &url) {
         }
         return;
     }
-    load(std::filesystem::path(url.toLocalFile().toStdString()));
+    load(luma::pathFromUtf8(url.toLocalFile().toStdString()));
 }
 bool EditorController::closePhoto() {
     if (busy() || saving() || exporting_ || aiBusy_ || retouchBusy_ || creativeBusy_ ||
@@ -528,7 +533,7 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
 #ifdef LUMA_UX_LOAD_PROBE
             const ux::LoadOperation uxSuccess{
                 this, revision, result ? result->asset.id : std::string{},
-                result ? result->asset.path.string() : std::string{}, context.data};
+                result ? luma::pathUtf8(result->asset.path) : std::string{}, context.data};
             if (result)
                 ux::holdLoadSuccess(uxSuccess);
 #endif
@@ -1138,7 +1143,7 @@ void EditorController::exportPhoto(const QUrl &destination, int format, int qual
     }
     const auto asset = session_->asset;
     const auto edits = history_.current();
-    const auto path = std::filesystem::path(destination.toLocalFile().toStdString());
+    const auto path = luma::pathFromUtf8(destination.toLocalFile().toStdString());
     exportCancellation_ = luma::CancellationSource{};
     const auto stop = exportCancellation_.token();
     exporting_ = true;

@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #if defined(LUMA_UX_THUMBNAIL_TRACE)
 #include "tests/ux/ThumbnailCpuRenderProbe.h"
@@ -74,11 +75,11 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
         QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
     const auto directory =
-        catalog.parent_path() / (catalog.filename().string() + ".luma-cache") / "thumbnails";
+        catalog.parent_path() / luma::pathWithSuffix(catalog.filename(), ".luma-cache") / "thumbnails";
     const auto cached = directory / (fingerprint.toStdString() + "-edited-v6.jpg");
     {
         std::lock_guard lock(state->cacheMutex);
-        QImageReader reader(QString::fromStdString(cached.string()), "JPEG");
+        QImageReader reader(QString::fromStdString(luma::pathUtf8(cached)), "JPEG");
         const auto dimensions = reader.size();
         const QImage image =
             dimensions.isValid() && dimensions.width() <= 384 && dimensions.height() <= 384
@@ -140,7 +141,7 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
     {
         std::lock_guard lock(state->cacheMutex);
         std::filesystem::create_directories(directory);
-        QSaveFile file(QString::fromStdString(cached.string()));
+        QSaveFile file(QString::fromStdString(luma::pathUtf8(cached)));
         if (!file.open(QIODevice::WriteOnly) || file.write(jpeg) != jpeg.size() || !file.commit())
             throw std::runtime_error("Cannot write thumbnail cache.");
         trimCache(directory);

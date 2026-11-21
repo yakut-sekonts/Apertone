@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/BackupService.h"
 #include "apps/shared/MetadataService.h"
@@ -28,7 +29,7 @@ LocalizedText summary(const luma::ImportSummary &result) {
 } // namespace
 LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     : QAbstractListModel(parent), catalog_(std::move(catalog)) {
-    QSettings settings(QString::fromStdString(catalog_.parent_path().string()) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
                        QSettings::IniFormat);
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
     cullingAutoEnabled_ = settings.value("cullingAutoEnabled", false).toBool();
@@ -157,7 +158,7 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     case Filename:
         return QString::fromStdString(item.filename);
     case Path:
-        return QUrl::fromLocalFile(QString::fromStdString(item.path.string()));
+        return QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(item.path)));
     case Thumbnail:
         return QStringLiteral("image://thumbnail/") + id + QStringLiteral("?generation=") +
                QString::number(thumbnailGeneration_);
@@ -307,23 +308,23 @@ void LibraryModel::reload(bool clear) {
                 std::error_code availabilityError;
                 const bool available = std::filesystem::exists(source.path, availabilityError);
                 importSources.push_back(QVariantMap{
-                    {"url", QUrl::fromLocalFile(QString::fromStdString(source.path.string()))},
-                    {"path", QString::fromStdString(source.path.string())},
-                    {"name", QString::fromStdString(source.path.filename().string())},
+                    {"url", QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(source.path)))},
+                    {"path", QString::fromStdString(luma::pathUtf8(source.path))},
+                    {"name", QString::fromStdString(luma::pathUtf8(source.path.filename()))},
                     {"mode", static_cast<int>(source.options.mode)},
-                    {"destination", QString::fromStdString(source.options.destination.string())},
+                    {"destination", QString::fromStdString(luma::pathUtf8(source.options.destination))},
                     {"finishedAt", QString::fromStdString(source.finishedAt)},
                     {"available", !availabilityError && available}});
             }
             for (const auto &duplicate : db.latestImportDuplicates())
                 duplicateReview.push_back(QVariantMap{
-                    {"sourcePath", QString::fromStdString(duplicate.sourcePath.string())},
+                    {"sourcePath", QString::fromStdString(luma::pathUtf8(duplicate.sourcePath))},
                     {"sourceName",
-                     QString::fromStdString(duplicate.sourcePath.filename().string())},
+                     QString::fromStdString(luma::pathUtf8(duplicate.sourcePath.filename()))},
                     {"assetID", QString::fromStdString(duplicate.assetID)},
-                    {"existingPath", QString::fromStdString(duplicate.existingPath.string())},
+                    {"existingPath", QString::fromStdString(luma::pathUtf8(duplicate.existingPath))},
                     {"existingName",
-                     QString::fromStdString(duplicate.existingPath.filename().string())}});
+                     QString::fromStdString(luma::pathUtf8(duplicate.existingPath.filename()))}});
             int unnamed = 0;
             for (const auto &group : db.faceGroups()) {
                 const auto displayName =
@@ -452,7 +453,7 @@ void LibraryModel::loadFingerprintPage(std::optional<luma::DuplicateFingerprintC
                     QVariantMap{{"checksum", QString::fromStdString(row.checksum)},
                                 {"size", static_cast<qlonglong>(row.size)},
                                 {"assetID", QString::fromStdString(row.assetID)},
-                                {"path", QString::fromStdString(row.originalPath.string())}});
+                                {"path", QString::fromStdString(luma::pathUtf8(row.originalPath))}});
                 last = luma::DuplicateFingerprintCursor{row.checksum, row.size, row.rowID};
             }
             if (context.stopToken().isCancelled())

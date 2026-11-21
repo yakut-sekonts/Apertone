@@ -14,7 +14,8 @@ namespace luma {
 namespace {
 constexpr std::string_view magic = "LUMA-STAGING-V1\n";
 void validPrefix(std::string_view prefix) {
-    if (prefix != ".luma-xmp-" && prefix != ".luma-backup-" && prefix != ".luma-derived-")
+    if (prefix != ".luma-xmp-" && prefix != ".luma-backup-" && prefix != ".luma-derived-" &&
+        prefix != ".luma-diagnostics-")
         throw std::invalid_argument("Unknown staging file kind.");
 }
 bool sameInode(int descriptor, const std::filesystem::path &path) {

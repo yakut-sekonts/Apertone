@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
 #include "tests/ux/AutoTransformProbe.h"
@@ -148,7 +149,7 @@ void EditorController::autoTransform() {
                                                  editRevision,
                                                  loadRevision,
                                                  session_->asset.id,
-                                                 session_->asset.path.string(),
+                                                 luma::pathUtf8(session_->asset.path),
                                                  {}};
 #endif
     transformJob_ = transformJobs_.submit(

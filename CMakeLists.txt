@@ -1,34 +1,42 @@
 cmake_minimum_required(VERSION 3.25)
-if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Apertone VERSION 2.5.0 LANGUAGES C CXX OBJCXX)
+project(Apertone VERSION 2.5.0 LANGUAGES C CXX)
 
-if(NOT APPLE OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
-    message(FATAL_ERROR "Apertone currently supports macOS Apple Silicon only.")
+if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
+    enable_language(OBJCXX)
+    set(CMAKE_OSX_ARCHITECTURES arm64)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS")
+    set(apertone_qt_directory macos)
+    set(apertone_platform luma_macos)
+    set(apertone_staging core/io/StagingFile.cpp)
+elseif(WIN32 AND MINGW AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64)$")
+    add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+    set(apertone_qt_directory mingw_64)
+    set(apertone_platform luma_windows)
+    set(apertone_staging platform/windows/StagingFile.cpp)
+else()
+    message(FATAL_ERROR "Apertone requires macOS Apple Silicon or Windows x64 with MinGW.")
 endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_OSX_ARCHITECTURES arm64)
-set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-if(EXISTS "${CMAKE_SOURCE_DIR}/.tools/qt/6.10.3/macos")
-    list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/.tools/qt/6.10.3/macos")
+if(EXISTS "${CMAKE_SOURCE_DIR}/.tools/qt/6.10.3/${apertone_qt_directory}")
+    list(PREPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/.tools/qt/6.10.3/${apertone_qt_directory}")
 endif()
 include(cmake/Dependencies.cmake)
-include(cmake/Sparkle.cmake)
-include(cmake/CrashReporter.cmake)
 
 add_library(luma_core STATIC
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
-    core/io/StagingFile.cpp
+    ${apertone_staging} core/io/FileSystem.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
     core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/color/DngColorCalibration.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
-    core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp
+    core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp core/merge/MergeAlignment.cpp
     core/catalog/SemanticCatalog.cpp
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp
     core/edits/Retouch.cpp core/edits/BitmapMask.cpp core/render/RetouchPass.cpp core/catalog/RetouchStorage.cpp
@@ -46,6 +54,9 @@ target_include_directories(luma_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_core PUBLIC luma_libraw luma_sqlite luma_lcms)
 target_compile_options(luma_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
+if(APPLE)
+include(cmake/Sparkle.cmake)
+include(cmake/CrashReporter.cmake)
 add_library(luma_macos STATIC platform/macos/RasterDecoder.mm platform/macos/AdvancedImageExporter.mm platform/macos/ExportMetadata.mm platform/macos/Watermark.mm platform/macos/ExportColor.mm platform/macos/DisplayProfile.mm platform/macos/FileHasher.cpp platform/macos/ImageExporter.mm)
 target_sources(luma_macos PRIVATE platform/macos/MemoryPressure.mm)
 target_sources(luma_macos PRIVATE platform/macos/SystemDiagnostics.mm)
@@ -71,10 +82,17 @@ target_link_libraries(luma_macos PRIVATE luma_core "-framework Metal")
 target_include_directories(luma_macos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework CoreImage" "-framework ImageIO" "-framework CoreText" "-framework UniformTypeIdentifiers")
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
+else()
+    add_library(luma_windows STATIC platform/windows/RasterDecoder.cpp platform/windows/ImageExporter.cpp
+        platform/windows/PhotoMetadataIO.cpp platform/windows/PlatformServices.cpp)
+    target_include_directories(luma_windows PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi)
+    target_compile_options(luma_windows PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
 
 add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/DerivedProvenance.cpp apps/shared/DetailService.cpp apps/shared/MergeService.cpp apps/shared/BackupService.cpp apps/shared/MetadataService.cpp apps/shared/RelinkService.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_services PUBLIC luma_core luma_macos)
+target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform})
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
@@ -88,18 +106,23 @@ qt_add_resources(luma_localization luma_languages PREFIX "/luma/i18n" BASE "reso
 
 qt_add_executable(Apertone MACOSX_BUNDLE
     apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h
-    apps/desktop/DiagnosticSession.cpp apps/desktop/DiagnosticSession.h platform/macos/CrashCapture.mm
+    apps/desktop/DiagnosticSession.cpp apps/desktop/DiagnosticSession.h
     apps/desktop/CatalogStartup.cpp apps/desktop/CatalogStartup.h
     apps/desktop/DiagnosticsController.cpp apps/desktop/DiagnosticsController.h
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
     apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
-    apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h platform/macos/Updater.mm
+    apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
     apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
-target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2 luma_sparkle)
+target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
+target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
+target_compile_options(Apertone PRIVATE -Wall -Wextra -Wpedantic -Werror)
+if(APPLE)
+target_sources(Apertone PRIVATE platform/macos/CrashCapture.mm platform/macos/Updater.mm)
+target_link_libraries(Apertone PRIVATE luma_sparkle)
 target_link_libraries(Apertone PRIVATE luma_crashreporter "-framework Foundation" "-framework CoreServices")
 target_link_options(Apertone PRIVATE -ObjC)
 set_source_files_properties(platform/macos/CrashCapture.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
@@ -114,10 +137,8 @@ add_custom_command(TARGET Apertone POST_BUILD
         "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt"
     COMMAND ${CMAKE_COMMAND} -E copy "${plcrashreporter_SOURCE_DIR}/LICENSE"
         "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt")
-target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
 set_source_files_properties(resources/branding/Apertone.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 target_sources(Apertone PRIVATE resources/branding/Apertone.icns)
-target_compile_options(Apertone PRIVATE -Wall -Wextra -Wpedantic -Werror)
 set_target_properties(Apertone PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER "app.luma.desktop"
     MACOSX_BUNDLE_BUNDLE_NAME Apertone
@@ -140,16 +161,28 @@ if(EXISTS "${LUMA_BUNDLED_MODELS_DIR}/manifest.json")
 elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
     message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Apertone 1.0.")
 endif()
+else()
+    target_sources(Apertone PRIVATE platform/windows/DesktopServices.cpp)
+    set_target_properties(Apertone PROPERTIES WIN32_EXECUTABLE TRUE)
+    target_link_options(Apertone PRIVATE "LINKER:--stack,8388608")
+endif()
 
 add_executable(luma_cli apps/cli/main.cpp apps/cli/LibraryCommands.cpp)
 set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 target_link_libraries(luma_cli PRIVATE luma_services)
 target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
+if(WIN32)
+    target_link_libraries(luma_cli PRIVATE Qt6::Gui)
+    target_link_options(luma_cli PRIVATE -municode "LINKER:--stack,8388608")
+    set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone-cli)
+    install(TARGETS Apertone luma_cli luma_libraw RUNTIME DESTINATION .)
+    install(FILES LICENSE THIRD_PARTY_LICENSES.md DESTINATION .)
+endif()
 
 include(CTest)
 option(LUMA_ENABLE_SCALE_CONTRACT_TESTS "Enable deferred application scale contracts for pre-1.0 qualification" OFF)
-if(BUILD_TESTING)
+if(BUILD_TESTING AND APPLE)
     add_executable(luma_culling_tests tests/unit/CullingTests.cpp)
     target_link_libraries(luma_culling_tests PRIVATE luma_macos)
     target_compile_options(luma_culling_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -571,4 +604,19 @@ if(BUILD_TESTING)
         "${CMAKE_SOURCE_DIR}/tests/integration/restart.py" "$<TARGET_FILE:luma_cli>" private)
     set_tests_properties(nikon-d7500-restart PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     set_tests_properties(synthetic-raw-restart PROPERTIES TIMEOUT 90)
+elseif(BUILD_TESTING AND WIN32)
+    add_executable(luma_quick_look_tests tests/unit/QuickLookTests.cpp)
+    target_link_libraries(luma_quick_look_tests PRIVATE luma_core)
+    add_test(NAME quick-look-stack-and-blur COMMAND luma_quick_look_tests)
+    add_executable(luma_parallel_render_tests tests/unit/ParallelRenderTests.cpp)
+    target_link_libraries(luma_parallel_render_tests PRIVATE luma_core)
+    add_test(NAME parallel-render-equivalence COMMAND luma_parallel_render_tests)
+    add_executable(luma_crop_tests tests/unit/CropTests.cpp)
+    target_link_libraries(luma_crop_tests PRIVATE luma_core)
+    add_test(NAME crop-geometry-unit COMMAND luma_crop_tests)
+    add_test(NAME windows-daily-workflow COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/tests/integration/windows.py"
+        "$<TARGET_FILE:Apertone>" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(windows-daily-workflow PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
 endif()

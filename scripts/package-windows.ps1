@@ -1,0 +1,37 @@
+[CmdletBinding()]
+param(
+    [string]$BuildDirectory = "build-windows",
+    [Parameter(Mandatory)][string]$Destination,
+    [Parameter(Mandatory)][string]$QtBin
+)
+
+$ErrorActionPreference = "Stop"
+$source = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot "..")).Path
+$build = (Resolve-Path -LiteralPath $BuildDirectory).Path
+$qt = (Resolve-Path -LiteralPath $QtBin).Path
+$output = [IO.Path]::GetFullPath($Destination)
+if (Test-Path -LiteralPath $output) {
+    if (!(Test-Path -LiteralPath $output -PathType Container) -or
+        (Get-ChildItem -LiteralPath $output -Force | Select-Object -First 1)) {
+        throw "Choose an empty destination directory."
+    }
+}
+
+& cmake --install $build --config Release --prefix $output
+if ($LASTEXITCODE -ne 0) {
+    throw "CMake installation failed ($LASTEXITCODE)."
+}
+$desktop = Join-Path $output "Apertone.exe"
+& (Join-Path $qt "windeployqt.exe") --release --qmldir (Join-Path $source "apps/desktop/qml") `
+    --add-plugin-types imageformats --dir $output $desktop
+if ($LASTEXITCODE -ne 0) {
+    throw "Qt deployment failed ($LASTEXITCODE)."
+}
+foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
+                         "platforms/qwindows.dll", "imageformats/qtiff.dll",
+                         "imageformats/qwebp.dll")) {
+    if (!(Test-Path -LiteralPath (Join-Path $output $required) -PathType Leaf)) {
+        throw "Deployment is missing $required."
+    }
+}
+Get-Item -LiteralPath $desktop

@@ -1,6 +1,42 @@
-# Building Apertone on macOS
+# Building Apertone
 
-## Requirements
+## Windows x64 development build
+
+Use Windows 10 or 11 x64, the Qt 6.10.3 MinGW kit with Qt Image Formats,
+MinGW-w64 GCC 13.1, CMake 3.25 or later, Ninja and Python 3.12. Set
+`$qt` and `$mingw` to the kit and compiler installation directories.
+The build downloads the existing hash-pinned LibRaw, SQLite, LittleCMS
+and Lensfun sources. The Windows build uses the CPU Develop renderer.
+
+```powershell
+$qt = "C:/Qt/6.10.3/mingw_64"
+$mingw = "C:/Qt/Tools/mingw1310_64"
+$env:PATH = "$mingw/bin;$qt/bin;$env:PATH"
+cmake -S . -B build-windows -G Ninja -DCMAKE_BUILD_TYPE=Release `
+    "-DCMAKE_PREFIX_PATH=$qt" "-DCMAKE_C_COMPILER=$mingw/bin/gcc.exe" `
+    "-DCMAKE_CXX_COMPILER=$mingw/bin/g++.exe"
+cmake --build build-windows
+$env:PATH = "$(Resolve-Path build-windows);$env:PATH"
+ctest --test-dir build-windows --output-on-failure
+.\scripts\package-windows.ps1 -BuildDirectory build-windows -QtBin "$qt/bin" `
+    -Destination "dist/Apertone-windows-x64"
+```
+
+The deployment folder contains `Apertone.exe`, `apertone-cli.exe`, LibRaw
+and the required Qt libraries and plugins. Keep the deployment folder together
+when moving it to another drive. Launch `Apertone.exe` for the desktop app.
+The default catalog is in the user's Windows application-data directory.
+Use `--catalog <path>` to choose a catalog or isolate an acceptance run.
+
+The Windows build supports the shared editor, library, presets, manual masks,
+metadata sidecars, CPU culling and JPEG, PNG, TIFF and Linear DNG export.
+Windows provider work for Core ML/Vision features, automatic updates,
+HDR HEIC and source metadata export is tracked in the
+[Lightroom parity backlog](docs/LIGHTROOM_PARITY.md).
+
+## Building on macOS
+
+### Requirements
 
 - Apple Silicon Mac with macOS 14+, 8 GB RAM minimum (16 GB recommended).
 - Apple Command Line Tools or Xcode with a C++20 compiler.

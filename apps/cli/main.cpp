@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "apps/cli/Json.h"
 #include "apps/cli/LibraryCommands.h"
 #include "apps/shared/SessionService.h"
@@ -9,6 +10,10 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#ifdef _WIN32
+#include <QGuiApplication>
+#include <QString>
+#endif
 
 namespace {
 using luma::cli::quoted;
@@ -111,15 +116,26 @@ void printSession(const luma::PhotoSession &session) {
 }
 } // namespace
 
+#ifdef _WIN32
+int wmain(int argc, wchar_t **argv) {
+    // MinGW's wide entry point keeps command-line paths independent of the ANSI code page.
+    char program[] = "apertone-cli";
+    char *qtArgs[] = {program, nullptr};
+    int qtArgc = 1;
+    QGuiApplication app(qtArgc, qtArgs);
+    const auto argument = [&](int index) { return QString::fromWCharArray(argv[index]).toStdString(); };
+#else
 int main(int argc, char **argv) {
+    const auto argument = [&](int index) { return std::string(argv[index]); };
+#endif
     try {
         std::filesystem::path catalog;
         std::vector<std::string> arguments;
         for (int i = 1; i < argc; ++i) {
-            if (std::string(argv[i]) == "--catalog" && i + 1 < argc) {
-                catalog = argv[++i];
+            if (argument(i) == "--catalog" && i + 1 < argc) {
+                catalog = luma::pathFromUtf8(argument(++i));
             } else {
-                arguments.emplace_back(argv[i]);
+                arguments.emplace_back(argument(i));
             }
         }
         if (arguments.empty() || arguments[0] == "--help") {
@@ -153,7 +169,7 @@ int main(int argc, char **argv) {
             return 0;
         luma::SessionService service(catalog);
         if (arguments[0] == "open" && arguments.size() == 2) {
-            printSession(service.open(arguments[1]));
+            printSession(service.open(luma::pathFromUtf8(arguments[1])));
         } else if (arguments[0] == "restore" && arguments.size() == 1) {
             const auto session = service.restore();
             if (session) {
@@ -264,8 +280,8 @@ int main(int argc, char **argv) {
             const auto asset = connection.activeAsset();
             if (!asset)
                 throw std::runtime_error("No active photo in this catalog.");
-            std::filesystem::path destination(arguments[1]);
-            auto extension = destination.extension().string();
+            const auto destination = luma::pathFromUtf8(arguments[1]);
+            auto extension = luma::pathUtf8(destination.extension());
             std::transform(extension.begin(), extension.end(), extension.begin(),
                            [](unsigned char c) { return std::tolower(c); });
             luma::ExportOptions options;
@@ -336,7 +352,7 @@ int main(int argc, char **argv) {
                     throw std::runtime_error("Unknown export option: " + key);
             }
             service.exportPhoto(*asset, asset->edits, destination, options);
-            std::cout << "{\"exported\":" << quoted(destination.string()) << "}\n";
+            std::cout << "{\"exported\":" << quoted(luma::pathUtf8(destination)) << "}\n";
         } else if (arguments == std::vector<std::string>{"catalog", "verify"}) {
             service.verify();
             std::cout << "{\"integrity\":\"ok\"}\n";

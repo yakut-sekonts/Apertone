@@ -1,3 +1,4 @@
+#include "core/io/Path.h"
 #include "core/edits/EditSnapshot.h"
 #include "core/library/LibraryTypes.h"
 #include <algorithm>
@@ -43,10 +44,10 @@ void ImportOptions::validate() const {
             startedAt <= 253402300799LL);
     require(sourceRoots.size() <= 65536);
     for (const auto &path : {destination, backupDestination})
-        require(path.string().size() <= 4096 && path.string().find('\0') == std::string::npos);
+        require(luma::pathUtf8(path).size() <= 4096 && luma::pathUtf8(path).find('\0') == std::string::npos);
     for (const auto &path : sourceRoots)
-        require(!path.empty() && path.string().size() <= 4096 &&
-                path.string().find('\0') == std::string::npos);
+        require(!path.empty() && luma::pathUtf8(path).size() <= 4096 &&
+                luma::pathUtf8(path).find('\0') == std::string::npos);
     if (mode != ImportMode::add)
         require(!destination.empty());
     auto example = naming;
@@ -68,9 +69,9 @@ std::string encodeImportOptions(const ImportOptions &o) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
     out << "LUMA_IMPORT 2 " << static_cast<int>(o.mode) << ' '
-        << std::quoted(o.destination.string()) << ' ' << o.recursive << ' ' << o.skipDuplicates
+        << std::quoted(luma::pathUtf8(o.destination)) << ' ' << o.recursive << ' ' << o.skipDuplicates
         << ' ' << o.dateFolders << ' ' << std::quoted(o.naming) << ' '
-        << std::quoted(o.backupDestination.string()) << ' ' << o.startedAt << ' '
+        << std::quoted(luma::pathUtf8(o.backupDestination)) << ' ' << o.startedAt << ' '
         << std::quoted(o.metadata.title) << ' ' << std::quoted(o.metadata.caption) << ' '
         << std::quoted(o.metadata.copyright) << ' ' << std::quoted(o.metadata.location) << ' '
         << o.metadata.rating << ' ' << o.metadata.flag << ' ' << std::quoted(o.metadata.label)
@@ -81,7 +82,7 @@ std::string encodeImportOptions(const ImportOptions &o) {
     std::vector<std::string> roots;
     roots.reserve(o.sourceRoots.size());
     for (const auto &path : o.sourceRoots)
-        roots.push_back(path.string());
+        roots.push_back(luma::pathUtf8(path));
     writeList(out, roots);
     out << '\n';
     return out.str();
@@ -97,8 +98,8 @@ ImportOptions decodeImportOptions(const std::string &document) {
         o.dateFolders >> std::quoted(o.naming) >> std::quoted(backup) >> o.startedAt;
     require(magic == "LUMA_IMPORT" && (version == 1 || version == 2) && mode >= 0 && mode <= 2);
     o.mode = static_cast<ImportMode>(mode);
-    o.destination = destination;
-    o.backupDestination = backup;
+    o.destination = pathFromUtf8(destination);
+    o.backupDestination = pathFromUtf8(backup);
     in >> std::quoted(o.metadata.title) >> std::quoted(o.metadata.caption) >>
         std::quoted(o.metadata.copyright) >> std::quoted(o.metadata.location) >>
         o.metadata.rating >> o.metadata.flag >> std::quoted(o.metadata.label);
@@ -111,7 +112,7 @@ ImportOptions decodeImportOptions(const std::string &document) {
     o.sourceRootsRecorded = version == 2;
     if (o.sourceRootsRecorded)
         for (auto &path : readList(in, 65536))
-            o.sourceRoots.emplace_back(std::move(path));
+            o.sourceRoots.emplace_back(pathFromUtf8(path));
     in >> std::ws;
     require(in.eof());
     o.validate();
@@ -126,7 +127,11 @@ std::filesystem::path importRelativePath(const std::filesystem::path &source,
     require(timestamp >= -62135596800LL && timestamp <= 253402300799LL);
     const std::time_t seconds = timestamp;
     std::tm utc{};
+#ifdef _WIN32
+    require(gmtime_s(&utc, &seconds) == 0);
+#else
     require(gmtime_r(&seconds, &utc) != nullptr);
+#endif
     std::ostringstream date, folder, sequence;
     date << std::put_time(&utc, "%Y-%m-%d");
     folder << std::put_time(&utc, "%Y/%m/%d");
@@ -135,7 +140,7 @@ std::filesystem::path importRelativePath(const std::filesystem::path &source,
     std::string name;
     for (std::size_t i = 0; i < options.naming.size();) {
         if (options.naming.compare(i, 6, "{name}") == 0) {
-            name += source.stem().string();
+            name += luma::pathUtf8(source.stem());
             i += 6;
         } else if (options.naming.compare(i, 6, "{date}") == 0) {
             name += date.str();
@@ -146,10 +151,10 @@ std::filesystem::path importRelativePath(const std::filesystem::path &source,
         } else
             name += options.naming[i++];
     }
-    name += source.extension().string();
+    name += luma::pathUtf8(source.extension());
     validFilename(name);
-    return options.dateFolders ? std::filesystem::path(folder.str()) / name
-                               : std::filesystem::path(name);
+    const auto filename = pathFromUtf8(name);
+    return options.dateFolders ? std::filesystem::path(folder.str()) / filename : filename;
 }
 DescriptiveMetadata importMetadata(DescriptiveMetadata original,
                                    const DescriptiveMetadata &preset) {
