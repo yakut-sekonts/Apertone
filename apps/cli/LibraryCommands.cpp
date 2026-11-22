@@ -109,6 +109,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                 filter.search = value;
             else if (name == "--collection")
                 filter.collectionID = value;
+            else if (name == "--stack")
+                filter.stackID = value;
             else if (name == "--offset")
                 offset = integer(value);
             else if (name == "--limit")
@@ -128,7 +130,9 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                       << ",\"checksum\":" << quoted(r.checksum) << ",\"rating\":" << r.rating
                       << ",\"flag\":" << r.flag << ",\"label\":" << quoted(r.label)
                       << ",\"copyName\":" << quoted(r.copyName)
-                      << ",\"originalAsset\":" << quoted(r.originalAssetID) << '}';
+                      << ",\"originalAsset\":" << quoted(r.originalAssetID)
+                      << ",\"stack\":" << quoted(r.stackID) << ",\"stackSize\":" << r.stackSize
+                      << ",\"stackCover\":" << (r.stackCover ? "true" : "false") << '}';
         }
         std::cout << "]}\n";
         return true;
@@ -156,6 +160,21 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                       << ",\"count\":" << rows[i].count << '}';
         }
         std::cout << "]\n";
+        return true;
+    }
+    if (args[0] == "stack" && args.size() >= 3) {
+        Catalog db(catalog);
+        if (args[1] == "create" && args.size() >= 4) {
+            std::cout << "{\"id\":" << quoted(db.createPhotoStack({args.begin() + 2, args.end()})) << "}\n";
+        } else if (args[1] == "cover" && args.size() == 3) {
+            db.setPhotoStackCover(args[2]);
+            std::cout << "{\"saved\":true}\n";
+        } else if (args[1] == "remove" && args.size() == 3) {
+            db.removePhotoStack(args[2]);
+            std::cout << "{\"saved\":true}\n";
+        } else {
+            throw std::runtime_error("Invalid stack command.");
+        }
         return true;
     }
     if (args[0] == "collection" && args.size() >= 3) {

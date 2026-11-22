@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace luma {
-enum class RetouchMode { clone, heal, remove };
+enum class RetouchMode { clone, heal, remove, redEye };
 struct RetouchStroke {
     std::string id;
     RetouchMode mode = RetouchMode::heal;

@@ -36,6 +36,10 @@ QString decodeSourceName(luma::DecodeSource source) {
         return QStringLiteral("Linear DNG");
     case luma::DecodeSource::integerBayerRaw:
         return QStringLiteral("Bayer RAW");
+    case luma::DecodeSource::xTransRaw:
+        return QStringLiteral("X-Trans RAW");
+    case luma::DecodeSource::monochromeRaw:
+        return QStringLiteral("Monochrome RAW");
     case luma::DecodeSource::unknown:
         return QStringLiteral("unknown");
     }
@@ -125,6 +129,7 @@ EditorController::EditorController(std::filesystem::path catalog, PreviewProvide
 }
 EditorController::~EditorController() {
     compareJob_.cancel();
+    referenceJob_.cancel();
     compareJobs_.shutdown();
     creativeJob_.cancel();
     creativeJobs_.shutdown();
@@ -677,7 +682,8 @@ QVariantMap EditorController::correctionStates() const {
          {"whiteBalance",   "exposure",   "contrast",   "highlights", "shadows",   "whites",
           "blacks",         "vibrance",   "saturation", "curves",     "hsl",       "sharpening",
           "luminanceNoise", "colorNoise", "crop",       "lens",       "transform", "presence",
-          "pointColor",     "grading",    "vignette",   "grain"})
+          "pointColor",     "grading",    "vignette",   "grain",     "blackWhite",
+          "defringe",       "calibration"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;
@@ -1112,6 +1118,7 @@ void EditorController::cancelLoad() {
 }
 bool EditorController::requestClose() {
     closeCompare();
+    clearReference();
     cancelCreative();
     cancelWhiteBalance();
     cancelAI();

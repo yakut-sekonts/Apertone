@@ -17,9 +17,12 @@ enum class SettingsGroup : std::uint32_t {
     presence = 256,
     pointColor = 512,
     grading = 1024,
-    effects = 2048
+    effects = 2048,
+    blackWhite = 4096,
+    defringe = 8192,
+    calibration = 16384
 };
-constexpr std::uint32_t allSettingsGroups = 4095;
+constexpr std::uint32_t allSettingsGroups = 32767;
 void validateSettingsGroups(std::uint32_t groups);
 std::uint32_t settingsCorrections(std::uint32_t groups);
 std::uint32_t settingsParameterGroup(std::string_view name);

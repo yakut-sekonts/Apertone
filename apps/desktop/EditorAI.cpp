@@ -30,6 +30,8 @@ luma::ai::Selection selectionFor(const QString &kind) {
         return luma::ai::Selection::eyes;
     if (kind == QStringLiteral("lips"))
         return luma::ai::Selection::lips;
+    if (kind == QStringLiteral("depth"))
+        return luma::ai::Selection::depthRange;
     throw std::runtime_error("Unknown AI selection category.");
 }
 const char *selectionName(luma::ai::Selection selection) {
@@ -50,6 +52,8 @@ const char *selectionName(luma::ai::Selection selection) {
         return "Eyes";
     case luma::ai::Selection::lips:
         return "Lips";
+    case luma::ai::Selection::depthRange:
+        return "Depth range";
     }
     throw std::runtime_error("Unknown AI selection category.");
 }
@@ -147,6 +151,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         const std::array<double, 2> sourcePoint{
             std::clamp((point[0] + .5) / source->width, 0.0, 1.0),
             std::clamp((point[1] + .5) / source->height, 0.0, 1.0)};
+        const std::array<double, 2> depthInterval{x, y};
         cancelAI();
         setRetouchMode(QStringLiteral("off"));
         endEdit();
@@ -168,7 +173,7 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
         aiJob_ = aiJobs_.submit(
             luma::JobPriority::background,
             [self, source, metadata, calibration, revision, provider, referenceEdits, selection,
-             sourcePoint, previewScale, skyModel](const luma::JobContext &context) {
+             sourcePoint, previewScale, skyModel, depthInterval](const luma::JobContext &context) {
                 try {
                     const auto stop = context.stopToken();
                     const auto input = luma::standardPreview(*source, 1024, stop);
@@ -192,7 +197,8 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                         throw std::runtime_error("The requested AI selection is not available locally.");
                     luma::checkCancellation(stop);
                     const auto bitmap = activeProvider->segment(
-                        {pixels.width, pixels.height, pixels.rgba}, selection, uprightPoint, stop,
+                        {pixels.width, pixels.height, pixels.rgba}, selection,
+                        selection == luma::ai::Selection::depthRange ? depthInterval : uprightPoint, stop,
                         [self, revision](double value) {
                             if (self)
                                 QMetaObject::invokeMethod(

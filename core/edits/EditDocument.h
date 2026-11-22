@@ -35,7 +35,10 @@ enum class Correction : std::uint32_t {
     pointColor = 262144,
     grading = 524288,
     vignette = 1048576,
-    grain = 2097152
+    grain = 2097152,
+    blackWhite = 4194304,
+    defringe = 8388608,
+    calibration = 16777216
 };
 struct CurvePoint {
     double x = 0;

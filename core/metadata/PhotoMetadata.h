@@ -20,5 +20,6 @@ struct PhotoMetadata {
     std::optional<DescriptiveMetadata> descriptive = std::nullopt;
     std::filesystem::path descriptiveSource{};
     std::string sidecarHash{}, descriptiveError{};
+    std::optional<double> latitude{}, longitude{};
 };
 } // namespace luma

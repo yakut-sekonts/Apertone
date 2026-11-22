@@ -118,9 +118,15 @@ void EditorController::denoisePhoto(double amount) {
                     amountText << std::fixed << std::setprecision(4) << amount / 100;
                     const auto metadata = luma::encodeDerivedProvenance(
                         {.operation = "AI Denoise",
+#ifdef _WIN32
+                         .provider = "org.apertone.local.onnx",
+                         .providerVersion = "1.23.2",
+                         .algorithm = "onnx-tiled-linear-denoise",
+#else
                          .provider = "org.apertone.local.coreml",
                          .providerVersion = "1",
                          .algorithm = "coreml-tiled-linear-denoise",
+#endif
                          .algorithmVersion = "1",
                          .inputContract = luma::linearFloatContract(base.width, base.height, false),
                          .outputContract =

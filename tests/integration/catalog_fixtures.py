@@ -4,7 +4,7 @@
 def remove_post_v11_features(database):
     # This is fixture construction, never a production downgrade path. Keep the
     # schema guard: a later schema must explicitly update its historical fixtures.
-    assert database.execute("PRAGMA user_version").fetchone() == (25,)
+    assert database.execute("PRAGMA user_version").fetchone() == (26,)
     for statement in (
         "DROP TABLE lightroom_smart_rules",
         "DROP TABLE lightroom_migration_photos", "DROP TABLE lightroom_migration_collections",

@@ -3,7 +3,12 @@
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/BackupService.h"
 #include "apps/shared/MetadataService.h"
+#include "apps/shared/OfflinePreview.h"
+#include "apps/shared/PhotoDelivery.h"
+#include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/RelinkService.h"
+#include "apps/shared/SessionService.h"
+#include "core/image/Bayer.h"
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QPointer>
@@ -40,7 +45,201 @@ QString preferences(const std::filesystem::path &catalog) {
     return QString::fromStdString(luma::pathUtf8(catalog.parent_path())) + QStringLiteral("/preview.ini");
 }
 } // namespace
+void LibraryModel::prepareOfflinePreviews() {
+    if (working() || selecting_)
+        return;
+    const auto ids = selectionIDs();
+    if (ids.empty())
+        return;
+    maintenanceCancellation_ = {};
+    const auto stop = maintenanceCancellation_.token();
+    const auto path = catalog_;
+    const QPointer<LibraryModel> self(this);
+    preparingPreviews_ = writing_ = true;
+    progress_ = 0;
+    error_.clear();
+    status_ = QStringLiteral("Preparing offline previews…");
+    emit stateChanged();
+    try {
+        writes_.submit(luma::JobPriority::background, [self, ids, path, stop](const auto &) {
+            std::vector<std::string> checksums;
+            QString firstError;
+            int failures = 0;
+            try {
+                luma::Catalog catalog(path, luma::CatalogOpenMode::existingOnly);
+                const luma::SessionService service(path);
+                for (std::size_t i = 0; i < ids.size() && !stop.isCancelled(); ++i) {
+                    try {
+                        const auto photo = catalog.assetByID(ids[i]);
+                        if (!photo)
+                            throw std::runtime_error("The photo is no longer in the catalog.");
+                        service.prepareOfflinePreview(*photo, stop);
+                        checksums.push_back(photo->checksum);
+                    } catch (const std::exception &failure) {
+                        if (stop.isCancelled())
+                            break;
+                        ++failures;
+                        if (firstError.isEmpty())
+                            firstError = QString::fromUtf8(failure.what());
+                    }
+                    if (self)
+                        QMetaObject::invokeMethod(self, [self, value = double(i + 1) / ids.size()] {
+                            if (self) {
+                                self->progress_ = value;
+                                emit self->stateChanged();
+                            }
+                        }, Qt::QueuedConnection);
+                }
+            } catch (const std::exception &failure) {
+                firstError = QString::fromUtf8(failure.what());
+            }
+            const auto retained = std::ranges::count_if(checksums, [&](const auto &checksum) {
+                return luma::hasOfflinePreview(path, checksum);
+            });
+            if (self)
+                QMetaObject::invokeMethod(self, [self, retained, failures, firstError,
+                                                  total = ids.size(), canceled = stop.isCancelled()] {
+                    if (!self)
+                        return;
+                    self->preparingPreviews_ = self->writing_ = false;
+                    self->status_ = LocalizedText(canceled ? QStringLiteral("Offline previews canceled. Available: %1 of %2.")
+                                                          : QStringLiteral("Offline previews available: %1 of %2."))
+                                         .arg(retained).arg(total);
+                    if (!firstError.isEmpty())
+                        self->error_ = failures > 0 ? QStringLiteral("%1: %2").arg(failures).arg(firstError)
+                                                         : firstError;
+                    emit self->stateChanged();
+                    self->checkClose();
+                }, Qt::QueuedConnection);
+        });
+    } catch (const std::exception &failure) {
+        preparingPreviews_ = writing_ = false;
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+    }
+}
+void LibraryModel::cancelOfflinePreviews() {
+    if (preparingPreviews_)
+        maintenanceCancellation_.cancel();
+}
+void LibraryModel::deliver(int format, const QString &title, const QUrl &destination,
+                           const QUrl &proof) {
+    if (working() || selecting_ || !destination.isLocalFile() || (!proof.isEmpty() && !proof.isLocalFile()))
+        return;
+    const auto ids = selectionIDs();
+    if (ids.empty())
+        return;
+    const auto mode = static_cast<luma::DeliveryFormat>(format);
+    const auto target = luma::pathFromUtf8(destination.toLocalFile().toStdString());
+    const auto profile = luma::pathFromUtf8(proof.toLocalFile().toStdString());
+    const auto path = catalog_;
+    maintenanceCancellation_ = {};
+    const auto stop = maintenanceCancellation_.token();
+    const QPointer<LibraryModel> self(this);
+    error_.clear();
+    progress_ = 0;
+    preparingDelivery_ = writing_ = true;
+    status_ = QStringLiteral("Preparing photo delivery…");
+    emit stateChanged();
+    try {
+        writes_.submit(luma::JobPriority::background,
+            [self, ids, path, mode, target, title = title.trimmed().toStdString(), profile, stop](const auto &) {
+                QString error;
+                bool completed = false;
+                try {
+                    luma::deliverPhotos(path, ids, target, mode, title, profile, stop, [self](double value) {
+                        if (self)
+                            QMetaObject::invokeMethod(self, [self, value] {
+                                if (self) {
+                                    self->progress_ = value;
+                                    emit self->stateChanged();
+                                }
+                            }, Qt::QueuedConnection);
+                    });
+                    completed = true;
+                } catch (const std::exception &failure) {
+                    if (!stop.isCancelled())
+                        error = QString::fromUtf8(failure.what());
+                }
+                const auto output = mode == luma::DeliveryFormat::webGallery ||
+                                            mode == luma::DeliveryFormat::slideshow
+                    ? target / "index.html" : target;
+                if (self)
+                    QMetaObject::invokeMethod(self, [self, completed, error, output] {
+                        if (!self)
+                            return;
+                        self->preparingDelivery_ = self->writing_ = false;
+                        self->error_ = error;
+                        self->status_ = completed ? QStringLiteral("Photo delivery complete.")
+                            : error.isEmpty() ? QStringLiteral("Photo delivery canceled.")
+                                              : QStringLiteral("Photo delivery failed.");
+                        emit self->stateChanged();
+                        if (completed)
+                            emit self->deliveryReady(QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(output))));
+                        self->checkClose();
+                    }, Qt::QueuedConnection);
+            });
+    } catch (const std::exception &failure) {
+        preparingDelivery_ = writing_ = false;
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+    }
+}
+void LibraryModel::cancelDelivery() {
+    if (preparingDelivery_)
+        maintenanceCancellation_.cancel();
+}
+void LibraryModel::openMapPhoto(const QString &id) {
+    if (!id.isEmpty() && selected_.contains(id))
+        emit openRequested(QUrl(QStringLiteral("apertone-asset:") + id));
+}
+void LibraryModel::loadPhotoLocations() {
+    const auto ids = selectionIDs();
+    if (ids.empty() || ids.size() > 256) {
+        emit photoLocationsReady({}, QStringLiteral("Select up to 256 photos to review on the map."));
+        return;
+    }
+    const auto path = catalog_;
+    const QPointer<LibraryModel> self(this);
+    reads_.submit(luma::JobPriority::background, [self, ids, path](const auto &job) {
+        QVariantList locations;
+        QString error;
+        try {
+            const luma::Catalog db(path, luma::CatalogOpenMode::existingOnly);
+            for (const auto &id : ids) {
+                luma::checkCancellation(job.stopToken());
+                const auto asset = db.assetByID(id);
+                if (!asset)
+                    continue;
+                auto latitude = asset->metadata.latitude, longitude = asset->metadata.longitude;
+                if (!latitude || !longitude) {
+                    try {
+                        const auto metadata = luma::PhotoDecoder().inspect(asset->path, job.stopToken());
+                        latitude = metadata.latitude;
+                        longitude = metadata.longitude;
+                    } catch (const std::exception &) {
+                        continue;
+                    }
+                }
+                if (latitude && longitude && std::isfinite(*latitude) && std::isfinite(*longitude) &&
+                    std::abs(*latitude) <= 90 && std::abs(*longitude) <= 180)
+                    locations.append(QVariantMap{{"id", QString::fromStdString(id)},
+                        {"name", QString::fromStdString(luma::pathUtf8(asset->path.filename()))},
+                        {"latitude", *latitude}, {"longitude", *longitude}});
+            }
+        } catch (const std::exception &failure) {
+            error = QString::fromUtf8(failure.what());
+        }
+        if (self && !job.stopToken().isCancelled())
+            QMetaObject::invokeMethod(self, [self, locations, error] {
+                if (self)
+                    emit self->photoLocationsReady(locations, error);
+            }, Qt::QueuedConnection);
+    });
+}
 void LibraryModel::initializeMaintenance() {
+    captureTimer_.setInterval(1250);
+    connect(&captureTimer_, &QTimer::timeout, this, [this] { scanCaptureFolder(false); });
     QSettings settings(preferences(catalog_), QSettings::IniFormat);
     backupSchedule_ = std::clamp(settings.value("backupSchedule", 2).toInt(), 0, 3);
     backupKeep_ = std::clamp(settings.value("backupKeep", 10).toInt(), 1, 50);
@@ -74,6 +273,7 @@ void LibraryModel::clearLibrary() {
            [this] {
                activeID_.clear();
                viewportAnchor_.clear();
+               filter_.stackID.clear();
                sourceWatchTimer_.stop();
                sourceAvailabilityJob_.cancel();
                if (!sourceWatcher_.directories().isEmpty())

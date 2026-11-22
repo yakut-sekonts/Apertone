@@ -20,12 +20,13 @@ CREATE TABLE AgLibraryFile(id_local INTEGER PRIMARY KEY,folder INTEGER,baseName 
 CREATE TABLE AgLibraryFolder(id_local INTEGER PRIMARY KEY,pathFromRoot TEXT,rootFolder INTEGER);
 CREATE TABLE AgLibraryRootFolder(id_local INTEGER PRIMARY KEY,absolutePath TEXT);
 CREATE TABLE Adobe_imageDevelopSettings(image INTEGER,text TEXT);
-CREATE TABLE AgLibraryCollection(id_local INTEGER PRIMARY KEY,name TEXT,creationId TEXT);
+CREATE TABLE AgLibraryCollection(id_local INTEGER PRIMARY KEY,name TEXT,creationId TEXT,parent INTEGER);
 CREATE TABLE AgLibraryCollectionImage(id_local INTEGER PRIMARY KEY,collection INTEGER,
     image INTEGER,positionInCollection INTEGER);
 CREATE TABLE AgLibraryCollectionContent(id_local INTEGER PRIMARY KEY,collection INTEGER,
     content TEXT,owningModule TEXT);
-CREATE TABLE AgLibraryKeyword(id_local INTEGER PRIMARY KEY,name TEXT);
+CREATE TABLE AgLibraryKeyword(id_local INTEGER PRIMARY KEY,name TEXT,parent INTEGER);
+CREATE TABLE AgLibraryKeywordSynonym(keyword INTEGER,name TEXT);
 CREATE TABLE AgLibraryKeywordImage(id_local INTEGER PRIMARY KEY,image INTEGER,tag INTEGER);
 CREATE TABLE AgLibraryIPTC(id_local INTEGER PRIMARY KEY,image INTEGER,caption TEXT,copyright TEXT);
 CREATE TABLE AgHarvestedIptcMetadata(id_local INTEGER PRIMARY KEY,image INTEGER,
@@ -69,11 +70,12 @@ def create_lightroom(file, originals):
             'CameraProfile="User profile",MaskGroupBasedCorrections={{Active=true}}}'),
         (2, 's={Exposure2012=-0.75,WhiteBalance="As Shot"}'),
     ])
-    db.executemany("INSERT INTO AgLibraryCollection VALUES(?,?,?)", [
-        (1, "Портфолио", "com.adobe.ag.library.collection"),
-        (2, "Отбор", "com.adobe.ag.library.smart_collection"),
-        (3, "Недавно правленные", "com.adobe.ag.library.smart_collection"),
-        (4, "Правило плагина", "com.adobe.ag.library.smart_collection")])
+    db.executemany("INSERT INTO AgLibraryCollection VALUES(?,?,?,?)", [
+        (1, "Портфолио", "com.adobe.ag.library.collection", 5),
+        (2, "Отбор", "com.adobe.ag.library.smart_collection", None),
+        (3, "Недавно правленные", "com.adobe.ag.library.smart_collection", None),
+        (4, "Правило плагина", "com.adobe.ag.library.smart_collection", None),
+        (5, "Архив", "com.adobe.ag.library.group", None)])
     db.executemany("INSERT INTO AgLibraryCollectionContent VALUES(?,?,?,'ag.library.smart_collection')", [
         (1, 2, 's={{criteria="rating",operation=">=",value=4},'
                '{criteria="keywords",operation="empty"},combine="union"}'),
@@ -82,7 +84,8 @@ def create_lightroom(file, originals):
         (3, 4, 's={{criteria="externalPlugin",operation="==",value="some plugin"},combine="intersect"}'),
     ])
     db.executemany("INSERT INTO AgLibraryCollectionImage VALUES(?,1,?,?)", [(1, 1, 1), (2, 2, 2)])
-    db.execute("INSERT INTO AgLibraryKeyword VALUES(1,'Горы')")
+    db.executemany("INSERT INTO AgLibraryKeyword VALUES(?,?,?)", [(1, "Горы", 2), (2, "Природа", None)])
+    db.execute("INSERT INTO AgLibraryKeywordSynonym VALUES(1,'Вершины')")
     db.execute("INSERT INTO AgLibraryKeywordImage VALUES(1,1,1)")
     db.execute("INSERT INTO AgLibraryIPTC VALUES(1,1,?,?)", ("Кадр из\nархива", "© Автор"))
     db.execute("INSERT INTO AgInternedIptcCreator VALUES(1,'Автор')")
@@ -114,15 +117,16 @@ def verify(binary, folder):
         assert (imported["added"], imported["copies"], imported["versions"],
                 imported["collections"], imported["smartCollectionsImported"]) == (1, 1, 0, 3, 2), imported
         with closing(sqlite3.connect(target)) as db_target:
-            assert db_target.execute("PRAGMA user_version").fetchone() == (25,)
+            assert db_target.execute("PRAGMA user_version").fetchone() == (26,)
             collections = dict(db_target.execute("SELECT name,id FROM collections"))
-            assert set(collections) == {"Lightroom · Портфолио", "Lightroom · Отбор",
+            assert set(collections) == {"Lightroom · Архив › Портфолио", "Lightroom · Отбор",
                                         "Lightroom · Недавно правленные"}
             assert db_target.execute("SELECT name FROM asset_creators").fetchone() == ("Автор",)
             assert db_target.execute("SELECT caption,copyright,location FROM asset_metadata "
                                      "WHERE caption<>''").fetchone() \
                 == ("Кадр из\nархива", "© Автор", "Горный лагерь")
-            assert db_target.execute("SELECT keyword FROM asset_keywords").fetchone() == ("Горы",)
+            assert set(db_target.execute("SELECT keyword FROM asset_keywords")) == {
+                ("Горы",), ("Природа|Горы",), ("Вершины",)}
             assert db_target.execute("SELECT COUNT(*) FROM collection_assets").fetchone() == (2,)
             assert db_target.execute("SELECT COUNT(*) FROM lightroom_smart_rules").fetchone() == (3,)
             assert db_target.execute("SELECT COUNT(*) FROM lightroom_migration_photos").fetchone() == (2,)

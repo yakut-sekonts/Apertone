@@ -67,6 +67,20 @@ def verify(app, cli, folder):
     assert rows["total"] == 2, rows
     assert {item["filename"] for item in rows["items"]} == {raw.name, webp.name}
     assert {digest(Path(item["path"])) for item in rows["items"]} == set(before)
+    ids = [item["id"] for item in rows["items"]]
+    stack = json.loads(run(cli, "stack", "create", *ids, catalog=catalog))["id"]
+    run(cli, "stack", "cover", ids[1], catalog=catalog)
+    members = json.loads(run(cli, "library", "--stack", stack, catalog=catalog))["items"]
+    assert len(members) == 2 and {item["stackSize"] for item in members} == {2}
+    assert next(item["id"] for item in members if item["stackCover"]) == ids[1]
+    run(cli, "stack", "remove", stack, catalog=catalog)
+
+    run(cli, "prepare-offline", *ids, catalog=catalog)
+    caches = list((folder / "Каталог.sqlite.luma-cache/offline-previews-v1").glob("*.aprx"))
+    assert len(caches) == 2
+    caches[0].write_bytes(b"test a truncated preview")
+    run(cli, "prepare-offline", *ids, catalog=catalog)
+    assert caches[0].read_bytes().startswith(b"APERTONEPRX")
 
     edited = folder / "Проявка.sqlite"
     opened = json.loads(run(cli, "open", raw, catalog=edited))
@@ -136,6 +150,8 @@ def verify(app, cli, folder):
         '<x:xmpmeta xmlns:x="adobe:ns:meta/">'
         '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
         '<rdf:Description xmlns:crs="http://ns.adobe.com/camera-raw-settings/1.0/" '
+        'crs:Version="19.0" crs:ProcessVersion="15.4" crs:ConvertToGrayscale="True" '
+        'crs:GrayMixerBlue="-20" crs:BlueSaturation="12" '
         'crs:Exposure2012="1.3" crs:Texture="30" crs:CameraProfile="Example profile"/>'
         '</rdf:RDF></x:xmpmeta>',
         encoding="utf-8",

@@ -100,6 +100,51 @@ Homography verifiedMergeAlignment(ai::RgbaImage reference, ai::RgbaImage floatin
         best = translation;
         bestScore = translationScore;
     }
+    // Fit residual scale, yaw and shear around the overlap established by
+    // translation. Restrict the corrections so texture cannot pull the
+    // registration towards a degenerate transform with excessive cropping.
+    if (translationScore > .45 && bestScore < .995) {
+        const Homography center{{1, 0, .5, 0, 1, .5, 0, 0, 1}};
+        const auto uncenter = center.inverse();
+        const auto baseline = bestScore > .85 ? best : translation;
+        std::array<double, 8> parameters{};
+        constexpr std::array limit{.10, .13, .08, .13, .10, .08, .16, .16};
+        constexpr std::array initialStep{.032, .046, .022, .046, .032, .022, .042, .042};
+        double objective = correlation(reference, floating, baseline);
+        for (double step = 1; step >= .0625; step /= 2) {
+            for (int iteration = 0; iteration < 3; ++iteration) {
+                checkCancellation(stop);
+                bool improved = false;
+                for (std::size_t axis = 0; axis < parameters.size(); ++axis) {
+                    auto trial = parameters;
+                    for (int direction : {-1, 1}) {
+                        trial[axis] = parameters[axis] + direction * step * initialStep[axis];
+                        if (std::abs(trial[axis]) > limit[axis])
+                            continue;
+                        const Homography correction{{1 + trial[0], trial[1],     trial[2],
+                                                     trial[3],     1 + trial[4], trial[5],
+                                                     trial[6],     trial[7],     1}};
+                        const auto candidate = center * correction * uncenter * baseline;
+                        const auto score = correlation(reference, floating, candidate);
+                        double penalty = 0;
+                        for (std::size_t i = 0; i < trial.size(); ++i)
+                            penalty += .001 * std::pow(trial[i] / limit[i], 2);
+                        if (score - penalty > objective + 1e-5) {
+                            objective = score - penalty;
+                            parameters = trial;
+                            improved = true;
+                            if (score > bestScore + .001) {
+                                best = candidate;
+                                bestScore = score;
+                            }
+                        }
+                    }
+                }
+                if (!improved)
+                    break;
+            }
+        }
+    }
     if (!std::isfinite(bestScore) || bestScore < .85)
         throw std::runtime_error(
             "Could not align these frames. Use images with sufficient overlap.");

@@ -22,7 +22,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr int currentCatalogSchema = 25;
+constexpr int currentCatalogSchema = 26;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -37,6 +37,8 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (auto timestamp = query.optional(12)) {
         metadata.captureTimestamp = static_cast<std::int64_t>(*timestamp);
     }
+    metadata.latitude = query.optional(73);
+    metadata.longitude = query.optional(74);
     EditDocument edits{query.value(13)};
     edits.temperature = query.value(14);
     edits.tint = query.value(15);
@@ -149,7 +151,8 @@ constexpr auto selectFields =
     "e.transform_rotate,e.transform_horizontal,e.transform_vertical,e.transform_aspect,e.transform_"
     "scale,e.transform_x_offset,e.transform_y_offset,e.transform_constrain_crop,e.transform_guided,"
     "e.transform_m11,e.transform_m12,e.transform_m13,e.transform_m21,e.transform_m22,e.transform_"
-    "m23,e.transform_m31,e.transform_m32,COALESCE(a.original_asset_id,''),a.copy_name "
+    "m23,e.transform_m31,e.transform_m32,COALESCE(a.original_asset_id,''),a.copy_name,"
+    "COALESCE(original.gps_latitude,a.gps_latitude),COALESCE(original.gps_longitude,a.gps_longitude) "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id "
     "LEFT JOIN assets original ON original.id=a.original_asset_id ";
 } // namespace
@@ -424,6 +427,23 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         if (current == 24) {
             migrateVirtualCopies();
             migrateLightroomSmartRules();
+            current = 25;
+        }
+        if (current == 25) {
+            execute(R"sql(
+                CREATE TABLE photo_stacks(id TEXT PRIMARY KEY);
+                CREATE TABLE photo_stack_members(
+                    asset_id TEXT PRIMARY KEY REFERENCES assets(id) ON DELETE CASCADE,
+                    stack_id TEXT NOT NULL REFERENCES photo_stacks(id) ON DELETE CASCADE,
+                    position INTEGER NOT NULL, UNIQUE(stack_id,position));
+                CREATE TRIGGER remove_empty_photo_stack AFTER DELETE ON photo_stack_members
+                BEGIN
+                    DELETE FROM photo_stacks WHERE id=OLD.stack_id AND
+                        (SELECT COUNT(*) FROM photo_stack_members WHERE stack_id=OLD.stack_id)<2;
+                END;
+                INSERT INTO schema_migrations(version) VALUES(26);
+                PRAGMA user_version=26;
+            )sql");
         }
         execute("COMMIT;");
     } catch (...) {
@@ -463,11 +483,23 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
     Statement query(db_, (std::string(selectFields) + "WHERE a.original_path=?1").c_str());
     query.text(1, luma::pathUtf8(path));
     AssetRecord result;
+    const bool gps = metadata.latitude && metadata.longitude &&
+        std::isfinite(*metadata.latitude) && std::abs(*metadata.latitude) <= 90 &&
+        std::isfinite(*metadata.longitude) && std::abs(*metadata.longitude) <= 180;
     if (query.row()) {
         result = readAsset(db_, query);
         if (result.checksum != checksum) {
             throw std::runtime_error("Original file changed. Existing edits were preserved; "
                                      "automatic replacement is disabled.");
+        }
+        if (gps && (!result.metadata.latitude || !result.metadata.longitude)) {
+            Statement position(db_, "UPDATE assets SET gps_latitude=?1,gps_longitude=?2 WHERE id=?3");
+            position.number(1, metadata.latitude);
+            position.number(2, metadata.longitude);
+            position.text(3, result.id);
+            position.row();
+            result.metadata.latitude = metadata.latitude;
+            result.metadata.longitude = metadata.longitude;
         }
     } else {
         result = {newID(), path, checksum, metadata, {}};
@@ -475,7 +507,8 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
             db_, "INSERT INTO "
                  "assets(id,original_path,filename,extension,filesize,checksum,capture_date,"
                  "width,height,orientation,camera,lens,focal_length,aperture,shutter_seconds,"
-                 "iso) VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)");
+                 "iso,gps_latitude,gps_longitude) "
+                 "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17,?18)");
         insert.text(1, result.id);
         insert.text(2, luma::pathUtf8(path));
         insert.text(3, luma::pathUtf8(path.filename()));
@@ -494,6 +527,8 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
         insert.number(14, metadata.aperture);
         insert.number(15, metadata.shutterSeconds);
         insert.number(16, metadata.iso);
+        insert.number(17, gps ? metadata.latitude : std::nullopt);
+        insert.number(18, gps ? metadata.longitude : std::nullopt);
         insert.row();
         Statement edit(db_, "INSERT INTO edit_documents(asset_id) VALUES(?1)");
         edit.text(1, result.id);

@@ -71,7 +71,8 @@ void testAutomaticMask(QGuiApplication &app, QQuickWindow &window, EditorControl
             const auto values = edits.localMasks.back().bitmap.pixels();
             const auto covered = std::ranges::count_if(values, [](auto value) { return value >= 128; });
             const auto share = static_cast<double>(covered) / values.size();
-            if (share < .002 || share > .998) {
+            const auto minimum = (kind == "eyes" || kind == "lips") ? .0001 : .002;
+            if (share < minimum || share > .998) {
                 fail(QStringLiteral("Automatic mask coverage is degenerate: %1").arg(share));
                 return;
             }
@@ -99,6 +100,33 @@ void testAutomaticMask(QGuiApplication &app, QQuickWindow &window, EditorControl
     });
     editor.openFile(QUrl::fromLocalFile(source));
     timer->start(30);
+}
+void testDenoise(QGuiApplication &app, QQuickWindow &window, EditorController &editor,
+                 const QString &source) {
+    auto elapsed = std::make_shared<QElapsedTimer>();
+    auto original = std::make_shared<QString>();
+    elapsed->start();
+    auto *timer = new QTimer(&app);
+    QObject::connect(timer, &QTimer::timeout, &app, [&, timer, elapsed, original] {
+        if (elapsed->elapsed() > 900'000 || !editor.error().isEmpty() || !editor.denoiseModelConfigured()) {
+            timer->stop();
+            std::cerr << "Denoise acceptance failed: " << editor.error().toStdString() << '\n';
+            app.exit(1);
+            return;
+        }
+        if (editor.busy() || editor.aiBusy() || editor.saving() || !editor.hasPhoto())
+            return;
+        if (original->isEmpty()) {
+            *original = editor.photoID();
+            editor.denoisePhoto(65);
+        } else if (*original != editor.photoID()) {
+            std::cout << "Denoise created an independent DNG.\n";
+            timer->stop();
+            window.close();
+        }
+    });
+    editor.openFile(QUrl::fromLocalFile(source));
+    timer->start(100);
 }
 } // namespace
 
@@ -154,6 +182,8 @@ int main(int argc, char **argv) {
     parser.addOption({QStringLiteral("test-mask-point"),
                       QStringLiteral("Integration test: normalized automatic mask location"),
                       QStringLiteral("x,y")});
+    parser.addOption({QStringLiteral("test-ai-denoise"),
+                      QStringLiteral("Integration test: derive a denoised RAW")});
     parser.addOption({QStringLiteral("test-filter"),
                       QStringLiteral("Integration test: built-in filter and Undo"),
                       QStringLiteral("id")});
@@ -376,6 +406,8 @@ int main(int argc, char **argv) {
                 app.quit();
             });
         }
+    } else if (parser.isSet(QStringLiteral("test-ai-denoise"))) {
+        testDenoise(app, *window, editor, parser.value(QStringLiteral("test-edit")));
     } else if (parser.isSet(QStringLiteral("test-ai-mask"))) {
         const auto pointText = parser.value(QStringLiteral("test-mask-point"));
         QPointF point{.5, .5};
@@ -533,7 +565,8 @@ int main(int argc, char **argv) {
                                 presets.importUnsupported() !=
                                     QStringList{QStringLiteral("CameraProfile")} ||
                                 editor.currentSettings() != before) {
-                                std::cerr << "XMP import or compatibility report failed\n";
+                                std::cerr << "XMP import or compatibility report failed: "
+                                          << presets.error().toStdString() << '\n';
                                 app.exit(1);
                                 return;
                             }
@@ -542,6 +575,13 @@ int main(int argc, char **argv) {
                             expected.exposure = 1.3;
                             expected.setParameter("presence.texture", 30);
                             expected.setEnabled(luma::Correction::presence, true);
+                            const auto source = presets.snapshot(presets.importedId());
+                            if (source.groups & static_cast<unsigned>(luma::SettingsGroup::blackWhite)) {
+                                expected.setParameter("bw.active", 1);
+                                expected.setParameter("bw.blue", -20);
+                            }
+                            if (source.groups & static_cast<unsigned>(luma::SettingsGroup::calibration))
+                                expected.setParameter("calibration.blueSaturation", 12);
                             if (editor.currentSettings() != expected) {
                                 std::cerr << "XMP apply changed absent parameters\n";
                                 app.exit(1);
@@ -561,10 +601,10 @@ int main(int argc, char **argv) {
                             }
                             editor.undo();
                             const auto presetCount = presets.items().size();
-                            if (!presets.applyXmpToPhoto(QUrl::fromLocalFile(xmp), editor.photoID()) ||
+                            if (!presets.previewPhotoXmp(QUrl::fromLocalFile(xmp), editor.photoID()) ||
+                                editor.currentSettings() != before || !presets.confirmPhotoXmp() ||
                                 editor.currentSettings() != expected ||
                                 presets.items().size() != presetCount ||
-                                !presets.importedId().isEmpty() ||
                                 presets.importUnsupported() !=
                                     QStringList{QStringLiteral("CameraProfile")}) {
                                 std::cerr << "Photo XMP apply failed\n";

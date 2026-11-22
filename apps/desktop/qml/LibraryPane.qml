@@ -17,6 +17,8 @@ Rectangle {
     })
     CompareDialog { id:compareDialog }
     SurveyDialog { id: surveyDialog }
+    DeliveryDialog { id: deliveryDialog }
+    PhotoMapDialog { id: photoMapDialog }
     SmartCollectionDialog { id: smartCollection }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
@@ -152,6 +154,11 @@ Rectangle {
     }
     Shortcut { sequences: [StandardKey.SelectAll]; enabled: pane.visible && !(search.activeFocus); onActivated: library.selectAll() }
     ImportDialog { id: importDialog }
+    FolderDialog {
+        id: captureFolderPicker
+        title: qsTranslate("Apertone", "Folder used by the tethered capture app")
+        onAccepted: library.startCaptureFolder(selectedFolder)
+    }
     Dialog {
         id: virtualCopyName
         modal: true
@@ -374,6 +381,28 @@ Rectangle {
                 anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: Theme.panelSpacing
                 Label { text: qsTranslate("Apertone", "LIBRARY"); font.pixelSize: 10; color: Theme.faint; font.letterSpacing: 1.5 }
                 ApertoneButton { objectName: "library.importButton"; text: qsTranslate("Apertone", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
+                ApertoneButton {
+                    objectName: "library.cardImport"
+                    text: qsTranslate("Apertone", "Import from card")
+                    Layout.fillWidth: true; enabled: !library.working
+                    onClicked: { cards.devices = library.cardSources(); cards.open() }
+                    Menu {
+                        id: cards
+                        property var devices: []
+                        MenuItem { visible: !cards.devices.length; enabled: false; text: qsTranslate("Apertone", "No mounted card with a DCIM folder") }
+                        Repeater {
+                            model: cards.devices
+                            MenuItem { required property var modelData; text: modelData.name; onTriggered: importDialog.openCard(modelData.url) }
+                        }
+                    }
+                }
+                ApertoneButton {
+                    objectName: "library.captureFolder"
+                    Layout.fillWidth: true
+                    text: library.captureFolder ? qsTranslate("Apertone", "Stop watching capture folder") : qsTranslate("Apertone", "Watch capture folder…")
+                    enabled: !!library.captureFolder || !library.working
+                    onClicked: library.captureFolder ? library.stopCaptureFolder() : captureFolderPicker.open()
+                }
                 ApertoneButton { objectName: "library.lightroomButton"; text: qsTranslate("Apertone", "Import Lightroom catalog…"); Layout.fillWidth: true; enabled: !library.working; onClicked: lightroomFile.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
                 ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
@@ -386,6 +415,14 @@ Rectangle {
                     Menu {
                         id: photoActions
                         MenuItem { objectName: "library.photoMetadata"; text: qsTranslate("Apertone", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
+                        MenuItem { objectName: "library.preparePreviews"; text: qsTranslate("Apertone", "Prepare offline previews"); enabled: library.selectedCount > 0 && !library.working && !library.selecting; onTriggered: library.prepareOfflinePreviews() }
+                        MenuItem { objectName: "library.delivery"; text: qsTranslate("Apertone", "Deliver selected photos…"); enabled: library.selectedCount > 0 && !library.working && !library.selecting && !editor.saving; onTriggered: deliveryDialog.open() }
+                        MenuItem { objectName: "library.map"; text: qsTranslate("Apertone", "Show photo locations…"); enabled: library.selectedCount > 0 && !library.working && !library.selecting; onTriggered: photoMapDialog.open() }
+                        MenuItem { objectName: "library.pinReference"; text: qsTranslate("Apertone", "Pin Develop reference"); enabled: library.selectedCount === 1 && !library.working && !editor.referencePhoto.busy; onTriggered: editor.pinReference(library.selectedAssetIDs()[0]) }
+                        MenuItem { objectName: "library.createStack"; text: qsTranslate("Apertone", "Stack selected photos"); enabled: library.selectedCount >= 2 && !library.working && !library.selecting; onTriggered: library.stackSelection() }
+                        MenuItem { text: qsTranslate("Apertone", "Show photos in stack"); enabled: !!library.selectedStackID && !library.viewingStack && !library.working; onTriggered: library.viewStack(library.selectedStackID) }
+                        MenuItem { text: qsTranslate("Apertone", "Set stack cover"); enabled: !!library.selectedStackID && !library.working; onTriggered: library.setSelectedStackCover() }
+                        MenuItem { text: qsTranslate("Apertone", "Ungroup stack"); enabled: !!library.selectedStackID && !library.working; onTriggered: library.unstackSelection() }
                         MenuItem {
                             objectName: "library.createVirtualCopy"
                             text: qsTranslate("Apertone", "Create virtual copy…")
@@ -520,9 +557,10 @@ Rectangle {
                 ApertoneButton { visible: library.cullingBusy; text: qsTranslate("Apertone", "Cancel"); onClicked: library.cancelCulling() }
             }
             RowLayout {
-                visible: library.importing; Layout.fillWidth: true
+                visible: library.importing || library.preparingPreviews; Layout.fillWidth: true
                 ProgressBar { value: library.progress; indeterminate: library.progress === 0; Layout.fillWidth: true }
-                ApertoneButton { objectName: "library.cancelImport"; text: qsTranslate("Apertone", "Cancel import"); onClicked: library.cancelImport() }
+                ApertoneButton { objectName: "library.cancelImport"; visible: library.importing; text: qsTranslate("Apertone", "Cancel import"); onClicked: library.cancelImport() }
+                ApertoneButton { visible: library.preparingPreviews; text: qsTranslate("Apertone", "Cancel"); onClicked: library.cancelOfflinePreviews() }
             }
             Label { objectName: "library.error"; visible: library.error.length > 0; text: qsTranslate("Apertone", library.error); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             RowLayout {
@@ -530,6 +568,8 @@ Rectangle {
                 ApertoneButton { objectName: "library.importReportButton"; visible: library.importReport.length > 0; text: qsTranslate("Apertone", "Import errors"); onClicked: reportDialog.open() }
                 ApertoneButton { objectName: "library.duplicateReviewButton"; visible: library.duplicateReview.length > 0; text: qsTranslate("Apertone", "Duplicates") + " · " + library.duplicateReview.length; onClicked: duplicateReviewDialog.open() }
                 Label { text: library.loading ? qsTranslate("Apertone", "Loading…") : library.count + qsTranslate("Apertone", " photos · selected ") + library.selectedCount; color: Theme.muted; Layout.fillWidth: true }
+                ApertoneButton { visible: library.viewingStack; text: qsTranslate("Apertone", "Exit stack"); enabled: !library.working; onClicked: library.viewStack("") }
+                ApertoneCheckBox { visible: !library.viewingStack; checked: library.collapseStacks; enabled: !library.working; text: qsTranslate("Apertone", "Collapse stacks"); onToggled: library.collapseStacks = checked }
                 ApertoneButton { objectName: "library.selectAll"; text: qsTranslate("Apertone", "Select all"); enabled: library.count > 0; onClicked: library.selectAll() }
                 ApertoneButton { objectName: "library.clearSelection"; text: qsTranslate("Apertone", "Clear selection"); enabled: library.selectedCount > 0; onClicked: library.clearSelection() }
             }

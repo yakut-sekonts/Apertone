@@ -34,6 +34,48 @@ ApplicationWindow {
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
     CompareDialog { id: developCompareDialog }
+    Window {
+        id: reviewDisplay
+        objectName: "develop.reviewDisplay"
+        title: qsTranslate("Apertone", "Apertone review")
+        width: 900; height: 650; minimumWidth: 420; minimumHeight: 300
+        color: Theme.canvas
+        property real centerX: 0.5
+        property real centerY: 0.5
+        property bool showReference: false
+        function openReview(showPin) {
+            showReference = showPin
+            if (!visible && Qt.application.screens.length > 1) {
+                const other = Qt.application.screens.find(item => item !== root.screen)
+                if (other) { screen = other; x = other.virtualX + 40; y = other.virtualY + 40 }
+            }
+            show()
+            raise()
+        }
+        Shortcut { sequence: "Escape"; onActivated: reviewDisplay.close() }
+        ColumnLayout {
+            anchors.fill: parent; anchors.margins: 10
+            RowLayout {
+                Layout.fillWidth: true
+                ApertoneComboBox {
+                    model: [qsTranslate("Apertone", "Current photo"), qsTranslate("Apertone", "Pinned reference")]
+                    currentIndex: reviewDisplay.showReference ? 1 : 0
+                    onActivated: reviewDisplay.showReference = currentIndex === 1
+                }
+                ApertoneButton { text: qsTranslate("Apertone", "Fit"); onClicked: { reviewZoom.value = 1; reviewDisplay.centerX = 0.5; reviewDisplay.centerY = 0.5 } }
+                ApertoneSlider { id: reviewZoom; Layout.fillWidth: true; from: 1; to: 4; value: 1; Accessible.name: qsTranslate("Apertone", "Zoom") }
+                ApertoneButton { text: qsTranslate("Apertone", "Close"); onClicked: reviewDisplay.close() }
+            }
+            Label { visible: reviewDisplay.showReference && (editor.referencePhoto.busy || !!editor.referencePhoto.error); text: editor.referencePhoto.busy ? qsTranslate("Apertone", "Rendering reference…") : editor.referencePhoto.error; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            ComparePane {
+                Layout.fillWidth: true; Layout.fillHeight: true
+                title: reviewDisplay.showReference ? (editor.referencePhoto.name || qsTranslate("Apertone", "Pin a reference in Develop or Library")) : editor.filename
+                source: !reviewDisplay.visible ? "" : reviewDisplay.showReference ? editor.referencePhoto.source : editor.hasPhoto && !editor.busy ? editor.previewUrl : ""
+                zoom: reviewZoom.value; centerX: reviewDisplay.centerX; centerY: reviewDisplay.centerY
+                onPanned: function(x, y) { reviewDisplay.centerX = x; reviewDisplay.centerY = y }
+            }
+        }
+    }
     function ensureActiveFocusVisible(scroll) {
         const item = root.activeFocusItem
         const view = scroll ? scroll.contentItem : null
@@ -318,8 +360,20 @@ ApplicationWindow {
                             onClicked: editor.oneToOne = true
                         }
                     }
+                    RowLayout {
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                        ComparePane {
+                            id: referencePane
+                            objectName: "develop.referencePane"
+                            visible: !!editor.referencePhoto.source
+                            Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
+                            title: qsTranslate("Apertone", "Reference") + " · " + editor.referencePhoto.name
+                            source: visible ? editor.referencePhoto.source : ""
+                            zoom: 1; centerX: 0.5; centerY: 0.5
+                        }
                     Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
+                        Layout.preferredWidth: 1
                         Layout.minimumWidth: 84; Layout.minimumHeight: 84
                         PhotoViewport {
                             id: previewViewport
@@ -449,6 +503,7 @@ ApplicationWindow {
                             ApertoneButton { objectName: "editor.cancelLoad"; text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelLoad(); Layout.alignment: Qt.AlignHCenter }
                         }
                     }
+                    }
                     RowLayout {
                         Layout.alignment: Qt.AlignHCenter; spacing: Theme.panelSpacing
                         ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
@@ -459,7 +514,15 @@ ApplicationWindow {
                             enabled: editor.hasPhoto && !editor.busy && !editor.saving
                             onClicked: { editor.prepareBeforeAfter(); developCompareDialog.open() }
                         }
+                        ApertoneButton {
+                            objectName: "develop.referenceButton"
+                            text: editor.referencePhoto.source ? qsTranslate("Apertone", "Clear reference") : qsTranslate("Apertone", "Pin reference")
+                            enabled: !!editor.referencePhoto.source || editor.hasPhoto && !editor.busy && !editor.referencePhoto.busy
+                            onClicked: editor.referencePhoto.source ? editor.clearReference() : editor.pinReference(editor.photoID)
+                        }
+                        ApertoneButton { objectName: "develop.secondDisplay"; text: qsTranslate("Apertone", "Review window"); enabled: editor.hasPhoto; onClicked: reviewDisplay.openReview(false) }
                     }
+                    Label { visible: editor.referencePhoto.busy || !!editor.referencePhoto.error; text: editor.referencePhoto.busy ? qsTranslate("Apertone", "Rendering reference…") : editor.referencePhoto.error; wrapMode: Text.Wrap; Layout.fillWidth: true }
                     Label {
                         visible: editor.whiteBalancePicking
                         text: qsTranslate("Apertone", "Click a neutral gray area. Escape cancels the eyedropper.")

@@ -20,11 +20,12 @@ constexpr std::size_t maxPresets = 512;
 const QStringList &groupNames() {
     static const QStringList names{"Light",    "Color",       "Curve",         "HSL",
                                    "Detail",   "Crop",        "Optics",        "Geometry",
-                                   "Presence", "Point Color", "Color Grading", "Effects"};
+                                   "Presence", "Point Color", "Color Grading", "Effects",
+                                   "Black and White", "Defringe", "Calibration"};
     return names;
 }
 QStringList parameters(int group) {
-    if (group >= 8 && group < 12) {
+    if (group >= 8 && group < groupNames().size()) {
         QStringList names;
         for (const auto &p : creativeParameters)
             if (p.group == (1U << group))
@@ -89,14 +90,14 @@ int header(const QJsonObject &root, const QString &format) {
     const auto version = number(root.value("schemaVersion"));
     require(version == 1 || version == 2 || version == 3 || version == 4 || version == 5 ||
                 version == 6 || version == 7 || version == 8 || version == 9 || version == 10 ||
-                version == 11,
+                version == 11 || version == 12,
             "Unsupported preset schema version.");
     return static_cast<int>(version);
 }
 QJsonObject toJson(const DevelopPreset &preset) {
     preset.validate();
     QJsonObject settings;
-    for (int group = 0; group < 12; ++group) {
+    for (int group = 0; group < groupNames().size(); ++group) {
         const auto bit = std::uint32_t{1} << group;
         if (!(preset.groups & bit))
             continue;
@@ -123,7 +124,7 @@ QJsonObject toJson(const DevelopPreset &preset) {
         settings.insert(groupNames()[group], values);
     }
     QJsonObject result{{"format", "luma.develop-preset"},
-                       {"schemaVersion", preset.folderParents.isEmpty()
+                       {"schemaVersion", (preset.groups & ~4095U) ? 12 : preset.folderParents.isEmpty()
                                              ? (preset.parameters.empty() ? 8 : 9)
                                              : (preset.parameters.empty() ? 10 : 11)},
                        {"name", preset.name},
@@ -142,15 +143,15 @@ QJsonObject toJson(const DevelopPreset &preset) {
 DevelopPreset fromJson(const QJsonObject &root) {
     const auto version = header(root, "luma.develop-preset");
     QStringList fields{"format", "schemaVersion", "name", "folder", "settings"};
-    if (version == 7 || version == 9 || version == 11)
+    if (version == 7 || version == 9 || version == 11 || (version == 12 && root.contains("parameters")))
         fields.append("parameters");
-    if (version == 10 || version == 11)
+    if (version == 10 || version == 11 || (version == 12 && root.contains("folderParents")))
         fields.append("folderParents");
     keys(root, fields);
     require(root.value("name").isString() && root.value("folder").isString(),
             "Preset name and folder must be strings.");
     DevelopPreset preset{root.value("name").toString(), root.value("folder").toString(), {}, 0};
-    if (version == 10 || version == 11) {
+    if (fields.contains("folderParents")) {
         require(root.value("folderParents").isArray(), "Preset folder parents must be an array.");
         const auto parents = root.value("folderParents").toArray();
         require(!parents.isEmpty() && parents.size() <= 16, "Invalid preset folder depth.");
@@ -164,7 +165,7 @@ DevelopPreset fromJson(const QJsonObject &root) {
         const auto index = groupNames().indexOf(entry.key());
         require(index >= 0 && (version >= 2 || index < 4) && (version >= 4 || index < 5) &&
                     (version >= 5 || index < 6) && (version >= 6 || index < 7) &&
-                    (version >= 8 || index < 8),
+                    (version >= 8 || index < 8) && (version >= 12 || index < 12),
                 "Unsupported preset settings group.");
         const auto bit = std::uint32_t{1} << index;
         preset.groups |= bit;
@@ -191,7 +192,7 @@ DevelopPreset fromJson(const QJsonObject &root) {
         preset.settings.setParameters(parametersToApply);
         const auto flags = number(values.value("enabledCorrections"));
         const auto mask = version < 3 && index == 4 ? 2048U : settingsCorrections(bit);
-        require(flags >= 0 && flags <= 4194303 && std::floor(flags) == flags &&
+        require(flags >= 0 && flags <= mask && std::floor(flags) == flags &&
                     !(static_cast<std::uint32_t>(flags) & ~mask),
                 "Invalid preset correction flags.");
         const auto selectedFlags = static_cast<std::uint32_t>(flags);
@@ -222,7 +223,7 @@ DevelopPreset fromJson(const QJsonObject &root) {
             }
         }
     }
-    if (version == 7 || version == 9 || version == 11) {
+    if (fields.contains("parameters")) {
         require(root.value("parameters").isArray(), "Sparse preset parameters must be an array.");
         const auto selection = root.value("parameters").toArray();
         require(!selection.isEmpty() && selection.size() <= 128,

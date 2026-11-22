@@ -115,7 +115,9 @@ std::shared_ptr<ai::ISegmentationProvider> makeVisionSegmentation() {
     return windows::makeOnnxSegmentation();
 }
 std::shared_ptr<ai::ISegmentationProvider> makeCoreMLSky(const std::filesystem::path &) { return {}; }
-std::shared_ptr<ai::IDenoiseProvider> makeCoreMLDenoise(const std::filesystem::path &) { return {}; }
+std::shared_ptr<ai::IDenoiseProvider> makeCoreMLDenoise(const std::filesystem::path &path) {
+    return windows::makeOnnxDenoise(path);
+}
 namespace {
 class PreviewCulling final : public ai::ICullingProvider {
   public:

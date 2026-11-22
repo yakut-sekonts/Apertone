@@ -1,5 +1,6 @@
 #include "platform/macos/ImageExporter.h"
 #include "platform/windows/UltraHdr.h"
+#include "platform/windows/MetadataPacket.h"
 #include "platform/windows/TiffWriter.h"
 #include "core/export/DngWriter.h"
 #include "core/export/LinearOutput.h"
@@ -146,18 +147,21 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
 void writeImage(const DecodedRaw &decoded, EditDocument edits,
                 const std::filesystem::path &destination, ExportOptions options,
                 CancellationToken stop, const std::function<void(double)> &progress,
-                const std::filesystem::path &, const ExportInstallGuard &guard,
-                const std::optional<MetadataOverlay> &) {
+                const std::filesystem::path &source, const ExportInstallGuard &guard,
+                const std::optional<MetadataOverlay> &overlay) {
     options.validate();
     edits.validate();
     checkCancellation(stop);
-    if (options.format == ExportFormat::heicHDR || options.metadata != MetadataPolicy::none)
-        throw std::runtime_error("Adaptive HDR HEIC and source metadata export are unavailable on Windows.");
+    if (options.format == ExportFormat::heicHDR)
+        throw std::runtime_error("Adaptive HDR HEIC is unavailable on Windows.");
+    if (options.format == ExportFormat::jpegHDR && options.metadata != MetadataPolicy::none)
+        throw std::runtime_error("Source metadata is unavailable for Ultra HDR JPEG export.");
     const auto target = std::filesystem::absolute(destination);
     if (!options.overwrite && std::filesystem::exists(target))
         throw std::runtime_error("Destination already exists.");
     StagingFile temporary(target.parent_path(), ".luma-export-");
     const auto &staging = temporary.path();
+    const auto packet = windows::exportXmp(source, decoded.metadata, options.metadata, overlay);
     const auto space = colorSpace(options.colorSpace);
     auto image = renderLinearOutput(decoded, edits, stop, progress ? [&](double value) {
         progress(0.75 * value);
@@ -180,11 +184,18 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                     dest[i + 1] = value.green();
                     dest[i + 2] = value.blue();
                 }
-            }, staging, space.description().toStdString(), {}, stop);
+            }, staging, space.description().toStdString(),
+            {reinterpret_cast<const std::uint8_t *>(packet.constData()),
+             static_cast<std::size_t>(packet.size())}, stop);
     } else if (options.format == ExportFormat::jpegHDR) {
         windows::writeUltraHdrJpeg(image, staging, options.quality, stop);
     } else {
-        encodeRaster(image, space, options, QString::fromStdWString(staging.native()), stop);
+        std::optional<StagingFile> raster;
+        if (!packet.isEmpty() && (options.format == ExportFormat::jpeg || options.format == ExportFormat::png))
+            raster.emplace(staging.parent_path(), ".luma-export-");
+        const auto &encoded = raster ? raster->path() : staging;
+        encodeRaster(image, space, options, QString::fromStdWString(encoded.native()), stop);
+        windows::embedXmp(encoded, staging, options.format, packet, stop);
     }
     checkCancellation(stop);
     if (files::syncFile(staging) != 0)

@@ -3,6 +3,12 @@ name: Apertone 2.5 Windows distribution
 on:
   push:
     branches: [codex/windows-lightroom]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the Windows archive after release qualification
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -67,6 +73,7 @@ jobs:
           compression-level: 0
 
   add-to-release:
+    if: github.repository == 'yakut-sekonts/Apertone' && github.event_name == 'workflow_dispatch' && inputs.publish
     runs-on: ubuntu-24.04
     needs: build-verify
     timeout-minutes: 15
@@ -108,9 +115,9 @@ jobs:
 
           Apertone is available for Windows 10 and 11 x64. Extract the [Windows ZIP](https://github.com/$repo/releases/download/$tag/$asset) to a folder such as \`E:\Apertone\` and launch \`Apertone.exe\`. Keep the files in the archive together.
 
-          Includes Lightroom Classic catalog migration, virtual copies, dynamic Smart Collections, offline editing and automatic masks for subject, background, a clicked foreground object, sky and people. Exports include Ultra HDR JPEG and 8-bit or 16-bit ZIP TIFF.
+          Includes Lightroom Classic catalog migration, virtual copies, dynamic Smart Collections, manual stacks, offline preview preparation, a pinned reference and a review window. Local masks cover subject, background, a clicked object, sky, people, facial regions and relative depth. Windows also adds RAW denoise, metadata policies, PDF delivery, an offline map and an HTML gallery and slideshow.
 
-          The local mask models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 25. Apertone saves a pre-migration backup.
+          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 26. Apertone saves a pre-migration backup.
 
           Windows source: [$SOURCE_COMMIT](https://github.com/$repo/commit/$SOURCE_COMMIT)
 

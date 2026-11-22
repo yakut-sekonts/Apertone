@@ -24,7 +24,8 @@ ColumnLayout {
             Repeater {
                 model: [{key: "clone", title: qsTranslate("Apertone", "Clone")},
                         {key: "heal", title: qsTranslate("Apertone", "Heal")},
-                        {key: "remove", title: qsTranslate("Apertone", "Remove")}]
+                        {key: "remove", title: qsTranslate("Apertone", "Remove")},
+                        {key: "red-eye", title: qsTranslate("Apertone", "Red eye")}]
                 ApertoneButton {
                     required property var modelData
                     objectName: "retouch.mode." + modelData.key
@@ -39,6 +40,7 @@ ColumnLayout {
         Label {
             text: editor.retouchMode === "remove"
                 ? qsTranslate("Apertone", "Paint over a small object to find a replacement area.")
+                : editor.retouchMode === "red-eye" ? qsTranslate("Apertone", "Set the size to cover the pupil and click its center.")
                 : qsTranslate("Apertone", "Option-click a source area, then paint over the target.")
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
@@ -92,7 +94,7 @@ ColumnLayout {
             onToggled: editor.setRetouchEnabled(checked)
         }
         Label {
-            visible: editor.retouchState.selected.length > 0
+            visible: editor.retouchState.selected.length > 0 && editor.retouchMode !== "red-eye"
             text: qsTranslate("Apertone", "Option-click to reposition the selected source.")
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true

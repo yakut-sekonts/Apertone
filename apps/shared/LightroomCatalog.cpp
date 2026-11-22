@@ -32,6 +32,37 @@ bool hasColumn(sqlite3 *db, const char *table, const char *name) {
     return sqlite3_table_column_metadata(db, nullptr, table, name, nullptr, nullptr, nullptr,
                                          nullptr, nullptr) == SQLITE_OK;
 }
+struct NamedParent {
+    std::int64_t parent = 0;
+    std::string name;
+};
+using NameTree = std::map<std::int64_t, NamedParent>;
+
+NameTree readNameTree(sqlite3 *db, const char *query, CancellationToken stop) {
+    NameTree tree;
+    Statement node(db, query);
+    while (node.row()) {
+        checkCancellation(stop);
+        if (tree.size() >= 200'000)
+            throw std::runtime_error("Lightroom name hierarchy exceeds the migration budget.");
+        tree.emplace(node.integer(0), NamedParent{node.integer(2), node.string(1)});
+    }
+    return tree;
+}
+std::string qualifyName(std::string leaf, std::int64_t parent, const NameTree &tree,
+                        std::string_view separator, std::size_t limit) {
+    std::set<std::int64_t> visited;
+    while (parent > 0 && visited.size() < 16 && visited.insert(parent).second) {
+        const auto entry = tree.find(parent);
+        if (entry == tree.end())
+            break;
+        const auto name = QString::fromStdString(entry->second.name).simplified().toStdString();
+        if (!name.empty() && name.size() + separator.size() + leaf.size() <= limit)
+            leaf = name + std::string(separator) + leaf;
+        parent = entry->second.parent;
+    }
+    return leaf;
+}
 
 std::string sourceIdentity(sqlite3 *db, const std::filesystem::path &path) {
     auto identity = QByteArray("path:") + QByteArray::fromStdString(pathUtf8(path));
@@ -273,18 +304,51 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
     if (prepare) {
         requireTable(db, "AgLibraryKeyword");
         requireTable(db, "AgLibraryKeywordImage");
-        Statement tags(db, "SELECT i.id_global,k.name FROM AgLibraryKeywordImage m "
+        const bool keywordParents = hasColumn(db, "AgLibraryKeyword", "parent");
+        const auto keywordTree = keywordParents
+            ? readNameTree(db, "SELECT id_local,name,parent FROM AgLibraryKeyword "
+                               "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local", stop)
+            : NameTree{};
+        const auto keywordQuery = std::string("SELECT i.id_global,k.name,k.id_local,") +
+                           (keywordParents ? "k.parent" : "NULL") + " FROM AgLibraryKeywordImage m "
                            "JOIN AgLibraryKeyword k ON k.id_local=m.tag "
                            "JOIN Adobe_images i ON i.id_local=m.image "
-                           "WHERE length(CAST(k.name AS BLOB)) BETWEEN 1 AND 512 ORDER BY m.id_local");
+                           "WHERE length(CAST(k.name AS BLOB)) BETWEEN 1 AND 512 ORDER BY m.id_local";
+        Statement tags(db, keywordQuery.c_str());
+        std::map<std::int64_t, std::vector<std::string>> synonyms;
+        if (hasTable(db, "AgLibraryKeywordSynonym") && hasColumn(db, "AgLibraryKeywordSynonym", "name")) {
+            const char *owner = hasColumn(db, "AgLibraryKeywordSynonym", "keyword") ? "keyword"
+                : hasColumn(db, "AgLibraryKeywordSynonym", "tag") ? "tag" : nullptr;
+            if (owner) {
+                Statement aliases(db, (std::string("SELECT ") + owner + ",name FROM AgLibraryKeywordSynonym "
+                                      "WHERE length(CAST(name AS BLOB)) BETWEEN 1 AND 512").c_str());
+                std::size_t aliasCount = 0;
+                while (aliases.row()) {
+                    checkCancellation(stop);
+                    if (++aliasCount > 200'000)
+                        throw std::runtime_error("Lightroom keyword aliases exceed the migration budget.");
+                    auto &entries = synonyms[aliases.integer(0)];
+                    if (entries.size() < 64)
+                        entries.push_back(metadataText(aliases.string(1)));
+                }
+            }
+        }
         while (tags.row()) {
             checkCancellation(stop);
             const auto keyword = metadataText(tags.string(1));
             if (keyword.size() > 512 || keyword.find_first_not_of(' ') == keyword.npos)
                 continue;
             auto &values = descriptions[tags.string(0)].keywords;
-            if (values.size() < 256 && std::ranges::find(values, keyword) == values.end())
-                values.push_back(keyword);
+            const auto append = [&](const std::string &text) {
+                if (!text.empty() && text.size() <= 512 && values.size() < 256 &&
+                    std::ranges::find(values, text) == values.end())
+                    values.push_back(text);
+            };
+            append(keyword);
+            append(qualifyName(keyword, tags.integer(3), keywordTree, "|", 512));
+            if (const auto alias = synonyms.find(tags.integer(2)); alias != synonyms.end())
+                for (const auto &value : alias->second)
+                    append(value);
         }
     }
 
@@ -408,7 +472,14 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         if (stamp(path) != original.stamp)
             throw std::runtime_error("Original changed while planning Lightroom import.");
 
-    Statement collections(db, "SELECT id_local,name,creationId FROM AgLibraryCollection ORDER BY id_local");
+    const bool collectionParents = hasColumn(db, "AgLibraryCollection", "parent");
+    const auto collectionTree = collectionParents
+        ? readNameTree(db, "SELECT id_local,name,parent FROM AgLibraryCollection "
+                           "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local", stop)
+        : NameTree{};
+    Statement collections(db, collectionParents
+        ? "SELECT id_local,name,creationId,parent FROM AgLibraryCollection ORDER BY id_local"
+        : "SELECT id_local,name,creationId,NULL FROM AgLibraryCollection ORDER BY id_local");
     const bool hasRules = hasTable(db, "AgLibraryCollectionContent");
     while (collections.row()) {
         checkCancellation(stop);
@@ -425,7 +496,7 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         auto name = displayName(collections.string(1), "Collection");
         while (name.toUtf8().size() > 96)
             name.chop(1);
-        collection.name = name.toStdString();
+        collection.name = qualifyName(name.toStdString(), collections.integer(3), collectionTree, " › ", 96);
         collection.smart = smart;
         if (smart) {
             if (hasRules) {

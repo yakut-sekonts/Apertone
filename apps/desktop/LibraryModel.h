@@ -17,6 +17,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
     Q_PROPERTY(QString selectedCopyName READ selectedCopyName NOTIFY stateChanged)
+    Q_PROPERTY(QString selectedStackID READ selectedStackID NOTIFY stateChanged)
+    Q_PROPERTY(bool viewingStack READ viewingStack NOTIFY stateChanged)
+    Q_PROPERTY(bool collapseStacks READ collapseStacks WRITE setCollapseStacks NOTIFY stateChanged)
     Q_PROPERTY(bool selecting READ selecting NOTIFY stateChanged)
     Q_PROPERTY(bool working READ working NOTIFY stateChanged)
     Q_PROPERTY(bool importing READ importing NOTIFY stateChanged)
@@ -24,6 +27,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(double progress READ progress NOTIFY stateChanged)
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
     Q_PROPERTY(QString maintenanceStatus READ maintenanceStatus NOTIFY stateChanged)
+    Q_PROPERTY(bool preparingPreviews READ preparingPreviews NOTIFY stateChanged)
+    Q_PROPERTY(bool preparingDelivery READ preparingDelivery NOTIFY stateChanged)
+    Q_PROPERTY(QString captureFolder READ captureFolder NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap lightroomReport READ lightroomReport NOTIFY stateChanged)
@@ -74,7 +80,9 @@ class LibraryModel final : public QAbstractListModel {
         BurstID,
         BurstSize,
         BurstBest,
-        CopyName
+        CopyName,
+        StackSize,
+        StackCover
     };
     static constexpr int pageSize = 128, maximumPages = 16;
     explicit LibraryModel(std::filesystem::path catalog, QObject *parent = nullptr);
@@ -94,6 +102,10 @@ class LibraryModel final : public QAbstractListModel {
     bool selecting() const {
         return selecting_;
     }
+    bool preparingPreviews() const {
+        return preparingPreviews_;
+    }
+    bool preparingDelivery() const { return preparingDelivery_; }
     void setExternalBusy(bool busy);
     QVariantMap descriptiveMetadata() const {
         return descriptiveMetadata_;
@@ -117,6 +129,17 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void writeMetadataSidecar();
     Q_INVOKABLE void syncSidecars();
     Q_INVOKABLE void backupNow();
+    Q_INVOKABLE void prepareOfflinePreviews();
+    Q_INVOKABLE void cancelOfflinePreviews();
+    Q_INVOKABLE void deliver(int format, const QString &title, const QUrl &destination,
+                             const QUrl &proof);
+    Q_INVOKABLE void cancelDelivery();
+    Q_INVOKABLE void loadPhotoLocations();
+    Q_INVOKABLE void openMapPhoto(const QString &id);
+    Q_INVOKABLE QVariantList cardSources() const;
+    Q_INVOKABLE void startCaptureFolder(const QUrl &folder);
+    Q_INVOKABLE void stopCaptureFolder();
+    QString captureFolder() const { return captureFolder_; }
     Q_INVOKABLE void restoreCatalog(const QUrl &backup, const QUrl &destination);
     Q_INVOKABLE void openCatalog(const QUrl &file, bool create = false);
     Q_INVOKABLE void locateOriginal(const QUrl &file);
@@ -130,6 +153,14 @@ class LibraryModel final : public QAbstractListModel {
     }
     Q_INVOKABLE bool removeFromSelection(const QString &id);
     QString selectedCopyName() const;
+    QString selectedStackID() const;
+    bool viewingStack() const { return !filter_.stackID.empty(); }
+    bool collapseStacks() const { return filter_.collapseStacks; }
+    void setCollapseStacks(bool collapse);
+    Q_INVOKABLE void viewStack(const QString &id);
+    Q_INVOKABLE void stackSelection();
+    Q_INVOKABLE void unstackSelection();
+    Q_INVOKABLE void setSelectedStackCover();
     Q_INVOKABLE void createVirtualCopy(const QString &id, const QString &name);
     Q_INVOKABLE void renameVirtualCopy(const QString &id, const QString &name);
     Q_INVOKABLE void deleteVirtualCopy(const QString &id);
@@ -282,6 +313,8 @@ class LibraryModel final : public QAbstractListModel {
     void openRequested(const QUrl &url);
     void closeReady();
     void metadataChanged();
+    void deliveryReady(const QUrl &url);
+    void photoLocationsReady(const QVariantList &locations, const QString &error);
     void smartCollectionReady(const QString &id, const QString &name, const QString &revision,
                               const QVariantMap &rule);
 
@@ -324,6 +357,13 @@ class LibraryModel final : public QAbstractListModel {
     int count_ = 0, anchor_ = -1;
     std::uint64_t revision_ = 0, selectionRevision_ = 0, thumbnailGeneration_ = 0;
     bool externalBusy_ = false;
+    bool preparingPreviews_ = false;
+    bool preparingDelivery_ = false;
+    QString captureFolder_;
+    struct CaptureFile { qint64 size = -1, modified = 0; bool considered = false; };
+    std::map<QString, CaptureFile> captureFiles_;
+    QTimer captureTimer_;
+    void scanCaptureFolder(bool baseline);
     bool importing_ = false, writing_ = true, closing_ = false, loading_ = false,
          selecting_ = false;
     double progress_ = 0;

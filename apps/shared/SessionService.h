@@ -43,6 +43,7 @@ class SessionService {
     void verify() const;
     std::shared_ptr<const DecodedImage> fullResolution(const AssetRecord &asset,
                                                        CancellationToken stop = {}) const;
+    void prepareOfflinePreview(const AssetRecord &asset, CancellationToken stop = {}) const;
     void setCacheBudget(std::size_t bytes);
     void clearCache();
     CacheStatistics previewCacheStatistics() const {

@@ -4,6 +4,10 @@
 #include <cstdint>
 namespace luma {
 namespace {
+constexpr std::size_t monochromeMode = 34;
+constexpr std::size_t shadowTint = 46;
+static_assert(creativeParameters[monochromeMode].name == "bw.active");
+static_assert(creativeParameters[shadowTint].name == "calibration.shadowTint");
 double smooth(double x) {
     x = std::clamp(x, 0.0, 1.0);
     return x * x * (3 - 2 * x);
@@ -29,10 +33,46 @@ double grain(double x, double y) {
     return std::lerp(std::lerp(noise(ix, iy), noise(ix + 1, iy), fx),
                      std::lerp(noise(ix, iy + 1), noise(ix + 1, iy + 1), fx), fy);
 }
+bool calibrationActive(const EditDocument &edits) {
+    const auto &values = edits.creative.values;
+    return edits.enabled(Correction::calibration) &&
+        std::any_of(values.begin() + shadowTint, values.end(), [](double value) { return value != 0; });
+}
+std::array<float, 3> applyCalibration(std::array<float, 3> rgb, const CreativeSettings &settings) {
+    const auto &v = settings.values;
+    const double luma = .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2];
+    const double minimum = *std::ranges::min_element(rgb);
+    const std::array<double, 3> primaries{rgb[0] - minimum, rgb[1] - minimum, rgb[2] - minimum};
+    const double total = primaries[0] + primaries[1] + primaries[2];
+    if (total > 1e-8) {
+        const auto original = encodedHSL(rgb);
+        double hue = 0, saturation = 0;
+        for (std::size_t c = 0; c < 3; ++c) {
+            hue += primaries[c] * v[shadowTint + 1 + c * 2];
+            saturation += primaries[c] * v[shadowTint + 2 + c * 2];
+        }
+        auto adjusted = original;
+        adjusted.hue = std::fmod(original.hue + .36 * hue / total + 360, 360);
+        adjusted.saturation = std::clamp(original.saturation * (1 + saturation / (100 * total)), 0.0, 1.0);
+        const auto before = fromHSL(original), after = fromHSL(adjusted);
+        for (std::size_t c = 0; c < 3; ++c)
+            rgb[c] += static_cast<float>(decodeSRGB(after[c]) - decodeSRGB(before[c]));
+        const auto delta = luma - (.2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]);
+        for (auto &channel : rgb)
+            channel += static_cast<float>(delta);
+    }
+    const auto shadow = static_cast<float>(std::max(0.0, luma) * (1 - smooth(luma / .35)) * v[shadowTint] / 100);
+    rgb[0] += .38F * shadow;
+    rgb[1] -= .152F * shadow;
+    rgb[2] += .38F * shadow;
+    return rgb;
+}
 } // namespace
 bool creativeColorActive(const EditDocument &e) {
     const auto &v = e.creative.values;
     return (e.enabled(Correction::pointColor) && (v[9] != 0 || v[10] != 0 || v[11] != 0)) ||
+           calibrationActive(e) ||
+           (e.enabled(Correction::blackWhite) && v[monochromeMode] > .5) ||
            (e.enabled(Correction::grading) &&
             (v[13] != 0 || v[14] != 0 || v[16] != 0 || v[17] != 0 || v[19] != 0 || v[20] != 0 ||
              v[22] != 0 || v[23] != 0));
@@ -50,6 +90,8 @@ double pointColorWeight(const std::array<float, 3> &rgb, const CreativeSettings 
 }
 std::array<float, 3> applyCreativeColor(std::array<float, 3> rgb, const EditDocument &e) {
     const auto &v = e.creative.values;
+    if (calibrationActive(e))
+        rgb = applyCalibration(rgb, e.creative);
     if (e.enabled(Correction::pointColor) && (v[9] != 0 || v[10] != 0 || v[11] != 0)) {
         const double w = pointColorWeight(rgb, e.creative);
         if (w > 0) {
@@ -64,7 +106,20 @@ std::array<float, 3> applyCreativeColor(std::array<float, 3> rgb, const EditDocu
                 rgb[c] += static_cast<float>(decodeSRGB(b[c]) - decodeSRGB(a[c]));
         }
     }
-    if (e.enabled(Correction::grading)) {
+    if (e.enabled(Correction::blackWhite) && v[monochromeMode] > .5) {
+        const auto hsl = encodedHSL(rgb);
+        const auto weights = hueWeights(hsl.hue);
+        double adjustment = 0;
+        for (std::size_t i = 0; i < weights.size(); ++i)
+            adjustment += weights[i] * v[monochromeMode + 1 + i];
+        const double luminance = .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2];
+        const auto mono = static_cast<float>(luminance * std::exp2(adjustment / 50 *
+                                                                 smooth(hsl.saturation / .2)));
+        rgb = {mono, mono, mono};
+    }
+    if (e.enabled(Correction::grading) &&
+        (v[13] != 0 || v[14] != 0 || v[16] != 0 || v[17] != 0 || v[19] != 0 || v[20] != 0 ||
+         v[22] != 0 || v[23] != 0)) {
         const double luminance = std::max(0.0, .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2]);
         const double tone = std::clamp(encodeSRGB(luminance) - v[25] / 250, 0.0, 1.0);
         const double exponent = 4 - v[24] * .035;
@@ -90,6 +145,18 @@ std::array<float, 3> applyCreativeColor(std::array<float, 3> rgb, const EditDocu
             rgb[c] = static_cast<float>((rgb[c] + envelope * tint[c]) * std::exp2(exposure));
     }
     return rgb;
+}
+DefringePass::DefringePass(const EditDocument &edits, int width, int height, double scale)
+    : amount_(edits.enabled(Correction::defringe) ? edits.creative.parameter("defringe.amount") / 100 : 0),
+      hue_(edits.creative.parameter("defringe.hue")),
+      width_(edits.creative.parameter("defringe.width")),
+      imageWidth_(width), imageHeight_(height), reach_(std::clamp(int(std::lround(scale * 3)), 1, 3)) {}
+
+double DefringePass::strength(const std::array<float, 3> &rgb) const {
+    const auto hsl = encodedHSL(rgb);
+    const auto distance = std::abs(hsl.hue - hue_);
+    return amount_ * (1 - smooth(std::min(distance, 360 - distance) / width_)) *
+        smooth((hsl.saturation - .12) / .30);
 }
 std::array<float, 3> applyOutputEffects(std::array<float, 3> rgb, const EditDocument &e, int x,
                                         int y, int width, int height, double scale) {

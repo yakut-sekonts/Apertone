@@ -17,6 +17,8 @@ struct LibraryFilter {
     int cullingRecommendation = -2; // -2: any, -1: Reject, 0: Review, 1: Pick.
     std::string faceGroupID;
     bool bestOfBurstOnly = false;
+    std::string stackID{};
+    bool collapseStacks = false;
     void validate() const;
 };
 struct LibraryItem {
@@ -35,6 +37,9 @@ struct LibraryItem {
     int burstSize = 0;
     bool burstBest = false;
     std::string originalAssetID{}, copyName{};
+    std::string stackID{};
+    int stackSize = 0;
+    bool stackCover = false;
 };
 struct CollectionRecord {
     std::string id, name;

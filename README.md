@@ -9,13 +9,14 @@ and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 
 ## Releases
 
-[Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
+[Download for Windows x64 or macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
 [2.0.0 release notes](docs/releases/v2.0.0.md) ·
 [2.5.0 release notes](docs/releases/v2.5.0.md)
 
-DMG and ZIP contain a standalone application; Qt SDK and Homebrew are not needed.
-The build is ad-hoc signed and not notarized. Installation instructions and
-checksums accompany the release. Version 2.0 adds camera-linear highlight
+On Windows, extract the ZIP and launch `Apertone.exe`. The local AI models use
+the Microsoft Visual C++ x64 Redistributable. The macOS DMG and ZIP contain a
+standalone ad-hoc signed application. Installation instructions and checksums
+accompany the release. Version 2.0 adds camera-linear highlight
 recovery, dynamic embedded DNG profiles, inspectable local review, durable
 per-photo History, deterministic Detail DNG operations, measured Auto noise and
 linked Before/After comparison, and a denser desktop control layout. Adaptive
@@ -78,20 +79,21 @@ evidence and owner-accepted exceptions.
 - ✅ Linear/Radial/Brush/Luminance/Color local masks, boolean composition and shared persistent rendering.
 - 🗓 Metal image processing.
 
-Published releases target **macOS 14+ / Apple Silicon / arm64**.
-The repository also includes a **Windows x64 development build** with its own
+The desktop targets **macOS 14+ / Apple Silicon / arm64** and
+**Windows 10 and 11 / x64**. Windows has its own
 [build and packaging instructions](BUILDING.md#windows-x64-development-build)
 and [Lightroom parity backlog](docs/LIGHTROOM_PARITY.md).
 
 ### Image support
 
-Apertone develops **integer Bayer RAW** through the pinned LibRaw decoder. The
+Apertone develops **integer Bayer RAW**, **X-Trans** and **monochrome RAW**
+through the pinned LibRaw decoder. The
 shared import path covers Canon (CR2/CR3/CRW), Sony (ARW/SR2/SRF), Nikon
 (NEF/NRW), Pentax/Ricoh (PEF/PTX), OM System/Olympus (ORF), Panasonic/Leica
 (RW2/RWL), Samsung (SRW), Hasselblad (3FR/FFF), Phase One (IIQ), Bayer DNG and
 additional established camera RAW extensions. Exact compatibility depends on
-the camera model and Bayer layout. X-Trans RAF, monochrome RAW, Foveon/layered
-RAW and general floating-point/RGB DNG are rejected explicitly. Apertone also
+the camera model and sensor layout. Foveon/layered RAW and general
+floating-point/RGB DNG are outside the supported formats. Apertone also
 reimports its own identified processed Linear RGB DNG output.
 Source 0.4.12 also opens/imports JPEG, PNG, TIFF8/16, HEIC/HEIF, WebP, BMP, GIF
 and system-supported AVIF, with ICC color conversion, EXIF orientation and alpha.

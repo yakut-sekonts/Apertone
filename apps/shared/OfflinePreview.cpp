@@ -165,12 +165,12 @@ std::optional<OfflinePreview> loadOfflinePreview(const std::filesystem::path &ca
 
 void saveOfflinePreview(const std::filesystem::path &catalog, const std::string &checksum,
                         const FloatImage &preview, const RawColorCalibration &calibration,
-                        CancellationToken stop) {
+                        CancellationToken stop, bool repair) {
     if (!validDigest(checksum))
         throw std::runtime_error("Invalid offline preview fingerprint.");
     const auto folder = directory(catalog);
     const auto target = folder / (checksum + ".aprx");
-    if (std::filesystem::exists(target))
+    if (!repair && std::filesystem::exists(target))
         return;
     checkCancellation(stop);
     const auto image = standardPreview(preview, maxEdge, stop);
@@ -191,9 +191,17 @@ void saveOfflinePreview(const std::filesystem::path &catalog, const std::string 
     checkCancellation(stop);
     if (!output || files::syncFile(staging.path()) != 0)
         throw std::runtime_error("Cannot sync offline preview.");
-    if (files::publish(staging.path(), target) != 0 && errno != EEXIST)
+    const auto installed = repair ? files::move(staging.path(), target, true)
+                                  : files::publish(staging.path(), target);
+    if (installed != 0 && (repair || errno != EEXIST))
         throw std::runtime_error("Cannot install offline preview.");
     (void)files::syncDirectory(folder);
     trimPreviews(folder, target);
+}
+
+bool hasOfflinePreview(const std::filesystem::path &catalog, const std::string &checksum) {
+    std::error_code error;
+    return validDigest(checksum) &&
+           std::filesystem::is_regular_file(directory(catalog) / (checksum + ".aprx"), error);
 }
 } // namespace luma

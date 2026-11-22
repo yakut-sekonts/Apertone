@@ -58,8 +58,9 @@ LinearOutput renderLinearOutput(const DecodedRaw &decoded, const EditDocument &e
         return sharpening.pixel(developed, sx, sy);
     };
     const PresencePass presence(input, resolved, detailPixel, stop);
+    const DefringePass defringe(resolved, input.width, input.height);
     const auto referencePixel = [&](int sx, int sy) {
-        return presence.pixel(detailPixel(sx, sy), sx, sy);
+        return presence.pixel(defringe.pixel(detailPixel(sx, sy), sx, sy, detailPixel), sx, sy);
     };
     const bool hasLocalBlur =
         std::any_of(resolved.localMasks.begin(), resolved.localMasks.end(), [](const auto &mask) {

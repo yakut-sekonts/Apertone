@@ -46,6 +46,12 @@ It does not inspect free-text captions for locations. None transfers no source
 metadata; format/color information needed to interpret pixels remains present.
 Unavailable or unreadable source metadata produces an explicit error.
 
+On Windows, SDR JPEG, PNG, TIFF and processed DNG carry the selected metadata
+as a normalized XMP packet. Apertone includes descriptive fields, attribution,
+capture settings and GPS when the corresponding values are available. Remove
+Location clears the structured location and GPS coordinates. Ultra HDR JPEG
+exports contain the gain-map metadata and omit source photo metadata.
+
 Text supports Unicode in a white Helvetica Neue watermark. Image watermark accepts
 ImageIO-readable local images, respects their ICC/orientation/alpha, and limits
 input to 64 MB and intermediate raster to 4096 px. Opacity 0–100%, size 1–100%

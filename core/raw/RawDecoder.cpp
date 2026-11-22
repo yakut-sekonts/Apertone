@@ -35,6 +35,10 @@ bool lumaLinearDNG(const libraw_data_t &data) {
             model.starts_with("Apertone Rendered Linear RGB") ||
             model.starts_with("Luma Rendered Linear RGB"));
 }
+bool xTrans(const libraw_data_t &data) { return data.idata.filters == 9 && data.idata.colors == 3; }
+bool monochrome(const libraw_data_t &data) {
+    return data.idata.filters == 0 && data.idata.colors == 1 && data.idata.is_foveon == 0;
+}
 RawColorCalibration linearCalibration(const libraw_data_t &data) {
     const auto &profile = data.color.dng_color[0];
     const bool floating = text(data.idata.model).find("Linear RGB Float") != std::string::npos;
@@ -208,11 +212,82 @@ PhotoMetadata metadataFrom(const libraw_data_t &data) {
     if (data.other.timestamp > 0) {
         metadata.captureTimestamp = data.other.timestamp;
     }
+    const auto &gps = data.other.parsed_gps;
+    if (gps.gpsparsed) {
+        const auto coordinate = [](const float *parts, char ref, char north, char south,
+                                   double bound) -> std::optional<double> {
+            const double value = parts[0] + parts[1] / 60.0 + parts[2] / 3600.0;
+            if (!std::isfinite(value) || value < 0 || value > bound ||
+                (ref != north && ref != south))
+                return std::nullopt;
+            return ref == south ? -value : value;
+        };
+        metadata.latitude = coordinate(gps.latitude, gps.latref, 'N', 'S', 90);
+        metadata.longitude = coordinate(gps.longitude, gps.longref, 'E', 'W', 180);
+    }
     metadata.width = data.sizes.width;
     metadata.height = data.sizes.height;
     metadata.orientation = data.sizes.flip;
 
     return metadata;
+}
+DecodedRaw developAlternateSensor(LibRaw &raw, CancellationToken stop,
+                                  const std::function<void(double)> &progress) {
+    const auto &data = raw.imgdata;
+    auto metadata = metadataFrom(data);
+    const bool color = xTrans(data);
+    if (!data.rawdata.raw_image || data.sizes.width < 2 || data.sizes.height < 2)
+        throw std::runtime_error("Unsupported X-Trans or monochrome sensor samples.");
+    const int sensorWidth = data.sizes.raw_width, sensorHeight = data.sizes.raw_height;
+    auto &parameters = raw.imgdata.params;
+    parameters.output_bps = 16;
+    parameters.output_color = 1; // linear sRGB, with camera white balance resolved by LibRaw.
+    parameters.use_camera_wb = 1;
+    parameters.no_auto_bright = 1;
+    parameters.user_flip = 0; // Keep source coordinates for the shared orientation pipeline.
+    parameters.gamm[0] = parameters.gamm[1] = 1;
+    const auto status = raw.dcraw_process();
+    checkCancellation(stop);
+    requireSuccess(status, "Develop X-Trans or monochrome sensor samples");
+    int error = LIBRAW_SUCCESS;
+    const std::unique_ptr<libraw_processed_image_t, decltype(&LibRaw::dcraw_clear_mem)>
+        buffer(raw.dcraw_make_mem_image(&error), LibRaw::dcraw_clear_mem);
+    requireSuccess(error, "Read developed RAW samples");
+    if (!buffer || buffer->type != LIBRAW_IMAGE_BITMAP || buffer->bits != 16 ||
+        (buffer->colors != 1 && buffer->colors != 3))
+        throw std::runtime_error("Invalid developed RAW buffer format.");
+    const auto samples = pixelCount(buffer->width, buffer->height) * buffer->colors;
+    if (samples * sizeof(std::uint16_t) != buffer->data_size)
+        throw std::runtime_error("Invalid developed RAW buffer size.");
+    FloatImage image(buffer->width, buffer->height);
+    for (int y = 0; y < image.height; ++y) {
+        checkCancellation(stop);
+        for (int x = 0; x < image.width; ++x) {
+            const auto pixel = static_cast<std::size_t>(y) * image.width + x;
+            for (int channel = 0; channel < 3; ++channel) {
+                const auto index = (pixel * buffer->colors + (color && buffer->colors == 3 ? channel : 0)) * 2;
+                std::uint16_t value = 0;
+                std::memcpy(&value, buffer->data + index, sizeof(value));
+                image.rgb[pixel * 3 + channel] = value / 65535.F;
+            }
+        }
+        if (progress)
+            progress(.7 + .3 * (y + 1.0) / image.height);
+    }
+    metadata.width = image.width;
+    metadata.height = image.height;
+    DecodeDiagnostics diagnostics;
+    diagnostics.decoder = "LibRaw developed RAW";
+    diagnostics.decoderVersion = LibRaw::version();
+    diagnostics.source = color ? DecodeSource::xTransRaw : DecodeSource::monochromeRaw;
+    diagnostics.color = DecodeColorPath::cameraToLinearSRGB;
+    diagnostics.highlights = DecodeHighlightPath::sourceRange;
+    diagnostics.sourceWidth = sensorWidth;
+    diagnostics.sourceHeight = sensorHeight;
+    diagnostics.activeWidth = image.width;
+    diagnostics.activeHeight = image.height;
+    diagnostics.cfa = color ? "X-Trans" : "Monochrome";
+    return {std::move(image), std::move(metadata), {}, std::move(diagnostics)};
 }
 } // namespace
 
@@ -241,13 +316,14 @@ PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, Cancellatio
     const auto &data = decoder->imgdata;
     if (!lumaLinearDNG(data) && std::filesystem::file_size(path) > 512'000'000)
         throw std::runtime_error("RAW exceeds the 512 MB input budget.");
-    if ((!lumaLinearDNG(data) && data.idata.filters == 0) || data.idata.filters == 9 ||
-        data.idata.colors != 3 || data.sizes.width < 2 || data.sizes.height < 2)
-        throw std::runtime_error("Library currently supports Bayer RAW only.");
+    const bool supported = lumaLinearDNG(data) || xTrans(data) || monochrome(data) ||
+                           (data.idata.filters != 0 && data.idata.filters != 9 && data.idata.colors == 3);
+    if (!supported || data.sizes.width < 2 || data.sizes.height < 2)
+        throw std::runtime_error("Library does not support this RAW sensor layout.");
     pixelCount(data.sizes.width, data.sizes.height);
     if (lumaLinearDNG(data))
         (void)linearCalibration(data);
-    else
+    else if (!xTrans(data) && !monochrome(data))
         (void)bayerCalibration(data);
     checkCancellation(stop);
     return metadataFrom(data);
@@ -349,11 +425,12 @@ DecodedRaw RawDecoder::decode(const std::filesystem::path &path, luma::Cancellat
         decoder.recycle();
         return {std::move(image), std::move(metadata), calibration, std::move(diagnostics)};
     }
+    if (xTrans(data) || monochrome(data))
+        return developAlternateSensor(decoder, stop, progress);
     if (!data.rawdata.raw_image || data.idata.filters == 0 || data.idata.filters == 9 ||
         data.idata.colors != 3 || sizes.width < 2 || sizes.height < 2) {
         throw std::runtime_error(
-            "Apertone supports integer Bayer RAW only; X-Trans, monochrome and layered/RGB RAW "
-            "are not supported.");
+            "Apertone does not support this layered or RGB RAW sensor layout.");
     }
     pixelCount(sizes.width, sizes.height);
     if (sizes.top_margin + sizes.height > sizes.raw_height ||

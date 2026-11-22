@@ -180,6 +180,12 @@ Correction EditDocument::correction(std::string_view name) {
         return Correction::vignette;
     if (name == "grain")
         return Correction::grain;
+    if (name == "blackWhite")
+        return Correction::blackWhite;
+    if (name == "defringe")
+        return Correction::defringe;
+    if (name == "calibration")
+        return Correction::calibration;
     if (name == "transform")
         return Correction::transform;
     if (name.starts_with("transform.")) {

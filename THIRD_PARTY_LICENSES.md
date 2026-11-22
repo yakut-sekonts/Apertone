@@ -5,6 +5,12 @@ Apertone's original source is Apache-2.0. Dependencies retain their own licenses
 - **ONNX Runtime 1.23.2** (Windows CPU) and **SkySeg** are MIT-licensed.
   The Windows package includes the runtime license, third-party notices and
   the SkySeg license. **U²-Netp** and **PP-HumanSeg** are Apache-2.0 models.
+  The **YuNet** face detector and **DRUNet Color** are MIT-licensed. The
+  **Depth Anything V2 Small** relative-depth model is Apache-2.0. The Windows
+  model recipes pin the ONNX files and verify their SHA-256 before installation.
+- **Natural Earth** land polygons (public domain) supply the bundled offline
+  map. The land layer uses `ne_110m_land.geojson` from release v5.1.2 and an
+  equirectangular projection. [Natural Earth terms](https://www.naturalearthdata.com/about/terms-of-use/)
   The Windows model hashes and upstream locations are in
   [WindowsAi.cmake](cmake/WindowsAi.cmake).
 

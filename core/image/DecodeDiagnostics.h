@@ -4,7 +4,7 @@
 #include <string>
 
 namespace luma {
-enum class DecodeSource { unknown, raster, renderedLinearDNG, integerBayerRaw };
+enum class DecodeSource { unknown, raster, renderedLinearDNG, integerBayerRaw, xTransRaw, monochromeRaw };
 enum class DecodeReconstruction { none, edgeAware };
 enum class DecodeColorPath {
     unknown,

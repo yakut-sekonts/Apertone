@@ -97,6 +97,23 @@ std::vector<RingPoint> ring(const FloatImage &image, const Shape &shape, Cancell
 }
 void apply(FloatImage &image, const RetouchStroke &stroke, CancellationToken stop) {
     const Shape shape(stroke, image.width, image.height);
+    if (stroke.mode == RetouchMode::redEye) {
+        for (int y = shape.top; y <= shape.bottom; ++y) {
+            checkCancellation(stop);
+            for (int x = shape.left; x <= shape.right; ++x) {
+                const auto offset = (static_cast<std::size_t>(y) * image.width + x) * 3;
+                auto *pixel = image.rgb.data() + offset;
+                const float base = std::max(0.F, std::max(pixel[1], pixel[2]));
+                const float red = pixel[0];
+                if (red <= .015F || image.coverage(x, y) <= 0 || red <= base * 1.2F)
+                    continue;
+                const double chroma = std::clamp(((red - base) / red - .16) * 4, 0.0, 1.0);
+                const double coverage = shape.coverage(x, y) * stroke.opacity * chroma;
+                pixel[0] = static_cast<float>(std::lerp(static_cast<double>(red), base * 1.02, coverage));
+            }
+        }
+        return;
+    }
     const double dx = stroke.sourceOffsetX * image.width, dy = stroke.sourceOffsetY * image.height;
     std::array<double, 3> delta{};
     if (stroke.mode != RetouchMode::clone) {

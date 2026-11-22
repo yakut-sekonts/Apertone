@@ -10,6 +10,16 @@
 
 namespace luma {
 namespace {
+constexpr std::size_t legacyParameterCount = 34;
+constexpr std::uint32_t legacyCorrectionMask = 4063232;
+constexpr int creativeVersion = 6;
+std::size_t parameterCount(int version) {
+    return version < 5 ? legacyParameterCount : version == 5 ? 43 : creativeParameters.size();
+}
+std::uint32_t corrections(int version) {
+    return version < 5 ? legacyCorrectionMask
+         : version == 5 ? legacyCorrectionMask | 4194304U : creativeCorrectionMask;
+}
 bool validID(std::string_view id) {
     if (id.size() != 36)
         return false;
@@ -83,7 +93,8 @@ void QuickLookLayer::validate() const {
 bool isCreativeParameter(std::string_view name) {
     return name.starts_with("presence.") || name.starts_with("point.") ||
            name.starts_with("grading.") || name.starts_with("vignette.") ||
-           name.starts_with("grain.");
+           name.starts_with("grain.") || name.starts_with("bw.") ||
+           name.starts_with("defringe.") || name.starts_with("calibration.");
 }
 const CreativeParameter &creativeParameter(std::string_view name) {
     for (const auto &parameter : creativeParameters)
@@ -121,27 +132,39 @@ void CreativeSettings::validate() const {
             throw std::runtime_error("Duplicate Quick Look layer ID.");
     }
 }
-std::string encodeCreative(const CreativeSettings &settings) {
+namespace {
+std::string encodeVersion(const CreativeSettings &settings, int version) {
     settings.validate();
     std::ostringstream out;
     out.imbue(std::locale::classic());
-    out << "LUMA_CREATIVE 4 " << settings.enabled
+    out << "LUMA_CREATIVE " << version << ' ' << (settings.enabled & corrections(version))
         << std::setprecision(std::numeric_limits<double>::max_digits10);
-    for (const auto value : settings.values)
-        out << ' ' << value;
+    for (std::size_t i = 0; i < parameterCount(version); ++i)
+        out << ' ' << settings.values[i];
+    if (version == 1) {
+        out << '\n';
+        return out.str();
+    }
     out << ' ' << settings.quickLooks.size() << '\n';
     for (const auto &layer : settings.quickLooks) {
         out << std::quoted(layer.id) << ' ' << std::quoted(layer.recipe) << ' ' << layer.amount
-            << ' ' << layer.enabled << ' ' << std::quoted(layer.mask) << ' '
-            << std::quoted(layer.name) << ' ' << layer.deltas.size();
-        for (const auto &delta : layer.deltas)
-            out << ' ' << std::quoted(delta.parameter) << ' ' << delta.value;
-        out << ' ' << std::quoted(layer.provider) << ' ' << std::quoted(layer.providerVersion)
-            << ' ' << std::quoted(layer.model) << ' ' << std::quoted(layer.modelDigest) << ' '
-            << layer.deterministicFallback;
+            << ' ' << layer.enabled << ' ' << std::quoted(layer.mask);
+        if (version >= 3) {
+            out << ' ' << std::quoted(layer.name) << ' ' << layer.deltas.size();
+            for (const auto &delta : layer.deltas)
+                out << ' ' << std::quoted(delta.parameter) << ' ' << delta.value;
+        }
+        if (version >= 4)
+            out << ' ' << std::quoted(layer.provider) << ' ' << std::quoted(layer.providerVersion)
+                << ' ' << std::quoted(layer.model) << ' ' << std::quoted(layer.modelDigest) << ' '
+                << layer.deterministicFallback;
         out << '\n';
     }
     return out.str();
+}
+} // namespace
+std::string encodeCreative(const CreativeSettings &settings) {
+    return encodeVersion(settings, creativeVersion);
 }
 CreativeSettings decodeCreative(std::string_view text) {
     if (text.empty() || text.size() > 262144)
@@ -152,9 +175,15 @@ CreativeSettings decodeCreative(std::string_view text) {
     int version = 0;
     CreativeSettings result;
     in >> magic >> version >> result.enabled;
-    for (auto &value : result.values)
-        in >> value;
-    if (!in || magic != "LUMA_CREATIVE" || (version < 1 || version > 4))
+    if (!in || magic != "LUMA_CREATIVE" || (version < 1 || version > creativeVersion))
+        throw std::runtime_error("Invalid creative adjustment document.");
+    const auto accepted = corrections(version);
+    if (result.enabled & ~accepted)
+        throw std::runtime_error("Invalid creative adjustment flags.");
+    result.enabled |= creativeCorrectionMask & ~accepted;
+    for (std::size_t i = 0; i < parameterCount(version); ++i)
+        in >> result.values[i];
+    if (!in)
         throw std::runtime_error("Invalid creative adjustment document.");
     if (version >= 2) {
         std::int64_t count = -1;
@@ -194,52 +223,8 @@ CreativeSettings decodeCreative(std::string_view text) {
             result.quickLooks.push_back(std::move(layer));
         }
     }
-    result.validate();
-    if (version == 1) {
-        std::ostringstream legacy;
-        legacy.imbue(std::locale::classic());
-        legacy << "LUMA_CREATIVE 1 " << result.enabled
-               << std::setprecision(std::numeric_limits<double>::max_digits10);
-        for (const auto value : result.values)
-            legacy << ' ' << value;
-        legacy << '\n';
-        if (legacy.str() != text)
-            throw std::runtime_error("Invalid creative adjustment document.");
-    } else if (version == 4 && encodeCreative(result) != text)
+    if (encodeVersion(result, version) != text)
         throw std::runtime_error("Invalid creative adjustment document.");
-    else if (version == 3) {
-        std::ostringstream legacy;
-        legacy.imbue(std::locale::classic());
-        legacy << "LUMA_CREATIVE 3 " << result.enabled
-               << std::setprecision(std::numeric_limits<double>::max_digits10);
-        for (const auto value : result.values)
-            legacy << ' ' << value;
-        legacy << ' ' << result.quickLooks.size() << '\n';
-        for (const auto &layer : result.quickLooks) {
-            legacy << std::quoted(layer.id) << ' ' << std::quoted(layer.recipe) << ' '
-                   << layer.amount << ' ' << layer.enabled << ' ' << std::quoted(layer.mask) << ' '
-                   << std::quoted(layer.name) << ' ' << layer.deltas.size();
-            for (const auto &delta : layer.deltas)
-                legacy << ' ' << std::quoted(delta.parameter) << ' ' << delta.value;
-            legacy << '\n';
-        }
-        if (legacy.str() != text)
-            throw std::runtime_error("Invalid creative adjustment document.");
-    } else if (version == 2) {
-        std::ostringstream legacy;
-        legacy.imbue(std::locale::classic());
-        legacy << "LUMA_CREATIVE 2 " << result.enabled
-               << std::setprecision(std::numeric_limits<double>::max_digits10);
-        for (const auto value : result.values)
-            legacy << ' ' << value;
-        legacy << ' ' << result.quickLooks.size() << '\n';
-        for (const auto &layer : result.quickLooks)
-            legacy << std::quoted(layer.id) << ' ' << std::quoted(layer.recipe) << ' '
-                   << layer.amount << ' ' << layer.enabled << ' ' << std::quoted(layer.mask)
-                   << '\n';
-        if (legacy.str() != text)
-            throw std::runtime_error("Invalid creative adjustment document.");
-    }
     return result;
 }
 } // namespace luma

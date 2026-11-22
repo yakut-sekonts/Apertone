@@ -102,6 +102,25 @@ ColumnLayout {
             ApertoneButton { objectName: "localAI.eyes"; text: qsTranslate("Apertone", "Eyes"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("eyes") }
             ApertoneButton { objectName: "localAI.lips"; text: qsTranslate("Apertone", "Lips"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("lips") }
         }
+        ColumnLayout {
+            visible: editor.aiDepthAvailable
+            Layout.fillWidth: true
+            Label { text: qsTranslate("Apertone", "Estimated depth range"); color: Theme.muted; font.pixelSize: 11 }
+            RangeSlider {
+                id: depthInterval
+                Layout.fillWidth: true
+                from: 0; to: 1; stepSize: 0.01
+                first.value: 0; second.value: 0.55
+                Accessible.name: qsTranslate("Apertone", "Far and near depth limits")
+            }
+            ApertoneButton {
+                objectName: "localAI.depth"
+                Layout.fillWidth: true
+                text: qsTranslate("Apertone", "Create depth mask")
+                enabled: !editor.aiBusy && depthInterval.second.value - depthInterval.first.value >= 0.05
+                onClicked: editor.generateAIMask("depth", depthInterval.first.value, depthInterval.second.value)
+            }
+        }
         Label {
             visible: editor.aiObjectPicking
             text: editor.aiPickKind === "object" ? qsTranslate("Apertone", "Click the object in the photo.") : qsTranslate("Apertone", "Click a face in the photo.")

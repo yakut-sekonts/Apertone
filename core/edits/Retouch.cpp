@@ -20,7 +20,7 @@ void validateRetouch(const std::vector<RetouchStroke> &strokes) {
         if (stroke.id.empty() || stroke.id.size() > 64 ||
             stroke.id.find_first_not_of("0123456789abcdefABCDEF-") != std::string::npos ||
             !ids.insert(stroke.id).second || stroke.mode < RetouchMode::clone ||
-            stroke.mode > RetouchMode::remove || stroke.points.empty() ||
+            stroke.mode > RetouchMode::redEye || stroke.points.empty() ||
             stroke.points.size() > 4096 || !range(stroke.radius, .001, .25) ||
             !range(stroke.feather, 0, 1) || !range(stroke.opacity, 0, 1) ||
             !range(stroke.sourceOffsetX, -1, 1) || !range(stroke.sourceOffsetY, -1, 1))
@@ -66,7 +66,7 @@ std::vector<RetouchStroke> decodeRetouch(std::string_view text) {
         std::size_t points = 0;
         if (!(in >> stroke.id >> mode >> enabled >> stroke.radius >> stroke.feather >>
               stroke.opacity >> stroke.sourceOffsetX >> stroke.sourceOffsetY >> points) ||
-            mode < 0 || mode > 2 || enabled < 0 || enabled > 1 || points < 1 || points > 4096 ||
+            mode < 0 || mode > static_cast<int>(RetouchMode::redEye) || enabled < 0 || enabled > 1 || points < 1 || points > 4096 ||
             total + points > 32768)
             throw std::runtime_error("Invalid retouch document.");
         total += points;

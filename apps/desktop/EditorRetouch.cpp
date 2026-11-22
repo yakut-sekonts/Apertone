@@ -12,6 +12,8 @@
 
 namespace {
 QString modeKey(luma::RetouchMode mode) {
+    if (mode == luma::RetouchMode::redEye)
+        return QStringLiteral("red-eye");
     return mode == luma::RetouchMode::clone  ? QStringLiteral("clone")
            : mode == luma::RetouchMode::heal ? QStringLiteral("heal")
                                              : QStringLiteral("remove");
@@ -57,7 +59,7 @@ void EditorController::cancelRetouch() {
         emit stateChanged();
 }
 void EditorController::setRetouchMode(const QString &mode) {
-    if (mode != "off" && mode != "clone" && mode != "heal" && mode != "remove")
+    if (mode != "off" && mode != "clone" && mode != "heal" && mode != "remove" && mode != "red-eye")
         return;
     if (mode == retouchMode_ || (mode != "off" && (!editable() || original_)))
         return;
@@ -73,6 +75,8 @@ void EditorController::setRetouchMode(const QString &mode) {
         setOneToOne(false);
     }
     retouchMode_ = mode;
+    if (mode == "red-eye")
+        retouchRadius_ = .012;
     retouchSelected_.clear();
     emit stateChanged();
 }
@@ -180,7 +184,7 @@ void EditorController::beginRetouch(double x, double y) {
         const auto point = retouchPoint(x, y);
         if (!point)
             return;
-        if (retouchMode_ != "remove" && !retouchSource_)
+        if ((retouchMode_ == "clone" || retouchMode_ == "heal") && !retouchSource_)
             throw std::runtime_error("Option-click a source area before drawing.");
         cancelRetouch();
         endEdit();
@@ -188,12 +192,13 @@ void EditorController::beginRetouch(double x, double y) {
         stroke.id = luma::newID();
         stroke.mode = retouchMode_ == "clone"  ? luma::RetouchMode::clone
                       : retouchMode_ == "heal" ? luma::RetouchMode::heal
-                                               : luma::RetouchMode::remove;
+                      : retouchMode_ == "red-eye" ? luma::RetouchMode::redEye
+                                                  : luma::RetouchMode::remove;
         stroke.radius = retouchRadius_;
         stroke.feather = retouchFeather_;
         stroke.opacity = retouchOpacity_;
         stroke.points.push_back(*point);
-        if (retouchSource_) {
+        if (retouchSource_ && stroke.mode != luma::RetouchMode::redEye) {
             stroke.sourceOffsetX = (*retouchSource_)[0] - (*point)[0];
             stroke.sourceOffsetY = (*retouchSource_)[1] - (*point)[1];
         }

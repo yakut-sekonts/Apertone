@@ -21,6 +21,8 @@ Rectangle {
     required property string burstID
     required property int burstSize
     required property bool burstBest
+    required property int stackSize
+    required property bool stackCover
     readonly property string cullingReasonText: {
         let reasons = []
         if (cullingReasons & 1) reasons.push(qsTranslate("Apertone", "Soft focus"))
@@ -114,11 +116,11 @@ Rectangle {
     }
     Label {
         z: 2
-        visible: !card.compact && (card.faceCount > 0 || card.burstSize > 1)
+        visible: !card.compact && (card.faceCount > 0 || card.burstSize > 1 || card.stackSize > 1)
         anchors { right: parent.right; top: parent.top; topMargin: 22; rightMargin: 7 }
-        text: (card.faceCount > 0 ? "◉ " + card.faceCount : "") +
-              (card.faceCount > 0 && card.burstSize > 1 ? "  " : "") +
-              (card.burstSize > 1 ? (card.burstBest ? "◆ " : "◇ ") + card.burstSize : "")
+        text: [card.faceCount > 0 ? "◉ " + card.faceCount : "",
+               card.burstSize > 1 ? (card.burstBest ? "◆ " : "◇ ") + card.burstSize : "",
+               card.stackSize > 1 ? (card.stackCover ? "▣ " : "▢ ") + card.stackSize : ""].filter(item => item.length).join("  ")
         color: Theme.text; font.pixelSize: 10
     }
     MouseArea {

@@ -16,10 +16,12 @@ class PreviewProvider final : public QQuickImageProvider {
     PreviewProvider();
     void update(QImage image);
     void updateCompare(std::vector<QImage> images);
+    void updateReference(QImage image);
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
 
   private:
     std::mutex mutex_;
     QImage image_;
+    QImage reference_;
     std::vector<QImage> comparison_;
 };

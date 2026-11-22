@@ -27,6 +27,7 @@ struct PresetImport {
     DevelopPreset preset;
     QStringList unsupported;
     bool xmp = false;
+    QString sourceVersion{}, processVersion{};
 };
 PresetImport decodeXmpPreset(const QByteArray &xml, const QString &fallbackName);
 

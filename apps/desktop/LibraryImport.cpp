@@ -1,14 +1,21 @@
 #include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
+#include "apps/shared/PhotoFormats.h"
 #include "apps/shared/PresetStore.h"
 #include <QDir>
 #include <QFileInfo>
+#include <QDateTime>
+#include <QDirIterator>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLockFile>
 #include <QSettings>
+#include <QStorageInfo>
 #include <algorithm>
 #include <memory>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace {
 luma::DescriptiveMetadata metadataFromMap(const QVariantMap &map) {
@@ -60,6 +67,95 @@ void savePresets(const QJsonObject &object) {
         throw std::runtime_error("Cannot save import metadata presets.");
 }
 } // namespace
+QVariantList LibraryModel::cardSources() const {
+    QVariantList devices;
+    for (const auto &volume : QStorageInfo::mountedVolumes()) {
+        if (!volume.isValid() || !volume.isReady() || volume.isRoot())
+            continue;
+        const auto root = volume.rootPath();
+#ifdef _WIN32
+        auto device = QDir::toNativeSeparators(root);
+        if (!device.endsWith(u'\\'))
+            device += u'\\';
+        const bool removable = GetDriveTypeW(reinterpret_cast<LPCWSTR>(device.utf16())) == DRIVE_REMOVABLE;
+#else
+        const bool removable = root.startsWith(QStringLiteral("/Volumes/"));
+#endif
+        if (!removable)
+            continue;
+        const auto dcim = QDir(root).absoluteFilePath(QStringLiteral("DCIM"));
+        if (QFileInfo(dcim).isDir())
+            devices.append(QVariantMap{{"name", volume.displayName()}, {"url", QUrl::fromLocalFile(dcim)}});
+    }
+    return devices;
+}
+void LibraryModel::startCaptureFolder(const QUrl &folder) {
+    if (working() || !folder.isLocalFile())
+        return;
+    const auto local = QFileInfo(folder.toLocalFile()).canonicalFilePath();
+    if (local.isEmpty() || !QFileInfo(local).isDir()) {
+        error_ = QStringLiteral("Choose an existing capture folder.");
+        emit stateChanged();
+        return;
+    }
+    captureFolder_ = local;
+    captureFiles_.clear();
+    scanCaptureFolder(true);
+    if (captureFolder_.isEmpty())
+        return;
+    captureTimer_.start();
+    error_.clear();
+    emit stateChanged();
+}
+void LibraryModel::stopCaptureFolder() {
+    captureTimer_.stop();
+    captureFolder_.clear();
+    captureFiles_.clear();
+    emit stateChanged();
+}
+void LibraryModel::scanCaptureFolder(bool baseline) {
+    if (closing_ || captureFolder_.isEmpty() || (!baseline && working()))
+        return;
+    if (!QFileInfo(captureFolder_).isDir()) {
+        status_ = QStringLiteral("Capture folder unavailable. Waiting for it to reconnect…");
+        emit stateChanged();
+        return;
+    }
+    QDirIterator iterator(captureFolder_, QDir::Files | QDir::Readable | QDir::NoSymLinks);
+    std::vector<std::filesystem::path> stable;
+    std::map<QString, CaptureFile> current;
+    while (iterator.hasNext()) {
+        const auto file = iterator.nextFileInfo();
+        auto path = luma::pathFromUtf8(file.absoluteFilePath().toStdString());
+        const auto ext = luma::lowerPhotoExtension(path);
+        if (ext != ".jpg" && ext != ".jpeg" && !luma::isSupportedRawExtension(path))
+            continue;
+        if (current.size() >= 20'000) {
+            error_ = QStringLiteral("Choose a capture folder with fewer than 20,000 photos.");
+            stopCaptureFolder();
+            return;
+        }
+        CaptureFile entry{file.size(), file.lastModified().toMSecsSinceEpoch(), baseline};
+        const auto previous = captureFiles_.find(file.fileName());
+        if (previous != captureFiles_.end() && previous->second.size == entry.size &&
+            previous->second.modified == entry.modified) {
+            entry.considered = previous->second.considered;
+            if (!entry.considered && entry.size > 0 && stable.size() < 32) {
+                stable.push_back(std::move(path));
+                entry.considered = true;
+            }
+        }
+        current.emplace(file.fileName(), entry);
+    }
+    if (!stable.empty()) {
+        luma::ImportOptions options;
+        options.sourceRoots = {luma::pathFromUtf8(captureFolder_.toStdString())};
+        options.recursive = false;
+        if (!startImport(std::move(stable), std::move(options)))
+            return;
+    }
+    captureFiles_.swap(current);
+}
 QVariantList LibraryModel::importMetadataPresets() const {
     QVariantList result;
     try {

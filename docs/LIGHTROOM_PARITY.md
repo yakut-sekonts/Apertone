@@ -89,6 +89,27 @@ target drive follow release validation.
 
 ### Local verification
 
+- The Windows 2.5.0 distribution passed all six local CTests. The acceptance
+  run used NEF and JPEG originals from a separate physical NTFS drive and an
+  isolated test catalog. It covered stack membership and cover changes,
+  truncated preview recovery, monochrome export, contact sheet, photo book,
+  gallery and slideshow delivery. Original SHA-256 digests matched.
+- Windows face, eyes and lips masks persisted on a JPEG. Estimated depth
+  masks persisted on a JPEG and a Nikon NEF, and the PNG re-export after
+  restarting matched the first export byte for byte.
+- The four metadata policies were exercised on SDR JPEG, PNG, ZIP TIFF and
+  Linear DNG with an EXIF GPS fixture. DRUNet produced an independently
+  registered Linear DNG from a 1,024-pixel derivative of a Nikon NEF.
+- NTFS Copy imported 1,000 distinct JPEG files and matched every source and
+  destination SHA-256. A Fujifilm X-T4 RAF and a Leica M Monochrom (Typ 246)
+  DNG opened and exported. [CC0 RAW test repository](https://raw.pixls.us/)
+- The Windows release includes manual stacks, pinned references, a separate
+  review window, bulk offline preview preparation, DCIM card selection,
+  capture-folder monitoring and collection/keyword paths from Lightroom.
+  Direct tether control, a full collection-set and keyword editor, portable
+  Develop history, exact Adobe mask/profile interchange, remote publishing
+  and physical exFAT, display and print validation remain open.
+
 - The synthetic Lightroom fixture covers a committed WAL, Unicode source
   paths, interpreted Develop settings, IPTC, manual collections, independent
   virtual copies, dynamic rules and idempotence after copying the source catalog.

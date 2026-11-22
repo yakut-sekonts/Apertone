@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QSettings>
 #include <algorithm>
 #include <filesystem>
 
@@ -32,6 +33,10 @@ QString displayName(const luma::DevelopPreset &preset) {
 } // namespace
 PresetController::PresetController(QString path, EditorController &editor, QObject *parent)
     : QObject(parent), path_(std::move(path)), store_(path_), editor_(editor) {
+    QSettings settings(QFileInfo(path_).absolutePath() + "/preview.ini", QSettings::IniFormat);
+    const auto groups = settings.value("copySettingsGroups", lastCopyGroups_).toUInt();
+    if (groups && (groups & ~luma::allSettingsGroups) == 0)
+        lastCopyGroups_ = static_cast<int>(groups);
     connect(&editor_, &EditorController::stateChanged, this, &PresetController::quickLooksChanged);
     refresh();
 }
@@ -268,6 +273,52 @@ bool PresetController::applyXmpToPhoto(const QUrl &url, const QString &photoID) 
         return failure(error);
     }
 }
+bool PresetController::previewPhotoXmp(const QUrl &url, const QString &photoID) {
+    closePhotoXmpPreview();
+    try {
+        if (!url.isLocalFile() || QFileInfo(url.toLocalFile()).suffix().compare(QStringLiteral("xmp"), Qt::CaseInsensitive) != 0)
+            throw std::runtime_error("Select a local XMP file.");
+        if (photoID.isEmpty() || editor_.photoID() != photoID)
+            throw std::runtime_error("The active photo changed. Open the XMP file again.");
+        auto imported = luma::PresetStore::inspectImport(url.toLocalFile());
+        xmpPhotoID_ = photoID;
+        xmpVersionText_ = LocalizedText(QStringLiteral("Camera Raw %1 · Process Version %2"))
+            .arg(imported.sourceVersion.isEmpty() ? QStringLiteral("—") : imported.sourceVersion)
+            .arg(imported.processVersion.isEmpty() ? QStringLiteral("—") : imported.processVersion);
+        importUnsupported_ = imported.unsupported;
+        importNotice_ = LocalizedText(QStringLiteral("Preview of %1 recognized settings."))
+                            .arg(imported.preset.parameters.size());
+        xmpPreview_ = std::move(imported.preset);
+        error_.clear();
+        editor_.previewSettings(xmpPreview_->settings, xmpPreview_->groups, xmpPreview_->parameters);
+        emit stateChanged();
+        return true;
+    } catch (const std::exception &error) {
+        closePhotoXmpPreview();
+        return failure(error);
+    }
+}
+bool PresetController::confirmPhotoXmp() {
+    try {
+        if (!xmpPreview_ || editor_.photoID() != xmpPhotoID_)
+            throw std::runtime_error("The active photo changed. Open the XMP file again.");
+        if (!editor_.applySettings(xmpPreview_->settings, xmpPreview_->groups, xmpPreview_->parameters))
+            throw std::runtime_error("The current photo cannot be edited.");
+        importNotice_ = QStringLiteral("XMP settings applied to this photo.");
+        closePhotoXmpPreview();
+        return true;
+    } catch (const std::exception &error) {
+        return failure(error);
+    }
+}
+void PresetController::closePhotoXmpPreview() {
+    if (xmpPreview_)
+        editor_.clearPreviewSettings();
+    xmpPreview_.reset();
+    xmpPhotoID_.clear();
+    xmpVersionText_ = {};
+    emit stateChanged();
+}
 bool PresetController::exportPreset(const QString &id, const QUrl &url) {
     try {
         if (!url.isLocalFile())
@@ -340,6 +391,9 @@ void PresetController::copySettings(int groups) {
         luma::DevelopPreset value{
             "Copied settings", {}, editor_.currentSettings(), static_cast<std::uint32_t>(groups)};
         value.validate();
+        QSettings settings(QFileInfo(path_).absolutePath() + "/preview.ini", QSettings::IniFormat);
+        settings.setValue("copySettingsGroups", groups);
+        lastCopyGroups_ = groups;
         copied_ = std::move(value);
         error_.clear();
         emit stateChanged();

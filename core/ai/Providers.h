@@ -9,7 +9,7 @@
 
 namespace luma::ai {
 enum class ExecutionLocation { local, cloud };
-enum class Selection { subject, background, object, sky, face, eyes, lips, people };
+enum class Selection { subject, background, object, sky, face, eyes, lips, people, depthRange };
 struct RgbaImage {
     int width = 0, height = 0;
     std::span<const std::uint8_t> pixels;
@@ -25,7 +25,8 @@ class ISegmentationProvider {
     virtual std::string identifier() const = 0;
     virtual ExecutionLocation location() const = 0;
     virtual bool supports(Selection selection) const = 0;
-    // Point coordinates are normalized top-left image coordinates.
+    // A point uses top-left normalized image coordinates. Depth Range supplies
+    // a normalized far/near interval instead of image coordinates.
     virtual BitmapMask segment(RgbaImage image, Selection selection, std::array<double, 2> point,
                                CancellationToken stop, const Progress &progress = {}) = 0;
 };

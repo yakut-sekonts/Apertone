@@ -88,10 +88,10 @@ else()
     include(cmake/UltraHdr.cmake)
     include(cmake/WindowsAi.cmake)
     add_library(luma_windows STATIC platform/windows/RasterDecoder.cpp platform/windows/ImageExporter.cpp
-        platform/windows/PhotoMetadataIO.cpp platform/windows/PlatformServices.cpp
+        platform/windows/PhotoMetadataIO.cpp platform/windows/MetadataPacket.cpp platform/windows/PlatformServices.cpp
         platform/windows/UltraHdr.cpp platform/windows/TiffWriter.cpp platform/windows/OnnxSegmentation.cpp)
     target_include_directories(luma_windows PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi ole32 shlwapi uhdr)
+    target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi ole32 shlwapi shell32 propsys uuid uhdr)
     target_compile_options(luma_windows PRIVATE -Wall -Wextra -Wpedantic -Werror)
     apertone_configure_windows_ai(luma_windows)
 endif()
@@ -100,10 +100,10 @@ add_library(luma_presets STATIC apps/shared/PresetStore.cpp apps/shared/XmpPrese
 target_link_libraries(luma_presets PUBLIC luma_core Qt6::Core)
 target_compile_options(luma_presets PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/DerivedProvenance.cpp apps/shared/DetailService.cpp apps/shared/MergeService.cpp apps/shared/BackupService.cpp apps/shared/MetadataService.cpp apps/shared/RelinkService.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
-target_sources(luma_services PRIVATE apps/shared/OfflinePreview.cpp apps/shared/LightroomCatalog.cpp
+target_sources(luma_services PRIVATE apps/shared/OfflinePreview.cpp apps/shared/PhotoDelivery.cpp apps/shared/LightroomCatalog.cpp
     apps/shared/LightroomDevelop.cpp)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets)
+target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets PRIVATE Qt6::Gui)
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
@@ -128,6 +128,8 @@ qt_add_executable(Apertone MACOSX_BUNDLE
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
+qt_target_qml_sources(Apertone QML_FILES apps/desktop/qml/DeliveryDialog.qml apps/desktop/qml/PhotoMapDialog.qml)
+qt_add_resources(Apertone aperture_map PREFIX "/map" BASE "resources/maps" FILES resources/maps/world-land.png)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
 target_compile_options(Apertone PRIVATE
@@ -188,10 +190,9 @@ endif()
 add_executable(luma_cli apps/cli/main.cpp apps/cli/LibraryCommands.cpp)
 set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
-target_link_libraries(luma_cli PRIVATE luma_services)
+target_link_libraries(luma_cli PRIVATE luma_services Qt6::Gui)
 target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(WIN32)
-    target_link_libraries(luma_cli PRIVATE Qt6::Gui)
     target_link_options(luma_cli PRIVATE -municode "LINKER:--stack,8388608")
     set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone-cli)
     install(TARGETS Apertone luma_cli luma_libraw RUNTIME DESTINATION .)

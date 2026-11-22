@@ -1,5 +1,6 @@
 #include "platform/macos/RasterDecoder.h"
 #include "core/image/Bayer.h"
+#include "platform/windows/MetadataPacket.h"
 #include <QColorSpace>
 #include <QImageReader>
 #include <QRgbaFloat>
@@ -39,7 +40,9 @@ bool RasterDecoder::cameraRaw(const std::filesystem::path &) const {
 PhotoMetadata RasterDecoder::inspect(const std::filesystem::path &path, CancellationToken stop) const {
     checkCancellation(stop);
     QImageReader reader(localName(path));
-    return metadata(reader);
+    auto result = metadata(reader);
+    windows::readRasterProperties(path, result);
+    return result;
 }
 
 DecodedImage RasterDecoder::decode(const std::filesystem::path &path, CancellationToken stop,
@@ -48,6 +51,7 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
     QImageReader reader(localName(path));
     reader.setAutoTransform(true);
     auto info = metadata(reader);
+    windows::readRasterProperties(path, info);
     auto image = reader.read();
     checkCancellation(stop);
     if (image.isNull() || image.width() != info.width || image.height() != info.height)

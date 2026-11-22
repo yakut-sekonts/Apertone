@@ -130,6 +130,10 @@ class Catalog {
                                     std::int64_t revision, const SmartRule &rule);
     std::vector<CollectionRecord> collections() const;
     std::string createCollection(const std::string &name);
+    std::string createPhotoStack(const std::vector<std::string> &ids);
+    std::string photoStackFor(const std::string &assetID) const;
+    void removePhotoStack(const std::string &stackID);
+    void setPhotoStackCover(const std::string &assetID);
     void renameCollection(const std::string &id, const std::string &name);
     void deleteCollection(const std::string &id);
     void collectionMembership(const std::string &collectionID, const std::vector<std::string> &ids,

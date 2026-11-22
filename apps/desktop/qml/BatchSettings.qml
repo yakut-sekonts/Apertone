@@ -37,13 +37,13 @@ GridLayout {
         parent: Overlay.overlay; anchors.centerIn: parent
         width: 430; implicitWidth: 430; modal: true
         title: qsTranslate("Apertone", "Sync Settings")
-        property int groups: 4095
+        property int groups: 32767
         ColumnLayout {
             width: parent.width
             Label { text: qsTranslate("Apertone", "Source: ") + editor.filename; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", "Selected photos: ") + library.selectedCount + qsTranslate("Apertone", ". Only the selected groups will change."); wrapMode: Text.Wrap; Layout.fillWidth: true }
             Repeater {
-                model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"),qsTranslate("Apertone","Presence"),qsTranslate("Apertone","Point Color"),qsTranslate("Apertone","Color Grading"),qsTranslate("Apertone","Effects")]
+                model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"),qsTranslate("Apertone","Presence"),qsTranslate("Apertone","Point Color"),qsTranslate("Apertone","Color Grading"),qsTranslate("Apertone","Effects"),qsTranslate("Apertone","Black and White")]
                 ApertoneCheckBox {
                     required property string modelData
                     required property int index

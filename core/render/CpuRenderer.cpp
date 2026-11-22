@@ -161,11 +161,14 @@ DisplayImage renderCPU(const FloatImage &source, EditDocument edits, int orienta
         return sharpening.pixel(developed, sx, sy);
     };
     auto presenceEdits = edits;
-    if (diagnostic != DetailDiagnostic::none)
+    if (diagnostic != DetailDiagnostic::none) {
         presenceEdits.setEnabled(Correction::presence, false);
+        presenceEdits.setEnabled(Correction::defringe, false);
+    }
     const PresencePass presence(input, presenceEdits, detailPixel, stop, detailScale);
+    const DefringePass defringe(presenceEdits, input.width, input.height, detailScale);
     const auto referencePixel = [&](int x, int y) {
-        return presence.pixel(detailPixel(x, y), x, y);
+        return presence.pixel(defringe.pixel(detailPixel(x, y), x, y, detailPixel), x, y);
     };
     const bool hasLocalBlur =
         diagnostic == DetailDiagnostic::none &&

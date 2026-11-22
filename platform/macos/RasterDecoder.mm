@@ -134,6 +134,20 @@ PhotoMetadata metadata(CGImageSourceRef source, std::size_t index) {
     auto *tiff = section(root, kCGImagePropertyTIFFDictionary);
     auto *exif = section(root, kCGImagePropertyExifDictionary);
     auto *aux = section(root, kCGImagePropertyExifAuxDictionary);
+    auto *gps = section(root, kCGImagePropertyGPSDictionary);
+    const auto coordinate = [&](CFStringRef key, CFStringRef direction, const char *positive,
+                                const char *negative, double maximum) -> std::optional<double> {
+        const auto magnitude = number(gps, key, -1);
+        const auto reference = text(gps, direction);
+        if (!std::isfinite(magnitude) || magnitude < 0 || magnitude > maximum ||
+            (reference != positive && reference != negative))
+            return std::nullopt;
+        return reference == negative ? -magnitude : magnitude;
+    };
+    result.latitude = coordinate(kCGImagePropertyGPSLatitude, kCGImagePropertyGPSLatitudeRef,
+                                 "N", "S", 90);
+    result.longitude = coordinate(kCGImagePropertyGPSLongitude, kCGImagePropertyGPSLongitudeRef,
+                                  "E", "W", 180);
     const auto make = text(tiff, kCGImagePropertyTIFFMake),
                model = text(tiff, kCGImagePropertyTIFFModel);
     if (make.empty() || model.starts_with(make))

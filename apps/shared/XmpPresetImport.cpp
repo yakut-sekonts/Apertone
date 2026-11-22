@@ -174,6 +174,10 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         else if (!value.isEmpty())
             preset.name = value;
     }
+    if (fields.contains(QStringLiteral("Version")))
+        result.sourceVersion = text(QStringLiteral("Version")).left(32);
+    if (fields.contains(QStringLiteral("ProcessVersion")))
+        result.processVersion = text(QStringLiteral("ProcessVersion")).left(32);
     const auto set = [&](const QString &key, const std::string &parameter) {
         if (!fields.contains(key))
             return;
@@ -187,6 +191,26 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         if (fields.contains(key))
             consumed.insert(old);
     };
+    if (fields.contains(QStringLiteral("ConvertToGrayscale"))) {
+        const auto value = text(QStringLiteral("ConvertToGrayscale")).toLower();
+        require(value == "true" || value == "false", "Invalid ConvertToGrayscale value.");
+        preset.settings.setParameter("bw.active", value == "true" ? 1 : 0);
+        preset.parameters.emplace_back("bw.active");
+    }
+    for (const auto &[field, parameter] :
+         {std::pair{"GrayMixerRed", "bw.red"}, std::pair{"GrayMixerOrange", "bw.orange"},
+          std::pair{"GrayMixerYellow", "bw.yellow"}, std::pair{"GrayMixerGreen", "bw.green"},
+          std::pair{"GrayMixerAqua", "bw.aqua"}, std::pair{"GrayMixerBlue", "bw.blue"},
+          std::pair{"GrayMixerPurple", "bw.purple"}, std::pair{"GrayMixerMagenta", "bw.magenta"}})
+        set(QString::fromLatin1(field), parameter);
+    for (const auto &[field, parameter] :
+         {std::pair{"ShadowTint", "calibration.shadowTint"}, std::pair{"RedHue", "calibration.redHue"},
+          std::pair{"RedSaturation", "calibration.redSaturation"},
+          std::pair{"GreenHue", "calibration.greenHue"},
+          std::pair{"GreenSaturation", "calibration.greenSaturation"},
+          std::pair{"BlueHue", "calibration.blueHue"},
+          std::pair{"BlueSaturation", "calibration.blueSaturation"}})
+        set(QString::fromLatin1(field), parameter);
     for (const auto &[modern, legacy, parameter] :
          {std::tuple{"Exposure2012", "Exposure", "exposure"},
           std::tuple{"Contrast2012", "Contrast", "contrast"},
@@ -314,10 +338,7 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         if (consumed.contains(it.key()) || metadata.contains(it.key()))
             continue;
         // These properties are inert when empty/false; no renderer data is discarded.
-        if ((it.key() == QStringLiteral("CameraModelRestriction") &&
-             scalar(it.value()).isEmpty()) ||
-            (it.key() == QStringLiteral("ConvertToGrayscale") &&
-             scalar(it.value()).compare(QStringLiteral("False"), Qt::CaseInsensitive) == 0))
+        if (it.key() == QStringLiteral("CameraModelRestriction") && scalar(it.value()).isEmpty())
             continue;
         result.unsupported.append(it.key());
     }

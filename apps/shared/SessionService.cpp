@@ -168,6 +168,19 @@ std::shared_ptr<const DecodedImage> SessionService::fullResolution(const AssetRe
     originals_->put(key, decoded, bytes, generation);
     return decoded;
 }
+void SessionService::prepareOfflinePreview(const AssetRecord &asset, CancellationToken stop) const {
+    bool repair = false;
+    try {
+        if (loadOfflinePreview(catalogPath_, asset.checksum, stop))
+            return;
+    } catch (const std::exception &) {
+        checkCancellation(stop);
+        repair = true;
+    }
+    const auto original = fullResolution(asset, stop);
+    saveOfflinePreview(catalogPath_, asset.checksum, original->image, original->calibration, stop,
+                       repair);
+}
 void SessionService::setCacheBudget(std::size_t bytes) {
     previews_->setBudget(bytes / 3);
     originals_->setBudget(bytes - bytes / 3);

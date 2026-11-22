@@ -62,10 +62,10 @@ void stackChecks() {
             "Quick Look stack did not survive the creative codec.");
     std::ostringstream version2;
     version2.imbue(std::locale::classic());
-    version2 << "LUMA_CREATIVE 2 " << source.creative.enabled
+    version2 << "LUMA_CREATIVE 2 " << (source.creative.enabled & 4063232U)
              << std::setprecision(std::numeric_limits<double>::max_digits10);
-    for (const auto value : source.creative.values)
-        version2 << ' ' << value;
+    for (std::size_t i = 0; i < 34; ++i)
+        version2 << ' ' << source.creative.values[i];
     version2 << ' ' << source.creative.quickLooks.size() << '\n';
     for (const auto &layer : source.creative.quickLooks)
         version2 << std::quoted(layer.id) << ' ' << std::quoted(layer.recipe) << ' ' << layer.amount
@@ -74,10 +74,10 @@ void stackChecks() {
             "Creative codec stopped reading version 2 Quick Look stacks.");
     std::ostringstream version3;
     version3.imbue(std::locale::classic());
-    version3 << "LUMA_CREATIVE 3 " << source.creative.enabled
+    version3 << "LUMA_CREATIVE 3 " << (source.creative.enabled & 4063232U)
              << std::setprecision(std::numeric_limits<double>::max_digits10);
-    for (const auto value : source.creative.values)
-        version3 << ' ' << value;
+    for (std::size_t i = 0; i < 34; ++i)
+        version3 << ' ' << source.creative.values[i];
     version3 << ' ' << source.creative.quickLooks.size() << '\n';
     for (const auto &layer : source.creative.quickLooks) {
         version3 << std::quoted(layer.id) << ' ' << std::quoted(layer.recipe) << ' ' << layer.amount
@@ -90,7 +90,7 @@ void stackChecks() {
     require(luma::decodeCreative(version3.str()) == source.creative,
             "Creative codec stopped reading version 3 Quick Look stacks.");
     const auto legacy = luma::encodeCreative(luma::CreativeSettings{});
-    require(legacy.starts_with("LUMA_CREATIVE 4 "), "Creative codec was not upgraded.");
+    require(legacy.starts_with("LUMA_CREATIVE 6 "), "Creative codec was not upgraded.");
 }
 void matchLookChecks() {
     luma::EditDocument target;

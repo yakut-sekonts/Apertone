@@ -123,7 +123,7 @@ QHash<int, QByteArray> LibraryModel::roleNames() const {
             {BurstID, "burstID"},
             {BurstSize, "burstSize"},
             {BurstBest, "burstBest"},
-            {CopyName, "copyName"}};
+            {CopyName, "copyName"}, {StackSize, "stackSize"}, {StackCover, "stackCover"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -194,6 +194,10 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         return item.burstBest;
     case CopyName:
         return QString::fromStdString(item.copyName);
+    case StackSize:
+        return item.stackSize;
+    case StackCover:
+        return item.stackCover;
     default:
         return {};
     }
@@ -509,6 +513,8 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
     next.cullingRecommendation = filter_.cullingRecommendation;
     next.faceGroupID = filter_.faceGroupID;
     next.bestOfBurstOnly = filter_.bestOfBurstOnly;
+    next.stackID = filter_.stackID;
+    next.collapseStacks = filter_.collapseStacks;
     try {
         next.validate();
     } catch (const std::exception &e) {
@@ -637,6 +643,53 @@ QString LibraryModel::selectedCopyName() const {
                 return QString::fromStdString(row.copyName);
     }
     return {};
+}
+QString LibraryModel::selectedStackID() const {
+    if (selected_.size() != 1)
+        return {};
+    const auto id = selected_.begin()->toStdString();
+    for (const auto &[number, rows] : pages_) {
+        (void)number;
+        for (const auto &row : rows)
+            if (row.id == id)
+                return QString::fromStdString(row.stackID);
+    }
+    return {};
+}
+void LibraryModel::viewStack(const QString &id) {
+    if (working() || id.size() > 64 || filter_.stackID == id.toStdString())
+        return;
+    filter_.stackID = id.toStdString();
+    reload(true);
+}
+void LibraryModel::setCollapseStacks(bool collapse) {
+    if (working() || filter_.collapseStacks == collapse)
+        return;
+    filter_.collapseStacks = collapse;
+    reload(true);
+}
+void LibraryModel::stackSelection() {
+    auto ids = selectionIDs();
+    if (selecting_ || ids.size() < 2)
+        return;
+    const auto cover = std::ranges::find(ids, activeID_.toStdString());
+    if (cover != ids.end())
+        std::rotate(ids.begin(), cover, cover + 1);
+    mutate([ids = std::move(ids)](auto &db) { db.createPhotoStack(ids); });
+}
+void LibraryModel::unstackSelection() {
+    const auto id = selectedStackID().toStdString();
+    if (!id.empty())
+        mutate([id](auto &db) { db.removePhotoStack(id); }, [this, id] {
+            if (filter_.stackID == id)
+                filter_.stackID.clear();
+            return false;
+        });
+}
+void LibraryModel::setSelectedStackCover() {
+    const auto ids = selectionIDs();
+    if (ids.size() == 1)
+        mutate([id = ids.front()](auto &db) { db.setPhotoStackCover(id); });
 }
 void LibraryModel::createVirtualCopy(const QString &id, const QString &name) {
     mutate([id, name](auto &db) { db.createVirtualCopy(id.toStdString(), name.trimmed().toStdString()); });
@@ -900,6 +953,7 @@ void LibraryModel::cancelImport() {
 }
 bool LibraryModel::requestClose() {
     closing_ = true;
+    captureTimer_.stop();
     filterTimer_.stop();
     sourceWatchTimer_.stop();
     cancelImport();

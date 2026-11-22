@@ -85,6 +85,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool aiSubjectAvailable READ aiSubjectAvailable NOTIFY stateChanged)
     Q_PROPERTY(bool aiPeopleAvailable READ aiPeopleAvailable NOTIFY stateChanged)
     Q_PROPERTY(bool aiFaceAvailable READ aiFaceAvailable NOTIFY stateChanged)
+    Q_PROPERTY(bool aiDepthAvailable READ aiDepthAvailable NOTIFY stateChanged)
     Q_PROPERTY(bool skyModelBundled READ skyModelBundled NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
@@ -128,6 +129,7 @@ class EditorController final : public QObject {
     Q_PROPERTY(QString status READ status NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString previewUrl READ previewUrl NOTIFY previewChanged)
+    Q_PROPERTY(QVariantMap referencePhoto READ referencePhoto NOTIFY referenceChanged)
     Q_PROPERTY(bool oneToOne READ oneToOne WRITE setOneToOne NOTIFY stateChanged)
     Q_PROPERTY(QString zoomMode READ zoomMode WRITE setZoomMode NOTIFY stateChanged)
     Q_PROPERTY(double zoomFactor READ zoomFactor WRITE setZoomFactor NOTIFY stateChanged)
@@ -346,6 +348,9 @@ class EditorController final : public QObject {
         return error_;
     }
     QString previewUrl() const;
+    QVariantMap referencePhoto() const;
+    Q_INVOKABLE void pinReference(const QString &id);
+    Q_INVOKABLE void clearReference();
     bool oneToOne() const {
         return zoomMode() == QStringLiteral("manual") && zoomFactor_ == 1;
     }
@@ -425,6 +430,9 @@ class EditorController final : public QObject {
     }
     bool aiFaceAvailable() const {
         return segmentation_ && segmentation_->supports(luma::ai::Selection::face);
+    }
+    bool aiDepthAvailable() const {
+        return segmentation_ && segmentation_->supports(luma::ai::Selection::depthRange);
     }
     bool skyModelBundled() const;
     Q_INVOKABLE void setSkyModel(const QUrl &url);
@@ -597,6 +605,7 @@ class EditorController final : public QObject {
     void histogramChanged();
     void stateChanged();
     void previewChanged();
+    void referenceChanged();
     void photoLoaded(const QString &id);
     void editsSaved(const QString &id);
     void closeReady();
@@ -700,6 +709,10 @@ class EditorController final : public QObject {
     luma::JobManager renderJobs_;
     luma::JobManager compareJobs_;
     luma::JobHandle compareJob_;
+    luma::JobHandle referenceJob_;
+    std::uint64_t referenceRevision_ = 0;
+    QString referenceName_, referenceError_, referenceUrl_;
+    bool referenceBusy_ = false;
     std::uint64_t compareRevision_ = 0, compareImageRevision_ = 0;
     bool compareBusy_ = false, compareReady_ = false, compareFull_ = false;
     bool compareBeforeAfter_ = false;

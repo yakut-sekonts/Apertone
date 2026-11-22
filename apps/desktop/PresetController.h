@@ -18,6 +18,8 @@ class PresetController final : public QObject {
     Q_PROPERTY(QStringList importUnsupported READ importUnsupported NOTIFY stateChanged)
     Q_PROPERTY(QString importedId READ importedId NOTIFY stateChanged)
     Q_PROPERTY(bool hasCopiedSettings READ hasCopiedSettings NOTIFY stateChanged)
+    Q_PROPERTY(int lastCopyGroups READ lastCopyGroups NOTIFY stateChanged)
+    Q_PROPERTY(QString xmpVersionText READ xmpVersionText NOTIFY stateChanged)
   public:
     PresetController(QString path, EditorController &editor, QObject *parent = nullptr);
     QVariantList items() const;
@@ -40,6 +42,8 @@ class PresetController final : public QObject {
     bool hasCopiedSettings() const {
         return copied_.has_value();
     }
+    int lastCopyGroups() const { return lastCopyGroups_; }
+    QString xmpVersionText() const { return xmpVersionText_.text(); }
     luma::DevelopPreset snapshot(const QString &id) const {
         return find(id);
     }
@@ -56,6 +60,9 @@ class PresetController final : public QObject {
     Q_INVOKABLE bool moveFolder(const QStringList &source, const QStringList &destination);
     Q_INVOKABLE bool importPreset(const QUrl &url);
     Q_INVOKABLE bool applyXmpToPhoto(const QUrl &url, const QString &photoID);
+    Q_INVOKABLE bool previewPhotoXmp(const QUrl &url, const QString &photoID);
+    Q_INVOKABLE bool confirmPhotoXmp();
+    Q_INVOKABLE void closePhotoXmpPreview();
     Q_INVOKABLE bool exportPreset(const QString &id, const QUrl &url);
     Q_INVOKABLE void apply(const QString &id);
     Q_INVOKABLE void preview(const QString &id);
@@ -79,6 +86,10 @@ class PresetController final : public QObject {
     EditorController &editor_;
     std::vector<luma::StoredPreset> presets_;
     std::optional<luma::DevelopPreset> copied_;
+    int lastCopyGroups_ = static_cast<int>(luma::allSettingsGroups);
+    std::optional<luma::DevelopPreset> xmpPreview_;
+    QString xmpPhotoID_;
+    LocalizedText xmpVersionText_;
     QString error_;
     LocalizedText importNotice_;
     QStringList importUnsupported_;

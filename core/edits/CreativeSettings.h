@@ -50,8 +50,27 @@ inline constexpr std::array creativeParameters{
     CreativeParameter{"vignette.highlights", "Highlights", 0, 100, 0, 2048, 1048576},
     CreativeParameter{"grain.amount", "Amount", 0, 100, 0, 2048, 2097152},
     CreativeParameter{"grain.size", "Size", 0, 100, 25, 2048, 2097152},
-    CreativeParameter{"grain.roughness", "Roughness", 0, 100, 50, 2048, 2097152}};
-inline constexpr std::uint32_t creativeCorrectionMask = 4063232;
+    CreativeParameter{"grain.roughness", "Roughness", 0, 100, 50, 2048, 2097152},
+    CreativeParameter{"bw.active", "Black and white", 0, 1, 0, 4096, 4194304},
+    CreativeParameter{"bw.red", "Red", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.orange", "Orange", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.yellow", "Yellow", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.green", "Green", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.aqua", "Aqua", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.blue", "Blue", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.purple", "Purple", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"bw.magenta", "Magenta", -100, 100, 0, 4096, 4194304},
+    CreativeParameter{"defringe.amount", "Amount", 0, 100, 0, 8192, 8388608},
+    CreativeParameter{"defringe.hue", "Fringe hue", 0, 360, 285, 8192, 8388608},
+    CreativeParameter{"defringe.width", "Hue range", 1, 90, 40, 8192, 8388608},
+    CreativeParameter{"calibration.shadowTint", "Shadow tint", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.redHue", "Red primary hue", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.redSaturation", "Red primary saturation", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.greenHue", "Green primary hue", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.greenSaturation", "Green primary saturation", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.blueHue", "Blue primary hue", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.blueSaturation", "Blue primary saturation", -100, 100, 0, 16384, 16777216}};
+inline constexpr std::uint32_t creativeCorrectionMask = 4063232 | 4194304 | 8388608 | 16777216;
 bool isCreativeParameter(std::string_view name);
 const CreativeParameter &creativeParameter(std::string_view name);
 struct CreativeSettings {

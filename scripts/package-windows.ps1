@@ -30,7 +30,8 @@ if ($LASTEXITCODE -ne 0) {
 foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
                          "platforms/qwindows.dll", "imageformats/qtiff.dll",
                          "imageformats/qwebp.dll", "onnxruntime.dll",
-                         "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx")) {
+                         "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx",
+                         "Models/yunet.onnx", "Models/depth-anything-v2.onnx", "Models/drunet-color.onnx")) {
     if (!(Test-Path -LiteralPath (Join-Path $output $required) -PathType Leaf)) {
         throw "Deployment is missing $required."
     }

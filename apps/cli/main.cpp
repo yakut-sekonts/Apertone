@@ -1,6 +1,7 @@
 #include "core/io/Path.h"
 #include "apps/cli/Json.h"
 #include "apps/cli/LibraryCommands.h"
+#include "apps/shared/PhotoDelivery.h"
 #include "apps/shared/SessionService.h"
 #include "core/lens/LensProfiles.h"
 #include <algorithm>
@@ -10,10 +11,8 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#ifdef _WIN32
 #include <QGuiApplication>
 #include <QString>
-#endif
 
 namespace {
 using luma::cli::quoted;
@@ -150,6 +149,8 @@ int main(int argc, char **argv) {
                 << "       apertone enable|disable CORRECTION --catalog FILE\n"
                 << "       apertone wb as-shot --catalog FILE\n"
                 << "       apertone export DEST [--quality N] [--overwrite] --catalog FILE\n"
+                << "       apertone deliver contact-sheet|book|gallery|slideshow DEST TITLE IDS... --catalog FILE\n"
+                << "       apertone prepare-offline IDS... --catalog FILE\n"
                 << "       apertone catalog verify --catalog FILE\n"
                 << "       apertone import add SOURCES... | import copy DEST SOURCES... "
                    "--catalog FILE\n"
@@ -173,7 +174,26 @@ int main(int argc, char **argv) {
         if (luma::cli::libraryCommand(catalog, arguments))
             return 0;
         luma::SessionService service(catalog);
-        if (arguments[0] == "open" && arguments.size() == 2) {
+        if (arguments[0] == "deliver" && arguments.size() >= 5) {
+#ifndef _WIN32
+            int qtArgc = 1;
+            QGuiApplication application(qtArgc, argv);
+#endif
+            const auto mode = exportChoice<luma::DeliveryFormat>(arguments[1],
+                std::array{"contact-sheet", "book", "gallery", "slideshow"});
+            luma::deliverPhotos(catalog, {arguments.begin() + 4, arguments.end()},
+                                luma::pathFromUtf8(arguments[2]), mode, arguments[3]);
+            std::cout << "{\"delivered\":true}\n";
+        } else if (arguments[0] == "prepare-offline" && arguments.size() >= 2) {
+            const luma::Catalog db(catalog, luma::CatalogOpenMode::existingOnly);
+            for (std::size_t i = 1; i < arguments.size(); ++i) {
+                const auto asset = db.assetByID(arguments[i]);
+                if (!asset)
+                    throw std::runtime_error("The photo is no longer in the catalog.");
+                service.prepareOfflinePreview(*asset);
+            }
+            std::cout << "{\"processed\":" << arguments.size() - 1 << "}\n";
+        } else if (arguments[0] == "open" && arguments.size() == 2) {
             printSession(service.open(luma::pathFromUtf8(arguments[1])));
         } else if (arguments[0] == "open-asset" && arguments.size() == 2) {
             printSession(service.openAsset(arguments[1]));

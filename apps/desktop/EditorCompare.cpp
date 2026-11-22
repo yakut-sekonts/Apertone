@@ -44,6 +44,70 @@ QImage renderComparison(const luma::SessionService &service, const luma::AssetRe
 }
 } // namespace
 
+QVariantMap EditorController::referencePhoto() const {
+    return {{"busy", referenceBusy_}, {"name", referenceName_}, {"error", referenceError_},
+            {"source", referenceUrl_}};
+}
+void EditorController::clearReference() {
+    referenceJob_.cancel();
+    ++referenceRevision_;
+    referenceBusy_ = false;
+    referenceName_.clear();
+    referenceError_.clear();
+    referenceUrl_.clear();
+    provider_->updateReference({});
+    emit referenceChanged();
+}
+void EditorController::pinReference(const QString &id) {
+    if (closing_ || id.isEmpty())
+        return;
+    clearReference();
+    referenceBusy_ = true;
+    emit referenceChanged();
+    const auto revision = referenceRevision_;
+    const auto catalogPath = catalog_;
+    const auto service = service_;
+    auto active = session_ && photoID() == id ? std::optional{history_.current()} : std::nullopt;
+    const QPointer<EditorController> self(this);
+    try {
+        referenceJob_ = compareJobs_.submit(luma::JobPriority::interactive,
+            [self, revision, catalogPath, service, id, active = std::move(active)](const auto &job) {
+                QImage image;
+                QString name, error;
+                try {
+                    auto asset = luma::Catalog(catalogPath, luma::CatalogOpenMode::existingOnly)
+                                     .assetByID(id.toStdString());
+                    if (!asset)
+                        throw std::runtime_error("The reference photo is no longer in the catalog.");
+                    if (active)
+                        asset->edits = *active;
+                    image = renderComparison(service, *asset, catalogPath, 2048, {}, true, job.stopToken());
+                    name = QString::fromStdString(luma::pathUtf8(asset->path.filename()));
+                } catch (const std::exception &failure) {
+                    error = QString::fromUtf8(failure.what());
+                }
+                if (!self || job.stopToken().isCancelled())
+                    return;
+                QMetaObject::invokeMethod(self, [self, revision, image = std::move(image), name, error]() mutable {
+                    if (!self || self->referenceRevision_ != revision)
+                        return;
+                    self->referenceBusy_ = false;
+                    self->referenceError_ = error;
+                    self->referenceName_ = name;
+                    if (!image.isNull()) {
+                        self->provider_->updateReference(std::move(image));
+                        self->referenceUrl_ = QStringLiteral("image://preview/reference?%1").arg(revision);
+                    }
+                    emit self->referenceChanged();
+                }, Qt::QueuedConnection);
+            });
+    } catch (const std::exception &failure) {
+        referenceBusy_ = false;
+        referenceError_ = QString::fromUtf8(failure.what());
+        emit referenceChanged();
+    }
+}
+
 QVariantMap EditorController::comparison() const {
     QStringList sources;
     for (qsizetype i = 0; i < compareIDs_.size(); ++i)

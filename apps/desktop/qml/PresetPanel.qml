@@ -97,7 +97,7 @@ ColumnLayout {
         folderField.text = create ? "" : selected.folder
         editDialog.setParents(create ? folderPath.slice(0, -1) : selected.folderParents)
         if (create && folderPath.length) folderField.text = folderPath[folderPath.length - 1]
-        editDialog.groups = create ? 4095 : selected.groups
+        editDialog.groups = create ? 32767 : selected.groups
         capture.checked = create
         editDialog.open()
     }
@@ -418,7 +418,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true; spacing: 4
         ApertoneButton { objectName: "preset.copy"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Apertone", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
-            onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = 4095; editDialog.open() }
+            onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = presets.lastCopyGroups; editDialog.open() }
         }
         ApertoneButton { objectName: "preset.paste"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
     }
@@ -466,7 +466,7 @@ ColumnLayout {
         objectName: "presetEditor"
         property string presetId: ""
         property bool copyMode: false
-        property int groups: 4095
+        property int groups: 32767
         function setParents(parts) {
             parentModel.clear()
             for (const part of parts) parentModel.append({ folderName: part })
@@ -510,7 +510,7 @@ ColumnLayout {
                 ApertoneButton { objectName: "presetAddParentFolder"; visible: !editDialog.copyMode; enabled: parentModel.count < 16; text: qsTranslate("Apertone", "Add parent folder"); onClicked: parentModel.append({ folderName: "" }) }
                 Label { text: qsTranslate("Apertone", "Settings groups"); color: Theme.text }
                 Repeater {
-                    model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"), qsTranslate("Apertone", "Presence"), qsTranslate("Apertone", "Point Color"), qsTranslate("Apertone", "Color Grading"), qsTranslate("Apertone", "Effects")]
+                    model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"), qsTranslate("Apertone", "Presence"), qsTranslate("Apertone", "Point Color"), qsTranslate("Apertone", "Color Grading"), qsTranslate("Apertone", "Effects"), qsTranslate("Apertone", "Black and White"), qsTranslate("Apertone", "Defringe"), qsTranslate("Apertone", "Calibration")]
                     ApertoneCheckBox {
                         required property string modelData
                         required property int index
@@ -610,7 +610,30 @@ ColumnLayout {
         property string photoId: ""
         title: qsTranslate("Apertone", "Apply XMP to photo…")
         nameFilters: ["XMP (*.xmp)"]
-        onAccepted: presets.applyXmpToPhoto(selectedFile, photoId)
+        onAccepted: { if (presets.previewPhotoXmp(selectedFile, photoId)) photoXmpPreview.open() }
+    }
+    Dialog {
+        id: photoXmpPreview
+        objectName: "photoXmpPreview"
+        title: qsTranslate("Apertone", "Review XMP settings")
+        parent: Overlay.overlay; anchors.centerIn: parent; modal: true
+        width: Math.min(520, parent.width - 32); height: Math.min(340, parent.height - 32)
+        onClosed: presets.closePhotoXmpPreview()
+        contentItem: ColumnLayout {
+            Label { text: presets.xmpVersionText; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: presets.importNotice; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { visible: presets.importUnsupported.length > 0; text: qsTranslate("Apertone", "Unsupported XMP settings"); Layout.fillWidth: true }
+            ListView {
+                model: presets.importUnsupported; clip: true; Layout.fillWidth: true; Layout.fillHeight: true
+                delegate: Label { required property string modelData; text: modelData; textFormat: Text.PlainText; width: ListView.view.width; wrapMode: Text.Wrap }
+                ScrollBar.vertical: ScrollBar {}
+            }
+            Label { visible: !!presets.error; text: presets.error; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true; color: Theme.negative }
+        }
+        footer: DialogButtonBox {
+            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: photoXmpPreview.close() }
+            ApertoneButton { text: qsTranslate("Apertone", "Apply"); onClicked: { if (presets.confirmPhotoXmp()) photoXmpPreview.close() } }
+        }
     }
     FileDialog {
         id: exportDialog; objectName: "presetExportDialog"; property string presetId: ""

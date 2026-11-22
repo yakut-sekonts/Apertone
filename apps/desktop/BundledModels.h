@@ -8,9 +8,9 @@ namespace luma::desktop {
 enum class BundledModel { denoise, sky };
 inline QString bundledModelPath(BundledModel model) {
 #ifdef _WIN32
-    if (model != BundledModel::sky)
-        return {};
-    const QFileInfo file(QCoreApplication::applicationDirPath() + QStringLiteral("/Models/skyseg.onnx"));
+    const auto name = model == BundledModel::denoise ? QStringLiteral("/Models/drunet-color.onnx")
+                                                    : QStringLiteral("/Models/skyseg.onnx");
+    const QFileInfo file(QCoreApplication::applicationDirPath() + name);
     return file.isFile() && !file.isSymLink() ? file.absoluteFilePath() : QString();
 #else
     const auto filename = model == BundledModel::denoise ? QStringLiteral("LumaDenoise.mlmodelc")
