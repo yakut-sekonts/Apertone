@@ -82,6 +82,9 @@ class EditorController final : public QObject {
     Q_PROPERTY(QVariantMap parameters READ parameters NOTIFY stateChanged)
     Q_PROPERTY(QString skyModelName READ skyModelName NOTIFY stateChanged)
     Q_PROPERTY(bool skyModelConfigured READ skyModelConfigured NOTIFY stateChanged)
+    Q_PROPERTY(bool aiSubjectAvailable READ aiSubjectAvailable NOTIFY stateChanged)
+    Q_PROPERTY(bool aiPeopleAvailable READ aiPeopleAvailable NOTIFY stateChanged)
+    Q_PROPERTY(bool aiFaceAvailable READ aiFaceAvailable NOTIFY stateChanged)
     Q_PROPERTY(bool skyModelBundled READ skyModelBundled NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap correctionStates READ correctionStates NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap curvePoints READ curvePoints NOTIFY stateChanged)
@@ -411,7 +414,17 @@ class EditorController final : public QObject {
     Q_INVOKABLE void setDenoiseModel(const QUrl &url);
     QString skyModelName() const;
     bool skyModelConfigured() const {
-        return !skyModelPath_.isEmpty();
+        return !skyModelPath_.isEmpty() ||
+               (segmentation_ && segmentation_->supports(luma::ai::Selection::sky));
+    }
+    bool aiSubjectAvailable() const {
+        return segmentation_ && segmentation_->supports(luma::ai::Selection::subject);
+    }
+    bool aiPeopleAvailable() const {
+        return segmentation_ && segmentation_->supports(luma::ai::Selection::people);
+    }
+    bool aiFaceAvailable() const {
+        return segmentation_ && segmentation_->supports(luma::ai::Selection::face);
     }
     bool skyModelBundled() const;
     Q_INVOKABLE void setSkyModel(const QUrl &url);
@@ -763,7 +776,7 @@ class EditorController final : public QObject {
     void closeTransformTool();
     void applyTransform(luma::TransformSettings settings);
     void advancedFailure(const std::exception &failure);
-    void load(std::optional<std::filesystem::path> source);
+    void load(std::optional<std::filesystem::path> source, const std::string &assetID = {});
     void render(bool fullQuality = false);
     void applyCacheBudget();
     void handleMemoryPressure(luma::macos::MemoryPressure pressure);

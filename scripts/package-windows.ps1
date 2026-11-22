@@ -29,9 +29,22 @@ if ($LASTEXITCODE -ne 0) {
 }
 foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
                          "platforms/qwindows.dll", "imageformats/qtiff.dll",
-                         "imageformats/qwebp.dll")) {
+                         "imageformats/qwebp.dll", "onnxruntime.dll",
+                         "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx")) {
     if (!(Test-Path -LiteralPath (Join-Path $output $required) -PathType Leaf)) {
         throw "Deployment is missing $required."
     }
 }
+
+$commit = git -C $source rev-parse HEAD
+if ($LASTEXITCODE -ne 0) {
+    throw "Cannot identify the source commit."
+}
+$tree = git -C $source rev-parse 'HEAD^{tree}'
+if ($LASTEXITCODE -ne 0) {
+    throw "Cannot identify the source tree."
+}
+@("Repository: https://github.com/yakut-sekonts/Apertone", "Commit: $commit",
+  "Tree: $tree", "Platform: Windows x64") |
+    Set-Content -LiteralPath (Join-Path $output "BUILD-ORIGIN.txt") -Encoding utf8
 Get-Item -LiteralPath $desktop

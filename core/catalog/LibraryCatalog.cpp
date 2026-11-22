@@ -12,7 +12,9 @@ namespace {
 using detail::Statement;
 constexpr auto where =
     " WHERE a.rating>=?1 AND (?2=-2 OR a.flag=?2)"
-    " AND (?3='' OR a.filename LIKE ?3 ESCAPE '\\' OR a.original_path LIKE ?3 ESCAPE '\\'"
+    " AND (?3='' OR a.filename LIKE ?3 ESCAPE '\\' OR a.copy_name LIKE ?3 ESCAPE '\\'"
+    " OR COALESCE((SELECT original_path FROM assets original WHERE original.id=a.original_asset_id),"
+    " a.original_path) LIKE ?3 ESCAPE '\\'"
     " OR a.camera LIKE ?3 ESCAPE '\\' OR a.lens LIKE ?3 ESCAPE '\\'"
     " OR EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND k.keyword LIKE ?3 ESCAPE "
     "'\\')"
@@ -125,14 +127,16 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
         throw std::runtime_error("Invalid metadata page bounds.");
     Statement query(
         db_,
-        ("SELECT a.id,a.original_path,a.filename,a.checksum,a.width,a.height,a.orientation,"
+        ("SELECT a.id,COALESCE(original.original_path,a.original_path),a.filename,a.checksum,"
+         "a.width,a.height,a.orientation,"
          "a.rating,a.flag,COALESCE(a.color_label,''),a.camera,COALESCE(q.score,-1),"
          "COALESCE(q.recommendation,-2),COALESCE(q.reason_flags,0),"
          "(SELECT COUNT(*) FROM face_instances f WHERE f.asset_id=a.id AND q.asset_id IS NOT NULL),"
          "COALESCE(b.stack_id,''),(SELECT COUNT(*) FROM burst_members bm JOIN culling_analysis "
          "bc ON bc.asset_id=bm.asset_id JOIN assets ba ON ba.id=bc.asset_id AND "
-         "ba.checksum=bc.checksum WHERE bm.stack_id=b.stack_id),COALESCE(b.is_best,0) FROM "
-         "assets a LEFT JOIN "
+         "ba.checksum=bc.checksum WHERE bm.stack_id=b.stack_id),COALESCE(b.is_best,0),"
+         "COALESCE(a.original_asset_id,''),a.copy_name FROM "
+         "assets a LEFT JOIN assets original ON original.id=a.original_asset_id LEFT JOIN "
          "culling_analysis q ON q.asset_id=a.id AND q.checksum=a.checksum LEFT JOIN "
          "burst_members b ON b.asset_id=a.id AND q.asset_id IS NOT NULL" +
          resolved.where + order + " LIMIT ?10 OFFSET ?11")
@@ -168,6 +172,8 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
         item.burstID = query.string(15);
         item.burstSize = static_cast<int>(query.integer(16));
         item.burstBest = query.integer(17) != 0;
+        item.originalAssetID = query.string(18);
+        item.copyName = query.string(19);
         rows.push_back(std::move(item));
     }
     return rows;
@@ -663,10 +669,11 @@ Catalog::duplicateFingerprintPageFrom(const std::filesystem::path &path,
                                  sqlite3_errmsg(db.get()));
     const std::string select =
         "SELECT a.checksum,a.filesize,a.id,a.original_path,a.rowid FROM assets a "
-        "WHERE length(a.checksum)=64 AND length(CAST(a.checksum AS BLOB))=64 "
+        "WHERE a.original_asset_id IS NULL AND length(a.checksum)=64 "
+        "AND length(CAST(a.checksum AS BLOB))=64 "
         "AND a.checksum NOT GLOB '*[^0-9a-f]*' "
         "AND EXISTS(SELECT 1 FROM assets b WHERE b.checksum=a.checksum "
-        "AND b.filesize=a.filesize AND b.rowid!=a.rowid) ";
+        "AND b.filesize=a.filesize AND b.rowid!=a.rowid AND b.original_asset_id IS NULL) ";
     DuplicateFingerprintPage result;
     const auto read = [&](const char *predicate, bool bindRowID) {
         const auto sql = select + predicate + " ORDER BY a.checksum,a.filesize,a.rowid LIMIT ?4";

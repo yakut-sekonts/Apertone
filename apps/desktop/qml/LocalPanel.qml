@@ -54,41 +54,49 @@ ColumnLayout {
             onClicked: editor.addLocalMask(panel.kinds[newKind.currentIndex])
         }
         Label {
-            text: qsTranslate("Apertone", "Local AI · photos stay on this Mac")
-            visible: Qt.platform.os !== "windows"
+            text: qsTranslate("Apertone", "Local AI · photos stay on this device")
+            visible: editor.aiSubjectAvailable || editor.skyModelConfigured || editor.aiPeopleAvailable
             wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
             Layout.fillWidth: true
         }
         RowLayout {
-            visible: Qt.platform.os !== "windows"
+            visible: editor.aiSubjectAvailable
             Layout.fillWidth: true
             ApertoneButton { objectName: "localAI.subject"; text: qsTranslate("Apertone", "Subject"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("subject") }
             ApertoneButton { text: qsTranslate("Apertone", "Background"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.generateAIMask("background") }
         }
         ApertoneButton {
             text: qsTranslate("Apertone", "Select object")
-            visible: Qt.platform.os !== "windows"
+            visible: editor.aiSubjectAvailable
             enabled: !editor.aiBusy
             Layout.fillWidth: true
             onClicked: editor.beginAIObjectSelection()
         }
         ApertoneButton {
             text: qsTranslate("Apertone", "Sky")
-            visible: Qt.platform.os !== "windows"
+            visible: editor.skyModelConfigured || Qt.platform.os !== "windows"
             enabled: !editor.aiBusy && editor.skyModelConfigured
             Layout.fillWidth: true
             onClicked: editor.generateAIMask("sky")
             ToolTip.visible: hovered && !editor.skyModelConfigured
             ToolTip.text: qsTranslate("Apertone", "Choose a compatible local Sky model in Settings.")
         }
+        ApertoneButton {
+            objectName: "localAI.people"
+            text: qsTranslate("Apertone", "People")
+            visible: editor.aiPeopleAvailable
+            enabled: !editor.aiBusy
+            Layout.fillWidth: true
+            onClicked: editor.generateAIMask("people")
+        }
         Label {
             text: qsTranslate("Apertone", "People details")
-            visible: Qt.platform.os !== "windows"
+            visible: editor.aiFaceAvailable
             font.pixelSize: 10; font.weight: Font.DemiBold; color: Theme.muted
             Layout.fillWidth: true
         }
         RowLayout {
-            visible: Qt.platform.os !== "windows"
+            visible: editor.aiFaceAvailable
             Layout.fillWidth: true
             ApertoneButton { objectName: "localAI.face"; text: qsTranslate("Apertone", "Face"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("face") }
             ApertoneButton { objectName: "localAI.eyes"; text: qsTranslate("Apertone", "Eyes"); enabled: !editor.aiBusy; Layout.fillWidth: true; onClicked: editor.beginAIMaskSelection("eyes") }

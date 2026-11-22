@@ -5,7 +5,8 @@
 namespace luma {
 std::optional<FileRecord> Catalog::fileRecord(const std::string &id) const {
     detail::Statement query(db_,
-                            "SELECT id,original_path,checksum,filesize FROM assets WHERE id=?1");
+                            "SELECT o.id,o.original_path,o.checksum,o.filesize FROM assets a "
+                            "JOIN assets o ON o.id=COALESCE(a.original_asset_id,a.id) WHERE a.id=?1");
     query.text(1, id);
     if (!query.row())
         return {};
@@ -16,7 +17,8 @@ std::vector<FileRecord> Catalog::fileRecords(const std::string &after, int limit
         throw std::runtime_error("Invalid file metadata page size.");
     detail::Statement query(
         db_,
-        "SELECT id,original_path,checksum,filesize FROM assets WHERE id>?1 ORDER BY id LIMIT ?2");
+        "SELECT id,original_path,checksum,filesize FROM assets "
+        "WHERE id>?1 AND original_asset_id IS NULL ORDER BY id LIMIT ?2");
     query.text(1, after);
     query.integer(2, limit);
     std::vector<FileRecord> result;

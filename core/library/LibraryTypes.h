@@ -34,6 +34,7 @@ struct LibraryItem {
     std::string burstID;
     int burstSize = 0;
     bool burstBest = false;
+    std::string originalAssetID{}, copyName{};
 };
 struct CollectionRecord {
     std::string id, name;

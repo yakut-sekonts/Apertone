@@ -15,6 +15,7 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
         QElapsedTimer clock;
         qint64 captureAfter = 0;
         QString thumbnailBeforeEdit;
+        QString originalID;
         QObject *survey = nullptr;
         QStringList surveyIDs;
         bool surveyChecked = false;
@@ -175,6 +176,31 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                         return;
                 }
                 state->phase = 10;
+                state->originalID = editor.photoID();
+                library.createVirtualCopy(state->originalID, QStringLiteral("Library acceptance copy"));
+                break;
+            case 10:
+                if (library.count() != 3)
+                    return;
+                for (int i = 0; i < library.count(); ++i) {
+                    if (library.data(library.index(i), LibraryModel::CopyName).toString() ==
+                        QStringLiteral("Library acceptance copy")) {
+                        state->phase = 11;
+                        library.activate(i);
+                        break;
+                    }
+                }
+                break;
+            case 11:
+                if (editor.busy() || editor.photoID() == state->originalID)
+                    return;
+                if (!editor.hasPhoto() || editor.currentSettings().exposure != 1.75 ||
+                    !editor.filename().endsWith(QStringLiteral("Library acceptance copy"))) {
+                    std::cerr << "The virtual copy did not open with its own Library identity\n";
+                    app.exit(1);
+                    return;
+                }
+                state->phase = 12;
                 std::cout << "Library GUI acceptance passed\n";
                 window->close();
                 break;

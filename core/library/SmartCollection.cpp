@@ -1,5 +1,6 @@
 #include "core/library/SmartCollection.h"
 #include <algorithm>
+#include <charconv>
 #include <cmath>
 #include <iomanip>
 #include <locale>
@@ -30,15 +31,38 @@ std::string column(const std::string &field) {
         return "a.filename";
     if (field == "captureDate")
         return "strftime('%Y-%m-%d',a.capture_date,'unixepoch')";
+    if (field == "editDate")
+        return "(SELECT date(updated_at) FROM edit_documents ed WHERE ed.asset_id=a.id)";
+    if (field == "copyName")
+        return "a.copy_name";
+    if (field == "fileType")
+        return "(CASE lower(a.extension) WHEN '.jpg' THEN 'JPEG' WHEN '.jpeg' THEN 'JPEG' "
+               "WHEN '.tif' THEN 'TIFF' WHEN '.tiff' THEN 'TIFF' WHEN '.dng' THEN 'DNG' "
+               "WHEN '.png' THEN 'PNG' WHEN '.webp' THEN 'WEBP' WHEN '.heic' THEN 'HEIC' "
+               "WHEN '.avif' THEN 'AVIF' WHEN '.bmp' THEN 'BMP' WHEN '.psd' THEN 'PSD' "
+               "WHEN '.mp4' THEN 'VIDEO' WHEN '.mov' THEN 'VIDEO' ELSE 'RAW' END)";
     if (field == "label")
         return "COALESCE(a.color_label,'')";
     if (field == "keyword")
         return "k.keyword";
+    if (field == "labelText")
+        return "(SELECT m.xmp_label FROM asset_metadata m WHERE m.asset_id=a.id)";
     throw std::runtime_error("Unsupported smart collection field.");
 }
 bool numeric(const std::string &field) {
     return field == "rating" || field == "flag" || field == "iso" || field == "width" ||
            field == "height";
+}
+bool relativeDate(const std::string &duration) {
+    const auto separator = duration.find(' ');
+    if (separator == duration.npos)
+        return false;
+    unsigned amount = 0;
+    const auto result = std::from_chars(duration.data(), duration.data() + separator, amount);
+    const auto unit = std::string_view(duration).substr(separator + 1);
+    return result.ec == std::errc{} && result.ptr == duration.data() + separator &&
+           amount >= 1 && amount <= 36500 &&
+           (unit == "days" || unit == "months" || unit == "years");
 }
 void validateRule(const SmartRule &r, int depth, int &count) {
     require(++count <= 64 && depth <= 8);
@@ -52,9 +76,13 @@ void validateRule(const SmartRule &r, int depth, int &count) {
         (void)column(r.field);
         require(r.operation == "eq" || r.operation == "ne" || r.operation == "gt" ||
                 r.operation == "ge" || r.operation == "lt" || r.operation == "le" ||
-                r.operation == "contains");
+                r.operation == "contains" || r.operation == "notContains" ||
+                r.operation == "startsWith" || r.operation == "endsWith" ||
+                r.operation == "empty" || r.operation == "notEmpty" || r.operation == "inLast");
         if (numeric(r.field)) {
-            require(std::holds_alternative<double>(r.value) && r.operation != "contains");
+            require(std::holds_alternative<double>(r.value) &&
+                    (r.operation == "eq" || r.operation == "ne" || r.operation == "gt" ||
+                     r.operation == "ge" || r.operation == "lt" || r.operation == "le"));
             const double v = std::get<double>(r.value);
             require(std::isfinite(v));
             require(r.field == "flag"     ? v >= -1 && v <= 1
@@ -63,8 +91,11 @@ void validateRule(const SmartRule &r, int depth, int &count) {
         } else {
             require(std::holds_alternative<std::string>(r.value));
             const auto &v = std::get<std::string>(r.value);
-            require((!v.empty() || r.operation == "eq" || r.operation == "ne") &&
+            require((!v.empty() || r.operation == "eq" || r.operation == "ne" ||
+                     r.operation == "empty" || r.operation == "notEmpty") &&
                     v.size() <= 1024 && v.find('\0') == std::string::npos);
+            if (r.operation == "inLast")
+                require((r.field == "captureDate" || r.field == "editDate") && relativeDate(v));
         }
     }
 }
@@ -120,7 +151,18 @@ std::string compile(const SmartRule &r, SmartSQL &q, int first) {
         }
         return result + ")";
     }
+    const auto name = column(r.field);
+    if (r.operation == "empty" || r.operation == "notEmpty") {
+        const bool empty = r.operation == "empty";
+        if (r.field == "keyword")
+            return std::string(empty ? "NOT " : "") +
+                   "EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id)";
+        return "(COALESCE(" + name + ",'')" + (empty ? "=" : "<>") + "'')";
+    }
     auto value = r.value;
+    const bool pattern = r.operation == "contains" || r.operation == "notContains" ||
+                         r.operation == "startsWith" || r.operation == "endsWith";
+    const bool negate = r.operation == "notContains";
     const std::string op = (r.operation == "eq" || (r.field == "keyword" && r.operation == "ne"))
                                ? "="
                            : r.operation == "ne" ? "!="
@@ -129,21 +171,25 @@ std::string compile(const SmartRule &r, SmartSQL &q, int first) {
                            : r.operation == "lt" ? "<"
                            : r.operation == "le" ? "<="
                                                  : " LIKE ";
-    if (r.operation == "contains") {
-        std::string escaped = "%";
+    if (pattern) {
+        std::string escaped = r.operation == "startsWith" ? "" : "%";
         for (char c : std::get<std::string>(value)) {
             if (c == '%' || c == '_' || c == '\\')
                 escaped += '\\';
             escaped += c;
         }
-        value = escaped + "%";
+        value = r.operation == "endsWith" ? escaped : escaped + "%";
     }
     const auto index = first + static_cast<int>(q.values.size());
     q.values.push_back(value);
-    auto expr = column(r.field) + op + "?" + std::to_string(index) +
-                (r.operation == "contains" ? " ESCAPE '\\'" : "");
+    const auto parameter = "?" + std::to_string(index);
+    if (r.operation == "inLast")
+        return "COALESCE((" + name + " BETWEEN date('now','-'||" + parameter +
+               ",'floor') AND date('now')),0)";
+    auto expr = name + (negate && r.field != "keyword" ? " NOT LIKE " : op) + parameter +
+                (pattern ? " ESCAPE '\\'" : "");
     if (r.field == "keyword")
-        expr = (r.operation == "ne"
+        expr = (r.operation == "ne" || negate
                     ? "NOT EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND "
                     : "EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND ") +
                expr + ")";

@@ -1,0 +1,123 @@
+name: Apertone 2.5 Windows distribution
+
+on:
+  push:
+    branches: [codex/windows-lightroom]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aperture-windows-2.5.0
+  cancel-in-progress: false
+
+jobs:
+  build-verify:
+    if: github.repository == 'yakut-sekonts/Apertone'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install Qt and MinGW
+        run: |
+          python -m pip install aqtinstall==3.3.0 cmake==3.31.6 ninja==1.11.1.4
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m aqt install-tool windows desktop tools_mingw1310 qt.tools.win64_mingw1310 -O .tools/qt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m aqt install-qt windows desktop 6.10.3 win64_mingw -m qtimageformats -O .tools/qt
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          (Resolve-Path .tools/qt/6.10.3/mingw_64/bin).Path >> $env:GITHUB_PATH
+          (Resolve-Path .tools/qt/Tools/mingw1310_64/bin).Path >> $env:GITHUB_PATH
+      - name: Compile and test Windows x64
+        run: |
+          $qt = (Resolve-Path .tools/qt/6.10.3/mingw_64).Path.Replace('\','/')
+          $mingw = (Resolve-Path .tools/qt/Tools/mingw1310_64).Path.Replace('\','/')
+          cmake -S . -B build-windows -G Ninja -DCMAKE_BUILD_TYPE=Release `
+             "-DCMAKE_PREFIX_PATH=$qt" "-DCMAKE_C_COMPILER=$mingw/bin/gcc.exe" `
+             "-DCMAKE_CXX_COMPILER=$mingw/bin/g++.exe" "-DCMAKE_RC_COMPILER=$mingw/bin/windres.exe"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cmake --build build-windows --parallel 3
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:PATH = "$(Resolve-Path build-windows);$env:PATH"
+          ctest --test-dir build-windows --output-on-failure
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Verify and archive the portable Windows distribution
+        run: |
+          $qt = (Resolve-Path .tools/qt/6.10.3/mingw_64).Path
+          .\scripts\package-windows.ps1 -BuildDirectory build-windows -QtBin "$qt/bin" `
+            -Destination dist/Apertone-windows-x64
+          python scripts/verify-windows-package.py dist/Apertone-windows-x64
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $archive = "dist/Apertone-2.5.0-windows-x64.zip"
+          Compress-Archive -Path dist/Apertone-windows-x64 -DestinationPath $archive -CompressionLevel Optimal
+          (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: aperture-windows-2.5.0
+          path: dist/Apertone-2.5.0-windows-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
+  add-to-release:
+    runs-on: ubuntu-24.04
+    needs: build-verify
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: aperture-windows-2.5.0
+          path: dist
+      - name: Add verified Windows assets and notes to v2.5.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          repo=yakut-sekonts/Apertone
+          tag=v2.5.0
+          asset=Apertone-2.5.0-windows-x64.zip
+          marker='<!-- aperture-windows-v2.5.0 -->'
+          digest=$(sha256sum "dist/$asset" | cut -d' ' -f1)
+          gh api "repos/$repo/releases/latest" > release.json
+          jq -e --arg tag "$tag" '.tag_name == $tag and (.draft | not)' release.json >/dev/null
+          present=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name) | .digest' release.json)
+          if [[ -z "$present" ]]; then
+            gh release upload "$tag" "dist/$asset" --repo "$repo"
+          fi
+          gh api "repos/$repo/releases/tags/$tag" > release.json
+          jq -e --arg name "$asset" --arg digest "sha256:$digest" \
+            '.assets | any(.name == $name and .digest == $digest)' release.json >/dev/null
+          jq -r '.body // ""' release.json > notes.md
+          if grep -Fq "$marker" notes.md; then
+            grep -Fq "$digest" notes.md
+          else
+            cat >> notes.md <<EOF
+
+          $marker
+          ## Windows x64
+
+          Apertone is available for Windows 10 and 11 x64. Extract the [Windows ZIP](https://github.com/$repo/releases/download/$tag/$asset) to a folder such as \`E:\Apertone\` and launch \`Apertone.exe\`. Keep the files in the archive together.
+
+          Includes Lightroom Classic catalog migration, virtual copies, dynamic Smart Collections, offline editing and automatic masks for subject, background, a clicked foreground object, sky and people. Exports include Ultra HDR JPEG and 8-bit or 16-bit ZIP TIFF.
+
+          The local mask models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 25. Apertone saves a pre-migration backup.
+
+          Windows source: [$SOURCE_COMMIT](https://github.com/$repo/commit/$SOURCE_COMMIT)
+
+          Windows ZIP SHA-256: \`$digest\`
+          EOF
+            gh release edit "$tag" --repo "$repo" --notes-file notes.md
+          fi
+          gh api "repos/$repo/releases/tags/$tag" --jq '.body' > published.md
+          grep -Fq "$marker" published.md
+          grep -Fq "$digest" published.md

@@ -14,8 +14,10 @@
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
 #include <QCommandLineParser>
+#include <QElapsedTimer>
 #include <QFileInfo>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickItem>
@@ -26,12 +28,89 @@
 #include <cmath>
 #include <iostream>
 
+namespace {
+void testAutomaticMask(QGuiApplication &app, QQuickWindow &window, EditorController &editor,
+                       const QString &source, const QString &kind, const QPointF &point,
+                       const QString &output, const QString &screenshot) {
+    struct State {
+        QElapsedTimer elapsed;
+        int phase = 0;
+        std::size_t before = 0;
+    };
+    auto state = std::make_shared<State>();
+    state->elapsed.start();
+    auto *timer = new QTimer(&app);
+    QObject::connect(timer, &QTimer::timeout, &app,
+                     [&, state, timer, kind, point, output, screenshot] {
+        const auto fail = [&](const QString &message) {
+            timer->stop();
+            std::cerr << message.toStdString() << '\n';
+            app.exit(1);
+        };
+        if (state->elapsed.elapsed() > 180'000 || !editor.error().isEmpty()) {
+            fail(editor.error().isEmpty() ? QStringLiteral("Automatic mask test timed out.")
+                                          : editor.error());
+            return;
+        }
+        if (editor.busy() || editor.aiBusy() || editor.saving() || editor.exporting() ||
+            !editor.hasPhoto() || editor.previewUrl().isEmpty())
+            return;
+        if (state->phase == 0) {
+            state->before = editor.currentSettings().localMasks.size();
+            state->phase = 1;
+            editor.generateAIMask(kind, point.x(), point.y());
+            return;
+        }
+        if (state->phase == 1) {
+            const auto edits = editor.currentSettings();
+            if (edits.localMasks.size() != state->before + 1 ||
+                edits.localMasks.back().bitmap.empty()) {
+                fail(QStringLiteral("Automatic selection did not create an editable bitmap."));
+                return;
+            }
+            const auto values = edits.localMasks.back().bitmap.pixels();
+            const auto covered = std::ranges::count_if(values, [](auto value) { return value >= 128; });
+            const auto share = static_cast<double>(covered) / values.size();
+            if (share < .002 || share > .998) {
+                fail(QStringLiteral("Automatic mask coverage is degenerate: %1").arg(share));
+                return;
+            }
+            std::cout << "Automatic mask coverage: " << share << '\n';
+            if (!screenshot.isEmpty() && !window.grabWindow().save(screenshot)) {
+                fail(QStringLiteral("Cannot capture the automatic mask preview."));
+                return;
+            }
+            state->phase = 2;
+            editor.setLocalParameter(QStringLiteral("exposure"), 0.9);
+            return;
+        }
+        if (state->phase == 2 && !output.isEmpty()) {
+            state->phase = 3;
+            editor.exportPhoto(QUrl::fromLocalFile(output), static_cast<int>(luma::ExportFormat::png),
+                               92, false);
+            return;
+        }
+        if (!output.isEmpty() && !QFileInfo::exists(output)) {
+            fail(QStringLiteral("Automatic mask export is missing."));
+            return;
+        }
+        timer->stop();
+        window.close();
+    });
+    editor.openFile(QUrl::fromLocalFile(source));
+    timer->start(30);
+}
+} // namespace
+
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Apertone"));
     app.setApplicationDisplayName(QStringLiteral("Apertone"));
     app.setApplicationVersion(QStringLiteral(APERTONE_VERSION));
+#ifdef _WIN32
+    app.setWindowIcon(QIcon(QStringLiteral(":/branding/Apertone-1024.png")));
+#endif
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
     parser.setApplicationDescription(
@@ -69,6 +148,12 @@ int main(int argc, char **argv) {
                       QStringLiteral("Integration test: complete phase-0.5 mask workflow")});
     parser.addOption({QStringLiteral("test-local-masks"),
                       QStringLiteral("Integration test: local masks, history and restart")});
+    parser.addOption({QStringLiteral("test-ai-mask"),
+                      QStringLiteral("Integration test: automatic mask on a photograph"),
+                      QStringLiteral("category")});
+    parser.addOption({QStringLiteral("test-mask-point"),
+                      QStringLiteral("Integration test: normalized automatic mask location"),
+                      QStringLiteral("x,y")});
     parser.addOption({QStringLiteral("test-filter"),
                       QStringLiteral("Integration test: built-in filter and Undo"),
                       QStringLiteral("id")});
@@ -207,6 +292,9 @@ int main(int argc, char **argv) {
     if (!window) {
         return 1;
     }
+#ifdef _WIN32
+    window->setIcon(app.windowIcon());
+#endif
     if (parser.isSet(QStringLiteral("test-window-width"))) {
         bool valid = false;
         const auto width = parser.value(QStringLiteral("test-window-width")).toInt(&valid);
@@ -218,6 +306,10 @@ int main(int argc, char **argv) {
     }
     editor.setWindow(window);
     if (parser.isSet(QStringLiteral("smoke-test"))) {
+#ifdef _WIN32
+        if (window->icon().pixmap(32, 32).isNull())
+            return 1;
+#endif
         if (parser.isSet(QStringLiteral("test-language"))) {
             const auto code = localization.language();
             const auto screenshot = parser.value(QStringLiteral("test-screenshot"));
@@ -284,6 +376,22 @@ int main(int argc, char **argv) {
                 app.quit();
             });
         }
+    } else if (parser.isSet(QStringLiteral("test-ai-mask"))) {
+        const auto pointText = parser.value(QStringLiteral("test-mask-point"));
+        QPointF point{.5, .5};
+        if (!pointText.isEmpty()) {
+            const auto coordinates = pointText.split(',');
+            bool xOK = false, yOK = false;
+            if (coordinates.size() != 2)
+                return 2;
+            point = QPointF(coordinates[0].toDouble(&xOK), coordinates[1].toDouble(&yOK));
+            if (!xOK || !yOK)
+                return 2;
+        }
+        testAutomaticMask(app, *window, editor, parser.value(QStringLiteral("test-edit")),
+                          parser.value(QStringLiteral("test-ai-mask")), point,
+                          parser.value(QStringLiteral("test-export")),
+                          parser.value(QStringLiteral("test-screenshot")));
     } else if (parser.isSet(QStringLiteral("test-library"))) {
         startLibraryAcceptance(app, window, editor, library,
                                parser.value(QStringLiteral("test-library")),

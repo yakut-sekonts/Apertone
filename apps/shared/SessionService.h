@@ -28,6 +28,8 @@ class SessionService {
     explicit SessionService(std::filesystem::path catalog) : catalogPath_(std::move(catalog)) {}
     PhotoSession open(const std::filesystem::path &source, luma::CancellationToken stop = {},
                       const std::function<void(double)> &progress = {}) const;
+    PhotoSession openAsset(const std::string &id, CancellationToken stop = {},
+                           const std::function<void(double)> &progress = {}) const;
     std::optional<PhotoSession> restore(luma::CancellationToken stop = {},
                                         const std::function<void(double)> &progress = {}) const;
     void save(const std::string &assetID, double exposure) const;
@@ -51,6 +53,8 @@ class SessionService {
     }
 
   private:
+    PhotoSession openSource(const std::filesystem::path &source, const std::string &assetID,
+                            CancellationToken stop, const std::function<void(double)> &progress) const;
     struct PreviewSource {
         std::shared_ptr<const FloatImage> standard, interactive;
         PhotoMetadata metadata;

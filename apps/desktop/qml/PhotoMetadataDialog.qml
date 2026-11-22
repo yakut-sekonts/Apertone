@@ -94,7 +94,7 @@ Dialog {
             RowLayout {
                 Layout.fillWidth: true
                 ApertoneButton { objectName: "metadata.read"; text: qsTranslate("Apertone", "Read original / XMP"); enabled: dialog.ready; onClicked: confirmImport.open(); Layout.fillWidth: true }
-                ApertoneButton { objectName: "metadata.write"; text: qsTranslate("Apertone", "Write saved metadata to XMP"); enabled: dialog.ready; onClicked: library.writeMetadataSidecar(); Layout.fillWidth: true }
+                ApertoneButton { objectName: "metadata.write"; text: qsTranslate("Apertone", "Write saved metadata to XMP"); enabled: dialog.ready && !library.descriptiveMetadata.virtualCopy; onClicked: library.writeMetadataSidecar(); Layout.fillWidth: true }
             }
             ApertoneButton { text: qsTranslate("Apertone", "Reload catalog values"); enabled: dialog.ready; onClicked: library.loadMetadata(library.descriptiveMetadata.id); Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", "Missing original"); font.bold: true; Layout.topMargin: 10 }

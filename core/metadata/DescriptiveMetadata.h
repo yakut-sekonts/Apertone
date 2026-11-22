@@ -26,6 +26,7 @@ struct MetadataSnapshot {
     std::string sidecarHash;
     bool initialized = false;
     std::string readError;
+    bool virtualCopy = false;
 };
 struct MetadataOverlay {
     DescriptiveMetadata values;

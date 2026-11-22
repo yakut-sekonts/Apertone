@@ -24,6 +24,7 @@ struct AssetRecord {
     PhotoMetadata metadata;
     EditDocument edits;
     std::optional<MetadataOverlay> descriptive = std::nullopt;
+    std::string originalAssetID{}, copyName{};
 };
 
 struct AssetSnapshot {
@@ -102,6 +103,9 @@ class Catalog {
     std::optional<AssetRecord> assetByID(const std::string &id) const;
     std::optional<AssetRecord> assetByPath(const std::filesystem::path &path) const;
     void selectAsset(const std::string &id);
+    std::string createVirtualCopy(const std::string &assetID, const std::string &name);
+    void renameVirtualCopy(const std::string &id, const std::string &name);
+    void deleteVirtualCopy(const std::string &id);
     LightroomMigrationResult applyLightroomMigration(
         const std::string &sourceKey, const std::vector<LightroomMigrationPhoto> &photos,
         const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop = {});
@@ -242,6 +246,11 @@ class Catalog {
     void migrateIntelligentLibrary();
     void migratePersistentWorkflow();
     void migrateLightroomMigration();
+    void migrateVirtualCopies();
+    void migrateLightroomSmartRules();
+    std::string insertSmartCollection(const std::string &name, const std::string &document);
+    std::string insertVirtualCopy(const AssetRecord &source, const std::string &name,
+                                  const EditDocument &edits, const DescriptiveMetadata &metadata);
     void writeCreative(const std::string &assetID, const CreativeSettings &settings);
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);

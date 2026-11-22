@@ -28,23 +28,24 @@ ColumnLayout {
         }
         ApertoneComboBox {
             visible:root.rule.kind==="condition";Layout.fillWidth:true
-            property var keys:["rating","flag","iso","camera","lens","filename","captureDate","label","keyword","width","height"]
-            model:[qsTranslate("Apertone","Rating"),qsTranslate("Apertone","Flag"),"ISO",qsTranslate("Apertone","Camera"),qsTranslate("Apertone","Lens"),qsTranslate("Apertone","Filename"),qsTranslate("Apertone","Capture date"),qsTranslate("Apertone","Color label"),qsTranslate("Apertone","Keyword"),qsTranslate("Apertone","Width"),qsTranslate("Apertone","Height")]
+            property var keys:["rating","flag","iso","camera","lens","filename","captureDate","label","keyword","width","height","editDate","fileType","copyName","labelText"]
+            model:[qsTranslate("Apertone","Rating"),qsTranslate("Apertone","Flag"),"ISO",qsTranslate("Apertone","Camera"),qsTranslate("Apertone","Lens"),qsTranslate("Apertone","Filename"),qsTranslate("Apertone","Capture date"),qsTranslate("Apertone","Color label"),qsTranslate("Apertone","Keyword"),qsTranslate("Apertone","Width"),qsTranslate("Apertone","Height"),qsTranslate("Apertone","Edit date"),qsTranslate("Apertone","File type"),qsTranslate("Apertone","Virtual copy name"),qsTranslate("Apertone","Label text")]
             currentIndex:Math.max(0,keys.indexOf(root.rule.field))
             onActivated:root.change("field",keys[currentIndex])
             Accessible.name:qsTranslate("Apertone","Rule field")
         }
         ApertoneComboBox {
             visible:root.rule.kind==="condition"
-            property var keys:["eq","ne","ge","gt","le","lt","contains"]
-            model:["=","≠","≥",">","≤","<",qsTranslate("Apertone","Contains")]
+            property var keys:["eq","ne","ge","gt","le","lt","contains","notContains","startsWith","endsWith","empty","notEmpty","inLast"]
+            model:["=","≠","≥",">","≤","<",qsTranslate("Apertone","Contains"),qsTranslate("Apertone","Does not contain"),qsTranslate("Apertone","Starts with"),qsTranslate("Apertone","Ends with"),qsTranslate("Apertone","Is empty"),qsTranslate("Apertone","Is not empty"),qsTranslate("Apertone","In the last")]
             currentIndex:Math.max(0,keys.indexOf(root.rule.operation))
             onActivated:root.change("operation",keys[currentIndex])
             Accessible.name:qsTranslate("Apertone","Rule comparison")
         }
         ApertoneTextField {
-            visible:root.rule.kind==="condition";Layout.fillWidth:true;Layout.minimumWidth:50
+            visible:root.rule.kind==="condition" && root.rule.operation!=="empty" && root.rule.operation!=="notEmpty";Layout.fillWidth:true;Layout.minimumWidth:50
             text:String(root.rule.value??"");maximumLength:1024;selectByMouse:true
+            placeholderText: root.rule.operation==="inLast" ? "30 days" : ""
             onEditingFinished:if(text!==String(root.rule.value))root.change("value",text)
             Accessible.name:qsTranslate("Apertone","Rule value")
         }

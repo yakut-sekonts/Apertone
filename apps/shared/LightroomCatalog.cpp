@@ -7,8 +7,10 @@
 #include "core/io/Path.h"
 #include "platform/macos/FileHasher.h"
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QTemporaryDir>
+#include <QTimeZone>
 #include <QUuid>
 #include <algorithm>
 #include <array>
@@ -25,6 +27,10 @@ bool hasTable(sqlite3 *db, const char *name) {
     Statement record(db, "SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?1");
     record.text(1, name);
     return record.row();
+}
+bool hasColumn(sqlite3 *db, const char *table, const char *name) {
+    return sqlite3_table_column_metadata(db, nullptr, table, name, nullptr, nullptr, nullptr,
+                                         nullptr, nullptr) == SQLITE_OK;
 }
 
 std::string sourceIdentity(sqlite3 *db, const std::filesystem::path &path) {
@@ -282,16 +288,20 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         }
     }
 
-    Statement images(db, "SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
+    const auto capture = hasColumn(db, "Adobe_images", "captureTime") ? "i.captureTime" : "NULL";
+    const auto edited = hasColumn(db, "Adobe_images", "touchTime") ? "i.touchTime" : "NULL";
+    const auto imageQuery = std::string("SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
                          "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
                          "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
-                         "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0) "
+                         "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0),") +
+                         capture + "," + edited + " "
                          "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
                          "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
                          "LEFT JOIN AgLibraryRootFolder root ON root.id_local=folder.rootFolder "
                          "LEFT JOIN Adobe_images master ON master.id_local=i.masterImage "
                          "LEFT JOIN Adobe_imageDevelopSettings s ON s.image=i.id_local "
-                         "ORDER BY COALESCE(i.masterImage,0)<>0,i.id_local");
+                         "ORDER BY COALESCE(i.masterImage,0)<>0,i.id_local";
+    Statement images(db, imageQuery.c_str());
     struct Original {
         std::string digest;
         PhotoMetadata metadata;
@@ -356,6 +366,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             }
             photo.checksum = found->second.digest;
             photo.metadata = found->second.metadata;
+            auto captured = QDateTime::fromString(QString::fromStdString(images.string(13)),
+                                                   Qt::ISODateWithMs);
+            if (captured.isValid()) {
+                if (captured.timeSpec() == Qt::LocalTime)
+                    captured = QDateTime(captured.date(), captured.time(), QTimeZone::UTC);
+                photo.metadata.captureTimestamp = captured.toSecsSinceEpoch();
+            }
+            if (const auto editTime = images.optional(14);
+                editTime && std::isfinite(*editTime) && *editTime >= 0 && *editTime < 3'000'000'000.0)
+                photo.editedAt = *editTime > 0 ? 978307200 + static_cast<std::int64_t>(*editTime) : 0;
             auto description = photo.metadata.descriptive.value_or(DescriptiveMetadata{});
             description.rating = static_cast<int>(std::clamp<std::int64_t>(images.integer(3), 0, 5));
             description.flag = static_cast<int>(std::clamp<std::int64_t>(images.integer(4), -1, 1));
@@ -389,17 +409,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             throw std::runtime_error("Original changed while planning Lightroom import.");
 
     Statement collections(db, "SELECT id_local,name,creationId FROM AgLibraryCollection ORDER BY id_local");
+    const bool hasRules = hasTable(db, "AgLibraryCollectionContent");
     while (collections.row()) {
         checkCancellation(stop);
         const auto type = collections.string(2);
-        if (type == "com.adobe.ag.library.smart_collection") {
-            ++report.smartCollections;
+        const bool smart = type == "com.adobe.ag.library.smart_collection";
+        if (!smart && type != "com.adobe.ag.library.collection")
             continue;
-        }
-        if (type != "com.adobe.ag.library.collection")
-            continue;
-        ++report.manualCollections;
-        if (!prepare)
+        report.smartCollections += smart;
+        report.manualCollections += !smart;
+        if (!prepare && !smart)
             continue;
         LightroomMigrationCollection collection;
         collection.sourceID = collections.integer(0);
@@ -407,6 +426,32 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         while (name.toUtf8().size() > 96)
             name.chop(1);
         collection.name = name.toStdString();
+        collection.smart = smart;
+        if (smart) {
+            if (hasRules) {
+                Statement rule(db, "SELECT content FROM AgLibraryCollectionContent "
+                                   "WHERE collection=?1 AND owningModule='ag.library.smart_collection' "
+                                   "AND length(CAST(content AS BLOB)) BETWEEN 1 AND 65536 "
+                                   "ORDER BY id_local LIMIT 2");
+                rule.integer(1, collection.sourceID);
+                if (rule.row()) {
+                    collection.sourceRule = rule.string(0);
+                    if (!rule.row()) {
+                        try {
+                            collection.rule = decodeLightroomSmartRule(collection.sourceRule);
+                        } catch (const std::exception &) {
+                            // Preserve the source document when its rule has no equivalent.
+                        }
+                    }
+                }
+            }
+            report.smartRulesMapped += collection.rule.has_value();
+            if (!collection.rule && report.warnings.size() < 20)
+                report.warnings.push_back("Unsupported Smart Collection: " + collection.name);
+            if (prepare)
+                result.collections.push_back(std::move(collection));
+            continue;
+        }
         Statement members(db, "SELECT i.id_global FROM AgLibraryCollectionImage m "
                               "JOIN Adobe_images i ON i.id_local=m.image "
                               "WHERE m.collection=?1 ORDER BY m.positionInCollection,m.id_local");
@@ -441,7 +486,7 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
         throw std::runtime_error("Lightroom catalog changed since preview. Scan it again.");
     auto plan = scan(snapshot, true, stop, progress);
     checkCancellation(stop);
-    if (plan.photos.empty())
+    if (plan.photos.empty() && plan.collections.empty())
         return std::move(plan.report);
     plan.report.imported = Catalog(target).applyLightroomMigration(snapshot.sourceKey, plan.photos,
                                                                     plan.collections, stop);

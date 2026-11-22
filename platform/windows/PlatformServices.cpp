@@ -9,6 +9,7 @@
 #include "platform/macos/SemanticEmbedding.h"
 #include "platform/macos/SystemDiagnostics.h"
 #include "platform/macos/VisionSegmentation.h"
+#include "platform/windows/OnnxSegmentation.h"
 #include "core/image/Bayer.h"
 #include "core/merge/MergeAlignment.h"
 #include <QCryptographicHash>
@@ -110,7 +111,9 @@ SystemDiagnostics systemDiagnostics() {
 }
 
 std::shared_ptr<DevelopAccelerator> makeMetalDevelopAccelerator() { return {}; }
-std::shared_ptr<ai::ISegmentationProvider> makeVisionSegmentation() { return {}; }
+std::shared_ptr<ai::ISegmentationProvider> makeVisionSegmentation() {
+    return windows::makeOnnxSegmentation();
+}
 std::shared_ptr<ai::ISegmentationProvider> makeCoreMLSky(const std::filesystem::path &) { return {}; }
 std::shared_ptr<ai::IDenoiseProvider> makeCoreMLDenoise(const std::filesystem::path &) { return {}; }
 namespace {

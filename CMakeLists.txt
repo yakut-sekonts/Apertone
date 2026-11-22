@@ -12,6 +12,7 @@ if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     set(apertone_platform luma_macos)
     set(apertone_staging core/io/StagingFile.cpp)
 elseif(WIN32 AND MINGW AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64)$")
+    enable_language(RC)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
     set(apertone_qt_directory mingw_64)
     set(apertone_platform luma_windows)
@@ -31,7 +32,7 @@ include(cmake/Dependencies.cmake)
 
 add_library(luma_core STATIC
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
-    core/catalog/LightroomMigration.cpp
+    core/catalog/LightroomMigration.cpp core/catalog/VirtualCopies.cpp
     ${apertone_staging} core/io/FileSystem.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
@@ -85,12 +86,14 @@ target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framewo
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
 else()
     include(cmake/UltraHdr.cmake)
+    include(cmake/WindowsAi.cmake)
     add_library(luma_windows STATIC platform/windows/RasterDecoder.cpp platform/windows/ImageExporter.cpp
         platform/windows/PhotoMetadataIO.cpp platform/windows/PlatformServices.cpp
-        platform/windows/UltraHdr.cpp platform/windows/TiffWriter.cpp)
+        platform/windows/UltraHdr.cpp platform/windows/TiffWriter.cpp platform/windows/OnnxSegmentation.cpp)
     target_include_directories(luma_windows PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi ole32 shlwapi uhdr)
     target_compile_options(luma_windows PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    apertone_configure_windows_ai(luma_windows)
 endif()
 
 add_library(luma_presets STATIC apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
@@ -127,7 +130,8 @@ qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
-target_compile_options(Apertone PRIVATE -Wall -Wextra -Wpedantic -Werror)
+target_compile_options(Apertone PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Wall;-Wextra;-Wpedantic;-Werror>)
 if(APPLE)
 target_sources(Apertone PRIVATE platform/macos/CrashCapture.mm platform/macos/Updater.mm)
 target_link_libraries(Apertone PRIVATE luma_sparkle)
@@ -171,6 +175,12 @@ elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
 endif()
 else()
     target_sources(Apertone PRIVATE platform/windows/DesktopServices.cpp)
+    configure_file(resources/branding/Apertone.rc.in "${CMAKE_CURRENT_BINARY_DIR}/Apertone.rc" @ONLY)
+    set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/Apertone.rc" PROPERTIES
+        OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/branding/Apertone.ico")
+    target_sources(Apertone PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/Apertone.rc")
+    qt_add_resources(Apertone aperture_icon PREFIX "/branding" BASE "resources/branding"
+        FILES resources/branding/Apertone-1024.png)
     set_target_properties(Apertone PROPERTIES WIN32_EXECUTABLE TRUE)
     target_link_options(Apertone PRIVATE "LINKER:--stack,8388608")
 endif()

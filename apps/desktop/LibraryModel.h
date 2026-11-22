@@ -16,6 +16,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QVariantList importMetadataPresets READ importMetadataPresets NOTIFY stateChanged)
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
+    Q_PROPERTY(QString selectedCopyName READ selectedCopyName NOTIFY stateChanged)
     Q_PROPERTY(bool selecting READ selecting NOTIFY stateChanged)
     Q_PROPERTY(bool working READ working NOTIFY stateChanged)
     Q_PROPERTY(bool importing READ importing NOTIFY stateChanged)
@@ -72,7 +73,8 @@ class LibraryModel final : public QAbstractListModel {
         FaceCount,
         BurstID,
         BurstSize,
-        BurstBest
+        BurstBest,
+        CopyName
     };
     static constexpr int pageSize = 128, maximumPages = 16;
     explicit LibraryModel(std::filesystem::path catalog, QObject *parent = nullptr);
@@ -127,6 +129,10 @@ class LibraryModel final : public QAbstractListModel {
         return result;
     }
     Q_INVOKABLE bool removeFromSelection(const QString &id);
+    QString selectedCopyName() const;
+    Q_INVOKABLE void createVirtualCopy(const QString &id, const QString &name);
+    Q_INVOKABLE void renameVirtualCopy(const QString &id, const QString &name);
+    Q_INVOKABLE void deleteVirtualCopy(const QString &id);
     bool importing() const {
         return importing_;
     }

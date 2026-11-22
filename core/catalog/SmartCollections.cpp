@@ -19,6 +19,17 @@ std::optional<SmartCollectionRecord> Catalog::smartCollection(const std::string 
         return std::nullopt;
     return SmartCollectionRecord{decodeSmartRule(query.string(0)), query.integer(1)};
 }
+std::string Catalog::insertSmartCollection(const std::string &name, const std::string &document) {
+    detail::Statement count(db_, "SELECT COUNT(*) FROM smart_collections");
+    if (!count.row() || count.integer(0) >= 512)
+        throw std::runtime_error("Smart collection limit reached.");
+    const auto id = createCollection(name);
+    detail::Statement insert(db_, "INSERT INTO smart_collections(collection_id,document) VALUES(?1,?2)");
+    insert.text(1, id);
+    insert.text(2, document);
+    insert.row();
+    return id;
+}
 std::string Catalog::saveSmartCollection(const std::string &id, const std::string &name,
                                          std::int64_t revision, const SmartRule &rule) {
     const auto document = encodeSmartRule(rule);
@@ -29,15 +40,7 @@ std::string Catalog::saveSmartCollection(const std::string &id, const std::strin
     try {
         auto result = id;
         if (result.empty()) {
-            detail::Statement count(db_, "SELECT COUNT(*) FROM smart_collections");
-            if (!count.row() || count.integer(0) >= 512)
-                throw std::runtime_error("Smart collection limit reached.");
-            result = createCollection(name);
-            detail::Statement insert(
-                db_, "INSERT INTO smart_collections(collection_id,document) VALUES(?1,?2)");
-            insert.text(1, result);
-            insert.text(2, document);
-            insert.row();
+            result = insertSmartCollection(name, document);
         } else {
             detail::Statement update(db_,
                                      "UPDATE smart_collections SET document=?1,revision=revision+1 "

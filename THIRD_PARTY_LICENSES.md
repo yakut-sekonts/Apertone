@@ -2,6 +2,12 @@
 
 Apertone's original source is Apache-2.0. Dependencies retain their own licenses.
 
+- **ONNX Runtime 1.23.2** (Windows CPU) and **SkySeg** are MIT-licensed.
+  The Windows package includes the runtime license, third-party notices and
+  the SkySeg license. **U²-Netp** and **PP-HumanSeg** are Apache-2.0 models.
+  The Windows model hashes and upstream locations are in
+  [WindowsAi.cmake](cmake/WindowsAi.cmake).
+
 - **Qt 6.10.3** — https://www.qt.io / https://download.qt.io/archive/qt/6.10/6.10.3/
   Core, Gui, Qml, Quick, QuickControls2, native dialogs, tools and SVG plugins.
   Used open-source modules are dynamically linked under **LGPL-3.0**, with

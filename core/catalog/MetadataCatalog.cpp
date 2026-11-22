@@ -139,10 +139,12 @@ MetadataSnapshot Catalog::metadataSnapshot(const std::string &id) const {
     execute("BEGIN;");
     try {
         Statement query(
-            db_, "SELECT a.original_path,a.checksum,m.title,m.caption,m.copyright,m.location,"
+            db_, "SELECT COALESCE(original.original_path,a.original_path),"
+                 "a.checksum,m.title,m.caption,m.copyright,m.location,"
                  "a.rating,a.flag,m.xmp_label,m.revision,m.written_revision,m.sidecar_hash,m."
-                 "initialized,m.read_error "
-                 "FROM assets a JOIN asset_metadata m ON m.asset_id=a.id WHERE a.id=?1");
+                 "initialized,m.read_error,a.original_asset_id IS NOT NULL "
+                 "FROM assets a JOIN asset_metadata m ON m.asset_id=a.id "
+                 "LEFT JOIN assets original ON original.id=a.original_asset_id WHERE a.id=?1");
         query.text(1, id);
         if (!query.row())
             throw std::runtime_error("Photo metadata is missing from the catalog.");
@@ -162,6 +164,7 @@ MetadataSnapshot Catalog::metadataSnapshot(const std::string &id) const {
         result.sidecarHash = query.string(11);
         result.initialized = query.integer(12) != 0;
         result.readError = query.string(13);
+        result.virtualCopy = query.integer(14) != 0;
         readLists(db_, id, result.values);
         result.values.validate();
         execute("COMMIT;");
@@ -224,7 +227,8 @@ void Catalog::installSidecar(const MetadataSnapshot &snapshot, const std::string
         Statement write(db_,
                         "UPDATE asset_metadata SET written_revision=revision,sidecar_hash=?1 "
                         "WHERE asset_id=?2 AND revision=?3 AND sidecar_hash=?4 AND EXISTS"
-                        "(SELECT 1 FROM assets WHERE id=?2 AND original_path=?5 AND checksum=?6)");
+                        "(SELECT 1 FROM assets WHERE id=?2 AND original_path=?5 AND checksum=?6 "
+                        "AND original_asset_id IS NULL)");
         write.text(1, hash);
         write.text(2, snapshot.id);
         write.integer(3, snapshot.revision);
@@ -244,8 +248,9 @@ void Catalog::installSidecar(const MetadataSnapshot &snapshot, const std::string
 std::vector<std::string> Catalog::pendingSidecars(const std::string &after, int limit) const {
     if (limit < 1 || limit > 256)
         throw std::runtime_error("Invalid sidecar page size.");
-    Statement query(db_, "SELECT asset_id FROM asset_metadata WHERE asset_id>?1 AND "
-                         "revision>written_revision ORDER BY asset_id LIMIT ?2");
+    Statement query(db_, "SELECT m.asset_id FROM asset_metadata m JOIN assets a ON a.id=m.asset_id "
+                         "WHERE m.asset_id>?1 AND m.revision>m.written_revision "
+                         "AND a.original_asset_id IS NULL ORDER BY m.asset_id LIMIT ?2");
     query.text(1, after);
     query.integer(2, limit);
     std::vector<std::string> ids;

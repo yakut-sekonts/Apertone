@@ -32,6 +32,17 @@ void Catalog::migrateLightroomMigration() {
     )sql");
 }
 
+void Catalog::migrateLightroomSmartRules() {
+    execute(R"sql(
+        CREATE TABLE lightroom_smart_rules(
+            source_catalog TEXT NOT NULL,
+            source_collection INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            document TEXT NOT NULL,
+            PRIMARY KEY(source_catalog,source_collection));
+    )sql");
+}
+
 LightroomMigrationResult Catalog::applyLightroomMigration(
     const std::string &sourceKey, const std::vector<LightroomMigrationPhoto> &photos,
     const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop) {
@@ -63,9 +74,14 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
                 ++result.reused;
             else
                 ++result.added;
-
+            const auto metadata = photo.metadata.descriptive.value_or(DescriptiveMetadata{});
+            auto destination = asset.id;
             std::string version;
-            if (!photo.masterID.empty() || (existing && photo.edits && *photo.edits != asset.edits)) {
+            if (!photo.masterID.empty()) {
+                destination = insertVirtualCopy(asset, photo.copyName,
+                                                photo.edits.value_or(EditDocument{}), metadata);
+                ++result.copies;
+            } else if (existing && photo.edits && *photo.edits != asset.edits) {
                 auto name = photo.copyName.empty() ? "Lightroom" : "Lightroom · " + photo.copyName;
                 name += " [" + photo.sourceID.substr(0, 8) + "]";
                 version = insertEditVersion(asset.id, name, photo.edits.value_or(EditDocument{}));
@@ -73,14 +89,20 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             } else if (photo.edits && !existing) {
                 writeEdits(asset.id, *photo.edits);
             }
-            const auto metadata = photo.metadata.descriptive.value_or(DescriptiveMetadata{});
+            if (photo.editedAt && (!existing || !photo.masterID.empty())) {
+                Statement timestamp(db_, "UPDATE edit_documents SET updated_at=datetime(?1,'unixepoch') "
+                                         "WHERE asset_id=?2");
+                timestamp.integer(1, *photo.editedAt);
+                timestamp.text(2, destination);
+                timestamp.row();
+            }
             Statement record(db_, "INSERT INTO lightroom_migration_photos("
                                   "source_catalog,source_photo,asset_id,version_id,source_master,"
                                   "copy_name,develop_document,rating,flag,label) "
                                   "VALUES(?1,?2,?3,NULLIF(?4,''),?5,?6,?7,?8,?9,?10)");
             record.text(1, sourceKey);
             record.text(2, photo.sourceID);
-            record.text(3, asset.id);
+            record.text(3, destination);
             record.text(4, version);
             record.text(5, photo.masterID);
             record.text(6, photo.copyName);
@@ -93,6 +115,17 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
         }
         for (const auto &collection : collections) {
             checkCancellation(stop);
+            if (collection.smart) {
+                Statement source(db_, "INSERT OR IGNORE INTO lightroom_smart_rules"
+                                      "(source_catalog,source_collection,name,document) VALUES(?1,?2,?3,?4)");
+                source.text(1, sourceKey);
+                source.integer(2, collection.sourceID);
+                source.text(3, collection.name);
+                source.text(4, collection.sourceRule);
+                source.row();
+                if (!collection.rule)
+                    continue;
+            }
             Statement mapped(db_, "SELECT collection_id FROM lightroom_migration_collections "
                                   "WHERE source_catalog=?1 AND source_collection=?2");
             mapped.text(1, sourceKey);
@@ -112,7 +145,8 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
                     checkCancellation(stop);
                     name = base + " (" + std::to_string(suffix) + ")";
                 }
-                id = createCollection(name);
+                id = collection.rule ? insertSmartCollection(name, encodeSmartRule(*collection.rule))
+                                     : createCollection(name);
                 Statement record(db_, "INSERT INTO lightroom_migration_collections("
                                       "source_catalog,source_collection,collection_id) VALUES(?1,?2,?3)");
                 record.text(1, sourceKey);
@@ -120,6 +154,7 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
                 record.text(3, id);
                 record.row();
                 ++result.collections;
+                result.smartCollections += collection.smart;
                 created = true;
             }
             for (const auto &member : collection.members) {

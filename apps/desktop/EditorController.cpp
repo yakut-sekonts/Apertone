@@ -155,7 +155,12 @@ bool EditorController::readyForUpdate() const {
            transformJobs_.idle();
 }
 QString EditorController::filename() const {
-    return session_ ? QString::fromStdString(luma::pathUtf8(session_->asset.path.filename())) : QString();
+    if (!session_)
+        return {};
+    auto name = QString::fromStdString(luma::pathUtf8(session_->asset.path.filename()));
+    if (!session_->asset.copyName.empty())
+        name += QStringLiteral(" · ") + QString::fromStdString(session_->asset.copyName);
+    return name;
 }
 QString EditorController::camera() const {
     return session_ ? QString::fromStdString(session_->asset.metadata.camera) : QStringLiteral("—");
@@ -412,7 +417,8 @@ void EditorController::restore() {
     load(std::nullopt);
 }
 void EditorController::openFile(const QUrl &url) {
-    if (!url.isLocalFile() || closing_ || editingLocked_) {
+    const bool catalogAsset = url.scheme() == QStringLiteral("apertone-asset");
+    if ((!url.isLocalFile() && !catalogAsset) || closing_ || editingLocked_) {
         return;
     }
     if (versionsBusy_) {
@@ -430,7 +436,10 @@ void EditorController::openFile(const QUrl &url) {
         }
         return;
     }
-    load(luma::pathFromUtf8(url.toLocalFile().toStdString()));
+    if (catalogAsset)
+        load(std::nullopt, url.path().toStdString());
+    else
+        load(luma::pathFromUtf8(url.toLocalFile().toStdString()));
 }
 bool EditorController::closePhoto() {
     if (busy() || saving() || exporting_ || aiBusy_ || retouchBusy_ || creativeBusy_ ||
@@ -466,7 +475,7 @@ bool EditorController::closePhoto() {
     emit stateChanged();
     return true;
 }
-void EditorController::load(std::optional<std::filesystem::path> source) {
+void EditorController::load(std::optional<std::filesystem::path> source, const std::string &assetID) {
     if (versionsBusy_)
         return;
     processingVersions_.clear();
@@ -499,10 +508,11 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
     progress_ = 0;
     emit progressChanged();
     error_.clear();
-    status_ = source ? QStringLiteral("Decoding image…") : QStringLiteral("Restoring session…");
+    status_ = source || !assetID.empty() ? QStringLiteral("Decoding image…")
+                                        : QStringLiteral("Restoring session…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
-    loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, revision, stop](
+    loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, assetID, revision, stop](
                                                                  const luma::JobContext &context) {
         try {
             const auto progress =
@@ -528,9 +538,9 @@ void EditorController::load(std::optional<std::filesystem::path> source) {
                             Qt::QueuedConnection);
                     }
                 };
-            auto result =
-                source ? std::optional<luma::PhotoSession>(service_.open(*source, stop, progress))
-                       : service_.restore(stop, progress);
+            auto result = !assetID.empty() ? std::optional(service_.openAsset(assetID, stop, progress))
+                          : source ? std::optional(service_.open(*source, stop, progress))
+                                   : service_.restore(stop, progress);
 #ifdef LUMA_UX_LOAD_PROBE
             const ux::LoadOperation uxSuccess{
                 this, revision, result ? result->asset.id : std::string{},

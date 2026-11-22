@@ -50,6 +50,20 @@ PhotoSession offlineSession(const std::filesystem::path &catalogPath, const Cata
 
 PhotoSession SessionService::open(const std::filesystem::path &source, luma::CancellationToken stop,
                                   const std::function<void(double)> &progress) const {
+    return openSource(source, {}, stop, progress);
+}
+
+PhotoSession SessionService::openAsset(const std::string &id, CancellationToken stop,
+                                      const std::function<void(double)> &progress) const {
+    const auto asset = Catalog(catalogPath_, CatalogOpenMode::existingOnly).assetByID(id);
+    if (!asset)
+        throw std::runtime_error("The photo is no longer in the catalog.");
+    return openSource(asset->path, id, stop, progress);
+}
+
+PhotoSession SessionService::openSource(const std::filesystem::path &source, const std::string &id,
+                                       CancellationToken stop,
+                                       const std::function<void(double)> &progress) const {
     checkCancellation(stop);
     std::error_code pathError;
     const auto path = std::filesystem::canonical(source, pathError);
@@ -58,7 +72,8 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
         auto normalized = std::filesystem::weakly_canonical(source, pathError);
         if (pathError || !normalized.is_absolute())
             normalized = std::filesystem::absolute(source).lexically_normal();
-        if (auto known = catalog.assetByPath(normalized.make_preferred())) {
+        if (auto known = id.empty() ? catalog.assetByPath(normalized.make_preferred())
+                                    : catalog.assetByID(id)) {
             auto result = offlineSession(catalogPath_, catalog, std::move(*known), stop);
             checkCancellation(stop);
             catalog.selectAsset(result.asset.id);
@@ -108,7 +123,15 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
     MetadataService::readSourceMetadata(path, metadata, stop);
     checkCancellation(stop);
     Catalog catalog(catalogPath_);
-    auto asset = catalog.addAndSelect(path, checksum, metadata);
+    auto asset = [&] {
+        if (id.empty())
+            return catalog.addAndSelect(path, checksum, metadata);
+        auto selected = catalog.assetByID(id);
+        if (!selected || selected->checksum != checksum || selected->path != source)
+            throw std::runtime_error("Original or catalog record changed while it was opened.");
+        catalog.selectAsset(id);
+        return std::move(*selected);
+    }();
     auto history = matchingHistory(catalog, asset);
     const auto bytes =
         (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
@@ -161,14 +184,7 @@ SessionService::restore(luma::CancellationToken stop,
     if (!active) {
         return std::nullopt;
     }
-    std::error_code status;
-    if (!std::filesystem::is_regular_file(active->path, status)) {
-        auto result = offlineSession(catalogPath_, catalog, std::move(*active), stop);
-        if (progress)
-            progress(1);
-        return result;
-    }
-    return open(active->path, stop, progress);
+    return openSource(active->path, active->id, stop, progress);
 }
 void SessionService::save(const std::string &assetID, double exposure) const {
     Catalog catalog(catalogPath_);

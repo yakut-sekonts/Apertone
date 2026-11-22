@@ -153,6 +153,57 @@ Rectangle {
     Shortcut { sequences: [StandardKey.SelectAll]; enabled: pane.visible && !(search.activeFocus); onActivated: library.selectAll() }
     ImportDialog { id: importDialog }
     Dialog {
+        id: virtualCopyName
+        modal: true
+        anchors.centerIn: parent
+        width: 390
+        title: qsTranslate("Apertone", renaming ? "Rename virtual copy" : "Create virtual copy")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        property string assetID: ""
+        property bool renaming: false
+        function showName(rename) {
+            assetID = library.selectedAssetIDs()[0]
+            renaming = rename
+            copyNameInput.text = rename ? library.selectedCopyName : qsTranslate("Apertone", "Virtual copy")
+            open()
+        }
+        onOpened: { copyNameInput.forceActiveFocus(); copyNameInput.selectAll() }
+        onAccepted: {
+            if (copyNameInput.text.trim().length === 0)
+                return
+            if (renaming)
+                library.renameVirtualCopy(assetID, copyNameInput.text)
+            else
+                library.createVirtualCopy(assetID, copyNameInput.text)
+        }
+        ApertoneTextField {
+            id: copyNameInput
+            width: parent.width
+            maximumLength: 120
+            selectByMouse: true
+            Accessible.name: qsTranslate("Apertone", "Virtual copy name")
+            onAccepted: if (text.trim().length > 0) virtualCopyName.accept()
+        }
+    }
+    Dialog {
+        id: removeVirtualCopy
+        modal: true
+        anchors.centerIn: parent
+        width: 390
+        property string assetID: ""
+        title: qsTranslate("Apertone", "Delete virtual copy?")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        Label {
+            width: parent.width
+            wrapMode: Text.Wrap
+            text: qsTranslate("Apertone", "This removes the copy and its edits from the catalog.")
+        }
+        onAccepted: {
+            if (editor.photoID !== assetID || editor.closePhoto())
+                library.deleteVirtualCopy(assetID)
+        }
+    }
+    Dialog {
         id: collectionDialog; objectName: "library.collectionDialog"; width: 360; implicitWidth: 360; title: pane.editCollectionID ? qsTranslate("Apertone", "Rename collection") : qsTranslate("Apertone", "New collection"); modal: true; anchors.centerIn: parent
         standardButtons: Dialog.Ok | Dialog.Cancel
         onOpened: { standardButton(Dialog.Ok).objectName = "library.collectionConfirm"; standardButton(Dialog.Cancel).objectName = "library.collectionCancel" }
@@ -257,10 +308,23 @@ Rectangle {
                 wrapMode: Text.Wrap
             }
             Label {
+                visible: Boolean(lightroomDialog.report.fingerprint) && lightroomDialog.report.smartCollections > 0
+                text: qsTranslate("Apertone", "Smart Collection rules mapped: %1 of %2")
+                      .arg(lightroomDialog.report.smartRulesMapped || 0).arg(lightroomDialog.report.smartCollections || 0)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            Label {
                 visible: Boolean(lightroomDialog.report.applied)
                 text: qsTranslate("Apertone", "%1 added · %2 processing versions · %3 already imported · %4 unreadable")
                       .arg(lightroomDialog.report.added || 0).arg(lightroomDialog.report.versions || 0)
                       .arg(lightroomDialog.report.unchanged || 0).arg(lightroomDialog.report.unreadable || 0)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && lightroomDialog.report.copies > 0
+                text: qsTranslate("Apertone", "%1 virtual copies created").arg(lightroomDialog.report.copies || 0)
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
             }
@@ -295,7 +359,9 @@ Rectangle {
                 objectName: "library.applyLightroom"
                 text: qsTranslate("Apertone", "Import")
                 DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
-                enabled: !library.working && !lightroomDialog.report.applied && lightroomDialog.report.available > 0
+                enabled: !library.working && !lightroomDialog.report.applied &&
+                         (lightroomDialog.report.available > 0 || lightroomDialog.report.manualCollections > 0 ||
+                          lightroomDialog.report.smartRulesMapped > 0)
                 onClicked: library.applyLightroom(lightroomDialog.source, lightroomDialog.report.fingerprint)
             }
         }
@@ -320,6 +386,27 @@ Rectangle {
                     Menu {
                         id: photoActions
                         MenuItem { objectName: "library.photoMetadata"; text: qsTranslate("Apertone", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
+                        MenuItem {
+                            objectName: "library.createVirtualCopy"
+                            text: qsTranslate("Apertone", "Create virtual copy…")
+                            enabled: library.selectedCount === 1 && !library.working && !editor.busy && !editor.saving
+                            onTriggered: virtualCopyName.showName(false)
+                        }
+                        MenuItem {
+                            text: qsTranslate("Apertone", "Rename virtual copy…")
+                            visible: library.selectedCopyName.length > 0
+                            enabled: !library.working && !editor.busy
+                            onTriggered: virtualCopyName.showName(true)
+                        }
+                        MenuItem {
+                            text: qsTranslate("Apertone", "Delete virtual copy…")
+                            visible: library.selectedCopyName.length > 0
+                            enabled: !library.working && !editor.busy && !editor.saving
+                            onTriggered: {
+                                removeVirtualCopy.assetID = library.selectedAssetIDs()[0]
+                                removeVirtualCopy.open()
+                            }
+                        }
                         MenuItem { text: qsTranslate("Apertone", "Compare Select / Candidate"); enabled: library.selectedCount === 2 && !library.working && !editor.busy; onTriggered: {editor.prepareCompare(library.selectedAssetIDs());compareDialog.open()} }
                         MenuItem {
                             objectName: "library.openSurvey"

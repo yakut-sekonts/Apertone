@@ -22,7 +22,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr int currentCatalogSchema = 24;
+constexpr int currentCatalogSchema = 25;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -132,10 +132,11 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
                                edits.transform, true);
     return {query.string(0), pathFromUtf8(query.string(1)), query.string(2),
-            metadata, edits, detail::readMetadataOverlay(db, query.string(0))};
+            metadata, edits, detail::readMetadataOverlay(db, query.string(0)),
+            query.string(71), query.string(72)};
 }
 constexpr auto selectFields =
-    "SELECT a.id,a.original_path,a.checksum,a.camera,a.lens,a.iso,"
+    "SELECT a.id,COALESCE(original.original_path,a.original_path),a.checksum,a.camera,a.lens,a.iso,"
     "a.shutter_seconds,a.aperture,a.focal_length,a.width,a.height,a."
     "orientation,a.capture_date,e.exposure,e.temperature,e.tint,e.custom_wb,e.contrast,"
     "e.highlights,e.shadows,e.whites,e.blacks,e.vibrance,e.saturation,e.enabled,e.schema_version,e."
@@ -148,8 +149,9 @@ constexpr auto selectFields =
     "e.transform_rotate,e.transform_horizontal,e.transform_vertical,e.transform_aspect,e.transform_"
     "scale,e.transform_x_offset,e.transform_y_offset,e.transform_constrain_crop,e.transform_guided,"
     "e.transform_m11,e.transform_m12,e.transform_m13,e.transform_m21,e.transform_m22,e.transform_"
-    "m23,e.transform_m31,e.transform_m32 "
-    "FROM assets a JOIN edit_documents e ON e.asset_id=a.id ";
+    "m23,e.transform_m31,e.transform_m32,COALESCE(a.original_asset_id,''),a.copy_name "
+    "FROM assets a JOIN edit_documents e ON e.asset_id=a.id "
+    "LEFT JOIN assets original ON original.id=a.original_asset_id ";
 } // namespace
 
 Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
@@ -417,6 +419,11 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         }
         if (current == 23) {
             migrateLightroomMigration();
+            current = 24;
+        }
+        if (current == 24) {
+            migrateVirtualCopies();
+            migrateLightroomSmartRules();
         }
         execute("COMMIT;");
     } catch (...) {
@@ -530,7 +537,7 @@ bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
         return true;
     if (!std::filesystem::exists(canonicalPath))
         return false;
-    Statement paths(db_, "SELECT original_path FROM assets");
+    Statement paths(db_, "SELECT original_path FROM assets WHERE original_asset_id IS NULL");
     while (paths.row()) {
         checkCancellation(stop);
         std::error_code error;
@@ -574,7 +581,8 @@ std::optional<AssetSnapshot> Catalog::assetSnapshot(const std::string &id) {
 std::optional<AssetRecord> Catalog::duplicate(const std::string &checksum,
                                               std::int64_t size) const {
     Statement query(db_, (std::string(selectFields) +
-                          "WHERE a.checksum=?1 AND a.filesize=?2 ORDER BY a.id LIMIT 1")
+                          "WHERE a.checksum=?1 AND a.filesize=?2 AND a.original_asset_id IS NULL "
+                          "ORDER BY a.id LIMIT 1")
                              .c_str());
     query.text(1, checksum);
     query.integer(2, size);

@@ -14,6 +14,7 @@ struct LightroomCatalogReport {
     std::size_t virtualCopies = 0;
     std::size_t manualCollections = 0;
     std::size_t smartCollections = 0;
+    std::size_t smartRulesMapped = 0;
     std::size_t mappedEdits = 0;
     std::size_t partialEdits = 0;
     std::size_t unmappedEdits = 0;

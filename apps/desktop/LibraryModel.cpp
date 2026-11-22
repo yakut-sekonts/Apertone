@@ -122,7 +122,8 @@ QHash<int, QByteArray> LibraryModel::roleNames() const {
             {FaceCount, "faceCount"},
             {BurstID, "burstID"},
             {BurstSize, "burstSize"},
-            {BurstBest, "burstBest"}};
+            {BurstBest, "burstBest"},
+            {CopyName, "copyName"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -156,7 +157,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     case AssetID:
         return id;
     case Filename:
-        return QString::fromStdString(item.filename);
+        return QString::fromStdString(item.filename) +
+               (item.copyName.empty() ? QString() : QStringLiteral(" · ") + QString::fromStdString(item.copyName));
     case Path:
         return QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(item.path)));
     case Thumbnail:
@@ -190,6 +192,8 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         return item.burstSize;
     case BurstBest:
         return item.burstBest;
+    case CopyName:
+        return QString::fromStdString(item.copyName);
     default:
         return {};
     }
@@ -615,9 +619,33 @@ void LibraryModel::selectAll() {
 void LibraryModel::activate(int row) {
     if (externalBusy_)
         return;
-    const auto url = data(index(row), Path).toUrl();
+    const auto item = index(row);
+    const auto url = data(item, CopyName).toString().isEmpty()
+                         ? data(item, Path).toUrl()
+                         : QUrl(QStringLiteral("apertone-asset:") + data(item, AssetID).toString());
     if (!url.isEmpty())
         emit openRequested(url);
+}
+QString LibraryModel::selectedCopyName() const {
+    if (selected_.size() != 1)
+        return {};
+    const auto id = selected_.begin()->toStdString();
+    for (const auto &[number, rows] : pages_) {
+        (void)number;
+        for (const auto &row : rows)
+            if (row.id == id)
+                return QString::fromStdString(row.copyName);
+    }
+    return {};
+}
+void LibraryModel::createVirtualCopy(const QString &id, const QString &name) {
+    mutate([id, name](auto &db) { db.createVirtualCopy(id.toStdString(), name.trimmed().toStdString()); });
+}
+void LibraryModel::renameVirtualCopy(const QString &id, const QString &name) {
+    mutate([id, name](auto &db) { db.renameVirtualCopy(id.toStdString(), name.trimmed().toStdString()); });
+}
+void LibraryModel::deleteVirtualCopy(const QString &id) {
+    mutate([id](auto &db) { db.deleteVirtualCopy(id.toStdString()); });
 }
 std::vector<std::string> LibraryModel::selectionIDs() const {
     std::vector<std::string> ids;

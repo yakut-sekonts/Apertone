@@ -9,7 +9,7 @@
 
 namespace luma::ai {
 enum class ExecutionLocation { local, cloud };
-enum class Selection { subject, background, object, sky, face, eyes, lips };
+enum class Selection { subject, background, object, sky, face, eyes, lips, people };
 struct RgbaImage {
     int width = 0, height = 0;
     std::span<const std::uint8_t> pixels;

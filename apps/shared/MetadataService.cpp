@@ -186,6 +186,8 @@ std::filesystem::path MetadataService::writeSidecar(const std::string &id,
                                                     CancellationToken stop) const {
     Catalog database(catalog_);
     const auto snapshot = database.metadataSnapshot(id);
+    if (snapshot.virtualCopy)
+        throw std::runtime_error("Virtual copies keep metadata in the catalog.");
     if (macos::sha256File(snapshot.path, stop) != snapshot.checksum)
         throw std::runtime_error("Original changed; XMP write refused.");
     const auto path = sidecarPath(snapshot.path);

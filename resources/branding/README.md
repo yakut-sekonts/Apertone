@@ -16,3 +16,6 @@ cp /tmp/Apertone.iconset/icon_512x512@2x.png resources/branding/Apertone-1024.pn
 
 The app embeds Apertone.icns through CFBundleIconFile. DMG packaging also embeds the
 same artwork as .VolumeIcon.icns, with the custom volume-icon Finder flag.
+The Windows executable embeds Apertone.ico for Explorer and shortcuts. Qt
+uses the same artwork for the running window and taskbar. The ICO is derived
+from Apertone-1024.png and contains sizes from 16 through 256 pixels.

@@ -22,6 +22,8 @@ luma::ai::Selection selectionFor(const QString &kind) {
         return luma::ai::Selection::object;
     if (kind == QStringLiteral("sky"))
         return luma::ai::Selection::sky;
+    if (kind == QStringLiteral("people"))
+        return luma::ai::Selection::people;
     if (kind == QStringLiteral("face"))
         return luma::ai::Selection::face;
     if (kind == QStringLiteral("eyes"))
@@ -40,6 +42,8 @@ const char *selectionName(luma::ai::Selection selection) {
         return "Object";
     case luma::ai::Selection::sky:
         return "Sky";
+    case luma::ai::Selection::people:
+        return "People";
     case luma::ai::Selection::face:
         return "Face";
     case luma::ai::Selection::eyes:
@@ -181,9 +185,9 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                     const std::array<double, 2> uprightPoint{
                         std::clamp((picked[0] + .5) / geometry.width(), 0.0, 1.0),
                         std::clamp((picked[1] + .5) / geometry.height(), 0.0, 1.0)};
-                    const auto activeProvider = selection == luma::ai::Selection::sky
-                                                    ? luma::macos::makeCoreMLSky(skyModel)
-                                                    : provider;
+                    const auto activeProvider = selection == luma::ai::Selection::sky &&
+                                                        (!provider || !provider->supports(selection))
+                                                    ? luma::macos::makeCoreMLSky(skyModel) : provider;
                     if (!activeProvider)
                         throw std::runtime_error("The requested AI selection is not available locally.");
                     luma::checkCancellation(stop);

@@ -175,6 +175,8 @@ int main(int argc, char **argv) {
         luma::SessionService service(catalog);
         if (arguments[0] == "open" && arguments.size() == 2) {
             printSession(service.open(luma::pathFromUtf8(arguments[1])));
+        } else if (arguments[0] == "open-asset" && arguments.size() == 2) {
+            printSession(service.openAsset(arguments[1]));
         } else if (arguments[0] == "restore" && arguments.size() == 1) {
             const auto session = service.restore();
             if (session) {

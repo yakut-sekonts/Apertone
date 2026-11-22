@@ -18,6 +18,8 @@ QVariantMap reportMap(const luma::LightroomCatalogReport &report, bool applied) 
             {"virtualCopies", count(report.virtualCopies)},
             {"manualCollections", count(report.manualCollections)},
             {"smartCollections", count(report.smartCollections)},
+            {"smartRulesMapped", count(report.smartRulesMapped)},
+            {"smartCollectionsImported", count(report.imported.smartCollections)},
             {"mappedEdits", count(report.mappedEdits)},
             {"partialEdits", count(report.partialEdits)},
             {"unmappedEdits", count(report.unmappedEdits)},
@@ -25,6 +27,7 @@ QVariantMap reportMap(const luma::LightroomCatalogReport &report, bool applied) 
             {"added", count(report.imported.added)},
             {"reused", count(report.imported.reused)},
             {"versions", count(report.imported.versions)},
+            {"copies", count(report.imported.copies)},
             {"unchanged", count(report.imported.unchanged)},
             {"applied", applied},
             {"warnings", warnings}};

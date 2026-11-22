@@ -32,7 +32,8 @@ QVariantMap map(const luma::MetadataSnapshot &snapshot) {
             {"rating", snapshot.values.rating},
             {"flag", snapshot.values.flag},
             {"label", QString::fromStdString(snapshot.values.label)},
-            {"pendingXMP", snapshot.revision > snapshot.writtenRevision},
+            {"virtualCopy", snapshot.virtualCopy},
+            {"pendingXMP", !snapshot.virtualCopy && snapshot.revision > snapshot.writtenRevision},
             {"readError", QString::fromStdString(snapshot.readError)}};
 }
 QString preferences(const std::filesystem::path &catalog) {

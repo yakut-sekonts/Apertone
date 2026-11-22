@@ -21,6 +21,18 @@ void summary(const ImportSummary &value) {
 }
 } // namespace
 bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std::string> &args) {
+    if (args[0] == "copy" && args.size() >= 3) {
+        Catalog db(catalog);
+        if (args[1] == "create" && args.size() == 4)
+            std::cout << "{\"id\":" << quoted(db.createVirtualCopy(args[2], args[3])) << "}\n";
+        else if (args[1] == "rename" && args.size() == 4)
+            db.renameVirtualCopy(args[2], args[3]);
+        else if (args[1] == "delete" && args.size() == 3)
+            db.deleteVirtualCopy(args[2]);
+        else
+            throw std::runtime_error("Use copy create ID NAME, copy rename ID NAME, or copy delete ID.");
+        return true;
+    }
     if (args[0] == "lightroom" && args.size() == 3 &&
         (args[1] == "inspect" || args[1] == "import")) {
         const auto source = pathFromUtf8(args[2]);
@@ -33,14 +45,17 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"virtualCopies\":" << report.virtualCopies
                   << ",\"manualCollections\":" << report.manualCollections
                   << ",\"smartCollections\":" << report.smartCollections
+                  << ",\"smartRulesMapped\":" << report.smartRulesMapped
                   << ",\"mappedEdits\":" << report.mappedEdits
                   << ",\"partialEdits\":" << report.partialEdits
                   << ",\"unmappedEdits\":" << report.unmappedEdits
                   << ",\"unreadable\":" << report.unreadable
                   << ",\"added\":" << report.imported.added << ",\"reused\":" << report.imported.reused
                   << ",\"versions\":" << report.imported.versions
+                  << ",\"copies\":" << report.imported.copies
                   << ",\"unchanged\":" << report.imported.unchanged
                   << ",\"collections\":" << report.imported.collections
+                  << ",\"smartCollectionsImported\":" << report.imported.smartCollections
                   << ",\"fingerprint\":" << quoted(report.fingerprint) << "}\n";
         return true;
     }
@@ -111,7 +126,9 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
             std::cout << "{\"id\":" << quoted(r.id) << ",\"path\":" << quoted(luma::pathUtf8(r.path))
                       << ",\"filename\":" << quoted(r.filename)
                       << ",\"checksum\":" << quoted(r.checksum) << ",\"rating\":" << r.rating
-                      << ",\"flag\":" << r.flag << ",\"label\":" << quoted(r.label) << '}';
+                      << ",\"flag\":" << r.flag << ",\"label\":" << quoted(r.label)
+                      << ",\"copyName\":" << quoted(r.copyName)
+                      << ",\"originalAsset\":" << quoted(r.originalAssetID) << '}';
         }
         std::cout << "]}\n";
         return true;
