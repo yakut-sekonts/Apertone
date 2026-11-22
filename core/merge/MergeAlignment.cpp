@@ -88,9 +88,10 @@ Homography verifiedMergeAlignment(ai::RgbaImage reference, ai::RgbaImage floatin
     }
     // Refine the strongest coarse translation to subpixel resolution, retaining
     // the candidate only when measured correspondence improves.
-    for (double step = 1.0 / 64; step * std::max(reference.width, reference.height) >= .25;
-         step /= 4) {
+    const int maxDenominator = 4 * std::max(reference.width, reference.height);
+    for (int denominator = 64; denominator <= maxDenominator; denominator *= 4) {
         checkCancellation(stop);
+        const double step = 1.0 / denominator;
         const double centerX = translation.values[2], centerY = translation.values[5];
         for (int y = -3; y <= 3; ++y)
             for (int x = -3; x <= 3; ++x)
@@ -111,7 +112,8 @@ Homography verifiedMergeAlignment(ai::RgbaImage reference, ai::RgbaImage floatin
         constexpr std::array limit{.10, .13, .08, .13, .10, .08, .16, .16};
         constexpr std::array initialStep{.032, .046, .022, .046, .032, .022, .042, .042};
         double objective = correlation(reference, floating, baseline);
-        for (double step = 1; step >= .0625; step /= 2) {
+        for (int denominator = 1; denominator <= 16; denominator *= 2) {
+            const double step = 1.0 / denominator;
             for (int iteration = 0; iteration < 3; ++iteration) {
                 checkCancellation(stop);
                 bool improved = false;
