@@ -1,7 +1,7 @@
 #include "apps/desktop/PresetController.h"
-#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/BuiltinPresets.h"
+#include "core/io/Path.h"
 #include "core/quick/QuickLooks.h"
 #include <QFileInfo>
 #include <QJsonArray>
@@ -250,9 +250,9 @@ bool PresetController::applyXmpToPhoto(const QUrl &url, const QString &photoID) 
     importUnsupported_.clear();
     importedId_.clear();
     try {
-        if (!url.isLocalFile() ||
-            QFileInfo(url.toLocalFile()).suffix().compare(QStringLiteral("xmp"),
-                                                         Qt::CaseInsensitive) != 0)
+        if (!url.isLocalFile() || QFileInfo(url.toLocalFile())
+                                          .suffix()
+                                          .compare(QStringLiteral("xmp"), Qt::CaseInsensitive) != 0)
             throw std::runtime_error("Select a local XMP file.");
         if (photoID.isEmpty() || editor_.photoID() != photoID)
             throw std::runtime_error("The active photo changed. Open the XMP file again.");
@@ -264,9 +264,11 @@ bool PresetController::applyXmpToPhoto(const QUrl &url, const QString &photoID) 
         importUnsupported_ = imported.unsupported;
         importNotice_ = QStringLiteral("XMP settings applied to this photo.");
         if (!importUnsupported_.isEmpty())
-            importNotice_ = LocalizedText(QStringLiteral(
-                "XMP applied with partial compatibility. Unsupported settings (%1)."))
-                .arg(importUnsupported_.size());
+            importNotice_ =
+                LocalizedText(
+                    QStringLiteral(
+                        "XMP applied with partial compatibility. Unsupported settings (%1)."))
+                    .arg(importUnsupported_.size());
         emit stateChanged();
         return true;
     } catch (const std::exception &error) {
@@ -276,21 +278,26 @@ bool PresetController::applyXmpToPhoto(const QUrl &url, const QString &photoID) 
 bool PresetController::previewPhotoXmp(const QUrl &url, const QString &photoID) {
     closePhotoXmpPreview();
     try {
-        if (!url.isLocalFile() || QFileInfo(url.toLocalFile()).suffix().compare(QStringLiteral("xmp"), Qt::CaseInsensitive) != 0)
+        if (!url.isLocalFile() || QFileInfo(url.toLocalFile())
+                                          .suffix()
+                                          .compare(QStringLiteral("xmp"), Qt::CaseInsensitive) != 0)
             throw std::runtime_error("Select a local XMP file.");
         if (photoID.isEmpty() || editor_.photoID() != photoID)
             throw std::runtime_error("The active photo changed. Open the XMP file again.");
         auto imported = luma::PresetStore::inspectImport(url.toLocalFile());
         xmpPhotoID_ = photoID;
         xmpVersionText_ = LocalizedText(QStringLiteral("Camera Raw %1 · Process Version %2"))
-            .arg(imported.sourceVersion.isEmpty() ? QStringLiteral("—") : imported.sourceVersion)
-            .arg(imported.processVersion.isEmpty() ? QStringLiteral("—") : imported.processVersion);
+                              .arg(imported.sourceVersion.isEmpty() ? QStringLiteral("—")
+                                                                    : imported.sourceVersion)
+                              .arg(imported.processVersion.isEmpty() ? QStringLiteral("—")
+                                                                     : imported.processVersion);
         importUnsupported_ = imported.unsupported;
         importNotice_ = LocalizedText(QStringLiteral("Preview of %1 recognized settings."))
                             .arg(imported.preset.parameters.size());
         xmpPreview_ = std::move(imported.preset);
         error_.clear();
-        editor_.previewSettings(xmpPreview_->settings, xmpPreview_->groups, xmpPreview_->parameters);
+        editor_.previewSettings(xmpPreview_->settings, xmpPreview_->groups,
+                                xmpPreview_->parameters);
         emit stateChanged();
         return true;
     } catch (const std::exception &error) {
@@ -302,7 +309,8 @@ bool PresetController::confirmPhotoXmp() {
     try {
         if (!xmpPreview_ || editor_.photoID() != xmpPhotoID_)
             throw std::runtime_error("The active photo changed. Open the XMP file again.");
-        if (!editor_.applySettings(xmpPreview_->settings, xmpPreview_->groups, xmpPreview_->parameters))
+        if (!editor_.applySettings(xmpPreview_->settings, xmpPreview_->groups,
+                                   xmpPreview_->parameters))
             throw std::runtime_error("The current photo cannot be edited.");
         importNotice_ = QStringLiteral("XMP settings applied to this photo.");
         closePhotoXmpPreview();

@@ -55,7 +55,8 @@ class SessionService {
 
   private:
     PhotoSession openSource(const std::filesystem::path &source, const std::string &assetID,
-                            CancellationToken stop, const std::function<void(double)> &progress) const;
+                            CancellationToken stop,
+                            const std::function<void(double)> &progress) const;
     struct PreviewSource {
         std::shared_ptr<const FloatImage> standard, interactive;
         PhotoMetadata metadata;

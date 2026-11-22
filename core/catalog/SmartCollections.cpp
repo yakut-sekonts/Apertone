@@ -24,7 +24,8 @@ std::string Catalog::insertSmartCollection(const std::string &name, const std::s
     if (!count.row() || count.integer(0) >= 512)
         throw std::runtime_error("Smart collection limit reached.");
     const auto id = createCollection(name);
-    detail::Statement insert(db_, "INSERT INTO smart_collections(collection_id,document) VALUES(?1,?2)");
+    detail::Statement insert(db_,
+                             "INSERT INTO smart_collections(collection_id,document) VALUES(?1,?2)");
     insert.text(1, id);
     insert.text(2, document);
     insert.row();

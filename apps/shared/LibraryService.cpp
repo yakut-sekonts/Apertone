@@ -311,7 +311,8 @@ void completeMove(Catalog &catalog, const ImportJournalItem &item, bool recoveri
         catalog.finishImportMove(item, "done");
     } catch (const std::exception &failure) {
         // A registered target stays usable. The report identifies preserved source material.
-        const auto detail = std::string(failure.what()) + " Source: " + luma::pathUtf8(item.source) +
+        const auto detail = std::string(failure.what()) +
+                            " Source: " + luma::pathUtf8(item.source) +
                             "; hold: " + luma::pathUtf8(item.sourceHold);
         catalog.finishImportMove(item, "retained", detail);
     }
@@ -422,8 +423,9 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
             throw std::runtime_error("Backup and import destinations must be different folders.");
     }
     Catalog catalog(catalog_);
-    const auto session = catalog.beginImport(options.mode, options.destination, sources, files::processID(),
-                                             options.skipDuplicates, discovery.failures, options);
+    const auto session =
+        catalog.beginImport(options.mode, options.destination, sources, files::processID(),
+                            options.skipDuplicates, discovery.failures, options);
     for (std::size_t index = 0; index < sources.size(); ++index) {
         if (stop.isCancelled())
             break;
@@ -503,7 +505,8 @@ LibraryService::import(const std::vector<std::filesystem::path> &roots, ImportOp
                                      stop.isCancelled() ? "cancelled" : "failed", error.what());
         }
         if (progress)
-            progress(static_cast<double>(index + 1) / sources.size(), luma::pathUtf8(source.filename()));
+            progress(static_cast<double>(index + 1) / sources.size(),
+                     luma::pathUtf8(source.filename()));
     }
     catalog.finishImport(session, stop.isCancelled() ? "cancelled" : "completed");
     return catalog.importSummary(session);

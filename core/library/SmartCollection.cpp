@@ -60,9 +60,8 @@ bool relativeDate(const std::string &duration) {
     unsigned amount = 0;
     const auto result = std::from_chars(duration.data(), duration.data() + separator, amount);
     const auto unit = std::string_view(duration).substr(separator + 1);
-    return result.ec == std::errc{} && result.ptr == duration.data() + separator &&
-           amount >= 1 && amount <= 36500 &&
-           (unit == "days" || unit == "months" || unit == "years");
+    return result.ec == std::errc{} && result.ptr == duration.data() + separator && amount >= 1 &&
+           amount <= 36500 && (unit == "days" || unit == "months" || unit == "years");
 }
 void validateRule(const SmartRule &r, int depth, int &count) {
     require(++count <= 64 && depth <= 8);

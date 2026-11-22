@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoCulling.h"
@@ -48,7 +48,8 @@ void LibraryModel::startCulling(const std::vector<std::string> &selected, bool s
                     const auto stop = context.stopToken();
                     const auto provider = luma::macos::makePhotoCulling();
                     if (!provider)
-                        throw std::runtime_error("Intelligent Library is unavailable on this platform.");
+                        throw std::runtime_error(
+                            "Intelligent Library is unavailable on this platform.");
                     if (provider->location() != luma::ai::ExecutionLocation::local)
                         throw std::runtime_error("Intelligent Library must run locally.");
                     luma::Catalog catalog(path);
@@ -163,7 +164,8 @@ void LibraryModel::setCullingAutoEnabled(bool enabled) {
     if (cullingAutoEnabled_ == enabled)
         return;
     cullingAutoEnabled_ = enabled;
-    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
+                           "/preview.ini",
                        QSettings::IniFormat);
     settings.setValue("cullingAutoEnabled", enabled);
     settings.sync();

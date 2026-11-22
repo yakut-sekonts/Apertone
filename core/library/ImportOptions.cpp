@@ -1,5 +1,5 @@
-#include "core/io/Path.h"
 #include "core/edits/EditSnapshot.h"
+#include "core/io/Path.h"
 #include "core/library/LibraryTypes.h"
 #include <algorithm>
 #include <ctime>
@@ -44,7 +44,8 @@ void ImportOptions::validate() const {
             startedAt <= 253402300799LL);
     require(sourceRoots.size() <= 65536);
     for (const auto &path : {destination, backupDestination})
-        require(luma::pathUtf8(path).size() <= 4096 && luma::pathUtf8(path).find('\0') == std::string::npos);
+        require(luma::pathUtf8(path).size() <= 4096 &&
+                luma::pathUtf8(path).find('\0') == std::string::npos);
     for (const auto &path : sourceRoots)
         require(!path.empty() && luma::pathUtf8(path).size() <= 4096 &&
                 luma::pathUtf8(path).find('\0') == std::string::npos);
@@ -69,8 +70,8 @@ std::string encodeImportOptions(const ImportOptions &o) {
     std::ostringstream out;
     out.imbue(std::locale::classic());
     out << "LUMA_IMPORT 2 " << static_cast<int>(o.mode) << ' '
-        << std::quoted(luma::pathUtf8(o.destination)) << ' ' << o.recursive << ' ' << o.skipDuplicates
-        << ' ' << o.dateFolders << ' ' << std::quoted(o.naming) << ' '
+        << std::quoted(luma::pathUtf8(o.destination)) << ' ' << o.recursive << ' '
+        << o.skipDuplicates << ' ' << o.dateFolders << ' ' << std::quoted(o.naming) << ' '
         << std::quoted(luma::pathUtf8(o.backupDestination)) << ' ' << o.startedAt << ' '
         << std::quoted(o.metadata.title) << ' ' << std::quoted(o.metadata.caption) << ' '
         << std::quoted(o.metadata.copyright) << ' ' << std::quoted(o.metadata.location) << ' '

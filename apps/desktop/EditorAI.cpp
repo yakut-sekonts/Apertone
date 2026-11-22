@@ -1,8 +1,8 @@
-#include "core/io/Path.h"
 #include "apps/desktop/BundledModels.h"
 #include "apps/desktop/EditorController.h"
 #include "core/catalog/Identity.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/quick/QuickLooks.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/CoreMLSky.h"
@@ -78,7 +78,8 @@ void EditorController::setSkyModel(const QUrl &url) {
     skyModelPath_ = overridePath.isEmpty()
                         ? luma::desktop::bundledModelPath(luma::desktop::BundledModel::sky)
                         : overridePath;
-    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
+                           "/preview.ini",
                        QSettings::IniFormat);
     settings.setValue("skyModel", overridePath);
     emit stateChanged();
@@ -190,16 +191,19 @@ void EditorController::generateAIMask(const QString &kind, double x, double y) {
                     const std::array<double, 2> uprightPoint{
                         std::clamp((picked[0] + .5) / geometry.width(), 0.0, 1.0),
                         std::clamp((picked[1] + .5) / geometry.height(), 0.0, 1.0)};
-                    const auto activeProvider = selection == luma::ai::Selection::sky &&
-                                                        (!provider || !provider->supports(selection))
-                                                    ? luma::macos::makeCoreMLSky(skyModel) : provider;
+                    const auto activeProvider =
+                        selection == luma::ai::Selection::sky &&
+                                (!provider || !provider->supports(selection))
+                            ? luma::macos::makeCoreMLSky(skyModel)
+                            : provider;
                     if (!activeProvider)
-                        throw std::runtime_error("The requested AI selection is not available locally.");
+                        throw std::runtime_error(
+                            "The requested AI selection is not available locally.");
                     luma::checkCancellation(stop);
                     const auto bitmap = activeProvider->segment(
                         {pixels.width, pixels.height, pixels.rgba}, selection,
-                        selection == luma::ai::Selection::depthRange ? depthInterval : uprightPoint, stop,
-                        [self, revision](double value) {
+                        selection == luma::ai::Selection::depthRange ? depthInterval : uprightPoint,
+                        stop, [self, revision](double value) {
                             if (self)
                                 QMetaObject::invokeMethod(
                                     self,

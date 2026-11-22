@@ -6,9 +6,9 @@
 #include "core/catalog/Identity.h"
 #include "core/export/DngWriter.h"
 #include "core/image/Bayer.h"
-#include "core/io/StagingFile.h"
 #include "core/io/FileSystem.h"
 #include "core/io/Path.h"
+#include "core/io/StagingFile.h"
 #include "platform/macos/FileHasher.h"
 #include <algorithm>
 #include <cerrno>
@@ -48,7 +48,8 @@ std::filesystem::path createDerivedImage(const std::filesystem::path &catalog,
         throw std::runtime_error("Cannot sync derived image.");
     const auto checksum = macos::sha256File(temporary, stop);
     Catalog database(catalog);
-    const DerivedImageRecord record{target, checksum, image.width, image.height, files::processID()};
+    const DerivedImageRecord record{target, checksum, image.width, image.height,
+                                    files::processID()};
     checkCancellation(stop);
     database.stageDerived(record);
     // Staging can wait for catalog I/O. A cancellation received during that

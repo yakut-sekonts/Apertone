@@ -114,8 +114,8 @@ std::string Catalog::insertEditVersion(const std::string &assetID, const std::st
     duplicate.text(2, name);
     if (duplicate.row())
         throw std::runtime_error("A version with this name already exists.");
-    Statement insert(
-        db_, "INSERT INTO edit_versions(id,asset_id,name,document) VALUES(?1,?2,?3,?4)");
+    Statement insert(db_,
+                     "INSERT INTO edit_versions(id,asset_id,name,document) VALUES(?1,?2,?3,?4)");
     insert.text(1, id);
     insert.text(2, assetID);
     insert.text(3, name);

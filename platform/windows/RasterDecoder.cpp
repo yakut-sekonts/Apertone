@@ -37,7 +37,8 @@ bool RasterDecoder::cameraRaw(const std::filesystem::path &) const {
     return false;
 }
 
-PhotoMetadata RasterDecoder::inspect(const std::filesystem::path &path, CancellationToken stop) const {
+PhotoMetadata RasterDecoder::inspect(const std::filesystem::path &path,
+                                     CancellationToken stop) const {
     checkCancellation(stop);
     QImageReader reader(localName(path));
     auto result = metadata(reader);
@@ -55,7 +56,8 @@ DecodedImage RasterDecoder::decode(const std::filesystem::path &path, Cancellati
     auto image = reader.read();
     checkCancellation(stop);
     if (image.isNull() || image.width() != info.width || image.height() != info.height)
-        throw std::runtime_error("Cannot decode raster image: " + reader.errorString().toStdString());
+        throw std::runtime_error("Cannot decode raster image: " +
+                                 reader.errorString().toStdString());
     if (!image.colorSpace().isValid())
         image.setColorSpace(QColorSpace::SRgb);
     image.convertToColorSpace(QColorSpace::SRgbLinear, QImage::Format_RGBA32FPx4);

@@ -48,8 +48,8 @@ int openRead(const std::filesystem::path &path, bool rejectLinks) {
     if (!rejectLinks)
         return _wopen(path.c_str(), _O_RDONLY | _O_BINARY | _O_NOINHERIT);
     const auto handle = CreateFileW(path.c_str(), GENERIC_READ,
-                                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                    nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+                                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                                    OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
     if (handle == INVALID_HANDLE_VALUE)
         return fail(GetLastError());
     BY_HANDLE_FILE_INFORMATION info{};
@@ -59,7 +59,7 @@ int openRead(const std::filesystem::path &path, bool rejectLinks) {
         return fail(ERROR_ACCESS_DENIED);
     }
     const int descriptor = _open_osfhandle(reinterpret_cast<std::intptr_t>(handle),
-                                            _O_RDONLY | _O_BINARY | _O_NOINHERIT);
+                                           _O_RDONLY | _O_BINARY | _O_NOINHERIT);
     if (descriptor < 0)
         CloseHandle(handle);
     return descriptor;

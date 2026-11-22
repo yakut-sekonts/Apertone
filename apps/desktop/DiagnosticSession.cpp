@@ -1,6 +1,6 @@
-#include "core/io/Path.h"
-#include "core/io/FileSystem.h"
 #include "apps/desktop/DiagnosticSession.h"
+#include "core/io/FileSystem.h"
+#include "core/io/Path.h"
 #include "platform/macos/CrashCapture.h"
 #include <QCoreApplication>
 #include <QDateTime>
@@ -136,8 +136,7 @@ DiagnosticSession::DiagnosticSession(bool enabled) {
         enabled_ = true;
         writer_ = std::thread([this] { writeLoop(); });
         record(LogLevel::info, LogEvent::sessionStarted);
-        crashCaptureEnabled_ =
-            macos::enableCrashCapture(luma::pathFromUtf8(session.toStdString()));
+        crashCaptureEnabled_ = macos::enableCrashCapture(luma::pathFromUtf8(session.toStdString()));
         if (!crashCaptureEnabled_)
             record(LogLevel::warning, LogEvent::crashCaptureUnavailable);
     } catch (...) {

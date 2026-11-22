@@ -20,8 +20,8 @@
 namespace {
 int schemaVersion(const std::filesystem::path &path) {
     sqlite3 *db = nullptr;
-    const int opened =
-        sqlite3_open_v2(luma::pathUtf8(path).c_str(), &db, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
+    const int opened = sqlite3_open_v2(luma::pathUtf8(path).c_str(), &db,
+                                       SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
     struct Connection {
         sqlite3 *db;
         ~Connection() {
@@ -50,8 +50,9 @@ void writeReport(const QString &destination, const QVariantMap &report) {
                                 ".luma-diagnostics-");
     QFile file(temporary.path());
     const auto bytes = QJsonDocument(QJsonObject::fromVariantMap(report)).toJson();
-    if (bytes.size() > 65536 || !file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() ||
-        !file.flush() || luma::files::flush(file.handle()) != 0)
+    if (bytes.size() > 65536 || !file.open(QIODevice::WriteOnly) ||
+        file.write(bytes) != bytes.size() || !file.flush() ||
+        luma::files::flush(file.handle()) != 0)
         throw std::runtime_error("Cannot save the diagnostic report.");
     // No replacement, including a file created after the save dialog closed.
     file.close();

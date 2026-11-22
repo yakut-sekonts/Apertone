@@ -1,8 +1,8 @@
-#include "core/io/Path.h"
 #include "apps/shared/BackupService.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include <algorithm>
 #include <chrono>
 #include <vector>

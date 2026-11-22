@@ -2,11 +2,11 @@
 #include "core/image/Bayer.h"
 #include <QColorSpace>
 #include <QImage>
-#include <memory>
-#include <windows.h>
-#include <shlwapi.h>
 #include <initguid.h>
+#include <memory>
+#include <shlwapi.h>
 #include <wincodec.h>
+#include <windows.h>
 
 namespace luma::windows {
 namespace {
@@ -26,12 +26,15 @@ class ComSession {
         if (SUCCEEDED(status_))
             CoUninitialize();
     }
+
   private:
     HRESULT status_;
 };
 
 struct Release {
-    void operator()(IUnknown *object) const { object->Release(); }
+    void operator()(IUnknown *object) const {
+        object->Release();
+    }
 };
 template <class T> using ComPtr = std::unique_ptr<T, Release>;
 
@@ -49,17 +52,21 @@ void writeZipTiff(const QImage &image, const std::filesystem::path &path, Cancel
     if (image.format() != QImage::Format_RGBA64 && image.format() != QImage::Format_ARGB32)
         throw std::runtime_error("Unsupported input for Windows TIFF encoder.");
     ComSession com;
-    const auto factory = create<IWICImagingFactory>([](auto **out) {
-        return CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
-                                IID_IWICImagingFactory, reinterpret_cast<void **>(out));
-    }, "Cannot create Windows image codec factory");
-    const auto stream = create<IStream>([&](auto **out) {
-        return SHCreateStreamOnFileEx(path.c_str(), STGM_READWRITE | STGM_SHARE_DENY_NONE,
-                                      FILE_ATTRIBUTE_NORMAL, FALSE, nullptr, out);
-    }, "Cannot create TIFF stream");
-    const auto encoder = create<IWICBitmapEncoder>([&](auto **out) {
-        return factory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, out);
-    }, "Cannot create TIFF encoder");
+    const auto factory = create<IWICImagingFactory>(
+        [](auto **out) {
+            return CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+                                    IID_IWICImagingFactory, reinterpret_cast<void **>(out));
+        },
+        "Cannot create Windows image codec factory");
+    const auto stream = create<IStream>(
+        [&](auto **out) {
+            return SHCreateStreamOnFileEx(path.c_str(), STGM_READWRITE | STGM_SHARE_DENY_NONE,
+                                          FILE_ATTRIBUTE_NORMAL, FALSE, nullptr, out);
+        },
+        "Cannot create TIFF stream");
+    const auto encoder = create<IWICBitmapEncoder>(
+        [&](auto **out) { return factory->CreateEncoder(GUID_ContainerFormatTiff, nullptr, out); },
+        "Cannot create TIFF encoder");
     require(encoder->Initialize(stream.get(), WICBitmapEncoderNoCache), "Cannot start TIFF encode");
     IWICBitmapFrameEncode *framePointer = nullptr;
     IPropertyBag2 *propertyPointer = nullptr;
@@ -85,11 +92,12 @@ void writeZipTiff(const QImage &image, const std::filesystem::path &path, Cancel
     if (!IsEqualGUID(format, expected))
         throw std::runtime_error("Windows TIFF encoder changed the requested depth or alpha.");
     auto profile = image.colorSpace().iccProfile();
-    auto color = create<IWICColorContext>([&](auto **out) {
-        return factory->CreateColorContext(out);
-    }, "Cannot create TIFF color context");
+    auto color =
+        create<IWICColorContext>([&](auto **out) { return factory->CreateColorContext(out); },
+                                 "Cannot create TIFF color context");
     require(color->InitializeFromMemory(reinterpret_cast<BYTE *>(profile.data()),
-                                        static_cast<UINT>(profile.size())), "Cannot prepare TIFF ICC");
+                                        static_cast<UINT>(profile.size())),
+            "Cannot prepare TIFF ICC");
     auto *context = color.get();
     require(frame->SetColorContexts(1, &context), "Cannot attach TIFF ICC");
     for (int y = 0; y < image.height(); ++y) {

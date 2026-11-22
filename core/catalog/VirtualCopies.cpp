@@ -55,7 +55,8 @@ void Catalog::migrateVirtualCopies() {
         while (copies.row())
             previous.push_back({copies.string(0), copies.string(1), copies.string(2),
                                 copies.string(3), copies.string(4), copies.string(5),
-                                static_cast<int>(copies.integer(6)), static_cast<int>(copies.integer(7))});
+                                static_cast<int>(copies.integer(6)),
+                                static_cast<int>(copies.integer(7))});
     }
     for (const auto &copy : previous) {
         const auto asset = assetByID(copy.id);
@@ -68,7 +69,8 @@ void Catalog::migrateVirtualCopies() {
         metadata.rating = copy.rating;
         metadata.flag = copy.flag;
         metadata.label = copy.label;
-        const auto id = insertVirtualCopy(*asset, copy.name, decodeEditSnapshot(stored.string(0)), metadata);
+        const auto id =
+            insertVirtualCopy(*asset, copy.name, decodeEditSnapshot(stored.string(0)), metadata);
         Statement link(db_, "UPDATE lightroom_migration_photos SET asset_id=?1 "
                             "WHERE source_catalog=?2 AND source_photo=?3");
         link.text(1, id);
@@ -79,17 +81,19 @@ void Catalog::migrateVirtualCopies() {
 }
 
 std::string Catalog::insertVirtualCopy(const AssetRecord &source, const std::string &name,
-                                       const EditDocument &edits, const DescriptiveMetadata &metadata) {
+                                       const EditDocument &edits,
+                                       const DescriptiveMetadata &metadata) {
     validateCopyName(name);
     const auto &original = source.originalAssetID.empty() ? source.id : source.originalAssetID;
     const auto id = newID();
-    Statement create(db_, "INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,"
-                          "capture_date,width,height,orientation,camera,lens,focal_length,aperture,"
-                          "shutter_seconds,iso,gps_latitude,gps_longitude,original_asset_id,copy_name) "
-                          "SELECT ?1,?2,filename,extension,filesize,checksum,capture_date,width,height,"
-                          "orientation,camera,lens,focal_length,aperture,shutter_seconds,iso,"
-                          "gps_latitude,gps_longitude,id,?3 FROM assets WHERE id=?4 "
-                          "AND original_asset_id IS NULL");
+    Statement create(db_,
+                     "INSERT INTO assets(id,original_path,filename,extension,filesize,checksum,"
+                     "capture_date,width,height,orientation,camera,lens,focal_length,aperture,"
+                     "shutter_seconds,iso,gps_latitude,gps_longitude,original_asset_id,copy_name) "
+                     "SELECT ?1,?2,filename,extension,filesize,checksum,capture_date,width,height,"
+                     "orientation,camera,lens,focal_length,aperture,shutter_seconds,iso,"
+                     "gps_latitude,gps_longitude,id,?3 FROM assets WHERE id=?4 "
+                     "AND original_asset_id IS NULL");
     create.text(1, id);
     create.text(2, "apertone-copy:" + id);
     create.text(3, name);
@@ -124,7 +128,8 @@ std::string Catalog::createVirtualCopy(const std::string &assetID, const std::st
 
 void Catalog::renameVirtualCopy(const std::string &id, const std::string &name) {
     validateCopyName(name);
-    Statement rename(db_, "UPDATE assets SET copy_name=?1 WHERE id=?2 AND original_asset_id IS NOT NULL");
+    Statement rename(
+        db_, "UPDATE assets SET copy_name=?1 WHERE id=?2 AND original_asset_id IS NOT NULL");
     rename.text(1, name);
     rename.text(2, id);
     rename.row();
@@ -135,7 +140,9 @@ void Catalog::renameVirtualCopy(const std::string &id, const std::string &name) 
 void Catalog::deleteVirtualCopy(const std::string &id) {
     execute("BEGIN IMMEDIATE;");
     try {
-        Statement origin(db_, "SELECT original_asset_id FROM assets WHERE id=?1 AND original_asset_id IS NOT NULL");
+        Statement origin(
+            db_,
+            "SELECT original_asset_id FROM assets WHERE id=?1 AND original_asset_id IS NOT NULL");
         origin.text(1, id);
         if (!origin.row())
             throw std::runtime_error("The virtual copy is no longer in the catalog.");

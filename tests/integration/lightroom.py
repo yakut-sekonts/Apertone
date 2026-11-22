@@ -65,10 +65,10 @@ def create_lightroom(file, originals):
         (4, "fde7a05d-6909-4a00-946d-926b59f032cb", None, None, 0, 0, "", "VIDEO", 3),
     ])
     db.executemany("INSERT INTO Adobe_imageDevelopSettings VALUES(?,?)", [
-        (1, 's={Exposure2012=1.25,ToneCurvePV2012={0,0,255,255},Texture=21,'
+        (1, 's={Exposure2012=1.25e0,ToneCurvePV2012={0,0,255,255},Texture=21,'
             'ColorGradeGlobalSat=19,GrainAmount=15,'
             'CameraProfile="User profile",MaskGroupBasedCorrections={{Active=true}}}'),
-        (2, 's={Exposure2012=-0.75,WhiteBalance="As Shot"}'),
+        (2, 's={Exposure2012=-7.5e-1,WhiteBalance="As Shot"}'),
     ])
     db.executemany("INSERT INTO AgLibraryCollection VALUES(?,?,?,?)", [
         (1, "Портфолио", "com.adobe.ag.library.collection", 5),

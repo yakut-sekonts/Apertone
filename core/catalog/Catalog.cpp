@@ -133,9 +133,14 @@ AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     if (edits.enabled(Correction::transform) && !edits.transform.neutral())
         (void)TransformMapping(metadata.width, metadata.height, metadata.orientation,
                                edits.transform, true);
-    return {query.string(0), pathFromUtf8(query.string(1)), query.string(2),
-            metadata, edits, detail::readMetadataOverlay(db, query.string(0)),
-            query.string(71), query.string(72)};
+    return {query.string(0),
+            pathFromUtf8(query.string(1)),
+            query.string(2),
+            metadata,
+            edits,
+            detail::readMetadataOverlay(db, query.string(0)),
+            query.string(71),
+            query.string(72)};
 }
 constexpr auto selectFields =
     "SELECT a.id,COALESCE(original.original_path,a.original_path),a.checksum,a.camera,a.lens,a.iso,"
@@ -152,7 +157,8 @@ constexpr auto selectFields =
     "scale,e.transform_x_offset,e.transform_y_offset,e.transform_constrain_crop,e.transform_guided,"
     "e.transform_m11,e.transform_m12,e.transform_m13,e.transform_m21,e.transform_m22,e.transform_"
     "m23,e.transform_m31,e.transform_m32,COALESCE(a.original_asset_id,''),a.copy_name,"
-    "COALESCE(original.gps_latitude,a.gps_latitude),COALESCE(original.gps_longitude,a.gps_longitude) "
+    "COALESCE(original.gps_latitude,a.gps_latitude),COALESCE(original.gps_longitude,a.gps_"
+    "longitude) "
     "FROM assets a JOIN edit_documents e ON e.asset_id=a.id "
     "LEFT JOIN assets original ON original.id=a.original_asset_id ";
 } // namespace
@@ -483,9 +489,9 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
     Statement query(db_, (std::string(selectFields) + "WHERE a.original_path=?1").c_str());
     query.text(1, luma::pathUtf8(path));
     AssetRecord result;
-    const bool gps = metadata.latitude && metadata.longitude &&
-        std::isfinite(*metadata.latitude) && std::abs(*metadata.latitude) <= 90 &&
-        std::isfinite(*metadata.longitude) && std::abs(*metadata.longitude) <= 180;
+    const bool gps = metadata.latitude && metadata.longitude && std::isfinite(*metadata.latitude) &&
+                     std::abs(*metadata.latitude) <= 90 && std::isfinite(*metadata.longitude) &&
+                     std::abs(*metadata.longitude) <= 180;
     if (query.row()) {
         result = readAsset(db_, query);
         if (result.checksum != checksum) {
@@ -493,7 +499,8 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
                                      "automatic replacement is disabled.");
         }
         if (gps && (!result.metadata.latitude || !result.metadata.longitude)) {
-            Statement position(db_, "UPDATE assets SET gps_latitude=?1,gps_longitude=?2 WHERE id=?3");
+            Statement position(db_,
+                               "UPDATE assets SET gps_latitude=?1,gps_longitude=?2 WHERE id=?3");
             position.number(1, metadata.latitude);
             position.number(2, metadata.longitude);
             position.text(3, result.id);
@@ -576,7 +583,8 @@ bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
     while (paths.row()) {
         checkCancellation(stop);
         std::error_code error;
-        if (std::filesystem::equivalent(canonicalPath, pathFromUtf8(paths.string(0)), error) && !error)
+        if (std::filesystem::equivalent(canonicalPath, pathFromUtf8(paths.string(0)), error) &&
+            !error)
             return true;
     }
     return false;

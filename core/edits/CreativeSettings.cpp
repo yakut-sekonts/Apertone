@@ -17,8 +17,9 @@ std::size_t parameterCount(int version) {
     return version < 5 ? legacyParameterCount : version == 5 ? 43 : creativeParameters.size();
 }
 std::uint32_t corrections(int version) {
-    return version < 5 ? legacyCorrectionMask
-         : version == 5 ? legacyCorrectionMask | 4194304U : creativeCorrectionMask;
+    return version < 5    ? legacyCorrectionMask
+           : version == 5 ? legacyCorrectionMask | 4194304U
+                          : creativeCorrectionMask;
 }
 bool validID(std::string_view id) {
     if (id.size() != 36)
@@ -93,8 +94,8 @@ void QuickLookLayer::validate() const {
 bool isCreativeParameter(std::string_view name) {
     return name.starts_with("presence.") || name.starts_with("point.") ||
            name.starts_with("grading.") || name.starts_with("vignette.") ||
-           name.starts_with("grain.") || name.starts_with("bw.") ||
-           name.starts_with("defringe.") || name.starts_with("calibration.");
+           name.starts_with("grain.") || name.starts_with("bw.") || name.starts_with("defringe.") ||
+           name.starts_with("calibration.");
 }
 const CreativeParameter &creativeParameter(std::string_view name) {
     for (const auto &parameter : creativeParameters)

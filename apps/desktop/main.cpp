@@ -1,4 +1,3 @@
-#include "core/io/Path.h"
 #include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/BatchController.h"
 #include "apps/desktop/CatalogStartup.h"
@@ -13,6 +12,7 @@
 #include "apps/desktop/PresetController.h"
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
+#include "core/io/Path.h"
 #include <QCommandLineParser>
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -40,64 +40,65 @@ void testAutomaticMask(QGuiApplication &app, QQuickWindow &window, EditorControl
     auto state = std::make_shared<State>();
     state->elapsed.start();
     auto *timer = new QTimer(&app);
-    QObject::connect(timer, &QTimer::timeout, &app,
-                     [&, state, timer, kind, point, output, screenshot] {
-        const auto fail = [&](const QString &message) {
+    QObject::connect(
+        timer, &QTimer::timeout, &app, [&, state, timer, kind, point, output, screenshot] {
+            const auto fail = [&](const QString &message) {
+                timer->stop();
+                std::cerr << message.toStdString() << '\n';
+                app.exit(1);
+            };
+            if (state->elapsed.elapsed() > 180'000 || !editor.error().isEmpty()) {
+                fail(editor.error().isEmpty() ? QStringLiteral("Automatic mask test timed out.")
+                                              : editor.error());
+                return;
+            }
+            if (editor.busy() || editor.aiBusy() || editor.saving() || editor.exporting() ||
+                !editor.hasPhoto() || editor.previewUrl().isEmpty())
+                return;
+            if (state->phase == 0) {
+                state->before = editor.currentSettings().localMasks.size();
+                state->phase = 1;
+                editor.generateAIMask(kind, point.x(), point.y());
+                return;
+            }
+            if (state->phase == 1) {
+                const auto edits = editor.currentSettings();
+                if (edits.localMasks.size() != state->before + 1 ||
+                    edits.localMasks.back().bitmap.empty()) {
+                    fail(QStringLiteral("Automatic selection did not create an editable bitmap."));
+                    return;
+                }
+                const auto values = edits.localMasks.back().bitmap.pixels();
+                const auto covered =
+                    std::ranges::count_if(values, [](auto value) { return value >= 128; });
+                const auto share = static_cast<double>(covered) / values.size();
+                const auto minimum = (kind == "eyes" || kind == "lips") ? .0001 : .002;
+                if (share < minimum || share > .998) {
+                    fail(QStringLiteral("Automatic mask coverage is degenerate: %1").arg(share));
+                    return;
+                }
+                std::cout << "Automatic mask coverage: " << share << '\n';
+                if (!screenshot.isEmpty() && !window.grabWindow().save(screenshot)) {
+                    fail(QStringLiteral("Cannot capture the automatic mask preview."));
+                    return;
+                }
+                state->phase = 2;
+                editor.setLocalParameter(QStringLiteral("exposure"), 0.9);
+                return;
+            }
+            if (state->phase == 2 && !output.isEmpty()) {
+                state->phase = 3;
+                editor.exportPhoto(QUrl::fromLocalFile(output),
+                                   static_cast<int>(luma::ExportFormat::png), 92, false);
+                return;
+            }
+            if (!output.isEmpty() && !QFileInfo::exists(output)) {
+                fail(QStringLiteral("Automatic mask export is missing."));
+                return;
+            }
             timer->stop();
-            std::cerr << message.toStdString() << '\n';
-            app.exit(1);
-        };
-        if (state->elapsed.elapsed() > 180'000 || !editor.error().isEmpty()) {
-            fail(editor.error().isEmpty() ? QStringLiteral("Automatic mask test timed out.")
-                                          : editor.error());
-            return;
-        }
-        if (editor.busy() || editor.aiBusy() || editor.saving() || editor.exporting() ||
-            !editor.hasPhoto() || editor.previewUrl().isEmpty())
-            return;
-        if (state->phase == 0) {
-            state->before = editor.currentSettings().localMasks.size();
-            state->phase = 1;
-            editor.generateAIMask(kind, point.x(), point.y());
-            return;
-        }
-        if (state->phase == 1) {
-            const auto edits = editor.currentSettings();
-            if (edits.localMasks.size() != state->before + 1 ||
-                edits.localMasks.back().bitmap.empty()) {
-                fail(QStringLiteral("Automatic selection did not create an editable bitmap."));
-                return;
-            }
-            const auto values = edits.localMasks.back().bitmap.pixels();
-            const auto covered = std::ranges::count_if(values, [](auto value) { return value >= 128; });
-            const auto share = static_cast<double>(covered) / values.size();
-            const auto minimum = (kind == "eyes" || kind == "lips") ? .0001 : .002;
-            if (share < minimum || share > .998) {
-                fail(QStringLiteral("Automatic mask coverage is degenerate: %1").arg(share));
-                return;
-            }
-            std::cout << "Automatic mask coverage: " << share << '\n';
-            if (!screenshot.isEmpty() && !window.grabWindow().save(screenshot)) {
-                fail(QStringLiteral("Cannot capture the automatic mask preview."));
-                return;
-            }
-            state->phase = 2;
-            editor.setLocalParameter(QStringLiteral("exposure"), 0.9);
-            return;
-        }
-        if (state->phase == 2 && !output.isEmpty()) {
-            state->phase = 3;
-            editor.exportPhoto(QUrl::fromLocalFile(output), static_cast<int>(luma::ExportFormat::png),
-                               92, false);
-            return;
-        }
-        if (!output.isEmpty() && !QFileInfo::exists(output)) {
-            fail(QStringLiteral("Automatic mask export is missing."));
-            return;
-        }
-        timer->stop();
-        window.close();
-    });
+            window.close();
+        });
     editor.openFile(QUrl::fromLocalFile(source));
     timer->start(30);
 }
@@ -108,7 +109,8 @@ void testDenoise(QGuiApplication &app, QQuickWindow &window, EditorController &e
     elapsed->start();
     auto *timer = new QTimer(&app);
     QObject::connect(timer, &QTimer::timeout, &app, [&, timer, elapsed, original] {
-        if (elapsed->elapsed() > 900'000 || !editor.error().isEmpty() || !editor.denoiseModelConfigured()) {
+        if (elapsed->elapsed() > 900'000 || !editor.error().isEmpty() ||
+            !editor.denoiseModelConfigured()) {
             timer->stop();
             std::cerr << "Denoise acceptance failed: " << editor.error().toStdString() << '\n';
             app.exit(1);
@@ -141,8 +143,7 @@ int main(int argc, char **argv) {
 #endif
     QQuickStyle::setStyle(QStringLiteral("Basic"));
     QCommandLineParser parser;
-    parser.setApplicationDescription(
-        QStringLiteral("Apertone — non-destructive photo editor"));
+    parser.setApplicationDescription(QStringLiteral("Apertone — non-destructive photo editor"));
     parser.addHelpOption();
     parser.addVersionOption();
     parser.addOption(
@@ -576,11 +577,13 @@ int main(int argc, char **argv) {
                             expected.setParameter("presence.texture", 30);
                             expected.setEnabled(luma::Correction::presence, true);
                             const auto source = presets.snapshot(presets.importedId());
-                            if (source.groups & static_cast<unsigned>(luma::SettingsGroup::blackWhite)) {
+                            if (source.groups &
+                                static_cast<unsigned>(luma::SettingsGroup::blackWhite)) {
                                 expected.setParameter("bw.active", 1);
                                 expected.setParameter("bw.blue", -20);
                             }
-                            if (source.groups & static_cast<unsigned>(luma::SettingsGroup::calibration))
+                            if (source.groups &
+                                static_cast<unsigned>(luma::SettingsGroup::calibration))
                                 expected.setParameter("calibration.blueSaturation", 12);
                             if (editor.currentSettings() != expected) {
                                 std::cerr << "XMP apply changed absent parameters\n";
@@ -601,7 +604,8 @@ int main(int argc, char **argv) {
                             }
                             editor.undo();
                             const auto presetCount = presets.items().size();
-                            if (!presets.previewPhotoXmp(QUrl::fromLocalFile(xmp), editor.photoID()) ||
+                            if (!presets.previewPhotoXmp(QUrl::fromLocalFile(xmp),
+                                                         editor.photoID()) ||
                                 editor.currentSettings() != before || !presets.confirmPhotoXmp() ||
                                 editor.currentSettings() != expected ||
                                 presets.items().size() != presetCount ||

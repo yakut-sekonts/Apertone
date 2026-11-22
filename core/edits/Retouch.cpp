@@ -66,8 +66,8 @@ std::vector<RetouchStroke> decodeRetouch(std::string_view text) {
         std::size_t points = 0;
         if (!(in >> stroke.id >> mode >> enabled >> stroke.radius >> stroke.feather >>
               stroke.opacity >> stroke.sourceOffsetX >> stroke.sourceOffsetY >> points) ||
-            mode < 0 || mode > static_cast<int>(RetouchMode::redEye) || enabled < 0 || enabled > 1 || points < 1 || points > 4096 ||
-            total + points > 32768)
+            mode < 0 || mode > static_cast<int>(RetouchMode::redEye) || enabled < 0 ||
+            enabled > 1 || points < 1 || points > 4096 || total + points > 32768)
             throw std::runtime_error("Invalid retouch document.");
         total += points;
         stroke.mode = static_cast<RetouchMode>(mode);

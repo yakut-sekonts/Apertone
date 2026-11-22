@@ -1,9 +1,11 @@
-#include "core/io/Path.h"
 #include "apps/cli/Json.h"
 #include "apps/cli/LibraryCommands.h"
 #include "apps/shared/PhotoDelivery.h"
 #include "apps/shared/SessionService.h"
+#include "core/io/Path.h"
 #include "core/lens/LensProfiles.h"
+#include <QGuiApplication>
+#include <QString>
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -11,8 +13,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <QGuiApplication>
-#include <QString>
 
 namespace {
 using luma::cli::quoted;
@@ -123,7 +123,9 @@ int wmain(int argc, wchar_t **argv) {
     char *qtArgs[] = {program, nullptr};
     int qtArgc = 1;
     QGuiApplication app(qtArgc, qtArgs);
-    const auto argument = [&](int index) { return QString::fromWCharArray(argv[index]).toStdString(); };
+    const auto argument = [&](int index) {
+        return QString::fromWCharArray(argv[index]).toStdString();
+    };
 #else
 int main(int argc, char **argv) {
     const auto argument = [&](int index) { return std::string(argv[index]); };
@@ -149,7 +151,8 @@ int main(int argc, char **argv) {
                 << "       apertone enable|disable CORRECTION --catalog FILE\n"
                 << "       apertone wb as-shot --catalog FILE\n"
                 << "       apertone export DEST [--quality N] [--overwrite] --catalog FILE\n"
-                << "       apertone deliver contact-sheet|book|gallery|slideshow DEST TITLE IDS... --catalog FILE\n"
+                << "       apertone deliver contact-sheet|book|gallery|slideshow DEST TITLE IDS... "
+                   "--catalog FILE\n"
                 << "       apertone prepare-offline IDS... --catalog FILE\n"
                 << "       apertone catalog verify --catalog FILE\n"
                 << "       apertone import add SOURCES... | import copy DEST SOURCES... "
@@ -179,8 +182,8 @@ int main(int argc, char **argv) {
             int qtArgc = 1;
             QGuiApplication application(qtArgc, argv);
 #endif
-            const auto mode = exportChoice<luma::DeliveryFormat>(arguments[1],
-                std::array{"contact-sheet", "book", "gallery", "slideshow"});
+            const auto mode = exportChoice<luma::DeliveryFormat>(
+                arguments[1], std::array{"contact-sheet", "book", "gallery", "slideshow"});
             luma::deliverPhotos(catalog, {arguments.begin() + 4, arguments.end()},
                                 luma::pathFromUtf8(arguments[2]), mode, arguments[3]);
             std::cout << "{\"delivered\":true}\n";

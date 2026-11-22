@@ -42,8 +42,12 @@ class PresetController final : public QObject {
     bool hasCopiedSettings() const {
         return copied_.has_value();
     }
-    int lastCopyGroups() const { return lastCopyGroups_; }
-    QString xmpVersionText() const { return xmpVersionText_.text(); }
+    int lastCopyGroups() const {
+        return lastCopyGroups_;
+    }
+    QString xmpVersionText() const {
+        return xmpVersionText_.text();
+    }
     luma::DevelopPreset snapshot(const QString &id) const {
         return find(id);
     }

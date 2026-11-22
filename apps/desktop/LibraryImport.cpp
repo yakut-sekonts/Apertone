@@ -1,11 +1,11 @@
-#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/PhotoFormats.h"
 #include "apps/shared/PresetStore.h"
-#include <QDir>
-#include <QFileInfo>
+#include "core/io/Path.h"
 #include <QDateTime>
+#include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLockFile>
@@ -77,7 +77,8 @@ QVariantList LibraryModel::cardSources() const {
         auto device = QDir::toNativeSeparators(root);
         if (!device.endsWith(u'\\'))
             device += u'\\';
-        const bool removable = GetDriveTypeW(reinterpret_cast<LPCWSTR>(device.utf16())) == DRIVE_REMOVABLE;
+        const bool removable =
+            GetDriveTypeW(reinterpret_cast<LPCWSTR>(device.utf16())) == DRIVE_REMOVABLE;
 #else
         const bool removable = root.startsWith(QStringLiteral("/Volumes/"));
 #endif
@@ -85,7 +86,8 @@ QVariantList LibraryModel::cardSources() const {
             continue;
         const auto dcim = QDir(root).absoluteFilePath(QStringLiteral("DCIM"));
         if (QFileInfo(dcim).isDir())
-            devices.append(QVariantMap{{"name", volume.displayName()}, {"url", QUrl::fromLocalFile(dcim)}});
+            devices.append(
+                QVariantMap{{"name", volume.displayName()}, {"url", QUrl::fromLocalFile(dcim)}});
     }
     return devices;
 }

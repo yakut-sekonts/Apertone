@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/io/Path.h"
 #include <algorithm>
 #include <limits>
 #include <memory>
@@ -13,7 +13,8 @@ using detail::Statement;
 constexpr auto where =
     " WHERE a.rating>=?1 AND (?2=-2 OR a.flag=?2)"
     " AND (?3='' OR a.filename LIKE ?3 ESCAPE '\\' OR a.copy_name LIKE ?3 ESCAPE '\\'"
-    " OR COALESCE((SELECT original_path FROM assets original WHERE original.id=a.original_asset_id),"
+    " OR COALESCE((SELECT original_path FROM assets original WHERE "
+    "original.id=a.original_asset_id),"
     " a.original_path) LIKE ?3 ESCAPE '\\'"
     " OR a.camera LIKE ?3 ESCAPE '\\' OR a.lens LIKE ?3 ESCAPE '\\'"
     " OR EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND k.keyword LIKE ?3 ESCAPE "
@@ -53,10 +54,10 @@ QueryFilter resolveFilter(const Catalog &db, const LibraryFilter &filter) {
         }
     if (filter.collapseStacks && filter.stackID.empty()) {
         result.prefix = "WITH matches AS (SELECT a.id FROM assets a" + result.where +
-            "), ranked AS (SELECT m.id,ROW_NUMBER() OVER (PARTITION BY s.stack_id,"
-            "CASE WHEN s.stack_id IS NULL THEN m.id ELSE '' END "
-            "ORDER BY s.position, m.id) AS stack_rank FROM matches m LEFT JOIN "
-            "photo_stack_members s ON s.asset_id=m.id) ";
+                        "), ranked AS (SELECT m.id,ROW_NUMBER() OVER (PARTITION BY s.stack_id,"
+                        "CASE WHEN s.stack_id IS NULL THEN m.id ELSE '' END "
+                        "ORDER BY s.position, m.id) AS stack_rank FROM matches m LEFT JOIN "
+                        "photo_stack_members s ON s.asset_id=m.id) ";
         result.where = " WHERE a.id IN (SELECT id FROM ranked WHERE stack_rank=1)";
     }
     return result;
@@ -112,7 +113,8 @@ std::filesystem::path normalizeImportSource(const std::filesystem::path &path) {
 } // namespace
 std::int64_t Catalog::libraryCount(const LibraryFilter &filter) const {
     const auto resolved = resolveFilter(*this, filter);
-    Statement query(db_, (resolved.prefix + "SELECT COUNT(*) FROM assets a" + resolved.where).c_str());
+    Statement query(db_,
+                    (resolved.prefix + "SELECT COUNT(*) FROM assets a" + resolved.where).c_str());
     bindFilter(query, filter, resolved);
     if (!query.row())
         throw std::runtime_error("Cannot count library.");
@@ -125,8 +127,9 @@ std::optional<std::int64_t> Catalog::libraryIndex(const LibraryFilter &filter,
     if (assetID.empty())
         return std::nullopt;
     Statement query(db_,
-                    (resolved.prefix + "SELECT position FROM (SELECT a.id,ROW_NUMBER() OVER (" + std::string(order) +
-                     ")-1 AS position FROM assets a" + resolved.where + ") WHERE id=?10")
+                    (resolved.prefix + "SELECT position FROM (SELECT a.id,ROW_NUMBER() OVER (" +
+                     std::string(order) + ")-1 AS position FROM assets a" + resolved.where +
+                     ") WHERE id=?10")
                         .c_str());
     bindFilter(query, filter, resolved);
     query.text(10, assetID);
@@ -139,7 +142,8 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
         throw std::runtime_error("Invalid metadata page bounds.");
     Statement query(
         db_,
-        (resolved.prefix + "SELECT a.id,COALESCE(original.original_path,a.original_path),a.filename,a.checksum,"
+        (resolved.prefix +
+         "SELECT a.id,COALESCE(original.original_path,a.original_path),a.filename,a.checksum,"
          "a.width,a.height,a.orientation,"
          "a.rating,a.flag,COALESCE(a.color_label,''),a.camera,COALESCE(q.score,-1),"
          "COALESCE(q.recommendation,-2),COALESCE(q.reason_flags,0),"
@@ -202,8 +206,8 @@ std::vector<std::string> Catalog::libraryIDs(const LibraryFilter &filter, int of
     const auto resolved = resolveFilter(*this, filter);
     if (offset < 0 || limit < 0)
         throw std::runtime_error("Invalid selection bounds.");
-    Statement query(db_, (resolved.prefix + "SELECT a.id FROM assets a" + resolved.where + std::string(order) +
-                          " LIMIT ?10 OFFSET ?11")
+    Statement query(db_, (resolved.prefix + "SELECT a.id FROM assets a" + resolved.where +
+                          std::string(order) + " LIMIT ?10 OFFSET ?11")
                              .c_str());
     bindFilter(query, filter, resolved);
     query.integer(10, limit);
@@ -652,8 +656,8 @@ std::vector<DuplicateReviewRecord> Catalog::latestImportDuplicates() const {
         "ORDER BY i.position");
     std::vector<DuplicateReviewRecord> result;
     while (query.row())
-        result.push_back({pathFromUtf8(query.string(0)), query.string(1),
-                          pathFromUtf8(query.string(2))});
+        result.push_back(
+            {pathFromUtf8(query.string(0)), query.string(1), pathFromUtf8(query.string(2))});
     return result;
 }
 DuplicateFingerprintPage
@@ -671,8 +675,8 @@ Catalog::duplicateFingerprintPageFrom(const std::filesystem::path &path,
     if (stop.isCancelled())
         throw std::runtime_error("Duplicate fingerprint query cancelled.");
     sqlite3 *raw = nullptr;
-    const int openResult =
-        sqlite3_open_v2(pathUtf8(path).c_str(), &raw, SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
+    const int openResult = sqlite3_open_v2(pathUtf8(path).c_str(), &raw,
+                                           SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX, nullptr);
     const std::unique_ptr<sqlite3, decltype(&sqlite3_close)> db(raw, &sqlite3_close);
     if (openResult != SQLITE_OK)
         throw std::runtime_error(std::string("Cannot open catalog read-only: ") +
@@ -765,7 +769,8 @@ void Catalog::clearLibrary() {
 }
 
 std::string Catalog::createPhotoStack(const std::vector<std::string> &ids) {
-    if (ids.size() < 2 || ids.size() > 10000 || std::set(ids.begin(), ids.end()).size() != ids.size())
+    if (ids.size() < 2 || ids.size() > 10000 ||
+        std::set(ids.begin(), ids.end()).size() != ids.size())
         throw std::runtime_error("Select 2 to 10,000 different photos to create a stack.");
     const auto id = newID();
     execute("BEGIN IMMEDIATE;");
@@ -803,9 +808,10 @@ void Catalog::removePhotoStack(const std::string &stackID) {
     requireChanged(db_);
 }
 void Catalog::setPhotoStackCover(const std::string &assetID) {
-    Statement query(db_, "UPDATE photo_stack_members SET position=(SELECT MIN(s.position)-1 "
-                         "FROM photo_stack_members s WHERE s.stack_id=photo_stack_members.stack_id) "
-                         "WHERE asset_id=?1");
+    Statement query(db_,
+                    "UPDATE photo_stack_members SET position=(SELECT MIN(s.position)-1 "
+                    "FROM photo_stack_members s WHERE s.stack_id=photo_stack_members.stack_id) "
+                    "WHERE asset_id=?1");
     query.text(1, assetID);
     query.row();
     requireChanged(db_);

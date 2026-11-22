@@ -1,5 +1,5 @@
-#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
+#include "core/io/Path.h"
 #ifdef LUMA_UX_AUTO_TRANSFORM_PROBE
 #include "tests/ux/AutoTransformProbe.h"
 #endif

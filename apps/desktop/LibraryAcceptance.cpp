@@ -59,7 +59,8 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                     return;
                 if (!state->surveyChecked) {
                     if (!state->survey) {
-                        state->survey = window->findChild<QObject *>(QStringLiteral("library.survey"));
+                        state->survey =
+                            window->findChild<QObject *>(QStringLiteral("library.survey"));
                         state->surveyIDs = library.selectedAssetIDs();
                         if (!state->survey ||
                             !QMetaObject::invokeMethod(state->survey, "showSelection")) {
@@ -77,8 +78,8 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                         app.exit(1);
                         return;
                     }
-                    const auto findItem = [](QQuickItem *root, const QString &name, auto &&find)
-                        -> QQuickItem * {
+                    const auto findItem = [](QQuickItem *root, const QString &name,
+                                             auto &&find) -> QQuickItem * {
                         if (root->objectName() == name)
                             return root;
                         for (auto *child : root->childItems())
@@ -88,12 +89,13 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                     };
                     for (const auto &id : state->surveyIDs) {
                         const auto *image = findItem(window->contentItem(),
-                                                    "library.surveyPreview." + id, findItem);
+                                                     "library.surveyPreview." + id, findItem);
                         if (!image || image->property("status").toInt() != 1)
                             return;
                     }
-                    auto *remove = findItem(window->contentItem(),
-                                            "library.surveyRemove." + state->surveyIDs.first(), findItem);
+                    auto *remove =
+                        findItem(window->contentItem(),
+                                 "library.surveyRemove." + state->surveyIDs.first(), findItem);
                     if (!remove || !QMetaObject::invokeMethod(remove, "clicked") ||
                         library.selectedAssetIDs() != QStringList{state->surveyIDs.last()} ||
                         editor.hasPhoto() || !QMetaObject::invokeMethod(state->survey, "close")) {
@@ -177,7 +179,8 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                 }
                 state->phase = 10;
                 state->originalID = editor.photoID();
-                library.createVirtualCopy(state->originalID, QStringLiteral("Library acceptance copy"));
+                library.createVirtualCopy(state->originalID,
+                                          QStringLiteral("Library acceptance copy"));
                 break;
             case 10:
                 if (library.count() != 3)

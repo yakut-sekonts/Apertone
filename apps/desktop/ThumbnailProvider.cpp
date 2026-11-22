@@ -1,5 +1,5 @@
-#include "core/io/Path.h"
 #include "apps/desktop/ThumbnailProvider.h"
+#include "core/io/Path.h"
 #if defined(LUMA_UX_THUMBNAIL_TRACE)
 #include "tests/ux/ThumbnailCpuRenderProbe.h"
 #include "tests/ux/ThumbnailResponseTrace.h"
@@ -74,8 +74,8 @@ QImage thumbnail(const std::filesystem::path &catalog, const QString &id,
         QByteArray::fromStdString(luma::encodeLocalMasks(asset.edits.localMasks)) + "|retouch-v1|" +
         QByteArray::fromStdString(luma::encodeRetouch(asset.edits.retouch));
     const auto fingerprint = QCryptographicHash::hash(identity, QCryptographicHash::Sha256).toHex();
-    const auto directory =
-        catalog.parent_path() / luma::pathWithSuffix(catalog.filename(), ".luma-cache") / "thumbnails";
+    const auto directory = catalog.parent_path() /
+                           luma::pathWithSuffix(catalog.filename(), ".luma-cache") / "thumbnails";
     const auto cached = directory / (fingerprint.toStdString() + "-edited-v6.jpg");
     {
         std::lock_guard lock(state->cacheMutex);

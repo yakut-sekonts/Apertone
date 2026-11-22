@@ -11,9 +11,9 @@ namespace {
 void requireSuccess(uhdr_error_info_t status) {
     if (status.error_code != UHDR_CODEC_OK) {
         const auto end = std::find(std::begin(status.detail), std::end(status.detail), '\0');
-        throw std::runtime_error(status.has_detail ?
-            "Ultra HDR encoding failed: " + std::string(status.detail, end) :
-            "Ultra HDR encoding failed.");
+        throw std::runtime_error(status.has_detail ? "Ultra HDR encoding failed: " +
+                                                         std::string(status.detail, end)
+                                                   : "Ultra HDR encoding failed.");
     }
 }
 } // namespace
@@ -34,16 +34,16 @@ void writeUltraHdrJpeg(const LinearOutput &image, const std::filesystem::path &p
         const auto start = static_cast<std::size_t>(y) * image.width * 4;
         for (std::size_t i = start; i < start + static_cast<std::size_t>(image.width) * 4; i += 4) {
             for (int channel = 0; channel < 3; ++channel) {
-                const auto value = std::clamp(image.rgba[i + channel] * image.rgba[i + 3],
-                                              0.F, maximum);
+                const auto value =
+                    std::clamp(image.rgba[i + channel] * image.rgba[i + 3], 0.F, maximum);
                 peak = std::max(peak, value);
                 packed[i + channel] = qfloat16(value);
             }
             packed[i + 3] = qfloat16(1.F);
         }
     }
-    std::unique_ptr<uhdr_codec_private_t, decltype(&uhdr_release_encoder)>
-        encoder(uhdr_create_encoder(), uhdr_release_encoder);
+    std::unique_ptr<uhdr_codec_private_t, decltype(&uhdr_release_encoder)> encoder(
+        uhdr_create_encoder(), uhdr_release_encoder);
     if (!encoder)
         throw std::runtime_error("Cannot create the Ultra HDR encoder.");
     uhdr_raw_image_t raw{};
@@ -72,7 +72,8 @@ void writeUltraHdrJpeg(const LinearOutput &image, const std::filesystem::path &p
     if (!output || !output->data || output->data_sz == 0)
         throw std::runtime_error("Ultra HDR encoder returned an empty image.");
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    out.write(static_cast<const char *>(output->data), static_cast<std::streamsize>(output->data_sz));
+    out.write(static_cast<const char *>(output->data),
+              static_cast<std::streamsize>(output->data_sz));
     out.close();
     if (!out)
         throw std::runtime_error("Cannot write the Ultra HDR JPEG.");

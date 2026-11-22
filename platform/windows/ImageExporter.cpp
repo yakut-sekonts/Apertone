@@ -1,12 +1,12 @@
 #include "platform/macos/ImageExporter.h"
-#include "platform/windows/UltraHdr.h"
-#include "platform/windows/MetadataPacket.h"
-#include "platform/windows/TiffWriter.h"
 #include "core/export/DngWriter.h"
 #include "core/export/LinearOutput.h"
+#include "core/image/Bayer.h"
 #include "core/io/FileSystem.h"
 #include "core/io/StagingFile.h"
-#include "core/image/Bayer.h"
+#include "platform/windows/MetadataPacket.h"
+#include "platform/windows/TiffWriter.h"
+#include "platform/windows/UltraHdr.h"
 #include <QColorSpace>
 #include <QColorTransform>
 #include <QFontMetrics>
@@ -68,10 +68,10 @@ void applyWatermark(LinearOutput &output, const WatermarkOptions &options, Cance
     if (options.kind == WatermarkKind::none || options.opacity == 0)
         return;
     const int margin = std::lround(std::min(output.width, output.height) * options.margin / 100);
-    const int box = std::max(1, static_cast<int>(std::lround(
-        std::max(output.width, output.height) * options.size / 100)));
+    const int box = std::max(1, static_cast<int>(std::lround(std::max(output.width, output.height) *
+                                                             options.size / 100)));
     auto mark = watermarkImage(options, std::min({box, std::max(1, output.width - margin * 2),
-                                                   std::max(1, output.height - margin * 2)}));
+                                                  std::max(1, output.height - margin * 2)}));
     if (!mark.colorSpace().isValid())
         mark.setColorSpace(QColorSpace::SRgb);
     mark.convertToColorSpace(QColorSpace::SRgbLinear, QImage::Format_RGBA32FPx4);
@@ -86,8 +86,8 @@ void applyWatermark(LinearOutput &output, const WatermarkOptions &options, Cance
         checkCancellation(stop);
         const auto *row = reinterpret_cast<const QRgbaFloat32 *>(mark.constScanLine(y));
         for (int x = 0; x < mark.width(); ++x) {
-            auto *pixel = output.rgba.data() +
-                          (static_cast<std::size_t>(y + y0) * output.width + x + x0) * 4;
+            auto *pixel =
+                output.rgba.data() + (static_cast<std::size_t>(y + y0) * output.width + x + x0) * 4;
             const auto ink = row[x];
             const float alpha = ink.alpha() * static_cast<float>(options.opacity / 100);
             const float remaining = pixel[3] * (1 - alpha), coverage = alpha + remaining;
@@ -118,8 +118,8 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
                 row[x].a = 1;
         }
     }
-    const auto format = opts.format == ExportFormat::tiff16 ? QImage::Format_RGBA64
-                        : opts.format == ExportFormat::jpeg ? QImage::Format_RGB888
+    const auto format = opts.format == ExportFormat::tiff16        ? QImage::Format_RGBA64
+                        : opts.format == ExportFormat::jpeg        ? QImage::Format_RGB888
                         : opts.compression == TiffCompression::zip ? QImage::Format_ARGB32
                                                                    : QImage::Format_RGBA8888;
     const auto output = input.convertedToColorSpace(space, format);
@@ -129,7 +129,7 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
         windows::writeZipTiff(output, std::filesystem::path(path.toStdWString()), stop);
         return;
     }
-    const QByteArray codec = opts.format == ExportFormat::jpeg ? "jpeg"
+    const QByteArray codec = opts.format == ExportFormat::jpeg  ? "jpeg"
                              : opts.format == ExportFormat::png ? "png"
                                                                 : "tiff";
     QImageWriter writer(path, codec);
@@ -140,7 +140,8 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
     }
     checkCancellation(stop);
     if (!writer.write(output))
-        throw std::runtime_error("Cannot encode export image: " + writer.errorString().toStdString());
+        throw std::runtime_error("Cannot encode export image: " +
+                                 writer.errorString().toStdString());
 }
 } // namespace
 
@@ -163,35 +164,40 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
     const auto &staging = temporary.path();
     const auto packet = windows::exportXmp(source, decoded.metadata, options.metadata, overlay);
     const auto space = colorSpace(options.colorSpace);
-    auto image = renderLinearOutput(decoded, edits, stop, progress ? [&](double value) {
-        progress(0.75 * value);
-    } : std::function<void(double)>{});
+    auto image = renderLinearOutput(decoded, edits, stop,
+                                    progress ? [&](double value) { progress(0.75 * value); }
+                                             : std::function<void(double)>{});
     image = resizeOutput(std::move(image), options, stop);
     sharpenOutput(image, options, stop);
     applyWatermark(image, options.watermark, stop);
     if (options.format == ExportFormat::dng) {
         const auto linear = space.withTransferFunction(QColorSpace::TransferFunction::Linear);
         const auto profile = linear.iccProfile();
-        const auto transform = QColorSpace(QColorSpace::SRgbLinear).transformationToColorSpace(linear);
+        const auto transform =
+            QColorSpace(QColorSpace::SRgbLinear).transformationToColorSpace(linear);
         const auto bytes = std::span(reinterpret_cast<const std::uint8_t *>(profile.constData()),
                                      static_cast<std::size_t>(profile.size()));
-        writeLinearDNG(image, rgbToXYZD50(bytes),
+        writeLinearDNG(
+            image, rgbToXYZD50(bytes),
             [&](std::span<const float> source, std::span<float> dest) {
                 for (std::size_t i = 0; i < source.size(); i += 3) {
-                    const auto value = transform.map(QRgbaFloat32{
-                        source[i], source[i + 1], source[i + 2], 1.F});
+                    const auto value =
+                        transform.map(QRgbaFloat32{source[i], source[i + 1], source[i + 2], 1.F});
                     dest[i] = value.red();
                     dest[i + 1] = value.green();
                     dest[i + 2] = value.blue();
                 }
-            }, staging, space.description().toStdString(),
+            },
+            staging, space.description().toStdString(),
             {reinterpret_cast<const std::uint8_t *>(packet.constData()),
-             static_cast<std::size_t>(packet.size())}, stop);
+             static_cast<std::size_t>(packet.size())},
+            stop);
     } else if (options.format == ExportFormat::jpegHDR) {
         windows::writeUltraHdrJpeg(image, staging, options.quality, stop);
     } else {
         std::optional<StagingFile> raster;
-        if (!packet.isEmpty() && (options.format == ExportFormat::jpeg || options.format == ExportFormat::png))
+        if (!packet.isEmpty() &&
+            (options.format == ExportFormat::jpeg || options.format == ExportFormat::png))
             raster.emplace(staging.parent_path(), ".luma-export-");
         const auto &encoded = raster ? raster->path() : staging;
         encodeRaster(image, space, options, QString::fromStdWString(encoded.native()), stop);

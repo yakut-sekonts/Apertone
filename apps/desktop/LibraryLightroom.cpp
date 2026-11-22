@@ -46,8 +46,9 @@ void LibraryModel::applyLightroom(const QUrl &source, const QString &fingerprint
 
 void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint) {
     if (working() || closing_ || !source.isLocalFile() ||
-        QFileInfo(source.toLocalFile()).suffix().compare(QStringLiteral("lrcat"),
-                                                        Qt::CaseInsensitive) != 0)
+        QFileInfo(source.toLocalFile())
+                .suffix()
+                .compare(QStringLiteral("lrcat"), Qt::CaseInsensitive) != 0)
         return;
     const auto original = luma::pathFromUtf8(source.toLocalFile().toStdString());
     const auto target = catalog_;
@@ -63,44 +64,52 @@ void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint) 
     const auto stop = importCancellation_.token();
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
-    imports_.submit(luma::JobPriority::background, [self, original, target, expected, apply, stop](const auto &) {
+    imports_.submit(luma::JobPriority::background, [self, original, target, expected, apply,
+                                                    stop](const auto &) {
         QVariantMap report;
         QString error;
         try {
             const auto progress = [self](double value) {
                 if (!self)
                     return;
-                QMetaObject::invokeMethod(self, [self, value] {
-                    if (self && self->importing_) {
-                        self->progress_ = value;
-                        emit self->stateChanged();
-                    }
-                }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, value] {
+                        if (self && self->importing_) {
+                            self->progress_ = value;
+                            emit self->stateChanged();
+                        }
+                    },
+                    Qt::QueuedConnection);
             };
-            const auto result = apply ? luma::importLightroomCatalog(original, target, expected, stop, progress)
-                                      : luma::inspectLightroomCatalog(original, stop);
+            const auto result =
+                apply ? luma::importLightroomCatalog(original, target, expected, stop, progress)
+                      : luma::inspectLightroomCatalog(original, stop);
             report = reportMap(result, apply);
         } catch (const std::exception &failure) {
             if (!stop.isCancelled())
                 error = QString::fromUtf8(failure.what());
         }
         if (self)
-            QMetaObject::invokeMethod(self, [self, report = std::move(report), error, apply, stop] {
-                if (!self)
-                    return;
-                self->importing_ = false;
-                self->lightroomReport_ = report;
-                self->error_ = error;
-                self->progress_ = report.isEmpty() ? 0 : 1;
-                self->status_ = stop.isCancelled() && report.isEmpty()
-                                    ? QStringLiteral("Import cancelled")
+            QMetaObject::invokeMethod(
+                self,
+                [self, report = std::move(report), error, apply, stop] {
+                    if (!self)
+                        return;
+                    self->importing_ = false;
+                    self->lightroomReport_ = report;
+                    self->error_ = error;
+                    self->progress_ = report.isEmpty() ? 0 : 1;
+                    self->status_ = stop.isCancelled() && report.isEmpty()
+                                        ? QStringLiteral("Import cancelled")
                                     : !error.isEmpty() ? QStringLiteral("Lightroom import failed")
-                                    : apply ? QStringLiteral("Lightroom import complete")
+                                    : apply            ? QStringLiteral("Lightroom import complete")
                                             : QStringLiteral("Lightroom catalog scanned");
-                if (apply && !report.isEmpty())
-                    self->reload(false);
-                emit self->stateChanged();
-                self->checkClose();
-            }, Qt::QueuedConnection);
+                    if (apply && !report.isEmpty())
+                        self->reload(false);
+                    emit self->stateChanged();
+                    self->checkClose();
+                },
+                Qt::QueuedConnection);
     });
 }

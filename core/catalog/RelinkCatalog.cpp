@@ -1,24 +1,23 @@
-#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/io/Path.h"
 
 namespace luma {
 std::optional<FileRecord> Catalog::fileRecord(const std::string &id) const {
-    detail::Statement query(db_,
-                            "SELECT o.id,o.original_path,o.checksum,o.filesize FROM assets a "
-                            "JOIN assets o ON o.id=COALESCE(a.original_asset_id,a.id) WHERE a.id=?1");
+    detail::Statement query(
+        db_, "SELECT o.id,o.original_path,o.checksum,o.filesize FROM assets a "
+             "JOIN assets o ON o.id=COALESCE(a.original_asset_id,a.id) WHERE a.id=?1");
     query.text(1, id);
     if (!query.row())
         return {};
-    return FileRecord{query.string(0), pathFromUtf8(query.string(1)), query.string(2), query.integer(3)};
+    return FileRecord{query.string(0), pathFromUtf8(query.string(1)), query.string(2),
+                      query.integer(3)};
 }
 std::vector<FileRecord> Catalog::fileRecords(const std::string &after, int limit) const {
     if (limit < 1 || limit > 1024)
         throw std::runtime_error("Invalid file metadata page size.");
-    detail::Statement query(
-        db_,
-        "SELECT id,original_path,checksum,filesize FROM assets "
-        "WHERE id>?1 AND original_asset_id IS NULL ORDER BY id LIMIT ?2");
+    detail::Statement query(db_, "SELECT id,original_path,checksum,filesize FROM assets "
+                                 "WHERE id>?1 AND original_asset_id IS NULL ORDER BY id LIMIT ?2");
     query.text(1, after);
     query.integer(2, limit);
     std::vector<FileRecord> result;

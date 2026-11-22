@@ -362,7 +362,9 @@ class EditorController final : public QObject {
     }
     void setZoomFactor(double factor);
     bool zoomAvailable() const;
-    bool offlinePreview() const { return session_ && session_->offline; }
+    bool offlinePreview() const {
+        return session_ && session_->offline;
+    }
     static constexpr double minimumZoomFactor() {
         return 0.01;
     }

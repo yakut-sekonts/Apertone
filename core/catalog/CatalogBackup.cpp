@@ -4,9 +4,9 @@
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
-#include "core/io/StagingFile.h"
 #include "core/io/FileSystem.h"
 #include "core/io/Path.h"
+#include "core/io/StagingFile.h"
 #include <chrono>
 #include <fcntl.h>
 #include <sqlite3.h>
@@ -76,8 +76,8 @@ void snapshot(sqlite3 *source, const std::filesystem::path &destination, Cancell
         }
     } temporary{staging.path()};
     sqlite3 *output = nullptr;
-    if (sqlite3_open_v2(pathUtf8(temporary.path).c_str(), &output, SQLITE_OPEN_READWRITE, nullptr) !=
-        SQLITE_OK) {
+    if (sqlite3_open_v2(pathUtf8(temporary.path).c_str(), &output, SQLITE_OPEN_READWRITE,
+                        nullptr) != SQLITE_OK) {
         if (output)
             sqlite3_close(output);
         throw std::runtime_error("Cannot open catalog backup.");

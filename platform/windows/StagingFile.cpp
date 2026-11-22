@@ -10,7 +10,8 @@
 
 namespace luma {
 namespace {
-constexpr std::string_view alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+constexpr std::string_view alphabet =
+    "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 constexpr DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
 
 class Handle {
@@ -27,7 +28,7 @@ class Handle {
     }
     int descriptor() {
         const auto result = _open_osfhandle(reinterpret_cast<std::intptr_t>(value),
-                                             _O_RDWR | _O_BINARY | _O_NOINHERIT);
+                                            _O_RDWR | _O_BINARY | _O_NOINHERIT);
         if (result >= 0)
             value = INVALID_HANDLE_VALUE;
         return result;
@@ -138,7 +139,8 @@ StagingFile::StagingFile(const std::filesystem::path &folder, std::string_view p
         const auto data = marker(stage.value, path_);
         DWORD written = 0;
         if (!data.empty() && data.size() <= 8192 &&
-            WriteFile(lock.value, data.data(), static_cast<DWORD>(data.size()), &written, nullptr) &&
+            WriteFile(lock.value, data.data(), static_cast<DWORD>(data.size()), &written,
+                      nullptr) &&
             written == data.size() && FlushFileBuffers(lock.value)) {
             descriptor_ = stage.descriptor();
             if (descriptor_ >= 0) {

@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/BackupService.h"
 #include "apps/shared/MetadataService.h"
+#include "core/io/Path.h"
 #include <QPointer>
 #include <QSettings>
 #include <algorithm>
@@ -29,7 +29,8 @@ LocalizedText summary(const luma::ImportSummary &result) {
 } // namespace
 LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     : QAbstractListModel(parent), catalog_(std::move(catalog)) {
-    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
+                           "/preview.ini",
                        QSettings::IniFormat);
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
     cullingAutoEnabled_ = settings.value("cullingAutoEnabled", false).toBool();
@@ -123,7 +124,9 @@ QHash<int, QByteArray> LibraryModel::roleNames() const {
             {BurstID, "burstID"},
             {BurstSize, "burstSize"},
             {BurstBest, "burstBest"},
-            {CopyName, "copyName"}, {StackSize, "stackSize"}, {StackCover, "stackCover"}};
+            {CopyName, "copyName"},
+            {StackSize, "stackSize"},
+            {StackCover, "stackCover"}};
 }
 QVariant LibraryModel::data(const QModelIndex &index, int role) const {
     if (!index.isValid() || index.row() < 0 || index.row() >= count_)
@@ -158,7 +161,9 @@ QVariant LibraryModel::data(const QModelIndex &index, int role) const {
         return id;
     case Filename:
         return QString::fromStdString(item.filename) +
-               (item.copyName.empty() ? QString() : QStringLiteral(" · ") + QString::fromStdString(item.copyName));
+               (item.copyName.empty()
+                    ? QString()
+                    : QStringLiteral(" · ") + QString::fromStdString(item.copyName));
     case Path:
         return QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(item.path)));
     case Thumbnail:
@@ -316,11 +321,13 @@ void LibraryModel::reload(bool clear) {
                 std::error_code availabilityError;
                 const bool available = std::filesystem::exists(source.path, availabilityError);
                 importSources.push_back(QVariantMap{
-                    {"url", QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(source.path)))},
+                    {"url",
+                     QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(source.path)))},
                     {"path", QString::fromStdString(luma::pathUtf8(source.path))},
                     {"name", QString::fromStdString(luma::pathUtf8(source.path.filename()))},
                     {"mode", static_cast<int>(source.options.mode)},
-                    {"destination", QString::fromStdString(luma::pathUtf8(source.options.destination))},
+                    {"destination",
+                     QString::fromStdString(luma::pathUtf8(source.options.destination))},
                     {"finishedAt", QString::fromStdString(source.finishedAt)},
                     {"available", !availabilityError && available}});
             }
@@ -330,7 +337,8 @@ void LibraryModel::reload(bool clear) {
                     {"sourceName",
                      QString::fromStdString(luma::pathUtf8(duplicate.sourcePath.filename()))},
                     {"assetID", QString::fromStdString(duplicate.assetID)},
-                    {"existingPath", QString::fromStdString(luma::pathUtf8(duplicate.existingPath))},
+                    {"existingPath",
+                     QString::fromStdString(luma::pathUtf8(duplicate.existingPath))},
                     {"existingName",
                      QString::fromStdString(luma::pathUtf8(duplicate.existingPath.filename()))}});
             int unnamed = 0;
@@ -457,11 +465,11 @@ void LibraryModel::loadFingerprintPage(std::optional<luma::DuplicateFingerprintC
                 luma::Catalog::duplicateFingerprintPageFrom(path, cursor, 40, context.stopToken());
             hasMore = page.hasMore;
             for (const auto &row : page.rows) {
-                rows.push_back(
-                    QVariantMap{{"checksum", QString::fromStdString(row.checksum)},
-                                {"size", static_cast<qlonglong>(row.size)},
-                                {"assetID", QString::fromStdString(row.assetID)},
-                                {"path", QString::fromStdString(luma::pathUtf8(row.originalPath))}});
+                rows.push_back(QVariantMap{
+                    {"checksum", QString::fromStdString(row.checksum)},
+                    {"size", static_cast<qlonglong>(row.size)},
+                    {"assetID", QString::fromStdString(row.assetID)},
+                    {"path", QString::fromStdString(luma::pathUtf8(row.originalPath))}});
                 last = luma::DuplicateFingerprintCursor{row.checksum, row.size, row.rowID};
             }
             if (context.stopToken().isCancelled())
@@ -680,11 +688,12 @@ void LibraryModel::stackSelection() {
 void LibraryModel::unstackSelection() {
     const auto id = selectedStackID().toStdString();
     if (!id.empty())
-        mutate([id](auto &db) { db.removePhotoStack(id); }, [this, id] {
-            if (filter_.stackID == id)
-                filter_.stackID.clear();
-            return false;
-        });
+        mutate([id](auto &db) { db.removePhotoStack(id); },
+               [this, id] {
+                   if (filter_.stackID == id)
+                       filter_.stackID.clear();
+                   return false;
+               });
 }
 void LibraryModel::setSelectedStackCover() {
     const auto ids = selectionIDs();
@@ -692,10 +701,14 @@ void LibraryModel::setSelectedStackCover() {
         mutate([id = ids.front()](auto &db) { db.setPhotoStackCover(id); });
 }
 void LibraryModel::createVirtualCopy(const QString &id, const QString &name) {
-    mutate([id, name](auto &db) { db.createVirtualCopy(id.toStdString(), name.trimmed().toStdString()); });
+    mutate([id, name](auto &db) {
+        db.createVirtualCopy(id.toStdString(), name.trimmed().toStdString());
+    });
 }
 void LibraryModel::renameVirtualCopy(const QString &id, const QString &name) {
-    mutate([id, name](auto &db) { db.renameVirtualCopy(id.toStdString(), name.trimmed().toStdString()); });
+    mutate([id, name](auto &db) {
+        db.renameVirtualCopy(id.toStdString(), name.trimmed().toStdString());
+    });
 }
 void LibraryModel::deleteVirtualCopy(const QString &id) {
     mutate([id](auto &db) { db.deleteVirtualCopy(id.toStdString()); });

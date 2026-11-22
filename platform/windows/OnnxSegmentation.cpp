@@ -44,18 +44,24 @@ class Runtime {
     explicit Runtime(const std::filesystem::path &home) : library_(load(home)), env_(initialize()) {
         env_.DisableTelemetryEvents();
     }
-    Ort::Env &env() { return env_; }
+    Ort::Env &env() {
+        return env_;
+    }
 
   private:
     struct Free {
-        void operator()(HMODULE module) const { FreeLibrary(module); }
+        void operator()(HMODULE module) const {
+            FreeLibrary(module);
+        }
     };
     using Library = std::unique_ptr<std::remove_pointer_t<HMODULE>, Free>;
     static Library load(const std::filesystem::path &home) {
-        Library library(LoadLibraryExW((home / L"onnxruntime.dll").c_str(), nullptr,
-                                       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32));
+        Library library(
+            LoadLibraryExW((home / L"onnxruntime.dll").c_str(), nullptr,
+                           LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32));
         if (!library)
-            throw std::runtime_error("Cannot load ONNX Runtime. Install the x64 Microsoft Visual C++ Redistributable.");
+            throw std::runtime_error(
+                "Cannot load ONNX Runtime. Install the x64 Microsoft Visual C++ Redistributable.");
         return library;
     }
     Ort::Env initialize() {
@@ -108,7 +114,8 @@ struct Model {
     std::vector<std::uint8_t> infer(ai::RgbaImage image, CancellationToken stop) {
         const QImage input(image.pixels.data(), image.width, image.height,
                            static_cast<qsizetype>(image.width) * 4, QImage::Format_RGBA8888);
-        const auto resized = input.scaled(edge, edge, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        const auto resized =
+            input.scaled(edge, edge, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         if (resized.isNull())
             throw std::runtime_error("Cannot allocate the segmentation input.");
         constexpr float mean[]{.485F, .456F, .406F}, stddev[]{.229F, .224F, .225F};
@@ -135,7 +142,8 @@ struct Model {
         checkCancellation(stop);
         const auto prediction = session.Run(Ort::RunOptions{}, inputs, &tensor, 1, outputs, 1);
         checkCancellation(stop);
-        const auto *probability = prediction.front().GetTensorData<float>() + (channels == 2 ? count : 0);
+        const auto *probability =
+            prediction.front().GetTensorData<float>() + (channels == 2 ? count : 0);
         std::vector<std::uint8_t> mask(count);
         for (std::size_t i = 0; i < count; ++i) {
             if (!std::isfinite(probability[i]))
@@ -178,8 +186,8 @@ class FaceModel {
             throw std::runtime_error("Invalid location for a face selection.");
         const QImage original(image.pixels.data(), image.width, image.height,
                               static_cast<qsizetype>(image.width) * 4, QImage::Format_RGBA8888);
-        const auto input = original.scaled(inputSize, inputSize, Qt::KeepAspectRatio,
-                                           Qt::SmoothTransformation);
+        const auto input =
+            original.scaled(inputSize, inputSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         if (input.isNull())
             throw std::runtime_error("Cannot allocate the face detection input.");
         constexpr auto area = inputSize * inputSize;
@@ -190,7 +198,8 @@ class FaceModel {
             for (int x = 0; x < input.width(); ++x) {
                 const auto index = y * inputSize + x;
                 for (int channel = 0; channel < 3; ++channel)
-                    bgr[channel * area + index] = row[x * 4 + 2 - channel] * (row[x * 4 + 3] / 255.F);
+                    bgr[channel * area + index] =
+                        row[x * 4 + 2 - channel] * (row[x * 4 + 3] / 255.F);
             }
         }
         const auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -198,10 +207,10 @@ class FaceModel {
         const auto tensor = Ort::Value::CreateTensor<float>(memory, bgr.data(), bgr.size(),
                                                             shape.data(), shape.size());
         const char *inputs[]{inputName_.c_str()};
-        constexpr std::array outputs{"cls_8", "obj_8", "bbox_8", "kps_8", "cls_16", "obj_16",
+        constexpr std::array outputs{"cls_8",   "obj_8",  "bbox_8", "kps_8",  "cls_16",  "obj_16",
                                      "bbox_16", "kps_16", "cls_32", "obj_32", "bbox_32", "kps_32"};
-        const auto prediction = session_.Run(Ort::RunOptions{}, inputs, &tensor, 1, outputs.data(),
-                                             outputs.size());
+        const auto prediction =
+            session_.Run(Ort::RunOptions{}, inputs, &tensor, 1, outputs.data(), outputs.size());
         checkCancellation(stop);
         const QPointF click(point[0] * input.width(), point[1] * input.height());
         QRectF face;
@@ -221,8 +230,8 @@ class FaceModel {
             const auto *classes = output(0, 1), *objects = output(1, 1), *boxes = output(2, 4),
                        *points = output(3, 10);
             for (int i = 0; i < grid * grid; ++i) {
-                const float score = std::sqrt(std::clamp(classes[i], 0.F, 1.F) *
-                                              std::clamp(objects[i], 0.F, 1.F));
+                const float score =
+                    std::sqrt(std::clamp(classes[i], 0.F, 1.F) * std::clamp(objects[i], 0.F, 1.F));
                 if (!std::isfinite(score) || score <= best)
                     continue;
                 const auto *box = boxes + i * 4;
@@ -236,7 +245,8 @@ class FaceModel {
                 const double h = std::exp(std::clamp(box[3], -5.F, 5.F)) * stride;
                 QRectF candidate((column + box[0]) * stride - w / 2,
                                  (row + box[1]) * stride - h / 2, w, h);
-                if (!candidate.contains(click) || w < 8 || h < 8 || w > inputSize * 1.5 || h > inputSize * 1.5)
+                if (!candidate.contains(click) || w < 8 || h < 8 || w > inputSize * 1.5 ||
+                    h > inputSize * 1.5)
                     continue;
                 face = candidate;
                 best = score;
@@ -267,12 +277,14 @@ class FaceModel {
             for (int x = 0; x < maskSize; ++x) {
                 const QPointF p((x + .5) * input.width() / maskSize,
                                 (y + .5) * input.height() / maskSize);
-                const double coverage = selection == ai::Selection::face
-                    ? ellipse(p, face.center(), face.width() * .49, face.height() * .52)
+                const double coverage =
+                    selection == ai::Selection::face
+                        ? ellipse(p, face.center(), face.width() * .49, face.height() * .52)
                     : selection == ai::Selection::eyes
-                    ? std::max(ellipse(p, landmarks[0], face.width() * .115, face.height() * .067),
-                               ellipse(p, landmarks[1], face.width() * .115, face.height() * .067))
-                    : ellipse(p, mouth, mouthWidth, face.height() * .082);
+                        ? std::max(
+                              ellipse(p, landmarks[0], face.width() * .115, face.height() * .067),
+                              ellipse(p, landmarks[1], face.width() * .115, face.height() * .067))
+                        : ellipse(p, mouth, mouthWidth, face.height() * .082);
                 mask[y * maskSize + x] = static_cast<std::uint8_t>(std::lround(coverage * 255));
             }
         }
@@ -299,12 +311,12 @@ class DepthModel {
         const auto info = type.GetTensorTypeAndShapeInfo();
         const auto shape = info.GetShape();
         if (session_.GetInputCount() != 1 || session_.GetOutputCount() != 1 ||
-            info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT ||
-            shape.size() != 4 || (shape[0] != 1 && shape[0] != -1) || shape[1] != 3 ||
-            shape[2] != -1 || shape[3] != -1)
+            info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT || shape.size() != 4 ||
+            (shape[0] != 1 && shape[0] != -1) || shape[1] != 3 || shape[2] != -1 || shape[3] != -1)
             throw std::runtime_error("The bundled depth model has incompatible input dimensions.");
     }
-    BitmapMask segment(ai::RgbaImage image, const std::array<double, 2> &range, CancellationToken stop) {
+    BitmapMask segment(ai::RgbaImage image, const std::array<double, 2> &range,
+                       CancellationToken stop) {
         const auto [lo, hi] = range;
         if (!std::isfinite(lo) || !std::isfinite(hi) || lo < 0 || hi > 1 || hi - lo < .05)
             throw std::runtime_error("Choose a depth range at least five percent wide.");
@@ -326,7 +338,8 @@ class DepthModel {
             for (int x = 0; x < width; ++x) {
                 const auto *pixel = row + 4 * x;
                 for (int c = 0; c < 3; ++c)
-                    rgb[c * count + y * width + x] = (pixel[c] / 255.F * (pixel[3] / 255.F) - mean[c]) / deviation[c];
+                    rgb[c * count + y * width + x] =
+                        (pixel[c] / 255.F * (pixel[3] / 255.F) - mean[c]) / deviation[c];
             }
         }
         const auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
@@ -354,7 +367,10 @@ class DepthModel {
         if (maximum - minimum < 1e-5F)
             throw std::runtime_error("The photo has no distinguishable depth range.");
         std::vector<std::uint8_t> result(depth.size());
-        const auto step = [](double x) { x = std::clamp(x, 0.0, 1.0); return x * x * (3 - 2 * x); };
+        const auto step = [](double x) {
+            x = std::clamp(x, 0.0, 1.0);
+            return x * x * (3 - 2 * x);
+        };
         for (std::size_t i = 0; i < depth.size(); ++i) {
             const double value = std::clamp((depth[i] - minimum) / (maximum - minimum), 0.F, 1.F);
             const double low = lo <= 0 ? 1 : step((value - lo + .04) / .04);
@@ -363,6 +379,7 @@ class DepthModel {
         }
         return BitmapMask(input.width(), input.height(), std::move(result));
     }
+
   private:
     static constexpr int edge = 518;
     Ort::Session session_;
@@ -375,15 +392,19 @@ class OnnxDenoise final : public ai::IDenoiseProvider {
         if (session_.GetInputCount() != 1 || session_.GetOutputCount() != 1)
             throw std::runtime_error("The bundled denoise model has incompatible tensors.");
     }
-    std::string identifier() const override { return "drunet-color-onnx:2ae3ab5eb15d"; }
-    ai::ExecutionLocation location() const override { return ai::ExecutionLocation::local; }
+    std::string identifier() const override {
+        return "drunet-color-onnx:2ae3ab5eb15d";
+    }
+    ai::ExecutionLocation location() const override {
+        return ai::ExecutionLocation::local;
+    }
     FloatImage denoise(const FloatImage &linear, double amount, CancellationToken stop,
                        const ai::Progress &progress) override {
         if (!std::isfinite(amount) || amount < 0 || amount > 1 || !linear.alpha.empty())
             throw std::runtime_error("Denoise requires opaque image pixels and a valid strength.");
         const auto estimate = estimateNoiseProfile(linear, {}, stop);
-        const float sigma = static_cast<float>(std::clamp(4 * std::max(estimate.measuredLuminance,
-                                                                      estimate.measuredColor), .01, .12));
+        const float sigma = static_cast<float>(
+            std::clamp(4 * std::max(estimate.measuredLuminance, estimate.measuredColor), .01, .12));
         FloatImage result = linear;
         constexpr int halo = 64, step = 384;
         const auto reflect = [](int value, int bound) {
@@ -400,13 +421,17 @@ class OnnxDenoise final : public ai::IDenoiseProvider {
         for (int y0 = 0; y0 < linear.height; y0 += step) {
             for (int x0 = 0; x0 < linear.width; x0 += step) {
                 checkCancellation(stop);
-                const int width = std::min(step, linear.width - x0), height = std::min(step, linear.height - y0);
-                const int nx = ((width + 2 * halo + 7) / 8) * 8, ny = ((height + 2 * halo + 7) / 8) * 8;
+                const int width = std::min(step, linear.width - x0),
+                          height = std::min(step, linear.height - y0);
+                const int nx = ((width + 2 * halo + 7) / 8) * 8,
+                          ny = ((height + 2 * halo + 7) / 8) * 8;
                 const auto count = pixelCount(nx, ny);
                 std::vector<float> rgb(count * 4, sigma);
                 for (int y = 0; y < ny; ++y) {
                     checkCancellation(stop);
-                    const auto row = static_cast<std::size_t>(reflect(y0 + y - halo, linear.height)) * linear.width;
+                    const auto row =
+                        static_cast<std::size_t>(reflect(y0 + y - halo, linear.height)) *
+                        linear.width;
                     for (int x = 0; x < nx; ++x) {
                         const auto at = (row + reflect(x0 + x - halo, linear.width)) * 3;
                         for (int c = 0; c < 3; ++c)
@@ -417,7 +442,8 @@ class OnnxDenoise final : public ai::IDenoiseProvider {
                 const std::array<std::int64_t, 4> shape{1, 4, ny, nx};
                 const auto tensor = Ort::Value::CreateTensor<float>(memory, rgb.data(), rgb.size(),
                                                                     shape.data(), shape.size());
-                const auto prediction = session_.Run(Ort::RunOptions{}, inputs, &tensor, 1, outputs, 1);
+                const auto prediction =
+                    session_.Run(Ort::RunOptions{}, inputs, &tensor, 1, outputs, 1);
                 checkCancellation(stop);
                 const auto info = prediction.front().GetTensorTypeAndShapeInfo();
                 if (info.GetElementType() != ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT ||
@@ -427,17 +453,22 @@ class OnnxDenoise final : public ai::IDenoiseProvider {
                 for (int y = 0; y < height; ++y) {
                     checkCancellation(stop);
                     for (int x = 0; x < width; ++x) {
-                        const auto at = (static_cast<std::size_t>(y0 + y) * linear.width + x0 + x) * 3;
+                        const auto at =
+                            (static_cast<std::size_t>(y0 + y) * linear.width + x0 + x) * 3;
                         const auto original = std::span(linear.rgb).subspan(at, 3);
-                        if (!std::ranges::all_of(original, [](float n) { return n >= 0 && n <= 1; }))
+                        if (!std::ranges::all_of(original,
+                                                 [](float n) { return n >= 0 && n <= 1; }))
                             continue;
                         const auto index = (y + halo) * nx + x + halo;
                         for (int c = 0; c < 3; ++c) {
                             const auto value = output[c * count + index];
                             if (!std::isfinite(value))
-                                throw std::runtime_error("The denoise model returned invalid pixels.");
-                            const auto filtered = static_cast<float>(decodeSRGB(std::clamp(value, 0.F, 1.F)));
-                            result.rgb[at + c] = std::lerp(original[c], filtered, static_cast<float>(amount));
+                                throw std::runtime_error(
+                                    "The denoise model returned invalid pixels.");
+                            const auto filtered =
+                                static_cast<float>(decodeSRGB(std::clamp(value, 0.F, 1.F)));
+                            result.rgb[at + c] =
+                                std::lerp(original[c], filtered, static_cast<float>(amount));
                         }
                     }
                 }
@@ -448,14 +479,15 @@ class OnnxDenoise final : public ai::IDenoiseProvider {
         }
         return result;
     }
+
   private:
     Ort::Session session_;
 };
 
 void keepComponent(std::vector<std::uint8_t> &mask, int edge, std::array<double, 2> point,
                    CancellationToken stop) {
-    if (!std::isfinite(point[0]) || !std::isfinite(point[1]) ||
-        point[0] < 0 || point[1] < 0 || point[0] > 1 || point[1] > 1)
+    if (!std::isfinite(point[0]) || !std::isfinite(point[1]) || point[0] < 0 || point[1] < 0 ||
+        point[0] > 1 || point[1] > 1)
         throw std::runtime_error("Invalid location for an object mask.");
     const auto x = std::min(edge - 1, static_cast<int>(point[0] * edge));
     const auto y = std::min(edge - 1, static_cast<int>(point[1] * edge));
@@ -476,10 +508,14 @@ void keepComponent(std::vector<std::uint8_t> &mask, int edge, std::array<double,
                     queue.push_back(neighbor);
             }
         };
-        if (index % edge > 0) visit(index - 1);
-        if (index % edge < edge - 1) visit(index + 1);
-        if (index >= edge) visit(index - edge);
-        if (index < edge * (edge - 1)) visit(index + edge);
+        if (index % edge > 0)
+            visit(index - 1);
+        if (index % edge < edge - 1)
+            visit(index + 1);
+        if (index >= edge)
+            visit(index - edge);
+        if (index < edge * (edge - 1))
+            visit(index + edge);
     }
     mask.swap(selected);
 }
@@ -487,8 +523,12 @@ void keepComponent(std::vector<std::uint8_t> &mask, int edge, std::array<double,
 class OnnxSegmentation final : public ai::ISegmentationProvider {
   public:
     explicit OnnxSegmentation(std::filesystem::path home) : home_(std::move(home)) {}
-    std::string identifier() const override { return "onnx.windows.segmentation.v2"; }
-    ai::ExecutionLocation location() const override { return ai::ExecutionLocation::local; }
+    std::string identifier() const override {
+        return "onnx.windows.segmentation.v2";
+    }
+    ai::ExecutionLocation location() const override {
+        return ai::ExecutionLocation::local;
+    }
     bool supports(ai::Selection selection) const override {
         const auto index = modelIndex(selection);
         std::error_code error;
@@ -496,7 +536,8 @@ class OnnxSegmentation final : public ai::ISegmentationProvider {
             return std::filesystem::is_regular_file(home_ / L"Models" / faceModelName, error);
         if (selection == ai::Selection::depthRange)
             return std::filesystem::is_regular_file(home_ / L"Models" / depthModelName, error);
-        return index && std::filesystem::is_regular_file(home_ / L"Models" / modelNames[*index], error);
+        return index &&
+               std::filesystem::is_regular_file(home_ / L"Models" / modelNames[*index], error);
     }
     BitmapMask segment(ai::RgbaImage image, ai::Selection selection, std::array<double, 2> point,
                        CancellationToken stop, const ai::Progress &progress) override {
@@ -539,29 +580,36 @@ class OnnxSegmentation final : public ai::ISegmentationProvider {
         switch (selection) {
         case ai::Selection::subject:
         case ai::Selection::background:
-        case ai::Selection::object: return 0;
-        case ai::Selection::sky: return 1;
-        case ai::Selection::people: return 2;
-        default: return std::nullopt;
+        case ai::Selection::object:
+            return 0;
+        case ai::Selection::sky:
+            return 1;
+        case ai::Selection::people:
+            return 2;
+        default:
+            return std::nullopt;
         }
     }
     FaceModel &getFaceModel() {
         std::lock_guard lock(mutex_);
         if (!face_)
-            face_ = std::make_unique<FaceModel>(runtimeFor(home_), home_ / L"Models" / faceModelName);
+            face_ =
+                std::make_unique<FaceModel>(runtimeFor(home_), home_ / L"Models" / faceModelName);
         return *face_;
     }
     DepthModel &getDepthModel() {
         std::lock_guard lock(mutex_);
         if (!depth_)
-            depth_ = std::make_unique<DepthModel>(runtimeFor(home_), home_ / L"Models" / depthModelName);
+            depth_ =
+                std::make_unique<DepthModel>(runtimeFor(home_), home_ / L"Models" / depthModelName);
         return *depth_;
     }
     Model &getModel(std::size_t index) {
         std::lock_guard lock(mutex_);
         if (!models_[index])
-            models_[index] = std::make_unique<Model>(
-                runtimeFor(home_), home_ / L"Models" / modelNames[index], index == 2 ? 192 : 320, index == 2 ? 2 : 1);
+            models_[index] =
+                std::make_unique<Model>(runtimeFor(home_), home_ / L"Models" / modelNames[index],
+                                        index == 2 ? 192 : 320, index == 2 ? 2 : 1);
         return *models_[index];
     }
     std::filesystem::path home_;

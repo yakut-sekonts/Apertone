@@ -1,9 +1,9 @@
-#include "core/io/Path.h"
 #include "apps/shared/SessionService.h"
 #include "apps/shared/MetadataService.h"
 #include "apps/shared/OfflinePreview.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/ImageExporter.h"
@@ -12,17 +12,19 @@
 
 namespace luma {
 namespace {
-std::optional<PersistedEditHistory> matchingHistory(const Catalog &catalog, const AssetRecord &asset) {
+std::optional<PersistedEditHistory> matchingHistory(const Catalog &catalog,
+                                                    const AssetRecord &asset) {
     auto history = catalog.editHistory(asset.id);
     if (history && history->entries[history->currentIndex].document != asset.edits)
         history.reset();
     return history;
 }
 PhotoSession offlineSession(const std::filesystem::path &catalogPath, const Catalog &catalog,
-                             AssetRecord asset, CancellationToken stop) {
+                            AssetRecord asset, CancellationToken stop) {
     auto stored = loadOfflinePreview(catalogPath, asset.checksum, stop);
     if (!stored)
-        throw std::runtime_error("Original unavailable. Reconnect it to generate an offline preview.");
+        throw std::runtime_error(
+            "Original unavailable. Reconnect it to generate an offline preview.");
     auto preview = std::make_shared<FloatImage>(std::move(stored->image));
     auto interactive = std::make_shared<FloatImage>(standardPreview(*preview, 1024, stop));
     auto quick = std::make_shared<FloatImage>(standardPreview(*preview, 512, stop));
@@ -42,9 +44,17 @@ PhotoSession offlineSession(const std::filesystem::path &catalogPath, const Cata
     diagnostics.activeWidth = preview->width;
     diagnostics.activeHeight = preview->height;
     auto history = matchingHistory(catalog, asset);
-    return {std::move(asset), std::move(history), std::move(preview), stored->calibration,
-            std::move(diagnostics), previewScale, std::move(interactive), interactiveScale,
-            std::move(quick), quickScale, true};
+    return {std::move(asset),
+            std::move(history),
+            std::move(preview),
+            stored->calibration,
+            std::move(diagnostics),
+            previewScale,
+            std::move(interactive),
+            interactiveScale,
+            std::move(quick),
+            quickScale,
+            true};
 }
 } // namespace
 
@@ -54,7 +64,7 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
 }
 
 PhotoSession SessionService::openAsset(const std::string &id, CancellationToken stop,
-                                      const std::function<void(double)> &progress) const {
+                                       const std::function<void(double)> &progress) const {
     const auto asset = Catalog(catalogPath_, CatalogOpenMode::existingOnly).assetByID(id);
     if (!asset)
         throw std::runtime_error("The photo is no longer in the catalog.");
@@ -62,8 +72,8 @@ PhotoSession SessionService::openAsset(const std::string &id, CancellationToken 
 }
 
 PhotoSession SessionService::openSource(const std::filesystem::path &source, const std::string &id,
-                                       CancellationToken stop,
-                                       const std::function<void(double)> &progress) const {
+                                        CancellationToken stop,
+                                        const std::function<void(double)> &progress) const {
     checkCancellation(stop);
     std::error_code pathError;
     const auto path = std::filesystem::canonical(source, pathError);
@@ -230,9 +240,10 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
         throw std::runtime_error("Export cannot replace the original image.");
     if (Catalog(catalogPath_).originalAtPath(target, stop))
         throw std::runtime_error("Export cannot replace a catalog original.");
-    for (const auto &name : {luma::pathUtf8(catalog.filename()) + "-wal",
-                             luma::pathUtf8(catalog.filename()) + "-shm", std::string("presets.json"),
-                             std::string("export-settings.json"), std::string("preview.ini")}) {
+    for (const auto &name :
+         {luma::pathUtf8(catalog.filename()) + "-wal", luma::pathUtf8(catalog.filename()) + "-shm",
+          std::string("presets.json"), std::string("export-settings.json"),
+          std::string("preview.ini")}) {
         const auto state = catalog.parent_path() / pathFromUtf8(name);
         if (target == state || (std::filesystem::exists(target) && std::filesystem::exists(state) &&
                                 std::filesystem::equivalent(target, state)))
@@ -243,7 +254,7 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
                    [](unsigned char c) { return std::tolower(c); });
     const bool validExtension =
         options.format == ExportFormat::jpeg || options.format == ExportFormat::jpegHDR
-                                                    ? (extension == ".jpg" || extension == ".jpeg")
+            ? (extension == ".jpg" || extension == ".jpeg")
         : options.format == ExportFormat::png     ? extension == ".png"
         : options.format == ExportFormat::dng     ? extension == ".dng"
         : options.format == ExportFormat::heicHDR ? extension == ".heic"

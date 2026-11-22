@@ -1,6 +1,6 @@
-#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/io/Path.h"
 
 namespace luma {
 void Catalog::migrateDerivedImages() {
@@ -58,8 +58,9 @@ std::vector<DerivedImageRecord> Catalog::pendingDerived() const {
         db_, "SELECT path,checksum,width,height,owner_pid FROM derived_images ORDER BY path");
     std::vector<DerivedImageRecord> result;
     while (query.row())
-        result.push_back({pathFromUtf8(query.string(0)), query.string(1), static_cast<int>(query.integer(2)),
-                          static_cast<int>(query.integer(3)), query.integer(4)});
+        result.push_back({pathFromUtf8(query.string(0)), query.string(1),
+                          static_cast<int>(query.integer(2)), static_cast<int>(query.integer(3)),
+                          query.integer(4)});
     return result;
 }
 } // namespace luma

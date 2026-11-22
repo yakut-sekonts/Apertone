@@ -35,7 +35,9 @@ bool lumaLinearDNG(const libraw_data_t &data) {
             model.starts_with("Apertone Rendered Linear RGB") ||
             model.starts_with("Luma Rendered Linear RGB"));
 }
-bool xTrans(const libraw_data_t &data) { return data.idata.filters == 9 && data.idata.colors == 3; }
+bool xTrans(const libraw_data_t &data) {
+    return data.idata.filters == 9 && data.idata.colors == 3;
+}
 bool monochrome(const libraw_data_t &data) {
     return data.idata.filters == 0 && data.idata.colors == 1 && data.idata.is_foveon == 0;
 }
@@ -250,8 +252,8 @@ DecodedRaw developAlternateSensor(LibRaw &raw, CancellationToken stop,
     checkCancellation(stop);
     requireSuccess(status, "Develop X-Trans or monochrome sensor samples");
     int error = LIBRAW_SUCCESS;
-    const std::unique_ptr<libraw_processed_image_t, decltype(&LibRaw::dcraw_clear_mem)>
-        buffer(raw.dcraw_make_mem_image(&error), LibRaw::dcraw_clear_mem);
+    const std::unique_ptr<libraw_processed_image_t, decltype(&LibRaw::dcraw_clear_mem)> buffer(
+        raw.dcraw_make_mem_image(&error), LibRaw::dcraw_clear_mem);
     requireSuccess(error, "Read developed RAW samples");
     if (!buffer || buffer->type != LIBRAW_IMAGE_BITMAP || buffer->bits != 16 ||
         (buffer->colors != 1 && buffer->colors != 3))
@@ -265,7 +267,8 @@ DecodedRaw developAlternateSensor(LibRaw &raw, CancellationToken stop,
         for (int x = 0; x < image.width; ++x) {
             const auto pixel = static_cast<std::size_t>(y) * image.width + x;
             for (int channel = 0; channel < 3; ++channel) {
-                const auto index = (pixel * buffer->colors + (color && buffer->colors == 3 ? channel : 0)) * 2;
+                const auto index =
+                    (pixel * buffer->colors + (color && buffer->colors == 3 ? channel : 0)) * 2;
                 std::uint16_t value = 0;
                 std::memcpy(&value, buffer->data + index, sizeof(value));
                 image.rgb[pixel * 3 + channel] = value / 65535.F;
@@ -316,8 +319,9 @@ PhotoMetadata RawDecoder::inspect(const std::filesystem::path &path, Cancellatio
     const auto &data = decoder->imgdata;
     if (!lumaLinearDNG(data) && std::filesystem::file_size(path) > 512'000'000)
         throw std::runtime_error("RAW exceeds the 512 MB input budget.");
-    const bool supported = lumaLinearDNG(data) || xTrans(data) || monochrome(data) ||
-                           (data.idata.filters != 0 && data.idata.filters != 9 && data.idata.colors == 3);
+    const bool supported =
+        lumaLinearDNG(data) || xTrans(data) || monochrome(data) ||
+        (data.idata.filters != 0 && data.idata.filters != 9 && data.idata.colors == 3);
     if (!supported || data.sizes.width < 2 || data.sizes.height < 2)
         throw std::runtime_error("Library does not support this RAW sensor layout.");
     pixelCount(data.sizes.width, data.sizes.height);

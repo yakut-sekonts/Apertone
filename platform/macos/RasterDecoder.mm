@@ -144,10 +144,10 @@ PhotoMetadata metadata(CGImageSourceRef source, std::size_t index) {
             return std::nullopt;
         return reference == negative ? -magnitude : magnitude;
     };
-    result.latitude = coordinate(kCGImagePropertyGPSLatitude, kCGImagePropertyGPSLatitudeRef,
-                                 "N", "S", 90);
-    result.longitude = coordinate(kCGImagePropertyGPSLongitude, kCGImagePropertyGPSLongitudeRef,
-                                  "E", "W", 180);
+    result.latitude =
+        coordinate(kCGImagePropertyGPSLatitude, kCGImagePropertyGPSLatitudeRef, "N", "S", 90);
+    result.longitude =
+        coordinate(kCGImagePropertyGPSLongitude, kCGImagePropertyGPSLongitudeRef, "E", "W", 180);
     const auto make = text(tiff, kCGImagePropertyTIFFMake),
                model = text(tiff, kCGImagePropertyTIFFModel);
     if (make.empty() || model.starts_with(make))

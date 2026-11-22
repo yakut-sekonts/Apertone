@@ -184,7 +184,8 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         preset.settings.setParameter(parameter, number(text(key)));
         preset.parameters.push_back(parameter);
     };
-    const auto preferred = [&](const char *modern, const char *legacy, const std::string &parameter) {
+    const auto preferred = [&](const char *modern, const char *legacy,
+                               const std::string &parameter) {
         const auto key = QString::fromLatin1(modern);
         const auto old = QString::fromLatin1(legacy);
         set(fields.contains(key) ? key : old, parameter);
@@ -204,7 +205,8 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
           std::pair{"GrayMixerPurple", "bw.purple"}, std::pair{"GrayMixerMagenta", "bw.magenta"}})
         set(QString::fromLatin1(field), parameter);
     for (const auto &[field, parameter] :
-         {std::pair{"ShadowTint", "calibration.shadowTint"}, std::pair{"RedHue", "calibration.redHue"},
+         {std::pair{"ShadowTint", "calibration.shadowTint"},
+          std::pair{"RedHue", "calibration.redHue"},
           std::pair{"RedSaturation", "calibration.redSaturation"},
           std::pair{"GreenHue", "calibration.greenHue"},
           std::pair{"GreenSaturation", "calibration.greenSaturation"},
@@ -215,9 +217,11 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
          {std::tuple{"Exposure2012", "Exposure", "exposure"},
           std::tuple{"Contrast2012", "Contrast", "contrast"},
           std::tuple{"ColorGradeShadowHue", "SplitToningShadowHue", "grading.shadows.hue"},
-          std::tuple{"ColorGradeShadowSat", "SplitToningShadowSaturation", "grading.shadows.saturation"},
+          std::tuple{"ColorGradeShadowSat", "SplitToningShadowSaturation",
+                     "grading.shadows.saturation"},
           std::tuple{"ColorGradeHighlightHue", "SplitToningHighlightHue", "grading.highlights.hue"},
-          std::tuple{"ColorGradeHighlightSat", "SplitToningHighlightSaturation", "grading.highlights.saturation"},
+          std::tuple{"ColorGradeHighlightSat", "SplitToningHighlightSaturation",
+                     "grading.highlights.saturation"},
           std::tuple{"ColorGradeBalance", "SplitToningBalance", "grading.balance"}})
         preferred(modern, legacy, parameter);
     for (const auto &[key, parameter] :

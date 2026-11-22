@@ -59,7 +59,7 @@ double correlation(ai::RgbaImage reference, ai::RgbaImage floating, const Homogr
 } // namespace
 
 Homography verifiedMergeAlignment(ai::RgbaImage reference, ai::RgbaImage floating,
-                             const Homography &native, CancellationToken stop) {
+                                  const Homography &native, CancellationToken stop) {
     checkCancellation(stop);
     reference.validate();
     floating.validate();
@@ -121,9 +121,9 @@ Homography verifiedMergeAlignment(ai::RgbaImage reference, ai::RgbaImage floatin
                         trial[axis] = parameters[axis] + direction * step * initialStep[axis];
                         if (std::abs(trial[axis]) > limit[axis])
                             continue;
-                        const Homography correction{{1 + trial[0], trial[1],     trial[2],
-                                                     trial[3],     1 + trial[4], trial[5],
-                                                     trial[6],     trial[7],     1}};
+                        const Homography correction{{1 + trial[0], trial[1], trial[2], trial[3],
+                                                     1 + trial[4], trial[5], trial[6], trial[7],
+                                                     1}};
                         const auto candidate = center * correction * uncenter * baseline;
                         const auto score = correlation(reference, floating, candidate);
                         double penalty = 0;

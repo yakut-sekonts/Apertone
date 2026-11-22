@@ -17,9 +17,9 @@ void require(bool okay, const char *error) {
 }
 void requireSuccess(uhdr_error_info_t status, const char *operation) {
     if (status.error_code != UHDR_CODEC_OK)
-        throw std::runtime_error(std::string(operation) + ": " +
-                                 (status.has_detail ? status.detail :
-                                      std::to_string(status.error_code)));
+        throw std::runtime_error(
+            std::string(operation) + ": " +
+            (status.has_detail ? status.detail : std::to_string(status.error_code)));
 }
 void verify(int width, int height) {
     luma::LinearOutput image(width, height);
@@ -33,7 +33,10 @@ void verify(int width, int height) {
     const auto path = std::filesystem::current_path() / (luma::newID() + "-hdr-test.jpg");
     struct Cleanup {
         std::filesystem::path path;
-        ~Cleanup() { std::error_code ec; std::filesystem::remove(path, ec); }
+        ~Cleanup() {
+            std::error_code ec;
+            std::filesystem::remove(path, ec);
+        }
     } cleanup{path};
     luma::windows::writeUltraHdrJpeg(image, path, 95);
     QImageReader reader(QString::fromStdWString(path.native()), "jpeg");
@@ -47,7 +50,7 @@ void verify(int width, int height) {
     auto bytes = file.readAll();
     file.close();
     require(bytes.contains("urn:iso:std:iso:ts:21496:-1") &&
-            bytes.contains("http://ns.adobe.com/hdr-gain-map/1.0/"),
+                bytes.contains("http://ns.adobe.com/hdr-gain-map/1.0/"),
             "Missing ISO or XMP gain map metadata");
     uhdr_compressed_image_t input{};
     input.data = bytes.data();
@@ -55,8 +58,8 @@ void verify(int width, int height) {
     input.cg = UHDR_CG_UNSPECIFIED;
     input.ct = UHDR_CT_UNSPECIFIED;
     input.range = UHDR_CR_UNSPECIFIED;
-    std::unique_ptr<uhdr_codec_private_t, decltype(&uhdr_release_decoder)>
-        decoder(uhdr_create_decoder(), uhdr_release_decoder);
+    std::unique_ptr<uhdr_codec_private_t, decltype(&uhdr_release_decoder)> decoder(
+        uhdr_create_decoder(), uhdr_release_decoder);
     require(decoder != nullptr, "Could not create reference decoder");
     requireSuccess(uhdr_dec_set_image(decoder.get(), &input), "Set decoder input");
     requireSuccess(uhdr_dec_set_out_img_format(decoder.get(), UHDR_IMG_FMT_64bppRGBAHalfFloat),
@@ -67,7 +70,8 @@ void verify(int width, int height) {
     requireSuccess(uhdr_decode(decoder.get()), "HDR reconstruction failed");
     const auto result = uhdr_get_decoded_image(decoder.get());
     require(result && result->w == static_cast<unsigned>(width) &&
-                result->h == static_cast<unsigned>(height), "HDR JPEG dimensions changed");
+                result->h == static_cast<unsigned>(height),
+            "HDR JPEG dimensions changed");
     const auto *pixels = static_cast<const unsigned char *>(result->planes[UHDR_PLANE_PACKED]);
     const auto offset = static_cast<std::size_t>(height / 2) * result->stride[0] * 4;
     const auto sample = [&](int x) {

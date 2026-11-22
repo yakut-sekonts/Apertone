@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/MetadataStorage.h"
 #include "core/catalog/SqliteStatement.h"
+#include "core/io/Path.h"
 
 namespace luma {
 using detail::Statement;

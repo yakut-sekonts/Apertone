@@ -1,6 +1,6 @@
-#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/MergeService.h"
+#include "core/io/Path.h"
 #include <QPointer>
 #include <atomic>
 #include <cmath>
@@ -88,8 +88,8 @@ void EditorController::runMerge(const QString &operation,
                                 self->aiBusy_ = false;
                                 self->aiProgress_ = 1;
                                 emit self->stateChanged();
-                                self->openFile(
-                                    QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(created))));
+                                self->openFile(QUrl::fromLocalFile(
+                                    QString::fromStdString(luma::pathUtf8(created))));
                             },
                             Qt::QueuedConnection);
                 } catch (const std::exception &failure) {

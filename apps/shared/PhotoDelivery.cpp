@@ -42,8 +42,8 @@ QImage proofPreview(const SessionService &session, const AssetRecord &asset, int
     const auto input = standardPreview(decoded->image, edge, stop);
     const double scale = static_cast<double>(input.width) / decoded->image.width;
     auto output = renderCPU(input, asset.edits, asset.metadata.orientation, {}, stop,
-                            decoded->calibration, DetailDiagnostic::none, scale, asset.metadata,
-                            {}, nullptr, {}, 4, DisplayMapping::adaptiveHDR);
+                            decoded->calibration, DetailDiagnostic::none, scale, asset.metadata, {},
+                            nullptr, {}, 4, DisplayMapping::adaptiveHDR);
     QImage srgb(output.rgba.data(), output.width, output.height, output.width * 4,
                 QImage::Format_RGBA8888);
     srgb.setColorSpace(QColorSpace::SRgb);
@@ -88,8 +88,9 @@ void writePdf(const SessionService &session, const std::vector<AssetRecord> &ass
                 font.setPointSize(15);
                 painter.setFont(font);
                 painter.setPen(Qt::black);
-                painter.drawText(QRect(0, 0, pdf.width(), header), Qt::AlignTop | Qt::AlignLeft,
-                                 painter.fontMetrics().elidedText(title, Qt::ElideRight, pdf.width()));
+                painter.drawText(
+                    QRect(0, 0, pdf.width(), header), Qt::AlignTop | Qt::AlignLeft,
+                    painter.fontMetrics().elidedText(title, Qt::ElideRight, pdf.width()));
                 font.setPointSize(8);
                 painter.setFont(font);
                 painter.drawText(QRect(0, pdf.height() - footer, pdf.width(), footer),
@@ -107,7 +108,8 @@ void writePdf(const SessionService &session, const std::vector<AssetRecord> &ass
             QRect rectangle(QPoint{}, fitted);
             rectangle.moveCenter(space.center());
             painter.drawImage(rectangle, image);
-            painter.drawText(cell.adjusted(0, cellHeight - caption, 0, 0), Qt::AlignCenter,
+            painter.drawText(
+                cell.adjusted(0, cellHeight - caption, 0, 0), Qt::AlignCenter,
                 painter.fontMetrics().elidedText(photoName(assets[i]), Qt::ElideMiddle, cellWidth));
             if (progress)
                 progress(static_cast<double>(i + 1) / assets.size());
@@ -146,7 +148,8 @@ body.slideshow img {width:100%;height:74vh;object-fit:contain} button {padding:.
 </style><body class="%2"><h1>%1</h1><nav hidden aria-label="Slideshow controls">
 <button id="previous">Previous</button><button id="play">Play</button><button id="next">Next</button>
 <span id="position" aria-live="polite"></span></nav><main>
-)html").arg(escaped, slideshow ? QStringLiteral("slideshow") : QString{});
+)html")
+                       .arg(escaped, slideshow ? QStringLiteral("slideshow") : QString{});
     for (std::size_t i = 0; i < assets.size(); ++i) {
         checkCancellation(stop);
         ExportOptions options;
@@ -156,9 +159,11 @@ body.slideshow img {width:100%;height:74vh;object-fit:contain} button {padding:.
         auto target = temporary / pathFromUtf8(name.toStdString());
         const auto &asset = assets[i];
         session.exportPhoto(asset, asset.edits, target, options, stop);
-        html += QStringLiteral("<figure%1><a href=\"%2\"><img alt=\"%3\" %4src=\"%2\"></a><figcaption>%3</figcaption></figure>\n")
+        html += QStringLiteral("<figure%1><a href=\"%2\"><img alt=\"%3\" "
+                               "%4src=\"%2\"></a><figcaption>%3</figcaption></figure>\n")
                     .arg(i == 0 ? QStringLiteral(" class=\"current\"") : QString{}, name,
-                         photoName(asset).toHtmlEscaped(), i == 0 ? QString{} : QStringLiteral("loading=\"lazy\" "));
+                         photoName(asset).toHtmlEscaped(),
+                         i == 0 ? QString{} : QStringLiteral("loading=\"lazy\" "));
         if (progress)
             progress(static_cast<double>(i + 1) / assets.size());
     }
@@ -228,13 +233,13 @@ void deliverPhotos(const std::filesystem::path &catalog, const std::vector<std::
     if (format == DeliveryFormat::contactSheet || format == DeliveryFormat::photoBook) {
         if (asQString(target.extension()).compare(QStringLiteral(".pdf"), Qt::CaseInsensitive) != 0)
             throw std::runtime_error("Choose a PDF filename.");
-        writePdf(session, assets, catalog, target, displayTitle, format == DeliveryFormat::photoBook,
-                 readProof(proofProfile), stop, progress);
+        writePdf(session, assets, catalog, target, displayTitle,
+                 format == DeliveryFormat::photoBook, readProof(proofProfile), stop, progress);
     } else {
         if (!proofProfile.empty())
             throw std::runtime_error("ICC proofing is available for PDF output.");
-        writeGallery(session, assets, target, displayTitle, format == DeliveryFormat::slideshow, stop,
-                     progress);
+        writeGallery(session, assets, target, displayTitle, format == DeliveryFormat::slideshow,
+                     stop, progress);
     }
 }
 } // namespace luma

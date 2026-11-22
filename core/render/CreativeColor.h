@@ -25,11 +25,14 @@ class DefringePass {
                                      luma(sample(std::min(imageWidth_ - 1, x + reach_), y)));
         const auto down = std::abs(luma(sample(x, std::max(0, y - reach_))) -
                                    luma(sample(x, std::min(imageHeight_ - 1, y + reach_))));
-        const auto edge = std::clamp(std::max(across, down) / std::max(.10, std::abs(yCenter) * .5), 0.0, 1.0);
+        const auto edge =
+            std::clamp(std::max(across, down) / std::max(.10, std::abs(yCenter) * .5), 0.0, 1.0);
         for (auto &channel : rgb)
-            channel = static_cast<float>(std::lerp(static_cast<double>(channel), yCenter, weight * edge));
+            channel =
+                static_cast<float>(std::lerp(static_cast<double>(channel), yCenter, weight * edge));
         return rgb;
     }
+
   private:
     double strength(const std::array<float, 3> &rgb) const;
     double amount_, hue_, width_;

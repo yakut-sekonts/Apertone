@@ -109,7 +109,8 @@ void apply(FloatImage &image, const RetouchStroke &stroke, CancellationToken sto
                     continue;
                 const double chroma = std::clamp(((red - base) / red - .16) * 4, 0.0, 1.0);
                 const double coverage = shape.coverage(x, y) * stroke.opacity * chroma;
-                pixel[0] = static_cast<float>(std::lerp(static_cast<double>(red), base * 1.02, coverage));
+                pixel[0] =
+                    static_cast<float>(std::lerp(static_cast<double>(red), base * 1.02, coverage));
             }
         }
         return;

@@ -129,7 +129,8 @@ class Snapshot {
         const auto mainStamp = stamp(path), walStamp = stamp(wal);
         if (!mainStamp || mainStamp->size < 100 || stamp(journal))
             throw std::runtime_error("Close Lightroom and finish any pending catalog recovery.");
-        const auto copy = pathFromUtf8(temp_.filePath(QStringLiteral("catalog.lrcat")).toStdString());
+        const auto copy =
+            pathFromUtf8(temp_.filePath(QStringLiteral("catalog.lrcat")).toStdString());
         const auto copyWal = pathWithSuffix(copy, "-wal");
         copySnapshotFile(path, copy, *mainStamp, stop);
         if (walStamp)
@@ -149,15 +150,21 @@ class Snapshot {
             throw std::runtime_error("Cannot open the Lightroom catalog database.");
         sqlite3_db_config(db, SQLITE_DBCONFIG_DEFENSIVE, 1, nullptr);
         sqlite3_db_config(db, SQLITE_DBCONFIG_TRUSTED_SCHEMA, 0, nullptr);
-        if (sqlite3_exec(db, "PRAGMA query_only=ON; BEGIN;", nullptr, nullptr, nullptr) != SQLITE_OK)
+        if (sqlite3_exec(db, "PRAGMA query_only=ON; BEGIN;", nullptr, nullptr, nullptr) !=
+            SQLITE_OK)
             throw std::runtime_error("Cannot prepare a read-only Lightroom import.");
-        sqlite3_progress_handler(db, 1000, [](void *context) {
-            return static_cast<CancellationToken *>(context)->isCancelled() ? 1 : 0;
-        }, &stop_);
+        sqlite3_progress_handler(
+            db, 1000,
+            [](void *context) {
+                return static_cast<CancellationToken *>(context)->isCancelled() ? 1 : 0;
+            },
+            &stop_);
         sourceKey = sourceIdentity(db, path);
     }
 
-    sqlite3 *database() const { return db_.get(); }
+    sqlite3 *database() const {
+        return db_.get();
+    }
     std::string fingerprint, sourceKey;
 
   private:
@@ -176,11 +183,10 @@ void requireTable(sqlite3 *db, const char *name) {
 std::filesystem::path originalPath(const std::string &root, const std::string &folder,
                                    const std::string &basename, const std::string &extension) {
     if (root.empty() || root.size() > 4096 || folder.size() > 4096 || basename.empty() ||
-        basename.size() > 1024 || extension.empty() || extension.size() > 16 ||
-        basename == "." || basename == ".." ||
-        basename.find_first_of("/\\:") != std::string::npos ||
-        extension.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") !=
-            std::string::npos)
+        basename.size() > 1024 || extension.empty() || extension.size() > 16 || basename == "." ||
+        basename == ".." || basename.find_first_of("/\\:") != std::string::npos ||
+        extension.find_first_not_of(
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789") != std::string::npos)
         return {};
     auto base = pathFromUtf8(root);
     const auto relative = pathFromUtf8(folder);
@@ -209,8 +215,7 @@ QString displayName(const std::string &value, const QString &fallback) {
 }
 
 bool sourceID(std::string_view value) {
-    return value.size() == 36 &&
-           value.find_first_not_of("0123456789abcdefABCDEF-") == value.npos;
+    return value.size() == 36 && value.find_first_not_of("0123456789abcdefABCDEF-") == value.npos;
 }
 
 std::string metadataText(const std::string &value, bool multiline = false) {
@@ -238,7 +243,8 @@ bool samePath(const std::filesystem::path &left, const std::filesystem::path &ri
     return std::filesystem::equivalent(left, right, error);
 }
 
-std::map<std::string, DescriptiveMetadata> catalogDescriptions(sqlite3 *db, CancellationToken stop) {
+std::map<std::string, DescriptiveMetadata> catalogDescriptions(sqlite3 *db,
+                                                               CancellationToken stop) {
     std::map<std::string, DescriptiveMetadata> values;
     if (hasTable(db, "AgLibraryIPTC")) {
         Statement rows(db, "SELECT i.id_global,"
@@ -256,13 +262,14 @@ std::map<std::string, DescriptiveMetadata> catalogDescriptions(sqlite3 *db, Canc
     }
     if (hasTable(db, "AgHarvestedIptcMetadata") && hasTable(db, "AgInternedIptcCreator") &&
         hasTable(db, "AgInternedIptcLocation")) {
-        Statement rows(db, "SELECT i.id_global,"
-                           "CASE WHEN length(CAST(c.value AS BLOB))<=1024 THEN c.value END,"
-                           "CASE WHEN length(CAST(l.value AS BLOB))<=2048 THEN l.value END "
-                           "FROM AgHarvestedIptcMetadata t JOIN Adobe_images i ON i.id_local=t.image "
-                           "LEFT JOIN AgInternedIptcCreator c ON c.id_local=t.creatorRef "
-                           "LEFT JOIN AgInternedIptcLocation l ON l.id_local=t.locationRef "
-                           "WHERE c.value IS NOT NULL OR l.value IS NOT NULL ORDER BY t.id_local");
+        Statement rows(db,
+                       "SELECT i.id_global,"
+                       "CASE WHEN length(CAST(c.value AS BLOB))<=1024 THEN c.value END,"
+                       "CASE WHEN length(CAST(l.value AS BLOB))<=2048 THEN l.value END "
+                       "FROM AgHarvestedIptcMetadata t JOIN Adobe_images i ON i.id_local=t.image "
+                       "LEFT JOIN AgInternedIptcCreator c ON c.id_local=t.creatorRef "
+                       "LEFT JOIN AgInternedIptcLocation l ON l.id_local=t.locationRef "
+                       "WHERE c.value IS NOT NULL OR l.value IS NOT NULL ORDER BY t.id_local");
         while (rows.row()) {
             checkCancellation(stop);
             auto &description = values[rows.string(0)];
@@ -285,9 +292,9 @@ struct Scan {
 Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
           const std::function<void(double)> &progress = {}) {
     auto *db = snapshot.database();
-    for (const char *table : {"Adobe_images", "AgLibraryFile", "AgLibraryFolder",
-                             "AgLibraryRootFolder", "Adobe_imageDevelopSettings",
-                             "AgLibraryCollection", "AgLibraryCollectionImage"})
+    for (const char *table :
+         {"Adobe_images", "AgLibraryFile", "AgLibraryFolder", "AgLibraryRootFolder",
+          "Adobe_imageDevelopSettings", "AgLibraryCollection", "AgLibraryCollectionImage"})
         requireTable(db, table);
     Scan result;
     auto &report = result.report;
@@ -299,34 +306,43 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         report.photos = static_cast<std::size_t>(count.integer(0));
     }
 
-    auto descriptions = prepare ? catalogDescriptions(db, stop)
-                                : std::map<std::string, DescriptiveMetadata>{};
+    auto descriptions =
+        prepare ? catalogDescriptions(db, stop) : std::map<std::string, DescriptiveMetadata>{};
     if (prepare) {
         requireTable(db, "AgLibraryKeyword");
         requireTable(db, "AgLibraryKeywordImage");
         const bool keywordParents = hasColumn(db, "AgLibraryKeyword", "parent");
-        const auto keywordTree = keywordParents
-            ? readNameTree(db, "SELECT id_local,name,parent FROM AgLibraryKeyword "
-                               "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local", stop)
-            : NameTree{};
-        const auto keywordQuery = std::string("SELECT i.id_global,k.name,k.id_local,") +
-                           (keywordParents ? "k.parent" : "NULL") + " FROM AgLibraryKeywordImage m "
-                           "JOIN AgLibraryKeyword k ON k.id_local=m.tag "
-                           "JOIN Adobe_images i ON i.id_local=m.image "
-                           "WHERE length(CAST(k.name AS BLOB)) BETWEEN 1 AND 512 ORDER BY m.id_local";
+        const auto keywordTree =
+            keywordParents ? readNameTree(db,
+                                          "SELECT id_local,name,parent FROM AgLibraryKeyword "
+                                          "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local",
+                                          stop)
+                           : NameTree{};
+        const auto keywordQuery =
+            std::string("SELECT i.id_global,k.name,k.id_local,") +
+            (keywordParents ? "k.parent" : "NULL") +
+            " FROM AgLibraryKeywordImage m "
+            "JOIN AgLibraryKeyword k ON k.id_local=m.tag "
+            "JOIN Adobe_images i ON i.id_local=m.image "
+            "WHERE length(CAST(k.name AS BLOB)) BETWEEN 1 AND 512 ORDER BY m.id_local";
         Statement tags(db, keywordQuery.c_str());
         std::map<std::int64_t, std::vector<std::string>> synonyms;
-        if (hasTable(db, "AgLibraryKeywordSynonym") && hasColumn(db, "AgLibraryKeywordSynonym", "name")) {
+        if (hasTable(db, "AgLibraryKeywordSynonym") &&
+            hasColumn(db, "AgLibraryKeywordSynonym", "name")) {
             const char *owner = hasColumn(db, "AgLibraryKeywordSynonym", "keyword") ? "keyword"
-                : hasColumn(db, "AgLibraryKeywordSynonym", "tag") ? "tag" : nullptr;
+                                : hasColumn(db, "AgLibraryKeywordSynonym", "tag")   ? "tag"
+                                                                                    : nullptr;
             if (owner) {
-                Statement aliases(db, (std::string("SELECT ") + owner + ",name FROM AgLibraryKeywordSynonym "
-                                      "WHERE length(CAST(name AS BLOB)) BETWEEN 1 AND 512").c_str());
+                Statement aliases(db, (std::string("SELECT ") + owner +
+                                       ",name FROM AgLibraryKeywordSynonym "
+                                       "WHERE length(CAST(name AS BLOB)) BETWEEN 1 AND 512")
+                                          .c_str());
                 std::size_t aliasCount = 0;
                 while (aliases.row()) {
                     checkCancellation(stop);
                     if (++aliasCount > 200'000)
-                        throw std::runtime_error("Lightroom keyword aliases exceed the migration budget.");
+                        throw std::runtime_error(
+                            "Lightroom keyword aliases exceed the migration budget.");
                     auto &entries = synonyms[aliases.integer(0)];
                     if (entries.size() < 64)
                         entries.push_back(metadataText(aliases.string(1)));
@@ -354,17 +370,19 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
 
     const auto capture = hasColumn(db, "Adobe_images", "captureTime") ? "i.captureTime" : "NULL";
     const auto edited = hasColumn(db, "Adobe_images", "touchTime") ? "i.touchTime" : "NULL";
-    const auto imageQuery = std::string("SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
-                         "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
-                         "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
-                         "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0),") +
-                         capture + "," + edited + " "
-                         "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
-                         "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
-                         "LEFT JOIN AgLibraryRootFolder root ON root.id_local=folder.rootFolder "
-                         "LEFT JOIN Adobe_images master ON master.id_local=i.masterImage "
-                         "LEFT JOIN Adobe_imageDevelopSettings s ON s.image=i.id_local "
-                         "ORDER BY COALESCE(i.masterImage,0)<>0,i.id_local";
+    const auto imageQuery =
+        std::string("SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
+                    "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
+                    "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
+                    "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0),") +
+        capture + "," + edited +
+        " "
+        "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
+        "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
+        "LEFT JOIN AgLibraryRootFolder root ON root.id_local=folder.rootFolder "
+        "LEFT JOIN Adobe_images master ON master.id_local=i.masterImage "
+        "LEFT JOIN Adobe_imageDevelopSettings s ON s.image=i.id_local "
+        "ORDER BY COALESCE(i.masterImage,0)<>0,i.id_local";
     Statement images(db, imageQuery.c_str());
     struct Original {
         std::string digest;
@@ -378,14 +396,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         checkCancellation(stop);
         ++completed;
         if (progress && (completed % 8 == 0 || completed == report.photos))
-            progress(0.75 * static_cast<double>(completed) / std::max<std::size_t>(1, report.photos));
+            progress(0.75 * static_cast<double>(completed) /
+                     std::max<std::size_t>(1, report.photos));
         const auto id = images.string(0), master = images.string(1);
         if (!sourceID(id) || !seen.insert(id).second)
             throw std::runtime_error("Invalid or duplicate photo identifier in Lightroom catalog.");
         report.virtualCopies += !master.empty();
-        const auto path = originalPath(images.string(7), images.string(8), images.string(9),
-                                       images.string(10));
-        if (path.empty() || images.string(6) == "VIDEO" || !PhotoDecoder::supportedExtension(path)) {
+        const auto path =
+            originalPath(images.string(7), images.string(8), images.string(9), images.string(10));
+        if (path.empty() || images.string(6) == "VIDEO" ||
+            !PhotoDecoder::supportedExtension(path)) {
             ++report.unsupported;
             continue;
         }
@@ -400,13 +420,14 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         LightroomMigrationPhoto photo;
         photo.sourceID = id;
         photo.masterID = master;
-        photo.copyName = master.empty() ? "" : displayName(images.string(2), "Virtual copy").toStdString();
+        photo.copyName =
+            master.empty() ? "" : displayName(images.string(2), "Virtual copy").toStdString();
         photo.developDocument = images.string(11);
         if (images.integer(12) > 0) {
             try {
                 const auto edit = decodeLightroomDevelop(photo.developDocument);
                 photo.edits = mergeSettings(EditDocument{}, edit.preset.settings,
-                                             edit.preset.groups, edit.preset.parameters);
+                                            edit.preset.groups, edit.preset.parameters);
                 ++report.mappedEdits;
                 report.partialEdits += !edit.unsupported.isEmpty();
             } catch (const std::exception &) {
@@ -426,22 +447,27 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
                 auto metadata = PhotoDecoder().inspect(photo.path, stop);
                 if (stamp(photo.path) != before)
                     throw std::runtime_error("Original changed while reading metadata.");
-                found = inspected.emplace(photo.path, Original{digest, std::move(metadata), *before}).first;
+                found =
+                    inspected.emplace(photo.path, Original{digest, std::move(metadata), *before})
+                        .first;
             }
             photo.checksum = found->second.digest;
             photo.metadata = found->second.metadata;
-            auto captured = QDateTime::fromString(QString::fromStdString(images.string(13)),
-                                                   Qt::ISODateWithMs);
+            auto captured =
+                QDateTime::fromString(QString::fromStdString(images.string(13)), Qt::ISODateWithMs);
             if (captured.isValid()) {
                 if (captured.timeSpec() == Qt::LocalTime)
                     captured = QDateTime(captured.date(), captured.time(), QTimeZone::UTC);
                 photo.metadata.captureTimestamp = captured.toSecsSinceEpoch();
             }
-            if (const auto editTime = images.optional(14);
-                editTime && std::isfinite(*editTime) && *editTime >= 0 && *editTime < 3'000'000'000.0)
-                photo.editedAt = *editTime > 0 ? 978307200 + static_cast<std::int64_t>(*editTime) : 0;
+            if (const auto editTime = images.optional(14); editTime && std::isfinite(*editTime) &&
+                                                           *editTime >= 0 &&
+                                                           *editTime < 3'000'000'000.0)
+                photo.editedAt =
+                    *editTime > 0 ? 978307200 + static_cast<std::int64_t>(*editTime) : 0;
             auto description = photo.metadata.descriptive.value_or(DescriptiveMetadata{});
-            description.rating = static_cast<int>(std::clamp<std::int64_t>(images.integer(3), 0, 5));
+            description.rating =
+                static_cast<int>(std::clamp<std::int64_t>(images.integer(3), 0, 5));
             description.flag = static_cast<int>(std::clamp<std::int64_t>(images.integer(4), -1, 1));
             description.label = displayName(images.string(5), "").toStdString();
             if (const auto stored = descriptions.find(id); stored != descriptions.end()) {
@@ -473,13 +499,17 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             throw std::runtime_error("Original changed while planning Lightroom import.");
 
     const bool collectionParents = hasColumn(db, "AgLibraryCollection", "parent");
-    const auto collectionTree = collectionParents
-        ? readNameTree(db, "SELECT id_local,name,parent FROM AgLibraryCollection "
-                           "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local", stop)
-        : NameTree{};
-    Statement collections(db, collectionParents
-        ? "SELECT id_local,name,creationId,parent FROM AgLibraryCollection ORDER BY id_local"
-        : "SELECT id_local,name,creationId,NULL FROM AgLibraryCollection ORDER BY id_local");
+    const auto collectionTree =
+        collectionParents ? readNameTree(db,
+                                         "SELECT id_local,name,parent FROM AgLibraryCollection "
+                                         "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local",
+                                         stop)
+                          : NameTree{};
+    Statement collections(
+        db,
+        collectionParents
+            ? "SELECT id_local,name,creationId,parent FROM AgLibraryCollection ORDER BY id_local"
+            : "SELECT id_local,name,creationId,NULL FROM AgLibraryCollection ORDER BY id_local");
     const bool hasRules = hasTable(db, "AgLibraryCollectionContent");
     while (collections.row()) {
         checkCancellation(stop);
@@ -496,14 +526,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         auto name = displayName(collections.string(1), "Collection");
         while (name.toUtf8().size() > 96)
             name.chop(1);
-        collection.name = qualifyName(name.toStdString(), collections.integer(3), collectionTree, " › ", 96);
+        collection.name =
+            qualifyName(name.toStdString(), collections.integer(3), collectionTree, " › ", 96);
         collection.smart = smart;
         if (smart) {
             if (hasRules) {
-                Statement rule(db, "SELECT content FROM AgLibraryCollectionContent "
-                                   "WHERE collection=?1 AND owningModule='ag.library.smart_collection' "
-                                   "AND length(CAST(content AS BLOB)) BETWEEN 1 AND 65536 "
-                                   "ORDER BY id_local LIMIT 2");
+                Statement rule(db,
+                               "SELECT content FROM AgLibraryCollectionContent "
+                               "WHERE collection=?1 AND owningModule='ag.library.smart_collection' "
+                               "AND length(CAST(content AS BLOB)) BETWEEN 1 AND 65536 "
+                               "ORDER BY id_local LIMIT 2");
                 rule.integer(1, collection.sourceID);
                 if (rule.row()) {
                     collection.sourceRule = rule.string(0);
@@ -560,7 +592,7 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
     if (plan.photos.empty() && plan.collections.empty())
         return std::move(plan.report);
     plan.report.imported = Catalog(target).applyLightroomMigration(snapshot.sourceKey, plan.photos,
-                                                                    plan.collections, stop);
+                                                                   plan.collections, stop);
     if (progress)
         progress(1);
     return std::move(plan.report);

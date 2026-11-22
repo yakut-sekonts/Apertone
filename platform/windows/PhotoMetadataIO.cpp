@@ -6,9 +6,9 @@
 #include <QTimeZone>
 #include <algorithm>
 #include <cmath>
-#include <stdexcept>
-#include <shobjidl.h>
 #include <propvarutil.h>
+#include <shobjidl.h>
+#include <stdexcept>
 
 namespace luma::macos {
 namespace {
@@ -20,11 +20,10 @@ const QString exif = QStringLiteral("http://ns.adobe.com/exif/1.0/");
 const QString exifEX = QStringLiteral("http://cipa.jp/exif/1.0/");
 const QString tiff = QStringLiteral("http://ns.adobe.com/tiff/1.0/");
 const QString xml = QStringLiteral("http://www.w3.org/XML/1998/namespace");
-const QByteArray emptyPacket =
-    "<x:xmpmeta xmlns:x='adobe:ns:meta/'>"
-    "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
-    "<rdf:Description rdf:about=''/>"
-    "</rdf:RDF></x:xmpmeta>";
+const QByteArray emptyPacket = "<x:xmpmeta xmlns:x='adobe:ns:meta/'>"
+                               "<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>"
+                               "<rdf:Description rdf:about=''/>"
+                               "</rdf:RDF></x:xmpmeta>";
 
 QDomDocument parse(const QByteArray &bytes) {
     QDomDocument result;
@@ -47,8 +46,8 @@ QList<QDomElement> descriptions(QDomDocument document) {
     for (auto e = groups.at(0).firstChildElement(); !e.isNull(); e = e.nextSiblingElement()) {
         if (e.namespaceURI() != rdf || e.localName() != "Description" ||
             e.hasAttributeNS(rdf, "ID") || e.hasAttributeNS(rdf, "nodeID") ||
-            (!entries.empty() && entries.front().attributeNS(rdf, "about") !=
-                                     e.attributeNS(rdf, "about")))
+            (!entries.empty() &&
+             entries.front().attributeNS(rdf, "about") != e.attributeNS(rdf, "about")))
             throw std::runtime_error("XMP has multiple or unsupported RDF subjects.");
         entries.append(e);
     }
@@ -165,7 +164,8 @@ DescriptiveMetadata readDescriptiveMetadata(const std::filesystem::path &source,
         overlay(metadata, packet);
     if (!sidecar.empty())
         overlay(metadata, QByteArrayView(reinterpret_cast<const char *>(sidecar.data()),
-                                          static_cast<qsizetype>(sidecar.size())).toByteArray());
+                                         static_cast<qsizetype>(sidecar.size()))
+                              .toByteArray());
     metadata.validate();
     return metadata;
 }
@@ -173,9 +173,10 @@ DescriptiveMetadata readDescriptiveMetadata(const std::filesystem::path &source,
 std::vector<std::uint8_t> writeDescriptiveXMP(const DescriptiveMetadata &metadata,
                                               std::span<const std::uint8_t> existing) {
     metadata.validate();
-    auto document = parse(existing.empty() ? emptyPacket
-                                           : QByteArray(reinterpret_cast<const char *>(existing.data()),
-                                                        static_cast<qsizetype>(existing.size())));
+    auto document =
+        parse(existing.empty() ? emptyPacket
+                               : QByteArray(reinterpret_cast<const char *>(existing.data()),
+                                            static_cast<qsizetype>(existing.size())));
     auto entries = descriptions(document);
     const auto text = [](const std::string &value) { return QString::fromStdString(value); };
     const auto list = [&](const std::vector<std::string> &items) {
@@ -206,8 +207,8 @@ class ShellProperties {
         : initialized_(CoInitializeEx(nullptr, COINIT_MULTITHREADED)) {
         if (SUCCEEDED(initialized_) || initialized_ == RPC_E_CHANGED_MODE)
             (void)SHGetPropertyStoreFromParsingName(source.c_str(), nullptr, GPS_DEFAULT,
-                                                      IID_IPropertyStore,
-                                                      reinterpret_cast<void **>(&store_));
+                                                    IID_IPropertyStore,
+                                                    reinterpret_cast<void **>(&store_));
     }
     ~ShellProperties() {
         if (store_)
@@ -246,8 +247,8 @@ class ShellProperties {
         std::optional<double> result;
         get(name, [&](const auto &value) {
             double n = 0;
-            if (SUCCEEDED(PropVariantToDouble(value, &n)) && std::isfinite(n) &&
-                n >= minimum && n <= maximum)
+            if (SUCCEEDED(PropVariantToDouble(value, &n)) && std::isfinite(n) && n >= minimum &&
+                n <= maximum)
                 result = n;
         });
         return result;
@@ -265,8 +266,9 @@ void readRasterProperties(const std::filesystem::path &path, PhotoMetadata &phot
     if (photo.camera.empty()) {
         auto make = properties.text(L"System.Photo.CameraManufacturer");
         const auto model = properties.text(L"System.Photo.CameraModel");
-        photo.camera = model.starts_with(make) || make.empty() ? model : model.empty() ? make
-                                                                                       : make + " " + model;
+        photo.camera = model.starts_with(make) || make.empty() ? model
+                       : model.empty()                         ? make
+                                                               : make + " " + model;
     }
     if (photo.lens.empty())
         photo.lens = properties.text(L"System.Photo.LensModel");
@@ -287,10 +289,11 @@ void readRasterProperties(const std::filesystem::path &path, PhotoMetadata &phot
             if (value.vt != VT_FILETIME)
                 return;
             constexpr std::uint64_t unixEpoch = 116444736000000000ULL;
-            const auto ticks = (std::uint64_t(value.filetime.dwHighDateTime) << 32) +
-                               value.filetime.dwLowDateTime;
+            const auto ticks =
+                (std::uint64_t(value.filetime.dwHighDateTime) << 32) + value.filetime.dwLowDateTime;
             if (ticks >= unixEpoch)
-                photo.captureTimestamp = static_cast<std::int64_t>((ticks - unixEpoch) / 10'000'000);
+                photo.captureTimestamp =
+                    static_cast<std::int64_t>((ticks - unixEpoch) / 10'000'000);
         });
     if (!description)
         return;
@@ -302,7 +305,8 @@ void readRasterProperties(const std::filesystem::path &path, PhotoMetadata &phot
             if (value.vt != (VT_VECTOR | VT_LPWSTR) || !value.calpwstr.pElems)
                 return;
             for (ULONG i = 0; i < std::min(value.calpwstr.cElems, 100UL); ++i) {
-                const auto word = QString::fromWCharArray(value.calpwstr.pElems[i]).trimmed().toStdString();
+                const auto word =
+                    QString::fromWCharArray(value.calpwstr.pElems[i]).trimmed().toStdString();
                 if (!word.empty() && std::find(items.begin(), items.end(), word) == items.end())
                     items.push_back(word);
             }
@@ -361,12 +365,14 @@ QByteArray exportXmp(const std::filesystem::path &source, const PhotoMetadata &p
                        {QString::number(qRound64(*photo.iso))}, "Seq");
     if (photo.captureTimestamp)
         set(macos::exif, "exif:DateTimeOriginal",
-            QDateTime::fromSecsSinceEpoch(*photo.captureTimestamp, QTimeZone::UTC).toString(Qt::ISODate));
+            QDateTime::fromSecsSinceEpoch(*photo.captureTimestamp, QTimeZone::UTC)
+                .toString(Qt::ISODate));
     if (policy == MetadataPolicy::all && photo.latitude && photo.longitude) {
         const auto format = [](double value, char positive, char negative) {
             const auto magnitude = std::abs(value);
             const auto degrees = static_cast<int>(magnitude);
-            return QString::number(degrees) + ',' + QString::number((magnitude - degrees) * 60, 'f', 9) +
+            return QString::number(degrees) + ',' +
+                   QString::number((magnitude - degrees) * 60, 'f', 9) +
                    QLatin1Char(value < 0 ? negative : positive);
         };
         set(macos::exif, "exif:GPSLatitude", format(*photo.latitude, 'N', 'S'));

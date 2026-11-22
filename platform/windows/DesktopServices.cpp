@@ -10,8 +10,14 @@ void showApplicationError(const std::string &title, const std::string &message) 
     MessageBoxW(nullptr, wideMessage.c_str(), wideTitle.c_str(), MB_OK | MB_ICONERROR);
 }
 
-bool enableCrashCapture(const std::filesystem::path &) noexcept { return false; }
-bool formatCrashReport(const std::filesystem::path &) noexcept { return false; }
+bool enableCrashCapture(const std::filesystem::path &) noexcept {
+    return false;
+}
+bool formatCrashReport(const std::filesystem::path &) noexcept {
+    return false;
+}
 } // namespace luma::macos
 
-std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) { return {}; }
+std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) {
+    return {};
+}

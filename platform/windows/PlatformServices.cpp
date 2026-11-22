@@ -1,3 +1,5 @@
+#include "core/image/Bayer.h"
+#include "core/merge/MergeAlignment.h"
 #include "platform/macos/CoreMLDenoise.h"
 #include "platform/macos/CoreMLSky.h"
 #include "platform/macos/DisplayProfile.h"
@@ -10,17 +12,15 @@
 #include "platform/macos/SystemDiagnostics.h"
 #include "platform/macos/VisionSegmentation.h"
 #include "platform/windows/OnnxSegmentation.h"
-#include "core/image/Bayer.h"
-#include "core/merge/MergeAlignment.h"
 #include <QCryptographicHash>
 #include <QFile>
 #include <QImage>
 #include <QSysInfo>
 #include <array>
+#include <psapi.h>
 #include <stdexcept>
 #include <thread>
 #include <windows.h>
-#include <psapi.h>
 
 namespace luma::macos {
 std::string sha256File(const std::filesystem::path &path, CancellationToken stop) {
@@ -87,7 +87,8 @@ MemoryPressureMonitor::MemoryPressureMonitor(std::function<void(MemoryPressure)>
         bool low = false;
         while (WaitForSingleObject(state->stop, 1000) == WAIT_TIMEOUT) {
             BOOL current = FALSE;
-            if (QueryMemoryResourceNotification(state->pressure, &current) && low != bool(current)) {
+            if (QueryMemoryResourceNotification(state->pressure, &current) &&
+                low != bool(current)) {
                 low = current;
                 callback(low ? MemoryPressure::critical : MemoryPressure::normal);
             }
@@ -110,19 +111,27 @@ SystemDiagnostics systemDiagnostics() {
     return info;
 }
 
-std::shared_ptr<DevelopAccelerator> makeMetalDevelopAccelerator() { return {}; }
+std::shared_ptr<DevelopAccelerator> makeMetalDevelopAccelerator() {
+    return {};
+}
 std::shared_ptr<ai::ISegmentationProvider> makeVisionSegmentation() {
     return windows::makeOnnxSegmentation();
 }
-std::shared_ptr<ai::ISegmentationProvider> makeCoreMLSky(const std::filesystem::path &) { return {}; }
+std::shared_ptr<ai::ISegmentationProvider> makeCoreMLSky(const std::filesystem::path &) {
+    return {};
+}
 std::shared_ptr<ai::IDenoiseProvider> makeCoreMLDenoise(const std::filesystem::path &path) {
     return windows::makeOnnxDenoise(path);
 }
 namespace {
 class PreviewCulling final : public ai::ICullingProvider {
   public:
-    std::string identifier() const override { return "apertone.culling-windows-v1.grid16"; }
-    ai::ExecutionLocation location() const override { return ai::ExecutionLocation::local; }
+    std::string identifier() const override {
+        return "apertone.culling-windows-v1.grid16";
+    }
+    ai::ExecutionLocation location() const override {
+        return ai::ExecutionLocation::local;
+    }
     ai::CullingObservation analyze(ai::RgbaImage input, CancellationToken stop,
                                    const ai::Progress &progress) override {
         input.validate();
@@ -130,8 +139,9 @@ class PreviewCulling final : public ai::ICullingProvider {
         const QImage preview(input.pixels.data(), input.width, input.height, input.width * 4,
                              QImage::Format_RGBA8888);
         constexpr int side = 16;
-        const auto reduced = preview.convertToFormat(QImage::Format_RGBA8888_Premultiplied)
-                                 .scaled(side, side, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        const auto reduced =
+            preview.convertToFormat(QImage::Format_RGBA8888_Premultiplied)
+                .scaled(side, side, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         if (reduced.isNull())
             throw std::runtime_error("Cannot allocate the culling preview.");
         std::vector<float> descriptor;
@@ -139,8 +149,9 @@ class PreviewCulling final : public ai::ICullingProvider {
         for (int y = 0; y < side; ++y) {
             const auto *row = reduced.constScanLine(y);
             for (int x = 0; x < side; ++x)
-                descriptor.push_back((.2126F * row[x * 4] + .7152F * row[x * 4 + 1] +
-                                      .0722F * row[x * 4 + 2]) / 255.F);
+                descriptor.push_back(
+                    (.2126F * row[x * 4] + .7152F * row[x * 4 + 1] + .0722F * row[x * 4 + 2]) /
+                    255.F);
         }
         descriptor.push_back(.25F);
         auto scored = ai::scoreCullingPreview(input, std::move(descriptor), {}, stop);
@@ -154,7 +165,9 @@ class PreviewCulling final : public ai::ICullingProvider {
 std::shared_ptr<ai::ICullingProvider> makePhotoCulling() {
     return std::make_shared<PreviewCulling>();
 }
-std::shared_ptr<ai::IEmbeddingProvider> makeSemanticEmbedding() { return {}; }
+std::shared_ptr<ai::IEmbeddingProvider> makeSemanticEmbedding() {
+    return {};
+}
 
 Homography alignImages(ai::RgbaImage reference, ai::RgbaImage floating, CancellationToken stop,
                        AlignmentMode) {

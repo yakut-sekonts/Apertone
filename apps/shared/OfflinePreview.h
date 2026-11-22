@@ -14,8 +14,8 @@ struct OfflinePreview {
 };
 
 std::optional<OfflinePreview> loadOfflinePreview(const std::filesystem::path &catalog,
-                                                const std::string &checksum,
-                                                CancellationToken stop);
+                                                 const std::string &checksum,
+                                                 CancellationToken stop);
 void saveOfflinePreview(const std::filesystem::path &catalog, const std::string &checksum,
                         const FloatImage &preview, const RawColorCalibration &calibration,
                         CancellationToken stop, bool repair = false);

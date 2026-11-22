@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/shared/OfflinePreview.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/render/CpuRenderer.h"
 #include <QPointer>
 #include <algorithm>
@@ -21,14 +21,15 @@ QImage renderComparison(const luma::SessionService &service, const luma::AssetRe
     if (maxEdge && !std::filesystem::is_regular_file(asset.path, error)) {
         offline = luma::loadOfflinePreview(catalog, asset.checksum, stop);
         if (!offline)
-            throw std::runtime_error("Original unavailable. Reconnect it to generate an offline preview.");
+            throw std::runtime_error(
+                "Original unavailable. Reconnect it to generate an offline preview.");
     } else {
         decoded = service.fullResolution(asset, stop);
     }
     const auto &original = offline ? offline->image : decoded->image;
     const auto &calibration = offline ? offline->calibration : decoded->calibration;
-    auto preview = maxEdge ? std::optional{luma::standardPreview(original, maxEdge, stop)}
-                           : std::nullopt;
+    auto preview =
+        maxEdge ? std::optional{luma::standardPreview(original, maxEdge, stop)} : std::nullopt;
     const auto &input = preview ? *preview : original;
     const int width = offline ? asset.metadata.width : original.width;
     const double scale = static_cast<double>(input.width) / std::max(1, width);
@@ -37,7 +38,8 @@ QImage renderComparison(const luma::SessionService &service, const luma::AssetRe
         luma::DetailDiagnostic::none, scale, asset.metadata, {}, nullptr, {}, 4,
         hdrToneMapping ? luma::DisplayMapping::adaptiveHDR : luma::DisplayMapping::clip);
     auto image = QImage(rendered.rgba.data(), rendered.width, rendered.height,
-                        static_cast<qsizetype>(rendered.width) * 4, QImage::Format_RGBA8888).copy();
+                        static_cast<qsizetype>(rendered.width) * 4, QImage::Format_RGBA8888)
+                     .copy();
     if (image.isNull())
         throw std::runtime_error("Cannot allocate the comparison preview.");
     return image;
@@ -45,7 +47,9 @@ QImage renderComparison(const luma::SessionService &service, const luma::AssetRe
 } // namespace
 
 QVariantMap EditorController::referencePhoto() const {
-    return {{"busy", referenceBusy_}, {"name", referenceName_}, {"error", referenceError_},
+    return {{"busy", referenceBusy_},
+            {"name", referenceName_},
+            {"error", referenceError_},
             {"source", referenceUrl_}};
 }
 void EditorController::clearReference() {
@@ -70,36 +74,43 @@ void EditorController::pinReference(const QString &id) {
     auto active = session_ && photoID() == id ? std::optional{history_.current()} : std::nullopt;
     const QPointer<EditorController> self(this);
     try {
-        referenceJob_ = compareJobs_.submit(luma::JobPriority::interactive,
-            [self, revision, catalogPath, service, id, active = std::move(active)](const auto &job) {
+        referenceJob_ = compareJobs_.submit(
+            luma::JobPriority::interactive, [self, revision, catalogPath, service, id,
+                                             active = std::move(active)](const auto &job) {
                 QImage image;
                 QString name, error;
                 try {
                     auto asset = luma::Catalog(catalogPath, luma::CatalogOpenMode::existingOnly)
                                      .assetByID(id.toStdString());
                     if (!asset)
-                        throw std::runtime_error("The reference photo is no longer in the catalog.");
+                        throw std::runtime_error(
+                            "The reference photo is no longer in the catalog.");
                     if (active)
                         asset->edits = *active;
-                    image = renderComparison(service, *asset, catalogPath, 2048, {}, true, job.stopToken());
+                    image = renderComparison(service, *asset, catalogPath, 2048, {}, true,
+                                             job.stopToken());
                     name = QString::fromStdString(luma::pathUtf8(asset->path.filename()));
                 } catch (const std::exception &failure) {
                     error = QString::fromUtf8(failure.what());
                 }
                 if (!self || job.stopToken().isCancelled())
                     return;
-                QMetaObject::invokeMethod(self, [self, revision, image = std::move(image), name, error]() mutable {
-                    if (!self || self->referenceRevision_ != revision)
-                        return;
-                    self->referenceBusy_ = false;
-                    self->referenceError_ = error;
-                    self->referenceName_ = name;
-                    if (!image.isNull()) {
-                        self->provider_->updateReference(std::move(image));
-                        self->referenceUrl_ = QStringLiteral("image://preview/reference?%1").arg(revision);
-                    }
-                    emit self->referenceChanged();
-                }, Qt::QueuedConnection);
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, revision, image = std::move(image), name, error]() mutable {
+                        if (!self || self->referenceRevision_ != revision)
+                            return;
+                        self->referenceBusy_ = false;
+                        self->referenceError_ = error;
+                        self->referenceName_ = name;
+                        if (!image.isNull()) {
+                            self->provider_->updateReference(std::move(image));
+                            self->referenceUrl_ =
+                                QStringLiteral("image://preview/reference?%1").arg(revision);
+                        }
+                        emit self->referenceChanged();
+                    },
+                    Qt::QueuedConnection);
             });
     } catch (const std::exception &failure) {
         referenceBusy_ = false;
@@ -112,18 +123,17 @@ QVariantMap EditorController::comparison() const {
     QStringList sources;
     for (qsizetype i = 0; i < compareIDs_.size(); ++i)
         sources.append(comparisonURL(i, compareImageRevision_));
-    return {
-        {"busy", compareBusy_},
-        {"ready", compareReady_},
-        {"error", compareError_},
-        {"fullResolution", compareFull_},
-        {"beforeAfter", compareBeforeAfter_},
-        {"ids", compareIDs_},
-        {"names", compareNames_},
-        {"sources", sources},
-        {"errors", compareErrors_},
-        {"left", comparisonURL(0, compareImageRevision_)},
-        {"right", comparisonURL(1, compareImageRevision_)}};
+    return {{"busy", compareBusy_},
+            {"ready", compareReady_},
+            {"error", compareError_},
+            {"fullResolution", compareFull_},
+            {"beforeAfter", compareBeforeAfter_},
+            {"ids", compareIDs_},
+            {"names", compareNames_},
+            {"sources", sources},
+            {"errors", compareErrors_},
+            {"left", comparisonURL(0, compareImageRevision_)},
+            {"right", comparisonURL(1, compareImageRevision_)}};
 }
 void EditorController::closeCompare() {
     compareJob_.cancel();
@@ -155,8 +165,7 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                                           bool beforeAfter, bool survey) {
     auto unique = ids;
     unique.removeDuplicates();
-    if (closing_ || (!survey && ids.size() != 2) ||
-        (!beforeAfter && ids.size() != unique.size()))
+    if (closing_ || (!survey && ids.size() != 2) || (!beforeAfter && ids.size() != unique.size()))
         return;
     finishHistoryTools();
     compareJob_.cancel();
@@ -206,8 +215,9 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                     for (std::size_t i = 0; i < assets.size(); ++i) {
                         luma::checkCancellation(context.stopToken());
                         try {
-                            images[i] = renderComparison(service, assets[i], catalogPath, maxEdge,
-                                                         profile, hdrToneMapping, context.stopToken());
+                            images[i] =
+                                renderComparison(service, assets[i], catalogPath, maxEdge, profile,
+                                                 hdrToneMapping, context.stopToken());
                             errors.append(QString());
                         } catch (const std::exception &failure) {
                             if (!survey || context.stopToken().isCancelled())

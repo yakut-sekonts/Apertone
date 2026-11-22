@@ -1,7 +1,7 @@
-#include "core/io/Path.h"
 #include "apps/desktop/LibraryModel.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include "core/render/CpuRenderer.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/SemanticEmbedding.h"
@@ -22,7 +22,8 @@ void LibraryModel::buildSemanticIndex() {
         return;
     cancelSemantic();
     semanticEnabled_ = true;
-    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
+                           "/preview.ini",
                        QSettings::IniFormat);
     settings.setValue("semanticIndexEnabled", true);
     semanticBusy_ = true;
@@ -42,7 +43,8 @@ void LibraryModel::buildSemanticIndex() {
                     const auto stop = context.stopToken();
                     const auto provider = luma::macos::makeSemanticEmbedding();
                     if (!provider)
-                        throw std::runtime_error("Semantic search is unavailable on this platform.");
+                        throw std::runtime_error(
+                            "Semantic search is unavailable on this platform.");
                     luma::Catalog catalog(path);
                     const auto total = std::max<std::int64_t>(1, catalog.libraryCount({}));
                     std::string after;
@@ -152,7 +154,8 @@ void LibraryModel::searchSemantic(const QString &text) {
                     const auto stop = context.stopToken();
                     const auto provider = luma::macos::makeSemanticEmbedding();
                     if (!provider)
-                        throw std::runtime_error("Semantic search is unavailable on this platform.");
+                        throw std::runtime_error(
+                            "Semantic search is unavailable on this platform.");
                     const auto vector = provider->textEmbedding(query, stop);
                     luma::Catalog catalog(path);
                     for (const auto &match :
@@ -164,9 +167,10 @@ void LibraryModel::searchSemantic(const QString &text) {
                         const auto id = QString::fromStdString(match.id);
                         results.append(QVariantMap{
                             {"id", id},
-                            {"filename", QString::fromStdString(luma::pathUtf8(asset->path.filename()))},
-                            {"url",
-                             QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(asset->path)))},
+                            {"filename",
+                             QString::fromStdString(luma::pathUtf8(asset->path.filename()))},
+                            {"url", QUrl::fromLocalFile(
+                                        QString::fromStdString(luma::pathUtf8(asset->path)))},
                             {"thumbnail", QStringLiteral("image://thumbnail/") + id},
                             {"similarity", match.similarity}});
                     }
@@ -203,7 +207,8 @@ void LibraryModel::disableSemantic() {
     semanticResults_.clear();
     semanticBusy_ = true;
     semanticError_.clear();
-    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) + "/preview.ini",
+    QSettings settings(QString::fromStdString(luma::pathUtf8(catalog_.parent_path())) +
+                           "/preview.ini",
                        QSettings::IniFormat);
     settings.setValue("semanticIndexEnabled", false);
     const auto revision = ++semanticRevision_;

@@ -45,9 +45,9 @@ bool ExportOptions::advanced() const {
     validate();
     return format == ExportFormat::tiff8 || format == ExportFormat::dng ||
            format == ExportFormat::heicHDR || format == ExportFormat::jpegHDR ||
-           colorSpace != ExportColorSpace::srgb ||
-           compression != TiffCompression::none || resize != ResizeMode::original ||
-           outputMedium != OutputMedium::off || metadata != MetadataPolicy::none ||
+           colorSpace != ExportColorSpace::srgb || compression != TiffCompression::none ||
+           resize != ResizeMode::original || outputMedium != OutputMedium::off ||
+           metadata != MetadataPolicy::none ||
            (watermark.kind != WatermarkKind::none && watermark.opacity > 0);
 }
 std::pair<int, int> ExportOptions::dimensions(int width, int height) const {

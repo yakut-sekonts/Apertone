@@ -1,10 +1,10 @@
-#include "core/io/Path.h"
 #include "apps/desktop/CatalogStartup.h"
 #include "apps/desktop/AppearanceController.h"
 #include "apps/desktop/LocalizationController.h"
 #include "core/catalog/Catalog.h"
-#include "core/io/FileSystem.h"
 #include "core/image/Bayer.h"
+#include "core/io/FileSystem.h"
+#include "core/io/Path.h"
 #include "platform/macos/ApplicationAlert.h"
 #include <QDateTime>
 #include <QDir>

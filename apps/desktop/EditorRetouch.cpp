@@ -190,8 +190,8 @@ void EditorController::beginRetouch(double x, double y) {
         endEdit();
         luma::RetouchStroke stroke;
         stroke.id = luma::newID();
-        stroke.mode = retouchMode_ == "clone"  ? luma::RetouchMode::clone
-                      : retouchMode_ == "heal" ? luma::RetouchMode::heal
+        stroke.mode = retouchMode_ == "clone"     ? luma::RetouchMode::clone
+                      : retouchMode_ == "heal"    ? luma::RetouchMode::heal
                       : retouchMode_ == "red-eye" ? luma::RetouchMode::redEye
                                                   : luma::RetouchMode::remove;
         stroke.radius = retouchRadius_;

@@ -18,10 +18,10 @@ namespace {
 constexpr qint64 maxBytes = 1'048'576;
 constexpr std::size_t maxPresets = 512;
 const QStringList &groupNames() {
-    static const QStringList names{"Light",    "Color",       "Curve",         "HSL",
-                                   "Detail",   "Crop",        "Optics",        "Geometry",
-                                   "Presence", "Point Color", "Color Grading", "Effects",
-                                   "Black and White", "Defringe", "Calibration"};
+    static const QStringList names{"Light",           "Color",       "Curve",         "HSL",
+                                   "Detail",          "Crop",        "Optics",        "Geometry",
+                                   "Presence",        "Point Color", "Color Grading", "Effects",
+                                   "Black and White", "Defringe",    "Calibration"};
     return names;
 }
 QStringList parameters(int group) {
@@ -124,7 +124,8 @@ QJsonObject toJson(const DevelopPreset &preset) {
         settings.insert(groupNames()[group], values);
     }
     QJsonObject result{{"format", "luma.develop-preset"},
-                       {"schemaVersion", (preset.groups & ~4095U) ? 12 : preset.folderParents.isEmpty()
+                       {"schemaVersion", (preset.groups & ~4095U) ? 12
+                                         : preset.folderParents.isEmpty()
                                              ? (preset.parameters.empty() ? 8 : 9)
                                              : (preset.parameters.empty() ? 10 : 11)},
                        {"name", preset.name},
@@ -143,7 +144,8 @@ QJsonObject toJson(const DevelopPreset &preset) {
 DevelopPreset fromJson(const QJsonObject &root) {
     const auto version = header(root, "luma.develop-preset");
     QStringList fields{"format", "schemaVersion", "name", "folder", "settings"};
-    if (version == 7 || version == 9 || version == 11 || (version == 12 && root.contains("parameters")))
+    if (version == 7 || version == 9 || version == 11 ||
+        (version == 12 && root.contains("parameters")))
         fields.append("parameters");
     if (version == 10 || version == 11 || (version == 12 && root.contains("folderParents")))
         fields.append("folderParents");

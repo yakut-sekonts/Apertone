@@ -9,7 +9,7 @@ enum class BundledModel { denoise, sky };
 inline QString bundledModelPath(BundledModel model) {
 #ifdef _WIN32
     const auto name = model == BundledModel::denoise ? QStringLiteral("/Models/drunet-color.onnx")
-                                                    : QStringLiteral("/Models/skyseg.onnx");
+                                                     : QStringLiteral("/Models/skyseg.onnx");
     const QFileInfo file(QCoreApplication::applicationDirPath() + name);
     return file.isFile() && !file.isSymLink() ? file.absoluteFilePath() : QString();
 #else

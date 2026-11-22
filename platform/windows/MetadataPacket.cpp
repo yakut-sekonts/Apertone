@@ -115,7 +115,8 @@ void appendTiffPacket(const std::filesystem::path &path, const QByteArray &packe
     auto entry = directory.xmpEntry();
     if (entry < 0) {
         entry = 0;
-        while (entry < directory.entries.size() && directory.u16(directory.entries.constData() + entry) < 700)
+        while (entry < directory.entries.size() &&
+               directory.u16(directory.entries.constData() + entry) < 700)
             entry += 12;
         directory.entries.insert(entry, QByteArray(12, '\0'));
     }
@@ -181,15 +182,18 @@ void embedXmp(const std::filesystem::path &encoded, const std::filesystem::path 
         const auto head = read(input, 6);
         require(head.startsWith(QByteArrayView("\xff\xd8", 2)), "Invalid JPEG staging header.");
         prefix = head.sliced(2, 2) == QByteArrayView("\xff\xe0", 2)
-                     ? 4 + qFromBigEndian<quint16>(head.constData() + 4) : 2;
+                     ? 4 + qFromBigEndian<quint16>(head.constData() + 4)
+                     : 2;
         require(jpegXmp.size() + packet.size() + 2 <= std::numeric_limits<quint16>::max(),
                 "Export metadata does not fit a JPEG XMP segment.");
         data = QByteArray("\xff\xe1\0\0", 4);
-        qToBigEndian<quint16>(static_cast<quint16>(jpegXmp.size() + packet.size() + 2), data.data() + 2);
+        qToBigEndian<quint16>(static_cast<quint16>(jpegXmp.size() + packet.size() + 2),
+                              data.data() + 2);
         data.append(jpegXmp).append(packet);
     } else if (format == ExportFormat::png) {
         const auto head = read(input, 33);
-        require(head.startsWith(QByteArrayView("\x89PNG\r\n\x1a\n", 8)) && head.sliced(12, 4) == "IHDR",
+        require(head.startsWith(QByteArrayView("\x89PNG\r\n\x1a\n", 8)) &&
+                    head.sliced(12, 4) == "IHDR",
                 "Invalid PNG staging header.");
         prefix = 33;
         data = pngTextChunk(packet);
@@ -198,7 +202,8 @@ void embedXmp(const std::filesystem::path &encoded, const std::filesystem::path 
     }
     require(input.seek(0), "Cannot seek in image staging file.");
     QFile output(filename(staging));
-    require(output.open(QIODevice::WriteOnly | QIODevice::Truncate), "Cannot stage image metadata.");
+    require(output.open(QIODevice::WriteOnly | QIODevice::Truncate),
+            "Cannot stage image metadata.");
     write(output, read(input, prefix));
     write(output, data);
     while (!input.atEnd()) {

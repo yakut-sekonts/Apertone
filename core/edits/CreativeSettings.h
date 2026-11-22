@@ -65,11 +65,14 @@ inline constexpr std::array creativeParameters{
     CreativeParameter{"defringe.width", "Hue range", 1, 90, 40, 8192, 8388608},
     CreativeParameter{"calibration.shadowTint", "Shadow tint", -100, 100, 0, 16384, 16777216},
     CreativeParameter{"calibration.redHue", "Red primary hue", -100, 100, 0, 16384, 16777216},
-    CreativeParameter{"calibration.redSaturation", "Red primary saturation", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.redSaturation", "Red primary saturation", -100, 100, 0, 16384,
+                      16777216},
     CreativeParameter{"calibration.greenHue", "Green primary hue", -100, 100, 0, 16384, 16777216},
-    CreativeParameter{"calibration.greenSaturation", "Green primary saturation", -100, 100, 0, 16384, 16777216},
+    CreativeParameter{"calibration.greenSaturation", "Green primary saturation", -100, 100, 0,
+                      16384, 16777216},
     CreativeParameter{"calibration.blueHue", "Blue primary hue", -100, 100, 0, 16384, 16777216},
-    CreativeParameter{"calibration.blueSaturation", "Blue primary saturation", -100, 100, 0, 16384, 16777216}};
+    CreativeParameter{"calibration.blueSaturation", "Blue primary saturation", -100, 100, 0, 16384,
+                      16777216}};
 inline constexpr std::uint32_t creativeCorrectionMask = 4063232 | 4194304 | 8388608 | 16777216;
 bool isCreativeParameter(std::string_view name);
 const CreativeParameter &creativeParameter(std::string_view name);

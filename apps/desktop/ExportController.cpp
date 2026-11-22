@@ -1,8 +1,8 @@
-#include "core/io/Path.h"
 #include "apps/desktop/ExportController.h"
 #include "apps/desktop/EditorController.h"
 #include "apps/desktop/LibraryModel.h"
 #include "core/image/Bayer.h"
+#include "core/io/Path.h"
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -239,8 +239,8 @@ void ExportController::plan() {
         QString error;
         auto frozen = settings;
         try {
-            const auto folder = std::filesystem::canonical(
-                luma::pathFromUtf8(settings.destination.toStdString()));
+            const auto folder =
+                std::filesystem::canonical(luma::pathFromUtf8(settings.destination.toStdString()));
             if (!std::filesystem::is_directory(folder))
                 throw std::runtime_error("Export folder is not a directory.");
             luma::Catalog db(path);
@@ -272,9 +272,10 @@ void ExportController::plan() {
                                         : QStringLiteral("undated");
                 auto target =
                     folder / luma::pathFromUtf8(settings
-                                 .filename(QString::fromStdString(luma::pathUtf8(item.asset.path)),
-                                           ++sequence, date, item.asset.metadata)
-                                 .toStdString());
+                                                    .filename(QString::fromStdString(
+                                                                  luma::pathUtf8(item.asset.path)),
+                                                              ++sequence, date, item.asset.metadata)
+                                                    .toStdString());
                 const auto base = target;
                 if (settings.conflict == luma::ExportConflict::unique) {
                     int suffix = 1;
@@ -302,8 +303,7 @@ void ExportController::plan() {
                 const auto original = std::filesystem::canonical(frozen.options.watermark.image);
                 if (std::filesystem::file_size(original) > 64000000)
                     throw std::runtime_error("Watermark exceeds 64 MB.");
-                const auto copy =
-                    luma::pathFromUtf8(watermarkFolder.toStdString()) / "watermark";
+                const auto copy = luma::pathFromUtf8(watermarkFolder.toStdString()) / "watermark";
                 std::filesystem::copy_file(original, copy,
                                            std::filesystem::copy_options::overwrite_existing);
                 frozen.options.watermark.image = copy;
@@ -403,9 +403,9 @@ void ExportController::next() {
                             else if (skipped)
                                 ++self->skipped_;
                             else
-                                self->failures_.append(
-                                    QString::fromStdString(luma::pathUtf8(item.destination.filename())) +
-                                    QStringLiteral(": ") + error);
+                                self->failures_.append(QString::fromStdString(luma::pathUtf8(
+                                                           item.destination.filename())) +
+                                                       QStringLiteral(": ") + error);
                         }
                         self->next();
                     },

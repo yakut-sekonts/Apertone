@@ -105,7 +105,9 @@ class LibraryModel final : public QAbstractListModel {
     bool preparingPreviews() const {
         return preparingPreviews_;
     }
-    bool preparingDelivery() const { return preparingDelivery_; }
+    bool preparingDelivery() const {
+        return preparingDelivery_;
+    }
     void setExternalBusy(bool busy);
     QVariantMap descriptiveMetadata() const {
         return descriptiveMetadata_;
@@ -139,7 +141,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE QVariantList cardSources() const;
     Q_INVOKABLE void startCaptureFolder(const QUrl &folder);
     Q_INVOKABLE void stopCaptureFolder();
-    QString captureFolder() const { return captureFolder_; }
+    QString captureFolder() const {
+        return captureFolder_;
+    }
     Q_INVOKABLE void restoreCatalog(const QUrl &backup, const QUrl &destination);
     Q_INVOKABLE void openCatalog(const QUrl &file, bool create = false);
     Q_INVOKABLE void locateOriginal(const QUrl &file);
@@ -154,8 +158,12 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE bool removeFromSelection(const QString &id);
     QString selectedCopyName() const;
     QString selectedStackID() const;
-    bool viewingStack() const { return !filter_.stackID.empty(); }
-    bool collapseStacks() const { return filter_.collapseStacks; }
+    bool viewingStack() const {
+        return !filter_.stackID.empty();
+    }
+    bool collapseStacks() const {
+        return filter_.collapseStacks;
+    }
     void setCollapseStacks(bool collapse);
     Q_INVOKABLE void viewStack(const QString &id);
     Q_INVOKABLE void stackSelection();
@@ -294,7 +302,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE bool removeImportMetadataPreset(const QString &name);
     Q_INVOKABLE bool importAdvanced(const QList<QUrl> &sources, const QVariantMap &settings,
                                     const QString &developPreset);
-    QVariantMap lightroomReport() const { return lightroomReport_; }
+    QVariantMap lightroomReport() const {
+        return lightroomReport_;
+    }
     Q_INVOKABLE void inspectLightroom(const QUrl &source);
     Q_INVOKABLE void applyLightroom(const QUrl &source, const QString &fingerprint);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
@@ -360,7 +370,10 @@ class LibraryModel final : public QAbstractListModel {
     bool preparingPreviews_ = false;
     bool preparingDelivery_ = false;
     QString captureFolder_;
-    struct CaptureFile { qint64 size = -1, modified = 0; bool considered = false; };
+    struct CaptureFile {
+        qint64 size = -1, modified = 0;
+        bool considered = false;
+    };
     std::map<QString, CaptureFile> captureFiles_;
     QTimer captureTimer_;
     void scanCaptureFolder(bool baseline);

@@ -1,8 +1,8 @@
 #include "apps/shared/MetadataService.h"
 #include "apps/shared/PhotoFormats.h"
 #include "core/image/Bayer.h"
-#include "core/io/StagingFile.h"
 #include "core/io/FileSystem.h"
+#include "core/io/StagingFile.h"
 #include "platform/macos/FileHasher.h"
 #include "platform/macos/PhotoMetadataIO.h"
 #ifdef LUMA_UX_PERSISTENCE_PROBE

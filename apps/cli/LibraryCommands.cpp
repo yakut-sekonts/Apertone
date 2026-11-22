@@ -1,8 +1,8 @@
-#include "core/io/Path.h"
 #include "apps/cli/LibraryCommands.h"
 #include "apps/cli/Json.h"
 #include "apps/shared/LibraryService.h"
 #include "apps/shared/LightroomCatalog.h"
+#include "core/io/Path.h"
 #include <charconv>
 #include <iostream>
 namespace luma::cli {
@@ -30,7 +30,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
         else if (args[1] == "delete" && args.size() == 3)
             db.deleteVirtualCopy(args[2]);
         else
-            throw std::runtime_error("Use copy create ID NAME, copy rename ID NAME, or copy delete ID.");
+            throw std::runtime_error(
+                "Use copy create ID NAME, copy rename ID NAME, or copy delete ID.");
         return true;
     }
     if (args[0] == "lightroom" && args.size() == 3 &&
@@ -39,7 +40,7 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
         if (args[1] == "import" && catalog.empty())
             throw std::runtime_error("Specify a destination Apertone catalog with --catalog.");
         const auto report = args[1] == "inspect" ? inspectLightroomCatalog(source)
-                                                  : importLightroomCatalog(source, catalog, {});
+                                                 : importLightroomCatalog(source, catalog, {});
         std::cout << "{\"photos\":" << report.photos << ",\"available\":" << report.available
                   << ",\"missing\":" << report.missing << ",\"unsupported\":" << report.unsupported
                   << ",\"virtualCopies\":" << report.virtualCopies
@@ -50,7 +51,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"partialEdits\":" << report.partialEdits
                   << ",\"unmappedEdits\":" << report.unmappedEdits
                   << ",\"unreadable\":" << report.unreadable
-                  << ",\"added\":" << report.imported.added << ",\"reused\":" << report.imported.reused
+                  << ",\"added\":" << report.imported.added
+                  << ",\"reused\":" << report.imported.reused
                   << ",\"versions\":" << report.imported.versions
                   << ",\"copies\":" << report.imported.copies
                   << ",\"unchanged\":" << report.imported.unchanged
@@ -125,7 +127,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
             if (i)
                 std::cout << ',';
             const auto &r = rows[i];
-            std::cout << "{\"id\":" << quoted(r.id) << ",\"path\":" << quoted(luma::pathUtf8(r.path))
+            std::cout << "{\"id\":" << quoted(r.id)
+                      << ",\"path\":" << quoted(luma::pathUtf8(r.path))
                       << ",\"filename\":" << quoted(r.filename)
                       << ",\"checksum\":" << quoted(r.checksum) << ",\"rating\":" << r.rating
                       << ",\"flag\":" << r.flag << ",\"label\":" << quoted(r.label)
@@ -165,7 +168,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
     if (args[0] == "stack" && args.size() >= 3) {
         Catalog db(catalog);
         if (args[1] == "create" && args.size() >= 4) {
-            std::cout << "{\"id\":" << quoted(db.createPhotoStack({args.begin() + 2, args.end()})) << "}\n";
+            std::cout << "{\"id\":" << quoted(db.createPhotoStack({args.begin() + 2, args.end()}))
+                      << "}\n";
         } else if (args[1] == "cover" && args.size() == 3) {
             db.setPhotoStackCover(args[2]);
             std::cout << "{\"saved\":true}\n";

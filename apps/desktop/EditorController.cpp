@@ -1,5 +1,5 @@
-#include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
+#include "core/io/Path.h"
 #ifdef LUMA_UX_PREVIEW_RESULT_PROBE
 #include "tests/ux/PreviewResultProbe.h"
 #endif
@@ -480,7 +480,8 @@ bool EditorController::closePhoto() {
     emit stateChanged();
     return true;
 }
-void EditorController::load(std::optional<std::filesystem::path> source, const std::string &assetID) {
+void EditorController::load(std::optional<std::filesystem::path> source,
+                            const std::string &assetID) {
     if (versionsBusy_)
         return;
     processingVersions_.clear();
@@ -514,114 +515,116 @@ void EditorController::load(std::optional<std::filesystem::path> source, const s
     emit progressChanged();
     error_.clear();
     status_ = source || !assetID.empty() ? QStringLiteral("Decoding image…")
-                                        : QStringLiteral("Restoring session…");
+                                         : QStringLiteral("Restoring session…");
     emit stateChanged();
     const QPointer<EditorController> self(this);
-    loadJob_ = ioJobs_.submit(luma::JobPriority::background, [this, self, source, assetID, revision, stop](
-                                                                 const luma::JobContext &context) {
-        try {
-            const auto progress =
-                [self, revision, context,
-                 last = std::chrono::steady_clock::time_point{}](double value) mutable {
-                    context.setProgress(value);
-                    if (!std::isfinite(value))
-                        return;
-                    const auto now = std::chrono::steady_clock::now();
-                    if (value < 1 && now - last < std::chrono::milliseconds(50))
-                        return;
-                    last = now;
-                    value = std::clamp(value, 0.0, 1.0);
-                    if (self) {
-                        QMetaObject::invokeMethod(
-                            self,
-                            [self, revision, value] {
-                                if (self && self->loadRevision_ == revision) {
-                                    self->progress_ = value;
-                                    emit self->progressChanged();
-                                }
-                            },
-                            Qt::QueuedConnection);
-                    }
-                };
-            auto result = !assetID.empty() ? std::optional(service_.openAsset(assetID, stop, progress))
-                          : source ? std::optional(service_.open(*source, stop, progress))
-                                   : service_.restore(stop, progress);
-#ifdef LUMA_UX_LOAD_PROBE
-            const ux::LoadOperation uxSuccess{
-                this, revision, result ? result->asset.id : std::string{},
-                result ? luma::pathUtf8(result->asset.path) : std::string{}, context.data};
-            if (result)
-                ux::holdLoadSuccess(uxSuccess);
-#endif
-            if (self) {
-                QMetaObject::invokeMethod(
-                    self,
-                    [self, revision, result = std::move(result)
-#ifdef LUMA_UX_LOAD_PROBE
-                                         ,
-                     uxSuccess
-#endif
-                ]() mutable {
-#ifdef LUMA_UX_LOAD_PROBE
-                        if (result)
-                            ux::observeLoadSuccessDelivery(uxSuccess);
-#endif
-                        if (!self || self->loadRevision_ != revision) {
+    loadJob_ =
+        ioJobs_.submit(luma::JobPriority::background, [this, self, source, assetID, revision,
+                                                       stop](const luma::JobContext &context) {
+            try {
+                const auto progress =
+                    [self, revision, context,
+                     last = std::chrono::steady_clock::time_point{}](double value) mutable {
+                        context.setProgress(value);
+                        if (!std::isfinite(value))
                             return;
-                        }
-                        self->busy_ = false;
-                        if (result) {
-                            self->session_ = std::move(result);
-                            self->previewReady_ = false;
-                            self->history_ =
-                                self->session_->history
-                                    ? luma::EditHistory(std::move(*self->session_->history))
-                                    : luma::EditHistory(self->session_->asset.edits);
-                            ++self->historyGeneration_;
-                            self->historyError_.clear();
-                            self->original_ = false;
-                            self->resetPreviewZoom();
-                            self->render();
-                            emit self->photoLoaded(
-                                QString::fromStdString(self->session_->asset.id));
-                        }
-                        self->status_ = self->session_
-                                            ? QStringLiteral("Session restored · edits saved")
-                                            : QStringLiteral("Open a photo to begin");
-                        emit self->stateChanged();
-                        self->checkClose();
-                    },
-                    Qt::QueuedConnection);
-            }
-        } catch (const std::exception &error) {
-            const auto message = QString::fromUtf8(error.what());
-            const bool cancelled = stop.isCancelled();
-            if (self) {
-                QMetaObject::invokeMethod(
-                    self,
-                    [self, revision, message, cancelled] {
-                        if (!self || self->loadRevision_ != revision) {
+                        const auto now = std::chrono::steady_clock::now();
+                        if (value < 1 && now - last < std::chrono::milliseconds(50))
                             return;
+                        last = now;
+                        value = std::clamp(value, 0.0, 1.0);
+                        if (self) {
+                            QMetaObject::invokeMethod(
+                                self,
+                                [self, revision, value] {
+                                    if (self && self->loadRevision_ == revision) {
+                                        self->progress_ = value;
+                                        emit self->progressChanged();
+                                    }
+                                },
+                                Qt::QueuedConnection);
                         }
-                        self->busy_ = false;
-                        if (!cancelled) {
-                            self->error_ = message;
-                        }
-                        self->status_ =
-                            cancelled
-                                ? QStringLiteral("Operation cancelled")
-                                : QStringLiteral(
-                                      "Could not open image; catalog and edits are preserved");
-                        if (self->session_) {
-                            self->render();
-                        }
-                        emit self->stateChanged();
-                        self->checkClose();
-                    },
-                    Qt::QueuedConnection);
+                    };
+                auto result = !assetID.empty()
+                                  ? std::optional(service_.openAsset(assetID, stop, progress))
+                              : source ? std::optional(service_.open(*source, stop, progress))
+                                       : service_.restore(stop, progress);
+#ifdef LUMA_UX_LOAD_PROBE
+                const ux::LoadOperation uxSuccess{
+                    this, revision, result ? result->asset.id : std::string{},
+                    result ? luma::pathUtf8(result->asset.path) : std::string{}, context.data};
+                if (result)
+                    ux::holdLoadSuccess(uxSuccess);
+#endif
+                if (self) {
+                    QMetaObject::invokeMethod(
+                        self,
+                        [self, revision, result = std::move(result)
+#ifdef LUMA_UX_LOAD_PROBE
+                                             ,
+                         uxSuccess
+#endif
+                    ]() mutable {
+#ifdef LUMA_UX_LOAD_PROBE
+                            if (result)
+                                ux::observeLoadSuccessDelivery(uxSuccess);
+#endif
+                            if (!self || self->loadRevision_ != revision) {
+                                return;
+                            }
+                            self->busy_ = false;
+                            if (result) {
+                                self->session_ = std::move(result);
+                                self->previewReady_ = false;
+                                self->history_ =
+                                    self->session_->history
+                                        ? luma::EditHistory(std::move(*self->session_->history))
+                                        : luma::EditHistory(self->session_->asset.edits);
+                                ++self->historyGeneration_;
+                                self->historyError_.clear();
+                                self->original_ = false;
+                                self->resetPreviewZoom();
+                                self->render();
+                                emit self->photoLoaded(
+                                    QString::fromStdString(self->session_->asset.id));
+                            }
+                            self->status_ = self->session_
+                                                ? QStringLiteral("Session restored · edits saved")
+                                                : QStringLiteral("Open a photo to begin");
+                            emit self->stateChanged();
+                            self->checkClose();
+                        },
+                        Qt::QueuedConnection);
+                }
+            } catch (const std::exception &error) {
+                const auto message = QString::fromUtf8(error.what());
+                const bool cancelled = stop.isCancelled();
+                if (self) {
+                    QMetaObject::invokeMethod(
+                        self,
+                        [self, revision, message, cancelled] {
+                            if (!self || self->loadRevision_ != revision) {
+                                return;
+                            }
+                            self->busy_ = false;
+                            if (!cancelled) {
+                                self->error_ = message;
+                            }
+                            self->status_ =
+                                cancelled
+                                    ? QStringLiteral("Operation cancelled")
+                                    : QStringLiteral(
+                                          "Could not open image; catalog and edits are preserved");
+                            if (self->session_) {
+                                self->render();
+                            }
+                            emit self->stateChanged();
+                            self->checkClose();
+                        },
+                        Qt::QueuedConnection);
+                }
             }
-        }
-    });
+        });
 }
 bool EditorController::editable() const {
     return session_ && !busy() && !closing_ && !editingLocked_;
@@ -679,11 +682,11 @@ QVariantMap EditorController::parameters() const {
 QVariantMap EditorController::correctionStates() const {
     QVariantMap values;
     for (const auto *name :
-         {"whiteBalance",   "exposure",   "contrast",   "highlights", "shadows",   "whites",
-          "blacks",         "vibrance",   "saturation", "curves",     "hsl",       "sharpening",
-          "luminanceNoise", "colorNoise", "crop",       "lens",       "transform", "presence",
-          "pointColor",     "grading",    "vignette",   "grain",     "blackWhite",
-          "defringe",       "calibration"})
+         {"whiteBalance", "exposure",   "contrast",       "highlights", "shadows",
+          "whites",       "blacks",     "vibrance",       "saturation", "curves",
+          "hsl",          "sharpening", "luminanceNoise", "colorNoise", "crop",
+          "lens",         "transform",  "presence",       "pointColor", "grading",
+          "vignette",     "grain",      "blackWhite",     "defringe",   "calibration"})
         values.insert(QString::fromLatin1(name),
                       history_.current().enabled(luma::EditDocument::correction(name)));
     return values;

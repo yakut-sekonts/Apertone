@@ -3,7 +3,6 @@
 #include <QXmlStreamWriter>
 #include <algorithm>
 #include <array>
-#include <charconv>
 #include <cmath>
 #include <map>
 #include <stdexcept>
@@ -129,17 +128,28 @@ class LiteralTable {
             invalidRule();
 
         static const std::map<QString, std::string> fields{
-            {"rating", "rating"}, {"pick", "flag"}, {"pickFlag", "flag"},
-            {"camera", "camera"}, {"lens", "lens"}, {"filename", "filename"},
-            {"copyName", "copyName"}, {"fileFormat", "fileType"}, {"isoSpeedRating", "iso"},
-            {"captureTime", "captureDate"}, {"touchTime", "editDate"}, {"keywords", "keyword"},
-            {"labelColor", "label"}, {"labelText", "labelText"}, {"width", "width"}, {"height", "height"}};
-        static const std::map<QString, std::string> operations{
-            {"==", "eq"}, {"!=", "ne"}, {"~=", "ne"}, {">=", "ge"}, {">", "gt"},
-            {"<=", "le"}, {"<", "lt"},
-            {"contains", "contains"}, {"doesNotContain", "notContains"},
-            {"startsWith", "startsWith"}, {"endsWith", "endsWith"},
-            {"empty", "empty"}, {"notEmpty", "notEmpty"}, {"inLast", "inLast"}};
+            {"rating", "rating"},      {"pick", "flag"},
+            {"pickFlag", "flag"},      {"camera", "camera"},
+            {"lens", "lens"},          {"filename", "filename"},
+            {"copyName", "copyName"},  {"fileFormat", "fileType"},
+            {"isoSpeedRating", "iso"}, {"captureTime", "captureDate"},
+            {"touchTime", "editDate"}, {"keywords", "keyword"},
+            {"labelColor", "label"},   {"labelText", "labelText"},
+            {"width", "width"},        {"height", "height"}};
+        static const std::map<QString, std::string> operations{{"==", "eq"},
+                                                               {"!=", "ne"},
+                                                               {"~=", "ne"},
+                                                               {">=", "ge"},
+                                                               {">", "gt"},
+                                                               {"<=", "le"},
+                                                               {"<", "lt"},
+                                                               {"contains", "contains"},
+                                                               {"doesNotContain", "notContains"},
+                                                               {"startsWith", "startsWith"},
+                                                               {"endsWith", "endsWith"},
+                                                               {"empty", "empty"},
+                                                               {"notEmpty", "notEmpty"},
+                                                               {"inLast", "inLast"}};
         const auto criterion = get("criteria");
         const auto field = fields.find(criterion), op = operations.find(get("operation"));
         if (field == fields.end() || op == operations.end())
@@ -198,13 +208,12 @@ class LiteralTable {
     }
     static bool isCurve(std::string_view key) {
         return key == "ToneCurve" || key == "ToneCurveRed" || key == "ToneCurveGreen" ||
-               key == "ToneCurveBlue" || key == "ToneCurvePV2012" ||
-               key == "ToneCurvePV2012Red" || key == "ToneCurvePV2012Green" ||
-               key == "ToneCurvePV2012Blue";
+               key == "ToneCurveBlue" || key == "ToneCurvePV2012" || key == "ToneCurvePV2012Red" ||
+               key == "ToneCurvePV2012Green" || key == "ToneCurvePV2012Blue";
     }
     void skipSpace() {
-        while (!bytes_.empty() && std::string_view(" \t\r\n").find(bytes_.front()) !=
-                                      std::string_view::npos)
+        while (!bytes_.empty() &&
+               std::string_view(" \t\r\n").find(bytes_.front()) != std::string_view::npos)
             bytes_.remove_prefix(1);
     }
     char peek() {
@@ -280,14 +289,15 @@ class LiteralTable {
             return QStringLiteral("False");
         if (token == "nil")
             return {};
-        if (token.empty() || token.size() > 100)
+        if (token.empty() || token.size() > 100 || token.front() == '+' ||
+            token.find_first_not_of("0123456789.+-eE") != std::string_view::npos)
             invalid();
-        double number = 0;
-        const auto result = std::from_chars(token.data(), token.data() + token.size(), number);
-        if (result.ec != std::errc{} || result.ptr != token.data() + token.size() ||
-            !std::isfinite(number))
+        const QString value = fromString(token);
+        bool validNumber = false;
+        const double number = value.toDouble(&validNumber);
+        if (!validNumber || !std::isfinite(number))
             invalid();
-        return fromString(token);
+        return value;
     }
     void skipTable() {
         expect('{');

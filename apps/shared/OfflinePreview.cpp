@@ -27,8 +27,7 @@ std::filesystem::path directory(const std::filesystem::path &catalog) {
            "offline-previews-v1";
 }
 
-template <class Sample>
-void write(std::ostream &out, std::span<const Sample> data) {
+template <class Sample> void write(std::ostream &out, std::span<const Sample> data) {
     const auto bytes = std::as_bytes(data);
     out.write(reinterpret_cast<const char *>(bytes.data()),
               static_cast<std::streamsize>(bytes.size()));
@@ -127,8 +126,8 @@ void trimPreviews(const std::filesystem::path &folder, const std::filesystem::pa
 } // namespace
 
 std::optional<OfflinePreview> loadOfflinePreview(const std::filesystem::path &catalog,
-                                                const std::string &checksum,
-                                                CancellationToken stop) {
+                                                 const std::string &checksum,
+                                                 CancellationToken stop) {
     if (!validDigest(checksum))
         return std::nullopt;
     const auto path = directory(catalog) / (checksum + ".aprx");
@@ -175,8 +174,8 @@ void saveOfflinePreview(const std::filesystem::path &catalog, const std::string 
     checkCancellation(stop);
     const auto image = standardPreview(preview, maxEdge, stop);
     const std::array<std::uint32_t, 3> dimensions{static_cast<std::uint32_t>(image.width),
-                                                   static_cast<std::uint32_t>(image.height),
-                                                   image.alpha.empty() ? 0U : 1U};
+                                                  static_cast<std::uint32_t>(image.height),
+                                                  image.alpha.empty() ? 0U : 1U};
     std::filesystem::create_directories(folder);
     StagingFile staging(folder, ".luma-proxy-");
     std::ofstream output(staging.path(), std::ios::binary | std::ios::trunc);
@@ -191,8 +190,8 @@ void saveOfflinePreview(const std::filesystem::path &catalog, const std::string 
     checkCancellation(stop);
     if (!output || files::syncFile(staging.path()) != 0)
         throw std::runtime_error("Cannot sync offline preview.");
-    const auto installed = repair ? files::move(staging.path(), target, true)
-                                  : files::publish(staging.path(), target);
+    const auto installed =
+        repair ? files::move(staging.path(), target, true) : files::publish(staging.path(), target);
     if (installed != 0 && (repair || errno != EEXIST))
         throw std::runtime_error("Cannot install offline preview.");
     (void)files::syncDirectory(folder);
