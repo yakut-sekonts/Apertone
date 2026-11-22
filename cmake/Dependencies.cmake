@@ -21,6 +21,11 @@ function(aperture_add_jpegxl)
         set(JPEGXL_ENABLE_${feature} OFF CACHE INTERNAL "Apertone requires the JPEG XL decoder")
     endforeach()
     add_subdirectory("${apertone_jpegxl_SOURCE_DIR}" "${apertone_jpegxl_BINARY_DIR}" EXCLUDE_FROM_ALL)
+    if(MINGW)
+        # The pinned GCC/MinGW toolchain intermittently faults in the AVX2
+        # JPEG XL group decoder. Use Highway's Windows x64 baseline here.
+        target_compile_definitions(jxl_base INTERFACE HWY_COMPILE_ONLY_STATIC)
+    endif()
 endfunction()
 aperture_add_jpegxl()
 

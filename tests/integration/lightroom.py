@@ -84,9 +84,10 @@ def profile_fixture(path):
 
 
 def bitmap_fixture():
-    pixels = bytes([0, 0, 224, 255] * 4)
-    fields = [(256, 4, 4), (257, 4, 4), (258, 3, 8), (259, 3, 1), (262, 3, 1),
-              (277, 3, 1), (278, 4, 4), (279, 4, len(pixels))]
+    # Synthetic grayscale mask encoded with libjxl 0.13's VarDCT path.
+    pixels = (Path(__file__).resolve().parents[1] / "assets/lightroom/mask-tile.jxl").read_bytes()
+    fields = [(256, 4, 192), (257, 4, 160), (258, 3, 8), (259, 3, 52546), (262, 3, 1),
+              (277, 3, 1), (278, 4, 160), (279, 4, len(pixels))]
     fields.append((273, 4, 14 + 12 * (len(fields) + 1)))
     return b"\x02\0\0\0\x01" + bytes(11) + tiff_header(
         42, [(tag, kind, 1, struct.pack("<I" if kind == 4 else "<H", value))
@@ -109,17 +110,23 @@ def verify_extras(binary, folder):
     profile_fixture(profile)
     db = create_lightroom(source, folder)
     try:
+        sync = "0123456789ABCDEF0123456789ABCDEF"
         settings = (
             's={Exposure2012=0.5,SharpenRadius=99,CameraProfile="User profile",'
             'MaskGroupBasedCorrections={{CorrectionName="Sky",LocalExposure2012=0.25,'
-            'CorrectionMasks={{What="Mask/Image",Origin="2,1",WholeImageArea="0,0,8,8",'
-            f'MaskDigest="{key}"'
+            'CorrectionMasks={{What="Mask/Image",MaskSubType=2,ReferencePoint="0.5 0.5",'
+            f'MaskSyncID="{sync}"'
             '}}},{CorrectionName="Gradient",LocalContrast2012=0.2,'
             'CorrectionMasks={{What="Mask/Gradient",FullX=0.25,FullY=0.25,'
             'ZeroX=0.75,ZeroY=0.75}}}}}'
         )
         db.execute("UPDATE Adobe_imageDevelopSettings SET text=?,historySettingsID=NULL WHERE image=1",
                    (settings,))
+        archived = settings.replace(f'MaskSyncID="{sync}"',
+                                    f'MaskSyncID="{sync}",MaskDigest="{key}",'
+                                    'Origin="2,1",WholeImageArea="0,0,160,192"')
+        db.execute("INSERT INTO Adobe_libraryImageDevelopHistoryStep VALUES(46,2,6,?, ?, NULL)",
+                   ("Archived sky mask", compressed(archived)))
         db.commit()
         before = digest(source), digest(raw), digest(profile)
         initial = run(binary, "lightroom", "import", source, "--catalog", target)
@@ -132,6 +139,7 @@ def verify_extras(binary, folder):
         extras = ("lightroom", "import", source, "--profiles", profiles, "--catalog")
         update = run(binary, *extras, target)
         assert (update["masksMapped"], update["masksSkipped"], update["profilesMapped"]) == (2, 0, 1), update
+        assert update["masksRecovered"] == 1 and update["masksRebuilt"] == 0, update
         assert update["snapshots"] == 1 and update["unchanged"] == 2, update
         assert run(binary, "restore", "--catalog", target)["exposure"] == -0.35
         assert run(binary, *extras, target)["snapshots"] == 0

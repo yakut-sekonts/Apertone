@@ -45,9 +45,9 @@ def verify(package):
         state = Path(folder)
         catalog = state / "catalog.sqlite"
 
-        def run(exe, *args):
+        def run(exe, *args, platform="windows"):
             child = subprocess.run([exe, *args, "--catalog", catalog], cwd=package,
-                                   capture_output=True, timeout=90, env=env,
+                                   capture_output=True, timeout=90, env={**env, "QT_QPA_PLATFORM": platform},
                                    encoding="utf-8", errors="replace",
                                    creationflags=subprocess.CREATE_NO_WINDOW)
             if child.returncode:
@@ -59,8 +59,13 @@ def verify(package):
         destination = state / "gain-map.jpg"
         run(cli, "export", destination, "--format", "jpeg-hdr")
         assert b"urn:iso:std:iso:ts:21496:-1" in destination.read_bytes()
+        proof = state / "offscreen.pdf"
+        run(cli, "deliver", "contact-sheet", proof, "Проверка Apertone", photo["asset"],
+            platform="offscreen")
+        content = proof.read_bytes()
+        assert b"/FontFile2" in content and b"/ToUnicode" in content, "PDF captions lack an embedded font."
         run(desktop, "--smoke-test")
-    print("Native Windows desktop, icons, command-line DNG, and Ultra HDR JPEG verified.")
+    print("Native Windows desktop, icons, command-line DNG, Ultra HDR JPEG and offscreen PDF verified.")
 
 
 if __name__ == "__main__":

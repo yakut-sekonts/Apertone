@@ -82,13 +82,231 @@ void LibraryModel::refreshCameras() {
 }
 
 void LibraryModel::captureWithCamera(const QString &id, const QUrl &folder) {
-    if (!id.isEmpty() && folder.isLocalFile())
-        cameraRequest(id, folder);
+    if (id.isEmpty() || !folder.isLocalFile())
+        return;
+#ifdef _WIN32
+    if (cameraControls_) {
+        if (!cameraConnected_)
+            return;
+        using Action = luma::windows::TetherControlCommand::Action;
+        cameraConnected_ = false;
+        status_ = QStringLiteral("Waiting for the camera photo…");
+        cameraControls_->submit(
+            {Action::capture, 0, 0, luma::pathFromUtf8(folder.toLocalFile().toStdString())});
+        emit stateChanged();
+        return;
+    }
+#endif
+    cameraRequest(id, folder);
 }
 
 void LibraryModel::cancelCamera() {
     if (cameraBusy_)
         maintenanceCancellation_.cancel();
+}
+
+void LibraryModel::connectCameraControls(const QString &id) {
+#ifdef _WIN32
+    if (working() || closing_ || id.isEmpty())
+        return;
+    cameraBusy_ = writing_ = true;
+    error_.clear();
+    status_ = QStringLiteral("Connecting to camera…");
+    maintenanceCancellation_ = {};
+    const auto stop = maintenanceCancellation_.token();
+    cameraControls_ = std::make_shared<luma::windows::TetherControlRequests>();
+    const QPointer<LibraryModel> self(this);
+    emit stateChanged();
+    try {
+        writes_.submit(luma::JobPriority::background, [self, id, requests = cameraControls_,
+                                                       stop](const auto &) {
+            using luma::windows::TetherControlState;
+            const auto state = [self, stop](const TetherControlState &controls) {
+                if (!self || stop.isCancelled())
+                    return;
+                QVariantList exposure;
+                const auto label = [](int code, qint64 value) -> QString {
+                    switch (code) {
+                    case 0x5007:
+                        return "f/" + QString::number(value / 100.0, 'g', 4);
+                    case 0x500d:
+                        if (value > 0 && value < 10000)
+                            return "1/" + QString::number(10000.0 / value, 'g', 3) + " s";
+                        return QString::number(value / 10000.0, 'g', 4) + " s";
+                    case 0xd100: {
+                        const auto numerator = (value >> 16) & 0xffff;
+                        const auto denominator = value & 0xffff;
+                        if (value == 0xffffffffLL)
+                            return QStringLiteral("Bulb");
+                        if (denominator == 1)
+                            return QString::number(numerator) + " s";
+                        if (numerator && denominator)
+                            return QString::number(numerator) + '/' + QString::number(denominator) +
+                                   " s";
+                        return QString::number(value);
+                    }
+                    case 0x5010:
+                        return QString::number(value / 1000.0, 'g', 4) + " EV";
+                    default:
+                        return QString::number(value);
+                    }
+                };
+                for (const auto &property : controls.exposure) {
+                    QString name;
+                    switch (property.id) {
+                    case 0x5007:
+                        name = QStringLiteral("Aperture");
+                        break;
+                    case 0x500f:
+                        name = QStringLiteral("ISO");
+                        break;
+                    case 0x5010:
+                        name = QStringLiteral("Exposure compensation");
+                        break;
+                    default:
+                        name = QStringLiteral("Shutter speed");
+                        break;
+                    }
+                    QVariantList choices;
+                    int current = -1;
+                    for (const auto choice : property.choices) {
+                        if (choice == property.current)
+                            current = choices.size();
+                        choices.append(QVariantMap{{"text", label(property.id, choice)},
+                                                   {"value", QVariant::fromValue<qint64>(choice)}});
+                    }
+                    exposure.append(QVariantMap{{"id", property.id},
+                                                {"name", name},
+                                                {"choices", choices},
+                                                {"index", current},
+                                                {"value", label(property.id, property.current)},
+                                                {"writable", property.writable}});
+                }
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, stop, live = controls.live, available = controls.liveAvailable,
+                     exposure = std::move(exposure)]() mutable {
+                        if (!self || stop.isCancelled())
+                            return;
+                        self->cameraConnected_ = true;
+                        self->cameraLive_ = live;
+                        self->cameraLiveAvailable_ = available;
+                        self->cameraExposure_ = std::move(exposure);
+                        self->status_ = QString();
+                        emit self->stateChanged();
+                    },
+                    Qt::QueuedConnection);
+            };
+            const auto frame = [self, stop](const QByteArray &jpeg) {
+                if (!self || stop.isCancelled())
+                    return;
+                auto url = jpeg.isEmpty()
+                               ? QUrl{}
+                               : QUrl::fromEncoded("data:image/jpeg;base64," + jpeg.toBase64());
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, stop, url = std::move(url)] {
+                        if (!self || stop.isCancelled())
+                            return;
+                        self->cameraFrame_ = url;
+                        emit self->cameraFrameChanged();
+                    },
+                    Qt::QueuedConnection);
+            };
+            const auto warning = [self, stop](const char *detail) {
+                if (!self || stop.isCancelled())
+                    return;
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, stop, message = QString::fromUtf8(detail)] {
+                        if (self && !stop.isCancelled()) {
+                            self->error_ = message;
+                            emit self->stateChanged();
+                        }
+                    },
+                    Qt::QueuedConnection);
+            };
+            std::vector<std::filesystem::path> captured;
+            QString failure;
+            try {
+                captured = luma::windows::controlTetheredCamera(id.toStdWString(), *requests, state,
+                                                                frame, warning, stop);
+            } catch (const std::exception &error) {
+                if (!stop.isCancelled())
+                    failure = QString::fromUtf8(error.what());
+            }
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [self, stop, captured = std::move(captured), failure]() mutable {
+                        if (!self)
+                            return;
+                        self->cameraControls_.reset();
+                        self->cameraConnected_ = self->cameraLiveAvailable_ = self->cameraLive_ =
+                            false;
+                        self->cameraFrame_ = QUrl();
+                        self->cameraExposure_.clear();
+                        self->cameraBusy_ = self->writing_ = false;
+                        self->error_ = failure;
+                        self->status_ = QString();
+                        if (!self->closing_ && !stop.isCancelled() && !captured.empty()) {
+                            luma::ImportOptions options;
+                            options.mode = luma::ImportMode::add;
+                            options.recursive = false;
+                            self->startImport(std::move(captured), std::move(options));
+                        }
+                        emit self->cameraFrameChanged();
+                        emit self->stateChanged();
+                        self->checkClose();
+                    },
+                    Qt::QueuedConnection);
+        });
+    } catch (const std::exception &error) {
+        cameraControls_.reset();
+        cameraBusy_ = writing_ = false;
+        status_ = QString();
+        error_ = QString::fromUtf8(error.what());
+        emit stateChanged();
+    }
+#else
+    (void)id;
+#endif
+}
+
+void LibraryModel::setCameraLive(bool active) {
+#ifdef _WIN32
+    if (cameraConnected_ && cameraControls_) {
+        error_.clear();
+        cameraControls_->submit({luma::windows::TetherControlCommand::Action::live, active, 0, {}});
+        emit stateChanged();
+    }
+#else
+    (void)active;
+#endif
+}
+void LibraryModel::refreshCameraExposure() {
+#ifdef _WIN32
+    if (cameraConnected_ && cameraControls_) {
+        error_.clear();
+        cameraControls_->submit({});
+        emit stateChanged();
+    }
+#endif
+}
+void LibraryModel::setCameraExposure(int property, qint64 value) {
+#ifdef _WIN32
+    if (cameraConnected_ && cameraControls_ && property > 0 && property <= 65535) {
+        error_.clear();
+        cameraControls_->submit({luma::windows::TetherControlCommand::Action::exposure,
+                                 value,
+                                 static_cast<std::uint16_t>(property),
+                                 {}});
+        emit stateChanged();
+    }
+#else
+    (void)property;
+    (void)value;
+#endif
 }
 
 void LibraryModel::cameraRequest(const QString &id, const QUrl &folder) {

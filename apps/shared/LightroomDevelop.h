@@ -17,6 +17,7 @@ struct LightroomDevelopExtras {
     QString cameraProfile;
     std::vector<LightroomMaskGroup> masks;
 };
+LightroomDevelopExtras readLightroomDevelopExtras(std::string_view document);
 PresetImport decodeLightroomDevelop(std::string_view document,
                                     LightroomDevelopExtras *extras = nullptr);
 SmartRule decodeLightroomSmartRule(std::string_view document);

@@ -179,7 +179,8 @@ int main(int argc, char **argv) {
                 << "       apertone publish-webdav HTTPS_FOLDER NEW_FOLDER TITLE IDS... --catalog "
                    "FILE\n"
                 << "       apertone lightroom inspect SOURCE.lrcat\n"
-                << "       apertone lightroom import SOURCE.lrcat [--profiles FOLDER] --catalog "
+                << "       apertone lightroom import SOURCE.lrcat [--profiles FOLDER] "
+                   "[--rebuild-masks] --catalog "
                    "FILE\n"
                 << "       apertone camera-profile FILE.dcp | clear | show --catalog FILE\n";
             return 0;

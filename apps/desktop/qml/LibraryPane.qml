@@ -176,7 +176,7 @@ Rectangle {
         objectName: "library.tetherDialog"
         anchors.centerIn: parent
         modal: true
-        width: Math.min(480, parent.width - 32)
+        width: Math.min(580, parent.width - 32)
         title: qsTranslate("Apertone", "Tethered camera")
         property url destination
         closePolicy: library.cameraBusy ? Popup.NoAutoClose : Popup.CloseOnEscape
@@ -191,20 +191,68 @@ Rectangle {
                 Accessible.name: qsTranslate("Apertone", "Tethered camera")
             }
             Label {
-                text: qsTranslate("Apertone", "No camera with Windows shutter control detected.")
+                text: qsTranslate("Apertone", "No compatible camera detected.")
                 visible: !library.working && tetherCamera.count === 0 && !library.error
                 Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             ApertoneButton {
                 text: qsTranslate("Apertone", "Choose a camera capture folder")
-                enabled: !library.working
+                enabled: !library.working || library.cameraConnected
                 onClicked: cameraDestination.open()
             }
             Label {
                 text: cameraDialog.destination.toString()
                 visible: !!text; elide: Text.ElideMiddle; Layout.fillWidth: true
             }
-            BusyIndicator { running: library.cameraBusy; visible: running }
+            RowLayout {
+                visible: library.cameraConnected
+                ApertoneButton {
+                    visible: library.cameraLiveAvailable
+                    text: library.cameraLive ? qsTranslate("Apertone", "Stop Live View")
+                                             : qsTranslate("Apertone", "Start Live View")
+                    onClicked: library.setCameraLive(!library.cameraLive)
+                }
+                ApertoneButton {
+                    visible: library.cameraExposure.length > 0
+                    text: qsTranslate("Apertone", "Refresh exposure")
+                    onClicked: library.refreshCameraExposure()
+                }
+            }
+            Image {
+                objectName: "library.cameraLiveView"
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? 225 : 0
+                visible: library.cameraConnected && library.cameraLive &&
+                         library.cameraFrame.toString().length > 0
+                source: library.cameraFrame
+                fillMode: Image.PreserveAspectFit
+                cache: false
+                smooth: true
+            }
+            Repeater {
+                model: library.cameraConnected ? library.cameraExposure : []
+                delegate: RowLayout {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    Label {
+                        text: qsTranslate("Apertone", modelData.name)
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                    }
+                    ApertoneComboBox {
+                        Layout.preferredWidth: 150
+                        model: modelData.choices
+                        currentIndex: modelData.index
+                        textRole: "text"
+                        valueRole: "value"
+                        visible: modelData.writable
+                        Accessible.name: qsTranslate("Apertone", modelData.name)
+                        onActivated: library.setCameraExposure(modelData.id, currentValue)
+                    }
+                    Label { visible: !modelData.writable; text: modelData.value }
+                }
+            }
+            BusyIndicator { running: library.cameraBusy && !library.cameraConnected; visible: running }
             Label {
                 text: qsTranslate("Apertone", library.error || library.status)
                 visible: !!text; Layout.fillWidth: true; wrapMode: Text.Wrap
@@ -213,8 +261,15 @@ Rectangle {
         }
         footer: DialogButtonBox {
             ApertoneButton {
-                text: library.cameraBusy ? qsTranslate("Apertone", "Cancel") : qsTranslate("Apertone", "Close")
+                text: library.cameraConnected ? qsTranslate("Apertone", "Disconnect camera")
+                     : library.cameraBusy ? qsTranslate("Apertone", "Cancel") : qsTranslate("Apertone", "Close")
                 onClicked: library.cameraBusy ? library.cancelCamera() : cameraDialog.close()
+            }
+            ApertoneButton {
+                objectName: "library.tetherConnect"
+                text: qsTranslate("Apertone", "Connect camera")
+                enabled: !library.working && tetherCamera.currentIndex >= 0
+                onClicked: library.connectCameraControls(tetherCamera.currentValue)
             }
             ApertoneButton {
                 text: qsTranslate("Apertone", "Refresh")
@@ -224,7 +279,7 @@ Rectangle {
             ApertoneButton {
                 objectName: "library.tetherShutter"
                 text: qsTranslate("Apertone", "Take photo")
-                enabled: !library.working && tetherCamera.currentIndex >= 0 && !!cameraDialog.destination.toString()
+                enabled: (!library.working || library.cameraConnected) && tetherCamera.currentIndex >= 0 && !!cameraDialog.destination.toString()
                 onClicked: library.captureWithCamera(tetherCamera.currentValue, cameraDialog.destination)
             }
         }
@@ -364,6 +419,7 @@ Rectangle {
         onAccepted: {
             lightroomDialog.source = selectedFile
             lightroomDialog.profiles = ""
+            rebuildLightroomMasks.checked = false
             library.inspectLightroom(selectedFile)
             lightroomDialog.open()
         }
@@ -435,6 +491,12 @@ Rectangle {
                     text: lightroomDialog.profiles.toString()
                 }
             }
+            ApertoneCheckBox {
+                id: rebuildLightroomMasks
+                objectName: "library.rebuildLightroomMasks"
+                visible: Boolean(lightroomDialog.report.fingerprint) && !lightroomDialog.report.applied
+                text: qsTranslate("Apertone", "Rebuild missing AI masks locally")
+            }
             Label {
                 visible: Boolean(lightroomDialog.report.applied)
                 text: qsTranslate("Apertone", "%1 added · %2 processing versions · %3 already imported · %4 unreadable")
@@ -467,6 +529,12 @@ Rectangle {
                 visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.masksMapped > 0 || lightroomDialog.report.masksSkipped > 0)
                 text: qsTranslate("Apertone", "%1 Lightroom masks mapped · %2 skipped")
                       .arg(lightroomDialog.report.masksMapped || 0).arg(lightroomDialog.report.masksSkipped || 0)
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.masksRecovered > 0 || lightroomDialog.report.masksRebuilt > 0)
+                text: qsTranslate("Apertone", "%1 masks recovered from history · %2 rebuilt")
+                      .arg(lightroomDialog.report.masksRecovered || 0).arg(lightroomDialog.report.masksRebuilt || 0)
                 Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             Label {
@@ -510,7 +578,7 @@ Rectangle {
                          (lightroomDialog.report.available > 0 || lightroomDialog.report.manualCollections > 0 ||
                           lightroomDialog.report.smartRulesMapped > 0)
                 onClicked: library.applyLightroom(lightroomDialog.source, lightroomDialog.report.fingerprint,
-                                                   lightroomDialog.profiles)
+                                                   lightroomDialog.profiles, rebuildLightroomMasks.checked)
             }
         }
     }

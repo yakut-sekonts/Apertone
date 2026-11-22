@@ -177,7 +177,7 @@ class FaceModel {
     }
 
     BitmapMask segment(ai::RgbaImage image, ai::Selection selection, std::array<double, 2> point,
-                       CancellationToken stop) {
+                       CancellationToken stop, bool requireSingleFace = false) {
         constexpr int inputSize = 640;
         constexpr int maskSize = 512;
         if (!std::ranges::all_of(point, [](double value) {
@@ -215,6 +215,7 @@ class FaceModel {
         const QPointF click(point[0] * input.width(), point[1] * input.height());
         QRectF face;
         std::array<QPointF, 5> landmarks{};
+        std::vector<QRectF> detections;
         float best = .65F;
         constexpr std::array strides{8, 16, 32};
         for (std::size_t level = 0; level < strides.size(); ++level) {
@@ -232,7 +233,7 @@ class FaceModel {
             for (int i = 0; i < grid * grid; ++i) {
                 const float score =
                     std::sqrt(std::clamp(classes[i], 0.F, 1.F) * std::clamp(objects[i], 0.F, 1.F));
-                if (!std::isfinite(score) || score <= best)
+                if (!std::isfinite(score) || score <= (requireSingleFace ? .65F : best))
                     continue;
                 const auto *box = boxes + i * 4;
                 const auto *coordinates = points + i * 10;
@@ -245,8 +246,12 @@ class FaceModel {
                 const double h = std::exp(std::clamp(box[3], -5.F, 5.F)) * stride;
                 QRectF candidate((column + box[0]) * stride - w / 2,
                                  (row + box[1]) * stride - h / 2, w, h);
-                if (!candidate.contains(click) || w < 8 || h < 8 || w > inputSize * 1.5 ||
-                    h > inputSize * 1.5)
+                if ((!requireSingleFace && !candidate.contains(click)) || w < 8 || h < 8 ||
+                    w > inputSize * 1.5 || h > inputSize * 1.5)
+                    continue;
+                if (requireSingleFace)
+                    detections.push_back(candidate);
+                if (score <= best)
                     continue;
                 face = candidate;
                 best = score;
@@ -257,6 +262,15 @@ class FaceModel {
         }
         if (face.isEmpty())
             throw std::runtime_error("No face was detected at that point.");
+        if (requireSingleFace && std::ranges::any_of(detections, [&](const QRectF &candidate) {
+                const auto overlap = face.intersected(candidate);
+                const double intersection = overlap.width() * overlap.height();
+                const double area = face.width() * face.height() +
+                                    candidate.width() * candidate.height() - intersection;
+                return intersection / area < .4 && !face.contains(candidate.center()) &&
+                       !candidate.contains(face.center());
+            }))
+            throw std::runtime_error("The original does not identify a single face.");
         const auto eyeLine = landmarks[1] - landmarks[0];
         const double angle = std::atan2(eyeLine.y(), eyeLine.x());
         const double cosine = std::cos(angle), sine = std::sin(angle);
@@ -538,6 +552,14 @@ class OnnxSegmentation final : public ai::ISegmentationProvider {
             return std::filesystem::is_regular_file(home_ / L"Models" / depthModelName, error);
         return index &&
                std::filesystem::is_regular_file(home_ / L"Models" / modelNames[*index], error);
+    }
+    BitmapMask segmentSingleFace(ai::RgbaImage image, ai::Selection selection,
+                                 CancellationToken stop) override {
+        image.validate();
+        checkCancellation(stop);
+        if (!faceSelection(selection) || !supports(selection))
+            return {};
+        return getFaceModel().segment(image, selection, {.5, .5}, stop, true);
     }
     BitmapMask segment(ai::RgbaImage image, ai::Selection selection, std::array<double, 2> point,
                        CancellationToken stop, const ai::Progress &progress) override {

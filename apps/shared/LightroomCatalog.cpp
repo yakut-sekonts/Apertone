@@ -2,6 +2,7 @@
 #include "apps/shared/CameraProfileImport.h"
 #include "apps/shared/LightroomDevelop.h"
 #include "apps/shared/LightroomMaskArchive.h"
+#include "apps/shared/LightroomMaskRebuilder.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "apps/shared/PhotoFormats.h"
 #include "core/catalog/Catalog.h"
@@ -9,6 +10,7 @@
 #include "core/image/Bayer.h"
 #include "core/io/Path.h"
 #include "platform/macos/FileHasher.h"
+#include "platform/macos/VisionSegmentation.h"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
@@ -329,6 +331,127 @@ std::pair<EditDocument, bool> decodeState(const Statement &row) {
             !decoded.unsupported.isEmpty()};
 }
 
+const QString &maskField(const LightroomProperties &fields, std::string_view key) {
+    static const QString empty;
+    const auto found = fields.find(key);
+    return found == fields.end() ? empty : found->second;
+}
+
+// A matching Sync ID in this photo's history can recover a saved bitmap that
+// the current edit has marked for regeneration. Distinct candidate digests
+// indicate different selections, even if the mask's display name is the same.
+class LightroomMaskHistory {
+  public:
+    LightroomMaskHistory(sqlite3 *db, std::int64_t photo, std::int64_t file, bool history,
+                         bool snapshots, const LightroomMaskArchive &archive,
+                         const std::vector<LightroomMaskGroup> &masks, CancellationToken stop)
+        : db_(db), photo_(photo), file_(file), history_(history), snapshots_(snapshots),
+          archive_(archive), stop_(stop) {
+        for (const auto &group : masks)
+            for (const auto &mask : group.components) {
+                const auto &sync = maskField(mask, "MaskSyncID");
+                if (sync.size() == 32 && maskField(mask, "What") == "Mask/Image")
+                    requested_.insert(sync);
+            }
+    }
+
+    BitmapMask recover(const LightroomProperties &current) {
+        const auto &sync = maskField(current, "MaskSyncID");
+        if (sync.size() != 32 || !(history_ || snapshots_))
+            return {};
+        if (!scanned_) {
+            scanned_ = true;
+            if (history_)
+                read("SELECT NULL,NULL,typeof(text),text FROM Adobe_libraryImageDevelopHistoryStep "
+                     "WHERE (image=?1 OR (?2>0 AND image IN "
+                     "(SELECT id_local FROM Adobe_images WHERE rootFile=?2))) "
+                     "AND length(CAST(text AS BLOB))<=1048576 "
+                     "ORDER BY (image=?1) DESC,dateCreated DESC,id_local DESC LIMIT 200");
+            if (snapshots_)
+                read("SELECT NULL,NULL,typeof(text),text FROM Adobe_libraryImageDevelopSnapshot "
+                     "WHERE (image=?1 OR (?2>0 AND image IN "
+                     "(SELECT id_local FROM Adobe_images WHERE rootFile=?2))) "
+                     "AND length(CAST(text AS BLOB))<=1048576 "
+                     "ORDER BY (image=?1) DESC,id_local DESC LIMIT 100");
+        }
+        const auto found = candidates_.find(sync);
+        if (found == candidates_.end())
+            return {};
+        const LightroomProperties *selected = nullptr;
+        const auto same = [&](const auto &candidate, std::string_view key) {
+            return maskField(candidate, key) == maskField(current, key);
+        };
+        const auto &type = maskField(current, "MaskSubType");
+        for (const auto &candidate : found->second) {
+            if (!same(candidate, "MaskSubType") || !same(candidate, "MaskSubCategoryID") ||
+                ((type != "1" && type != "2") && !same(candidate, "ReferencePoint")))
+                continue;
+            bool compatible = true;
+            for (const auto key :
+                 {"InputDigest", "LocalInputDigest", "ModelVersion", "FullMaskSize"})
+                if (!maskField(current, key).isEmpty() && !same(candidate, key))
+                    compatible = false;
+            if (!compatible)
+                continue;
+            if (selected &&
+                (maskField(*selected, "MaskDigest") != maskField(candidate, "MaskDigest") ||
+                 maskField(*selected, "Origin") != maskField(candidate, "Origin") ||
+                 maskField(*selected, "WholeImageArea") != maskField(candidate, "WholeImageArea")))
+                return {};
+            selected = &candidate;
+        }
+        if (!selected)
+            return {};
+        try {
+            return archive_.bitmap(maskField(*selected, "MaskDigest"),
+                                   maskField(*selected, "Origin"),
+                                   maskField(*selected, "WholeImageArea"), stop_);
+        } catch (const std::runtime_error &) {
+            checkCancellation(stop_);
+            return {};
+        }
+    }
+
+  private:
+    void read(const char *sql) {
+        Statement rows(db_, sql);
+        rows.integer(1, photo_);
+        rows.integer(2, file_);
+        std::size_t indexed = 0;
+        while (rows.row() && indexed < 4096) {
+            checkCancellation(stop_);
+            const auto literal = stateLiteral(rows);
+            if (literal.find("MaskDigest") == std::string::npos)
+                continue;
+            try {
+                auto candidate = readLightroomDevelopExtras(literal);
+                for (auto &group : candidate.masks)
+                    for (auto &mask : group.components) {
+                        const auto sync = maskField(mask, "MaskSyncID");
+                        if (indexed < 4096 && requested_.contains(sync) &&
+                            maskField(mask, "What") == "Mask/Image" &&
+                            archive_.contains(maskField(mask, "MaskDigest")) &&
+                            !maskField(mask, "Origin").isEmpty() &&
+                            !maskField(mask, "WholeImageArea").isEmpty()) {
+                            candidates_[sync].push_back(std::move(mask));
+                            ++indexed;
+                        }
+                    }
+            } catch (const std::runtime_error &) {
+                checkCancellation(stop_);
+            }
+        }
+    }
+    sqlite3 *db_;
+    std::int64_t photo_, file_;
+    bool history_, snapshots_;
+    const LightroomMaskArchive &archive_;
+    CancellationToken stop_;
+    bool scanned_ = false;
+    std::set<QString> requested_;
+    std::map<QString, std::vector<LightroomProperties>> candidates_;
+};
+
 void readDevelopHistory(sqlite3 *db, std::int64_t imageID, const std::string &currentSource,
                         LightroomMigrationPhoto &photo, LightroomCatalogReport &report,
                         CancellationToken stop) {
@@ -434,7 +557,8 @@ void readDevelopSnapshots(sqlite3 *db, std::int64_t imageID, LightroomMigrationP
 
 Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
           const std::function<void(double)> &progress = {},
-          const LightroomMaskArchive *masks = nullptr, CameraProfileDirectory *profiles = nullptr) {
+          const LightroomMaskArchive *masks = nullptr, CameraProfileDirectory *profiles = nullptr,
+          bool rebuildMissingMasks = false) {
     auto *db = snapshot.database();
     for (const char *table :
          {"Adobe_images", "AgLibraryFile", "AgLibraryFolder", "AgLibraryRootFolder",
@@ -538,12 +662,13 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             : "NULL";
     const auto capture = hasColumn(db, "Adobe_images", "captureTime") ? "i.captureTime" : "NULL";
     const auto edited = hasColumn(db, "Adobe_images", "touchTime") ? "i.touchTime" : "NULL";
+    const auto segmentation = rebuildMissingMasks ? macos::makeVisionSegmentation() : nullptr;
     const auto imageQuery =
         std::string("SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
                     "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
                     "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
                     "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0),") +
-        capture + "," + edited + ",i.id_local," + historyReference +
+        capture + "," + edited + ",i.id_local," + historyReference + ",i.rootFile" +
         " "
         "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
         "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
@@ -658,11 +783,30 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             photo.metadata.descriptiveSource = photo.path;
             bool convertedLocalAdjustments = false;
             if (masks) {
+                LightroomMaskHistory prior(db, images.integer(15), images.integer(17),
+                                           importHistory, importSnapshots, *masks, extras.masks,
+                                           stop);
+                LightroomMaskRebuilder rebuilder(photo.path, segmentation, stop);
                 std::vector<LocalMask> converted;
                 for (std::size_t i = 0; i < extras.masks.size(); ++i) {
                     checkCancellation(stop);
                     try {
-                        auto layer = convertLightroomMask(extras.masks[i], *masks, i, stop);
+                        bool recovered = false, rebuilt = false;
+                        auto layer = convertLightroomMask(
+                            extras.masks[i], *masks, i, stop, [&](const auto &component) {
+                                auto bitmap = prior.recover(component);
+                                if (!bitmap.empty()) {
+                                    recovered = true;
+                                    return bitmap;
+                                }
+                                if (rebuildMissingMasks) {
+                                    bitmap = rebuilder.rebuild(component);
+                                    rebuilt = rebuilt || !bitmap.empty();
+                                }
+                                return bitmap;
+                            });
+                        if (rebuilt)
+                            layer.name += " [AI rebuilt]";
                         converted.push_back(std::move(layer));
                         try {
                             validateLocalMasks(converted);
@@ -671,6 +815,8 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
                             throw;
                         }
                         ++report.masksMapped;
+                        report.masksRecovered += recovered;
+                        report.masksRebuilt += rebuilt;
                     } catch (const std::exception &) {
                         checkCancellation(stop);
                         ++report.masksSkipped;
@@ -813,12 +959,11 @@ LightroomCatalogReport inspectLightroomCatalog(const std::filesystem::path &sour
     return scan(snapshot, false, stop).report;
 }
 
-LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &source,
-                                              const std::filesystem::path &target,
-                                              const std::string &expectedFingerprint,
-                                              CancellationToken stop,
-                                              const std::function<void(double)> &progress,
-                                              const std::filesystem::path &profileFolder) {
+LightroomCatalogReport
+importLightroomCatalog(const std::filesystem::path &source, const std::filesystem::path &target,
+                       const std::string &expectedFingerprint, CancellationToken stop,
+                       const std::function<void(double)> &progress,
+                       const std::filesystem::path &profileFolder, bool rebuildMissingMasks) {
     const auto input = std::filesystem::canonical(source);
     const auto destination = std::filesystem::weakly_canonical(target);
     for (const auto suffix : {"", "-wal", "-shm", "-journal"}) {
@@ -830,7 +975,7 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
         throw std::runtime_error("Lightroom catalog changed since preview. Scan it again.");
     const LightroomMaskArchive masks(input, stop);
     CameraProfileDirectory profiles(profileFolder, stop);
-    auto plan = scan(snapshot, true, stop, progress, &masks, &profiles);
+    auto plan = scan(snapshot, true, stop, progress, &masks, &profiles, rebuildMissingMasks);
     checkCancellation(stop);
     if (plan.photos.empty() && plan.collections.empty() && plan.keywords.empty())
         return std::move(plan.report);

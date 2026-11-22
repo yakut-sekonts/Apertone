@@ -352,8 +352,14 @@ BitmapMask LightroomMaskArchive::bitmap(const QString &digest, const QString &or
     return placeMask(directory, layout(directory), origin, area, stop);
 }
 
-LocalMask convertLightroomMask(const LightroomMaskGroup &group, const LightroomMaskArchive &archive,
-                               std::size_t index, CancellationToken stop) {
+bool LightroomMaskArchive::contains(const QString &digest) const {
+    return masks_.contains(digest.toLatin1().toLower());
+}
+
+LocalMask
+convertLightroomMask(const LightroomMaskGroup &group, const LightroomMaskArchive &archive,
+                     std::size_t index, CancellationToken stop,
+                     const std::function<BitmapMask(const LightroomProperties &)> &fallback) {
     const auto get = [](const LightroomProperties &fields, std::string_view key) {
         const auto found = fields.find(key);
         return found == fields.end() ? QString{} : found->second;
@@ -423,8 +429,17 @@ LocalMask convertLightroomMask(const LightroomMaskGroup &group, const LightroomM
         const auto type = get(input, "What");
         if (type == "Mask/Image") {
             component.geometry.shape = MaskShape::bitmap;
-            component.geometry.bitmap = archive.bitmap(
-                get(input, "MaskDigest"), get(input, "Origin"), get(input, "WholeImageArea"), stop);
+            try {
+                component.geometry.bitmap =
+                    archive.bitmap(get(input, "MaskDigest"), get(input, "Origin"),
+                                   get(input, "WholeImageArea"), stop);
+            } catch (const std::runtime_error &) {
+                checkCancellation(stop);
+                if (!fallback)
+                    throw;
+            }
+            if (component.geometry.bitmap.empty() && fallback)
+                component.geometry.bitmap = fallback(input);
         } else if (type == "Mask/Gradient") {
             for (const auto name : {"ZeroX", "ZeroY", "FullX", "FullY"})
                 require(!get(input, name).isEmpty());

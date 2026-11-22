@@ -387,6 +387,11 @@ PresetImport decodeLightroomDevelop(std::string_view document, LightroomDevelopE
         *extras = std::move(parsed);
     return decodeXmpPreset(xml, QStringLiteral("Lightroom Develop"), true);
 }
+LightroomDevelopExtras readLightroomDevelopExtras(std::string_view document) {
+    LightroomDevelopExtras extras;
+    (void)LiteralTable(document).toXmp(&extras);
+    return extras;
+}
 SmartRule decodeLightroomSmartRule(std::string_view document) {
     return LiteralTable(document).toSmartRule();
 }

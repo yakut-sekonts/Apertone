@@ -29,6 +29,11 @@ class ISegmentationProvider {
     // a normalized far/near interval instead of image coordinates.
     virtual BitmapMask segment(RgbaImage image, Selection selection, std::array<double, 2> point,
                                CancellationToken stop, const Progress &progress = {}) = 0;
+    // Used for migrated masks with no reliable saved reference point. A
+    // provider may return an empty mask when the person cannot be identified.
+    virtual BitmapMask segmentSingleFace(RgbaImage, Selection, CancellationToken) {
+        return {};
+    }
 };
 class IDenoiseProvider {
   public:

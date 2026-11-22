@@ -10,6 +10,13 @@
 #include <QVariantList>
 #include <deque>
 #include <map>
+#include <memory>
+
+#ifdef _WIN32
+namespace luma::windows {
+class TetherControlRequests;
+}
+#endif
 
 class LibraryModel final : public QAbstractListModel {
     Q_OBJECT
@@ -33,6 +40,11 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(bool tetherAvailable READ tetherAvailable CONSTANT)
     Q_PROPERTY(bool cameraBusy READ cameraBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantList tetherCameras READ tetherCameras NOTIFY stateChanged)
+    Q_PROPERTY(bool cameraConnected READ cameraConnected NOTIFY stateChanged)
+    Q_PROPERTY(bool cameraLiveAvailable READ cameraLiveAvailable NOTIFY stateChanged)
+    Q_PROPERTY(bool cameraLive READ cameraLive NOTIFY stateChanged)
+    Q_PROPERTY(QUrl cameraFrame READ cameraFrame NOTIFY cameraFrameChanged)
+    Q_PROPERTY(QVariantList cameraExposure READ cameraExposure NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap lightroomReport READ lightroomReport NOTIFY stateChanged)
@@ -151,6 +163,10 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void stopCaptureFolder();
     Q_INVOKABLE void refreshCameras();
     Q_INVOKABLE void captureWithCamera(const QString &id, const QUrl &folder);
+    Q_INVOKABLE void connectCameraControls(const QString &id);
+    Q_INVOKABLE void setCameraLive(bool active);
+    Q_INVOKABLE void refreshCameraExposure();
+    Q_INVOKABLE void setCameraExposure(int property, qint64 value);
     Q_INVOKABLE void cancelCamera();
     bool tetherAvailable() const;
     bool cameraBusy() const {
@@ -158,6 +174,21 @@ class LibraryModel final : public QAbstractListModel {
     }
     QVariantList tetherCameras() const {
         return tetherCameras_;
+    }
+    bool cameraConnected() const {
+        return cameraConnected_;
+    }
+    bool cameraLiveAvailable() const {
+        return cameraLiveAvailable_;
+    }
+    bool cameraLive() const {
+        return cameraLive_;
+    }
+    QUrl cameraFrame() const {
+        return cameraFrame_;
+    }
+    QVariantList cameraExposure() const {
+        return cameraExposure_;
     }
     QString captureFolder() const {
         return captureFolder_;
@@ -341,7 +372,7 @@ class LibraryModel final : public QAbstractListModel {
     }
     Q_INVOKABLE void inspectLightroom(const QUrl &source);
     Q_INVOKABLE void applyLightroom(const QUrl &source, const QString &fingerprint,
-                                    const QUrl &profiles);
+                                    const QUrl &profiles, bool rebuildMissingMasks);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE bool refreshLastImport();
@@ -352,6 +383,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void cancelImport();
     Q_INVOKABLE bool requestClose();
   signals:
+    void cameraFrameChanged();
     void stateChanged();
     void reloadStarted(bool preserveViewport);
     void viewportRestored(int row);
@@ -366,7 +398,8 @@ class LibraryModel final : public QAbstractListModel {
 
   private:
     bool startImport(std::vector<std::filesystem::path> sources, luma::ImportOptions options);
-    void runLightroom(const QUrl &source, const QString &fingerprint, const QUrl &profiles = {});
+    void runLightroom(const QUrl &source, const QString &fingerprint, const QUrl &profiles = {},
+                      bool rebuildMissingMasks = false);
     bool startNextImportSourceRefresh();
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
@@ -411,6 +444,12 @@ class LibraryModel final : public QAbstractListModel {
     QString captureFolder_;
     QVariantList tetherCameras_;
     bool cameraBusy_ = false;
+    bool cameraConnected_ = false, cameraLiveAvailable_ = false, cameraLive_ = false;
+    QUrl cameraFrame_;
+    QVariantList cameraExposure_;
+#ifdef _WIN32
+    std::shared_ptr<luma::windows::TetherControlRequests> cameraControls_;
+#endif
     void cameraRequest(const QString &id, const QUrl &folder);
     struct CaptureFile {
         qint64 size = -1, modified = 0;

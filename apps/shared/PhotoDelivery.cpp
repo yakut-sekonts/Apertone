@@ -8,8 +8,12 @@
 #include <QColorSpace>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
+#include <QFontDatabase>
+#include <QGuiApplication>
 #include <QPainter>
 #include <QPdfWriter>
+#include <QStandardPaths>
 #include <QTemporaryDir>
 #include <algorithm>
 
@@ -55,6 +59,31 @@ QImage proofPreview(const SessionService &session, const AssetRecord &asset, int
     proofed.convertToColorSpace(QColorSpace::SRgb, QImage::Format_RGBA8888);
     return proofed;
 }
+QFont pdfFont(QFont font) {
+#ifdef _WIN32
+    if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
+        // Qt's Windows offscreen plugin uses FreeType. Unlike the native
+        // integration, its font database doesn't discover installed fonts.
+        static const auto family = [] {
+            const QDir dir(QStandardPaths::writableLocation(QStandardPaths::FontsLocation));
+            for (const auto name : {"segoeui.ttf", "arial.ttf"}) {
+                const auto path = dir.absoluteFilePath(QString::fromLatin1(name));
+                if (!QFileInfo(path).isFile())
+                    continue;
+                const auto id = QFontDatabase::addApplicationFont(path);
+                if (id >= 0) {
+                    const auto families = QFontDatabase::applicationFontFamilies(id);
+                    if (!families.isEmpty())
+                        return families.front();
+                }
+            }
+            throw std::runtime_error("Cannot load a Windows font for PDF captions.");
+        }();
+        font.setFamily(family);
+    }
+#endif
+    return font;
+}
 void writePdf(const SessionService &session, const std::vector<AssetRecord> &assets,
               const std::filesystem::path &catalog, const std::filesystem::path &destination,
               const QString &title, bool book, const QColorSpace &proof, CancellationToken stop,
@@ -78,7 +107,7 @@ void writePdf(const SessionService &session, const std::vector<AssetRecord> &ass
         const int cellWidth = (pdf.width() - (columns - 1) * gap) / columns;
         const int cellHeight = (pdf.height() - header - footer - (rows - 1) * gap) / rows;
         painter.setRenderHint(QPainter::SmoothPixmapTransform);
-        auto font = painter.font();
+        auto font = pdfFont(painter.font());
         for (std::size_t i = 0; i < assets.size(); ++i) {
             checkCancellation(stop);
             const int slot = static_cast<int>(i % perPage);

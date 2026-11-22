@@ -3,6 +3,7 @@
 #include "apps/shared/LibraryService.h"
 #include "apps/shared/LightroomCatalog.h"
 #include "core/io/Path.h"
+#include <QCoreApplication>
 #include <charconv>
 #include <iostream>
 #ifdef _WIN32
@@ -69,16 +70,31 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
     if (args[0] == "lightroom" && args.size() >= 3 &&
         (args[1] == "inspect" || args[1] == "import")) {
         const bool apply = args[1] == "import";
-        if (args.size() != 3 && !(apply && args.size() == 5 && args[3] == "--profiles"))
-            throw std::runtime_error("Use lightroom import SOURCE [--profiles FOLDER].");
         const auto source = pathFromUtf8(args[2]);
         if (apply && catalog.empty())
             throw std::runtime_error("Specify a destination Apertone catalog with --catalog.");
-        const auto profileFolder =
-            args.size() == 5 ? pathFromUtf8(args[4]) : std::filesystem::path{};
-        const auto report = apply
-                                ? importLightroomCatalog(source, catalog, {}, {}, {}, profileFolder)
-                                : inspectLightroomCatalog(source);
+        std::filesystem::path profileFolder;
+        bool rebuildMissingMasks = false;
+        for (std::size_t i = 3; i < args.size(); ++i) {
+            if (apply && args[i] == "--profiles" && profileFolder.empty() && i + 1 < args.size())
+                profileFolder = pathFromUtf8(args[++i]);
+            else if (apply && args[i] == "--rebuild-masks" && !rebuildMissingMasks)
+                rebuildMissingMasks = true;
+            else
+                throw std::runtime_error(
+                    "Use lightroom import SOURCE [--profiles FOLDER] [--rebuild-masks].");
+        }
+#ifndef _WIN32
+        int qtArgc = 1;
+        char program[] = "apertone";
+        char *qtArgs[] = {program, nullptr};
+        std::optional<QCoreApplication> process;
+        if (rebuildMissingMasks)
+            process.emplace(qtArgc, qtArgs);
+#endif
+        const auto report = apply ? importLightroomCatalog(source, catalog, {}, {}, {},
+                                                           profileFolder, rebuildMissingMasks)
+                                  : inspectLightroomCatalog(source);
         std::cout << "{\"photos\":" << report.photos << ",\"available\":" << report.available
                   << ",\"missing\":" << report.missing << ",\"unsupported\":" << report.unsupported
                   << ",\"virtualCopies\":" << report.virtualCopies
@@ -89,6 +105,8 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"partialEdits\":" << report.partialEdits
                   << ",\"unmappedEdits\":" << report.unmappedEdits
                   << ",\"masksMapped\":" << report.masksMapped
+                  << ",\"masksRecovered\":" << report.masksRecovered
+                  << ",\"masksRebuilt\":" << report.masksRebuilt
                   << ",\"masksSkipped\":" << report.masksSkipped
                   << ",\"profilesMapped\":" << report.profilesMapped
                   << ",\"profilesSkipped\":" << report.profilesSkipped

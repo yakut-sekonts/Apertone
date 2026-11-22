@@ -23,13 +23,13 @@ if ($LASTEXITCODE -ne 0) {
 }
 $desktop = Join-Path $output "Apertone.exe"
 & (Join-Path $qt "windeployqt.exe") --release --qmldir (Join-Path $source "apps/desktop/qml") `
-    --add-plugin-types imageformats --dir $output $desktop
+    --add-plugin-types imageformats --include-plugins qoffscreen --dir $output $desktop
 if ($LASTEXITCODE -ne 0) {
     throw "Qt deployment failed ($LASTEXITCODE)."
 }
 foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
                          "Qt6Network.dll", "tls/qschannelbackend.dll",
-                         "platforms/qwindows.dll", "imageformats/qtiff.dll",
+                         "platforms/qwindows.dll", "platforms/qoffscreen.dll", "imageformats/qtiff.dll",
                          "imageformats/qwebp.dll", "onnxruntime.dll",
                          "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx",
                          "Models/yunet.onnx", "Models/depth-anything-v2.onnx", "Models/drunet-color.onnx")) {
