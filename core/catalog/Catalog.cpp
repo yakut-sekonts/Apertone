@@ -22,7 +22,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr int currentCatalogSchema = 23;
+constexpr int currentCatalogSchema = 24;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -413,6 +413,10 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
         }
         if (current == 22) {
             migratePersistentWorkflow();
+            current = 23;
+        }
+        if (current == 23) {
+            migrateLightroomMigration();
         }
         execute("COMMIT;");
     } catch (...) {
@@ -490,10 +494,7 @@ AssetRecord Catalog::addAssetRecord(const std::filesystem::path &source,
         detail::initializeMetadata(db_, result.id, path, metadata);
     }
     if (selectActive) {
-        Statement select(db_, "INSERT INTO session(slot,asset_id) VALUES(1,?1) ON CONFLICT(slot) "
-                              "DO UPDATE SET asset_id=excluded.asset_id");
-        select.text(1, result.id);
-        select.row();
+        selectAsset(result.id);
     }
     result.descriptive = detail::readMetadataOverlay(db_, result.id);
     return result;
@@ -509,6 +510,17 @@ std::optional<AssetRecord> Catalog::assetByID(const std::string &id) const {
     Statement query(db_, (std::string(selectFields) + "WHERE a.id=?1").c_str());
     query.text(1, id);
     return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
+}
+std::optional<AssetRecord> Catalog::assetByPath(const std::filesystem::path &path) const {
+    Statement query(db_, (std::string(selectFields) + "WHERE a.original_path=?1").c_str());
+    query.text(1, pathUtf8(path));
+    return query.row() ? std::optional<AssetRecord>(readAsset(db_, query)) : std::nullopt;
+}
+void Catalog::selectAsset(const std::string &id) {
+    Statement select(db_, "INSERT INTO session(slot,asset_id) VALUES(1,?1) ON CONFLICT(slot) "
+                          "DO UPDATE SET asset_id=excluded.asset_id");
+    select.text(1, id);
+    select.row();
 }
 bool Catalog::originalAtPath(const std::filesystem::path &canonicalPath,
                              CancellationToken stop) const {

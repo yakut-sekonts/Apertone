@@ -180,15 +180,22 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         preset.settings.setParameter(parameter, number(text(key)));
         preset.parameters.push_back(parameter);
     };
-    for (const auto &[modern, legacy, parameter] :
-         {std::tuple{"Exposure2012", "Exposure", "exposure"},
-          std::tuple{"Contrast2012", "Contrast", "contrast"}}) {
+    const auto preferred = [&](const char *modern, const char *legacy, const std::string &parameter) {
         const auto key = QString::fromLatin1(modern);
         const auto old = QString::fromLatin1(legacy);
         set(fields.contains(key) ? key : old, parameter);
         if (fields.contains(key))
             consumed.insert(old);
-    }
+    };
+    for (const auto &[modern, legacy, parameter] :
+         {std::tuple{"Exposure2012", "Exposure", "exposure"},
+          std::tuple{"Contrast2012", "Contrast", "contrast"},
+          std::tuple{"ColorGradeShadowHue", "SplitToningShadowHue", "grading.shadows.hue"},
+          std::tuple{"ColorGradeShadowSat", "SplitToningShadowSaturation", "grading.shadows.saturation"},
+          std::tuple{"ColorGradeHighlightHue", "SplitToningHighlightHue", "grading.highlights.hue"},
+          std::tuple{"ColorGradeHighlightSat", "SplitToningHighlightSaturation", "grading.highlights.saturation"},
+          std::tuple{"ColorGradeBalance", "SplitToningBalance", "grading.balance"}})
+        preferred(modern, legacy, parameter);
     for (const auto &[key, parameter] :
          {std::pair{"Highlights2012", "highlights"},
           {"Shadows2012", "shadows"},
@@ -203,6 +210,23 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
           {"ParametricDarks", "curve.darks"},
           {"ParametricLights", "curve.lights"},
           {"ParametricHighlights", "curve.highlights"},
+          {"ColorGradeBlending", "grading.blending"},
+          {"ColorGradeShadowLum", "grading.shadows.luminance"},
+          {"ColorGradeMidtoneHue", "grading.midtones.hue"},
+          {"ColorGradeMidtoneSat", "grading.midtones.saturation"},
+          {"ColorGradeMidtoneLum", "grading.midtones.luminance"},
+          {"ColorGradeHighlightLum", "grading.highlights.luminance"},
+          {"ColorGradeGlobalHue", "grading.global.hue"},
+          {"ColorGradeGlobalSat", "grading.global.saturation"},
+          {"ColorGradeGlobalLum", "grading.global.luminance"},
+          {"PostCropVignetteAmount", "vignette.amount"},
+          {"PostCropVignetteMidpoint", "vignette.midpoint"},
+          {"PostCropVignetteRoundness", "vignette.roundness"},
+          {"PostCropVignetteFeather", "vignette.feather"},
+          {"PostCropVignetteHighlightContrast", "vignette.highlights"},
+          {"GrainAmount", "grain.amount"},
+          {"GrainSize", "grain.size"},
+          {"GrainFrequency", "grain.roughness"},
           {"Sharpness", "sharpen.amount"},
           {"SharpenRadius", "sharpen.radius"},
           {"SharpenDetail", "sharpen.detail"},

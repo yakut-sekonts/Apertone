@@ -36,9 +36,9 @@ publishing modules.
 | Lightroom workflow | Apertone 2.5 and Windows scope | Next acceptance check |
 | --- | --- | --- |
 | Import from cards and folders, Add/Copy/Move, duplicate detection, renaming, destination folders, second copy, presets and metadata | Shared import journal, hashes, naming and metadata presets, source refresh and relinking. Windows uses wide paths and same-volume publication. | Complete and cancel a 1,000-file import on NTFS and on an exFAT SD card. Resume interrupted copy and move. Verify source and backup hashes. Add card and tether capture as separate entry points. |
-| Grid, Loupe, filmstrip, Compare, Survey, second monitor, flags, labels, stars and keyboard navigation | Library and Develop, linked comparisons and culling, metadata filters and named collections. Windows culling uses sharpness and exposure metrics. | Add Survey, stack controls and independent second-monitor review. Verify range selection, keyboard focus, zoom synchronization and selection restoration per source. [Adobe Library workflow](https://helpx.adobe.com/lightroom-classic/desktop/help/library-module-basic-workflow.html) |
+| Grid, Loupe, filmstrip, Compare, Survey, second monitor, flags, labels, stars and keyboard navigation | Library and Develop, linked comparisons and culling, metadata filters and named collections. Survey reviews 2–12 selected photos with their Develop edits and supports removing individual photos from the selection. Windows culling uses sharpness and exposure metrics. | Add stack controls and independent second-monitor review. Verify range selection, keyboard focus, zoom synchronization and selection restoration per source. [Adobe Library workflow](https://helpx.adobe.com/lightroom-classic/desktop/help/library-module-basic-workflow.html) |
 | Folders, regular and smart collections, nested keywords, face groups, stacks and virtual copies | Smart Collections, metadata, stored fingerprints, burst scoring, named versions and history. | Model multiple visible versions per source file. Verify independent edits and ratings, side-by-side export and stacking. Add nested keyword aliases and hierarchical collection sets. [Adobe stacking](https://helpx.adobe.com/lightroom-classic/desktop/organize-photos-in-lightroom-classic/grouping-photos-stacks.html) |
-| Develop with the original offline using a Smart Preview | Apertone caches Library thumbnails and Develop renders. | Persist editable proxies keyed by source digest and decode version. Disconnect the drive, reopen, edit from the proxy, reconnect and compare the exported render with a continuously connected run. [Adobe Smart Previews](https://helpx.adobe.com/uk/lightroom-classic/desktop/viewing-photos/lightroom-smart-previews.html) |
+| Develop with the original offline using a Smart Preview | Opening a photo in Develop caches up to 1600 px of linear image data and its RAW calibration, keyed by the source digest and cache format version. Saved edits survive offline restarts. Full-resolution export requires the original. | Verify a physical SD or external drive disconnect and reconnection, constrained disk space, cache recovery and batch preview creation. [Adobe Smart Previews](https://helpx.adobe.com/uk/lightroom-classic/desktop/viewing-photos/lightroom-smart-previews.html) |
 | Before/After, reference image, snapshots, history, copy/paste, sync and saved presets | Linked Before/After, persisted history, named versions, Quick Looks and atomic batch Apply/Paste/Sync. | Add a reference image that stays pinned across the sequence and saved reusable Copy/Paste subsets. Verify one-step undo and reproducible results after restart across the batch. [Adobe Develop](https://helpx.adobe.com/lightroom-classic/desktop/process-and-develop-photos/develop-module-tools.html) |
 | RAW profiles, WB, exposure, tone, Presence, RGB curves, HSL, Point Color, grading, B&W, calibration | LibRaw, embedded DNG calibration, scene-linear working pixels and most global controls. Current sensor path targets integer Bayer. | Extend authored camera profiles and B&W/calibration controls. Qualify X-Trans and monochrome RAW independently. Compare neutral patches, highlight ramps and extreme WB across cameras and engine revisions. [Adobe profiles and tone](https://helpx.adobe.com/ca/lightroom-classic/desktop/process-and-develop-photos/image-tone-color.html) |
 | Crop, straighten, lens profiles, defringe, perspective and Upright | Shared crop, calibrated lens correction, manual/Auto/Guided transform. | Add chromatic-fringe range controls and broaden optical calibration. Measure residual distortion and color fringing for measured lens/focal-length pairs. |
@@ -46,7 +46,7 @@ publishing modules.
 | Local brush, gradients, color/luminance/depth range, AI subjects, objects, people, sky and composite masks | Core brush and range controls, mask composition, editable overlays. | Bring automatic subject/sky/people selections to Windows. Store source geometry, mask provenance and operations. Test overlay/export agreement after crop, resize, inversion and subtract/intersect. [Adobe masking](https://helpx.adobe.com/lightroom-classic/desktop/process-and-develop-photos/masking.html) |
 | Heal/Clone, red eye, content-aware and generative removal | Apertone's local retouch and remove controls are shared. | Qualify clone and heal edge cases, add red eye, then assess local object removal against small and large occlusions before exposing it as a batch tool. |
 | HDR and panorama merge | Shared full-resolution merge and derived DNG. Windows has verified translation registration for alignment. | Test bracketed high-contrast images and panorama yaw/parallax. Add a more general registration provider when the translation model has insufficient overlap. |
-| Export with resize, color space, output sharpening, metadata, watermarks, naming and saved recipes | Shared export queue and recipes. Windows encodes JPEG, PNG, TIFF and processed DNG with Qt-based raster I/O. | Qualify color tags, TIFF depth, alpha, sharpening and cancellation. Add metadata policies, TIFF ZIP and HDR gain-map formats after matching exported files with independent readers. [Adobe export settings](https://helpx.adobe.com/lightroom-classic/desktop/export-photos/export-files-disk-or-cd.html) |
+| Export with resize, color space, output sharpening, metadata, watermarks, naming and saved recipes | Shared export queue and recipes. Windows writes JPEG, PNG, TIFF and processed DNG, including 8-bit and 16-bit TIFF ZIP and sRGB Ultra HDR JPEG with an SDR base and a gain map. | Qualify color tags, sharpening, cancellation, large exports and HDR viewing across readers and displays. Add Windows metadata export policies. [Adobe export settings](https://helpx.adobe.com/lightroom-classic/desktop/export-photos/export-files-disk-or-cd.html) [Ultra HDR image format](https://developer.android.com/media/platform/hdr-image-format) |
 | Map, Book, Slideshow, Print, Web and Publish Services | Apertone's export files provide a starting point for delivery workflows. | Prioritize contact sheets and soft proof/print, then offline GPS, slideshow and HTML galleries. Scope books and publish connectors against complete delivery workflows. [Adobe module comparison](https://helpx.adobe.com/uk/lightroom-classic/desktop/kb/lightroom-feature-comparison.html) |
 
 ## Migration and settings coverage
@@ -56,9 +56,9 @@ publishing modules.
 | `Version`, `ProcessVersion`, `Supports*`, `CameraModelRestriction`, `PresetType`, `UUID` | Track source version and compatibility at import. Preserve absent versus explicit neutral fields. Reject unknown mandatory constructs with an actionable report. |
 | `Exposure2012`, `Highlights2012`, `Shadows2012`, `WhiteBalance`, `Temperature`, `Tint`, Presence, HSL, parametric and RGB curve arrays | Apply a selected XMP directly to the active photo from Presets → User → Actions. The sparse parser reports unsupported fields and creates one undo step. Add import preview and compare legacy and modern Process Versions on controlled images. |
 | `CameraProfile`, `ProfileGainTableMap`, `Look`, `RGBTables`, `LensProfileEnable`, optical and perspective fields | Add explicit compatible mappings for independently authored or user-supplied profiles. Verify a neutral scale and preserve unknown fields on round trips. |
-| `ColorGrade*`, `SplitToning*`, `GrayMixer*`, `PointColors`, `PostCropVignette*`, `Grain*`, `Sharpen*`, `LuminanceNoiseReduction*` | Extend supported sparse import fields group by group, document units, bounds and rendering differences, and add fixtures for mixed preset subsets. |
+| `ColorGrade*`, `SplitToning*`, `GrayMixer*`, `PointColors`, `PostCropVignette*`, `Grain*`, `Sharpen*`, `LuminanceNoiseReduction*` | Sparse import maps supported grading, split toning, vignette, grain, sharpening and noise-reduction values. Verify numerical and photographic differences and add compatible B&W mixer and Point Color mappings. |
 | `MaskGroupBasedCorrections`, `CorrectionMasks`, `MaskBlendMode`, `MaskInverted`, `Local*`, `LensBlur` | Start with geometric masks, numeric corrections and compositing; transform source coordinates against orientation and crop. Report AI mask and profile references that need a local substitute. |
-| `AgLibraryFile` and `Adobe_images` relation, `masterImage`, separate Develop state, history and collections | Build a versioned read-only `.lrcat` importer after the per-photo XMP path. Preserve original references, virtual-copy identity, ratings, labels, metadata and collection membership. Report offline originals and unmatched paths before committing an import. |
+| `AgLibraryFile` and `Adobe_images` relation, `masterImage`, separate Develop state, history and collections | The `.lrcat` importer previews missing and unsupported files, retains original references, and transfers ratings, flags, labels, keywords, selected IPTC fields and manual collections. Lightroom virtual copies become named edit versions and their source identifiers and Develop text are retained. Add independent virtual copies, Smart Collection rules, collection hierarchy and Develop history. |
 
 For migration, use synthetic files and approved exported XMP fixtures. Verify
 byte-identical originals, identical second-import counts, rollback after an
@@ -66,7 +66,12 @@ interruption, preserved unknown settings and a per-image mapping report.
 Consider `.acr` sidecars in the separate Lightroom 15+ compatibility block.
 [Adobe catalog and XMP behavior](https://helpx.adobe.com/lightroom-classic/desktop/organize-photos-in-lightroom-classic/metadata-basics-actions.html)
 
-## Delivery order
+## Implementation order within one Windows release
+
+All four blocks belong to the same Windows release. The release gate covers the
+complete workflow, migration and backward compatibility, image fidelity, recovery
+and installer acceptance. The final GitHub artifact and installation on the
+target drive follow release validation.
 
 1. **Windows daily-use foundation.** Build and test the desktop app and CLI, RAW
    and raster open, Unicode catalogs and originals, persisted edits, copy import,
@@ -81,6 +86,24 @@ Consider `.acr` sidecars in the separate Lightroom 15+ compatibility block.
    slider feedback, preview switching and large batch exports on Windows.
 4. **Delivery modules.** Expand metadata, HDR and output formats. Add print,
    map and publishing workflows with separate acceptance fixtures.
+
+### Local verification
+
+- The synthetic Lightroom fixture covers a committed WAL, Unicode source
+  paths, interpreted Develop settings, IPTC, manual collections, virtual-copy
+  import as a version and idempotence after copying the source catalog. It
+  checks hashes of the original image, catalog and WAL.
+- The Windows daily-workflow fixture covers a separate-process offline edit
+  and reconnect, byte-identical PNG after reconnect, TIFF ZIP depth, alpha
+  and ICC tags, reopen through the TIFF reader and Survey selection.
+- The Ultra HDR fixture checks SDR JPEG readability, ISO and XMP gain-map
+  metadata, and highlight recovery through the libultrahdr decoder with
+  even and odd output dimensions.
+- A staged native Windows package opens a synthetic DNG, exports Ultra HDR
+  JPEG and starts the desktop without Qt or MinGW on PATH.
+- Remaining release qualification includes native interaction and display
+  checks, photographic comparisons, 1,000-file removable-drive imports,
+  catalog load and recovery, and verification of the final GitHub package.
 
 ## Observed preset fields
 

@@ -18,6 +18,12 @@ Apertone's original source is Apache-2.0. Dependencies retain their own licenses
   amalgamation; no dependency on the host SQLite library.
 - **LittleCMS 2.17** — https://github.com/mm2/Little-CMS/tree/lcms2.17
   ICC conversion. **MIT**. Statically compiled, with the upstream LICENSE notice.
+- **libultrahdr 2.0.2** — https://github.com/google/libultrahdr/tree/v2.0.2
+  Windows JPEG gain map encoding. **Apache-2.0**. The static build includes only
+  the JPEG codec and ships the upstream license.
+- **libjpeg-turbo 3.1.4** — https://github.com/libjpeg-turbo/libjpeg-turbo/releases/tag/3.1.4
+  JPEG compression for libultrahdr. **IJG**, **BSD-3-Clause** and **Zlib** licenses.
+  The Windows bundle includes the original licensing files and notice.
 - **Sparkle 2.10.0** — https://github.com/sparkle-project/Sparkle/releases/tag/2.10.0
   Native macOS update installation and EdDSA verification. Dynamically linked
   under its permissive Sparkle license; the complete upstream LICENSE is included.

@@ -30,7 +30,7 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def tiff_bits(path):
+def tiff_field(path, field):
     data = path.read_bytes()
     order = "<" if data.startswith(b"II") else ">"
     version, offset = struct.unpack_from(order + "HI", data, 2)
@@ -39,11 +39,11 @@ def tiff_bits(path):
     for index in range(count):
         start = offset + 2 + index * 12
         tag, kind, length = struct.unpack_from(order + "HHI", data, start)
-        if tag == 258:
+        if tag == field:
             assert kind == 3 and 1 <= length <= 4
             value = start + 8 if length <= 2 else struct.unpack_from(order + "I", data, start + 8)[0]
             return struct.unpack_from(order + "H" * length, data, value)
-    raise AssertionError("TIFF has no BitsPerSample")
+    raise AssertionError(f"TIFF has no tag {field}")
 
 
 def verify(app, cli, folder):
@@ -77,20 +77,58 @@ def verify(app, cli, folder):
     png, jpeg, tiff, dng = (output / f"Готово.{extension}" for extension in ("png", "jpg", "tif", "dng"))
     for destination in (png, jpeg, tiff, dng):
         run(cli, "export", destination, catalog=edited)
+    hdr = output / "Яркие света.jpg"
+    run(cli, "exposure", "3", catalog=edited)
+    run(cli, "export", hdr, "--format", "jpeg-hdr", catalog=edited)
+    assert b"urn:iso:std:iso:ts:21496:-1" in hdr.read_bytes()
+    run(cli, "exposure", "0.65", catalog=edited)
+    disconnected = raw.with_suffix(".offline")
+    raw.rename(disconnected)
+    try:
+        offline = json.loads(run(cli, "restore", catalog=edited))
+        assert offline["offlinePreview"] and offline["exposure"] == 0.65
+        run(cli, "exposure", "0.9", catalog=edited)
+        still_offline = json.loads(run(cli, "restore", catalog=edited))
+        assert still_offline["offlinePreview"] and still_offline["exposure"] == 0.9
+        run(app, "--test-restore", "0.9", catalog=edited)
+        blocked = output / "Офлайн.png"
+        result = subprocess.run([cli, "export", blocked, "--catalog", edited],
+                                capture_output=True, timeout=30)
+        assert result.returncode != 0 and not blocked.exists(), result
+    finally:
+        disconnected.rename(raw)
+    connected = json.loads(run(cli, "restore", catalog=edited))
+    assert not connected["offlinePreview"] and connected["exposure"] == 0.9
+    run(cli, "exposure", "0.65", catalog=edited)
+    reconnected = output / "Повтор.png"
+    run(cli, "export", reconnected, catalog=edited)
+    assert png.read_bytes() == reconnected.read_bytes(), "Offline editing changed export output"
     assert png.read_bytes().startswith(b"\x89PNG\r\n\x1a\n")
     assert jpeg.read_bytes().startswith(b"\xff\xd8")
-    assert set(tiff_bits(tiff)) == {16}
+    assert set(tiff_field(tiff, 258)) == {16}
     reopened = json.loads(run(cli, "open", dng, catalog=edited))
     assert (reopened["width"], reopened["height"]) == (96, 128), reopened
     assert before == (digest(raw), digest(webp)), "Original photo changed"
     run(cli, "catalog", "verify", catalog=edited)
     raster_catalog = folder / "Растр.sqlite"
-    run(cli, "open", webp, catalog=raster_catalog)
+    raster = json.loads(run(cli, "open", webp, catalog=raster_catalog))
     raster_output = output / "Альфа.png"
     run(cli, "export", raster_output, catalog=raster_catalog)
     assert raster_output.read_bytes()[25] == 6, "PNG lost its alpha channel"
+    for depth in (8, 16):
+        compressed = output / f"Сжатый {depth}.tif"
+        run(cli, "export", compressed, "--format", f"tiff{depth}", "--compression", "zip",
+            catalog=raster_catalog)
+        assert tiff_field(compressed, 258) == (depth,) * 4
+        assert tiff_field(compressed, 259) in {(8,), (32946,)}
+        assert tiff_field(compressed, 338) == (2,), "TIFF lost its unassociated alpha"
+        assert b"acsp" in compressed.read_bytes(), "TIFF lost its ICC profile"
+        round_trip = folder / f"ZIP {depth}.sqlite"
+        decoded = json.loads(run(cli, "open", compressed, catalog=round_trip))
+        assert (decoded["width"], decoded["height"]) == (raster["width"], raster["height"]), decoded
 
     run(app, "--smoke-test", catalog=folder / "Интерфейс.sqlite")
+    run(app, "--test-library", incoming, catalog=folder / "Обзор.sqlite")
     run(app, "--test-edit", raw, "--test-exposure", "0.65", "--test-develop",
         catalog=folder / "Редактор.sqlite")
     sidecar = folder / "Обработка.xmp"

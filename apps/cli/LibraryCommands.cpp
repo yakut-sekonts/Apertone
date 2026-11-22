@@ -2,6 +2,7 @@
 #include "apps/cli/LibraryCommands.h"
 #include "apps/cli/Json.h"
 #include "apps/shared/LibraryService.h"
+#include "apps/shared/LightroomCatalog.h"
 #include <charconv>
 #include <iostream>
 namespace luma::cli {
@@ -20,6 +21,29 @@ void summary(const ImportSummary &value) {
 }
 } // namespace
 bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std::string> &args) {
+    if (args[0] == "lightroom" && args.size() == 3 &&
+        (args[1] == "inspect" || args[1] == "import")) {
+        const auto source = pathFromUtf8(args[2]);
+        if (args[1] == "import" && catalog.empty())
+            throw std::runtime_error("Specify a destination Apertone catalog with --catalog.");
+        const auto report = args[1] == "inspect" ? inspectLightroomCatalog(source)
+                                                  : importLightroomCatalog(source, catalog, {});
+        std::cout << "{\"photos\":" << report.photos << ",\"available\":" << report.available
+                  << ",\"missing\":" << report.missing << ",\"unsupported\":" << report.unsupported
+                  << ",\"virtualCopies\":" << report.virtualCopies
+                  << ",\"manualCollections\":" << report.manualCollections
+                  << ",\"smartCollections\":" << report.smartCollections
+                  << ",\"mappedEdits\":" << report.mappedEdits
+                  << ",\"partialEdits\":" << report.partialEdits
+                  << ",\"unmappedEdits\":" << report.unmappedEdits
+                  << ",\"unreadable\":" << report.unreadable
+                  << ",\"added\":" << report.imported.added << ",\"reused\":" << report.imported.reused
+                  << ",\"versions\":" << report.imported.versions
+                  << ",\"unchanged\":" << report.imported.unchanged
+                  << ",\"collections\":" << report.imported.collections
+                  << ",\"fingerprint\":" << quoted(report.fingerprint) << "}\n";
+        return true;
+    }
     if (args[0] == "import" && args.size() >= 3) {
         ImportOptions options;
         std::size_t start = 2;

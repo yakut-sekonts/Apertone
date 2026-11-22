@@ -4,6 +4,7 @@
 #include "core/edits/EditHistory.h"
 #include "core/jobs/Cancellation.h"
 #include "core/library/LibraryTypes.h"
+#include "core/library/LightroomMigration.h"
 #include "core/library/SmartCollection.h"
 #include "core/metadata/DescriptiveMetadata.h"
 #include "core/metadata/PhotoMetadata.h"
@@ -99,6 +100,11 @@ class Catalog {
     bool batchAffects(const std::string &id) const;
     void saveExposure(const std::string &assetID, double ev);
     std::optional<AssetRecord> assetByID(const std::string &id) const;
+    std::optional<AssetRecord> assetByPath(const std::filesystem::path &path) const;
+    void selectAsset(const std::string &id);
+    LightroomMigrationResult applyLightroomMigration(
+        const std::string &sourceKey, const std::vector<LightroomMigrationPhoto> &photos,
+        const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop = {});
     // Owns a read transaction; use on a dedicated reader connection.
     std::optional<AssetSnapshot> assetSnapshot(const std::string &id);
     bool originalAtPath(const std::filesystem::path &canonicalPath,
@@ -235,10 +241,13 @@ class Catalog {
     void migrateImportPlans();
     void migrateIntelligentLibrary();
     void migratePersistentWorkflow();
+    void migrateLightroomMigration();
     void writeCreative(const std::string &assetID, const CreativeSettings &settings);
     void writeRetouch(const std::string &assetID, const std::vector<RetouchStroke> &strokes);
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
+    std::string insertEditVersion(const std::string &assetID, const std::string &name,
+                                  const EditDocument &edits);
     void writeEditHistory(const std::string &assetID, const PersistedEditHistory &history);
     void clearEditHistory(const std::string &assetID);
     void execute(const char *sql) const;

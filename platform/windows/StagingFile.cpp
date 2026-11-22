@@ -37,7 +37,7 @@ class Handle {
 
 void validPrefix(std::string_view prefix) {
     if (prefix != ".luma-xmp-" && prefix != ".luma-backup-" && prefix != ".luma-derived-" &&
-        prefix != ".luma-export-" && prefix != ".luma-diagnostics-")
+        prefix != ".luma-export-" && prefix != ".luma-diagnostics-" && prefix != ".luma-proxy-")
         throw std::invalid_argument("Unknown staging file kind.");
 }
 

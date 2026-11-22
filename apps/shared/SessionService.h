@@ -21,6 +21,7 @@ struct PhotoSession {
     double interactiveScale = 1;
     std::shared_ptr<const FloatImage> quickPreview;
     double quickScale = 1;
+    bool offline = false;
 };
 class SessionService {
   public:

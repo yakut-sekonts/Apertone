@@ -46,6 +46,7 @@ void printSession(const luma::PhotoSession &session) {
               << ",\"focalLength\":" << number(asset.metadata.focalLength)
               << ",\"width\":" << asset.metadata.width << ",\"height\":" << asset.metadata.height
               << ",\"exposure\":" << std::setprecision(17) << asset.edits.exposure
+              << ",\"offlinePreview\":" << (session.offline ? "true" : "false")
               << ",\"temperature\":" << asset.edits.temperature << ",\"tint\":" << asset.edits.tint
               << ",\"customWhiteBalance\":" << (asset.edits.customWhiteBalance ? "true" : "false")
               << ",\"contrast\":" << asset.edits.contrast
@@ -159,9 +160,13 @@ int main(int argc, char **argv) {
                    "NAME --catalog FILE\n"
                 << "       apertone collection add|remove ID ASSETS... | collection delete ID "
                    "--catalog FILE\n"
-                << "       apertone recover --catalog FILE\n";
+                << "       apertone recover --catalog FILE\n"
+                << "       apertone lightroom inspect SOURCE.lrcat\n"
+                << "       apertone lightroom import SOURCE.lrcat --catalog FILE\n";
             return 0;
         }
+        if (arguments[0] == "lightroom" && luma::cli::libraryCommand(catalog, arguments))
+            return 0;
         if (catalog.empty()) {
             throw std::runtime_error("Specify --catalog FILE explicitly.");
         }
@@ -309,7 +314,8 @@ int main(int argc, char **argv) {
                         throw std::runtime_error("Invalid JPEG quality.");
                 } else if (key == "--format")
                     options.format = exportChoice<luma::ExportFormat>(
-                        value, std::array{"jpeg", "png", "tiff16", "tiff8", "dng", "heic-hdr"});
+                        value, std::array{"jpeg", "png", "tiff16", "tiff8", "dng", "heic-hdr",
+                                          "jpeg-hdr"});
                 else if (key == "--color-space")
                     options.colorSpace = exportChoice<luma::ExportColorSpace>(
                         value, std::array{"srgb", "p3", "adobe-rgb", "prophoto"});
@@ -336,7 +342,7 @@ int main(int argc, char **argv) {
                     options.watermark.text = value;
                 } else if (key == "--watermark-image") {
                     options.watermark.kind = luma::WatermarkKind::image;
-                    options.watermark.image = value;
+                    options.watermark.image = luma::pathFromUtf8(value);
                 } else if (key == "--watermark-opacity")
                     options.watermark.opacity = exportNumber(value);
                 else if (key == "--watermark-size")

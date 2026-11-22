@@ -1,6 +1,7 @@
 #include "core/io/Path.h"
 #include "apps/shared/SessionService.h"
 #include "apps/shared/MetadataService.h"
+#include "apps/shared/OfflinePreview.h"
 #include "apps/shared/PhotoDecoder.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
@@ -10,9 +11,63 @@
 #include <cctype>
 
 namespace luma {
+namespace {
+std::optional<PersistedEditHistory> matchingHistory(const Catalog &catalog, const AssetRecord &asset) {
+    auto history = catalog.editHistory(asset.id);
+    if (history && history->entries[history->currentIndex].document != asset.edits)
+        history.reset();
+    return history;
+}
+PhotoSession offlineSession(const std::filesystem::path &catalogPath, const Catalog &catalog,
+                             AssetRecord asset, CancellationToken stop) {
+    auto stored = loadOfflinePreview(catalogPath, asset.checksum, stop);
+    if (!stored)
+        throw std::runtime_error("Original unavailable. Reconnect it to generate an offline preview.");
+    auto preview = std::make_shared<FloatImage>(std::move(stored->image));
+    auto interactive = std::make_shared<FloatImage>(standardPreview(*preview, 1024, stop));
+    auto quick = std::make_shared<FloatImage>(standardPreview(*preview, 512, stop));
+    pixelCount(asset.metadata.width, asset.metadata.height);
+    const auto scale = [&](const FloatImage &image) {
+        return std::min(static_cast<double>(image.width) / asset.metadata.width,
+                        static_cast<double>(image.height) / asset.metadata.height);
+    };
+    const double previewScale = scale(*preview);
+    const double interactiveScale = scale(*interactive);
+    const double quickScale = scale(*quick);
+    DecodeDiagnostics diagnostics;
+    diagnostics.decoder = "Apertone offline preview";
+    diagnostics.decoderVersion = "1";
+    diagnostics.sourceWidth = asset.metadata.width;
+    diagnostics.sourceHeight = asset.metadata.height;
+    diagnostics.activeWidth = preview->width;
+    diagnostics.activeHeight = preview->height;
+    auto history = matchingHistory(catalog, asset);
+    return {std::move(asset), std::move(history), std::move(preview), stored->calibration,
+            std::move(diagnostics), previewScale, std::move(interactive), interactiveScale,
+            std::move(quick), quickScale, true};
+}
+} // namespace
+
 PhotoSession SessionService::open(const std::filesystem::path &source, luma::CancellationToken stop,
                                   const std::function<void(double)> &progress) const {
-    const auto path = std::filesystem::canonical(source);
+    checkCancellation(stop);
+    std::error_code pathError;
+    const auto path = std::filesystem::canonical(source, pathError);
+    if (pathError) {
+        Catalog catalog(catalogPath_, CatalogOpenMode::existingOnly);
+        auto normalized = std::filesystem::weakly_canonical(source, pathError);
+        if (pathError || !normalized.is_absolute())
+            normalized = std::filesystem::absolute(source).lexically_normal();
+        if (auto known = catalog.assetByPath(normalized.make_preferred())) {
+            auto result = offlineSession(catalogPath_, catalog, std::move(*known), stop);
+            checkCancellation(stop);
+            catalog.selectAsset(result.asset.id);
+            if (progress)
+                progress(1);
+            return result;
+        }
+        throw std::runtime_error("Cannot open the original photo.");
+    }
     const auto originalSize = std::filesystem::file_size(path);
     const auto originalTime = std::filesystem::last_write_time(path);
     if (originalSize > 1'300'000'000) {
@@ -43,13 +98,18 @@ PhotoSession SessionService::open(const std::filesystem::path &source, luma::Can
         throw std::runtime_error(
             "Original changed while it was being decoded. Import was not committed.");
     }
-    Catalog catalog(catalogPath_);
+    try {
+        saveOfflinePreview(catalogPath_, checksum, *cached->standard, cached->calibration, stop);
+    } catch (const std::exception &) {
+        checkCancellation(stop);
+        // A cache error must not prevent editing an available original.
+    }
     auto metadata = cached->metadata;
     MetadataService::readSourceMetadata(path, metadata, stop);
+    checkCancellation(stop);
+    Catalog catalog(catalogPath_);
     auto asset = catalog.addAndSelect(path, checksum, metadata);
-    auto history = catalog.editHistory(asset.id);
-    if (history && history->entries[history->currentIndex].document != asset.edits)
-        history.reset();
+    auto history = matchingHistory(catalog, asset);
     const auto bytes =
         (cached->standard->rgb.capacity() + cached->standard->alpha.capacity() +
          cached->interactive->rgb.capacity() + cached->interactive->alpha.capacity() +
@@ -101,6 +161,13 @@ SessionService::restore(luma::CancellationToken stop,
     if (!active) {
         return std::nullopt;
     }
+    std::error_code status;
+    if (!std::filesystem::is_regular_file(active->path, status)) {
+        auto result = offlineSession(catalogPath_, catalog, std::move(*active), stop);
+        if (progress)
+            progress(1);
+        return result;
+    }
     return open(active->path, stop, progress);
 }
 void SessionService::save(const std::string &assetID, double exposure) const {
@@ -120,7 +187,10 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
                                  const std::function<void(double)> &progress) const {
     edits.validate();
     options.validate();
-    const auto source = std::filesystem::canonical(asset.path);
+    std::error_code sourceError;
+    const auto source = std::filesystem::canonical(asset.path, sourceError);
+    if (sourceError)
+        throw std::runtime_error("Reconnect the original photo for full-resolution export.");
     const auto target = std::filesystem::weakly_canonical(destination);
     const auto catalog = std::filesystem::weakly_canonical(catalogPath_);
     if (target == catalog || (std::filesystem::exists(target) && std::filesystem::exists(catalog) &&
@@ -143,7 +213,8 @@ void SessionService::exportPhoto(const AssetRecord &asset, EditDocument edits,
     std::transform(extension.begin(), extension.end(), extension.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     const bool validExtension =
-        options.format == ExportFormat::jpeg      ? (extension == ".jpg" || extension == ".jpeg")
+        options.format == ExportFormat::jpeg || options.format == ExportFormat::jpegHDR
+                                                    ? (extension == ".jpg" || extension == ".jpeg")
         : options.format == ExportFormat::png     ? extension == ".png"
         : options.format == ExportFormat::dng     ? extension == ".dng"
         : options.format == ExportFormat::heicHDR ? extension == ".heic"

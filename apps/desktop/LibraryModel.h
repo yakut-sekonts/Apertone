@@ -25,6 +25,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QString maintenanceStatus READ maintenanceStatus NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap lightroomReport READ lightroomReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantList importSources READ importSources NOTIFY stateChanged)
     Q_PROPERTY(QVariantList duplicateReview READ duplicateReview NOTIFY stateChanged)
     Q_PROPERTY(QVariantList fingerprintRows READ fingerprintRows NOTIFY stateChanged)
@@ -125,6 +126,7 @@ class LibraryModel final : public QAbstractListModel {
             result.append(QString::fromStdString(id));
         return result;
     }
+    Q_INVOKABLE bool removeFromSelection(const QString &id);
     bool importing() const {
         return importing_;
     }
@@ -255,6 +257,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE bool removeImportMetadataPreset(const QString &name);
     Q_INVOKABLE bool importAdvanced(const QList<QUrl> &sources, const QVariantMap &settings,
                                     const QString &developPreset);
+    QVariantMap lightroomReport() const { return lightroomReport_; }
+    Q_INVOKABLE void inspectLightroom(const QUrl &source);
+    Q_INVOKABLE void applyLightroom(const QUrl &source, const QString &fingerprint);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE bool refreshLastImport();
@@ -276,6 +281,7 @@ class LibraryModel final : public QAbstractListModel {
 
   private:
     bool startImport(std::vector<std::filesystem::path> sources, luma::ImportOptions options);
+    void runLightroom(const QUrl &source, const QString &fingerprint);
     bool startNextImportSourceRefresh();
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
@@ -318,6 +324,7 @@ class LibraryModel final : public QAbstractListModel {
     LocalizedText status_ = QStringLiteral("Opening catalog…");
     LocalizedText maintenanceStatus_;
     QString error_, importReport_;
+    QVariantMap lightroomReport_;
     QVariantList importSources_, duplicateReview_;
     QVariantList fingerprintRows_;
     QString fingerprintError_;

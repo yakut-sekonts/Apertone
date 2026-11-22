@@ -1,11 +1,53 @@
 #include "core/io/Path.h"
 #include "apps/desktop/EditorController.h"
+#include "apps/shared/OfflinePreview.h"
 #include "core/image/Bayer.h"
 #include "core/render/CpuRenderer.h"
 #include <QPointer>
 #include <algorithm>
 
+namespace {
+QString comparisonURL(qsizetype index, std::uint64_t revision) {
+    return QStringLiteral("image://preview/compare-%1?%2").arg(index).arg(revision);
+}
+
+QImage renderComparison(const luma::SessionService &service, const luma::AssetRecord &asset,
+                        const std::filesystem::path &catalog, int maxEdge,
+                        std::span<const std::uint8_t> profile, bool hdrToneMapping,
+                        luma::CancellationToken stop) {
+    std::shared_ptr<const luma::DecodedImage> decoded;
+    std::optional<luma::OfflinePreview> offline;
+    std::error_code error;
+    if (maxEdge && !std::filesystem::is_regular_file(asset.path, error)) {
+        offline = luma::loadOfflinePreview(catalog, asset.checksum, stop);
+        if (!offline)
+            throw std::runtime_error("Original unavailable. Reconnect it to generate an offline preview.");
+    } else {
+        decoded = service.fullResolution(asset, stop);
+    }
+    const auto &original = offline ? offline->image : decoded->image;
+    const auto &calibration = offline ? offline->calibration : decoded->calibration;
+    auto preview = maxEdge ? std::optional{luma::standardPreview(original, maxEdge, stop)}
+                           : std::nullopt;
+    const auto &input = preview ? *preview : original;
+    const int width = offline ? asset.metadata.width : original.width;
+    const double scale = static_cast<double>(input.width) / std::max(1, width);
+    const auto rendered = luma::renderCPU(
+        input, asset.edits, asset.metadata.orientation, profile, stop, calibration,
+        luma::DetailDiagnostic::none, scale, asset.metadata, {}, nullptr, {}, 4,
+        hdrToneMapping ? luma::DisplayMapping::adaptiveHDR : luma::DisplayMapping::clip);
+    auto image = QImage(rendered.rgba.data(), rendered.width, rendered.height,
+                        static_cast<qsizetype>(rendered.width) * 4, QImage::Format_RGBA8888).copy();
+    if (image.isNull())
+        throw std::runtime_error("Cannot allocate the comparison preview.");
+    return image;
+}
+} // namespace
+
 QVariantMap EditorController::comparison() const {
+    QStringList sources;
+    for (qsizetype i = 0; i < compareIDs_.size(); ++i)
+        sources.append(comparisonURL(i, compareImageRevision_));
     return {
         {"busy", compareBusy_},
         {"ready", compareReady_},
@@ -14,8 +56,10 @@ QVariantMap EditorController::comparison() const {
         {"beforeAfter", compareBeforeAfter_},
         {"ids", compareIDs_},
         {"names", compareNames_},
-        {"left", QStringLiteral("image://preview/compare-left?%1").arg(compareImageRevision_)},
-        {"right", QStringLiteral("image://preview/compare-right?%1").arg(compareImageRevision_)}};
+        {"sources", sources},
+        {"errors", compareErrors_},
+        {"left", comparisonURL(0, compareImageRevision_)},
+        {"right", comparisonURL(1, compareImageRevision_)}};
 }
 void EditorController::closeCompare() {
     compareJob_.cancel();
@@ -26,11 +70,16 @@ void EditorController::closeCompare() {
     compareBeforeAfter_ = false;
     compareIDs_.clear();
     compareNames_.clear();
-    provider_->updateCompare({}, {});
+    compareErrors_.clear();
+    provider_->updateCompare({});
     emit stateChanged();
 }
 void EditorController::prepareCompare(const QStringList &ids, bool fullResolution) {
     prepareCompareImpl(ids, fullResolution, false);
+}
+void EditorController::prepareSurvey(const QStringList &ids) {
+    if (ids.size() >= 2 && ids.size() <= 12)
+        prepareCompareImpl(ids, false, false, true);
 }
 void EditorController::prepareBeforeAfter(bool fullResolution) {
     if (!session_)
@@ -39,8 +88,11 @@ void EditorController::prepareBeforeAfter(bool fullResolution) {
     prepareCompareImpl({id, id}, fullResolution, true);
 }
 void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResolution,
-                                          bool beforeAfter) {
-    if (closing_ || ids.size() != 2 || (!beforeAfter && ids[0] == ids[1]))
+                                          bool beforeAfter, bool survey) {
+    auto unique = ids;
+    unique.removeDuplicates();
+    if (closing_ || (!survey && ids.size() != 2) ||
+        (!beforeAfter && ids.size() != unique.size()))
         return;
     finishHistoryTools();
     compareJob_.cancel();
@@ -52,7 +104,8 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
     compareBeforeAfter_ = beforeAfter;
     compareIDs_ = ids;
     compareNames_.clear();
-    provider_->updateCompare({}, {});
+    compareErrors_.clear();
+    provider_->updateCompare({});
     const auto active = session_ ? session_->asset.id : std::string{};
     const auto activeEdits = history_.current();
     const auto catalogPath = catalog_;
@@ -63,49 +116,40 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
     try {
         compareJob_ = compareJobs_.submit(
             luma::JobPriority::interactive,
-            [self, revision, ids, fullResolution, beforeAfter, active, activeEdits, catalogPath,
-             service, profile, hdrToneMapping](const luma::JobContext &context) {
-                std::array<QImage, 2> images;
-                QStringList names;
+            [self, revision, ids, fullResolution, beforeAfter, survey, active, activeEdits,
+             catalogPath, service, profile, hdrToneMapping](const luma::JobContext &context) {
+                std::vector<QImage> images(static_cast<std::size_t>(ids.size()));
+                QStringList names, errors;
                 QString error;
                 try {
                     luma::Catalog catalog(catalogPath);
-                    // Freeze both edits before decoding. Never change the active Library asset.
-                    std::array<luma::AssetRecord, 2> assets;
-                    for (int i = 0; i < 2; ++i) {
+                    // Freeze edits before decoding. Never change the active Library asset.
+                    std::vector<luma::AssetRecord> assets;
+                    assets.reserve(images.size());
+                    for (qsizetype i = 0; i < ids.size(); ++i) {
                         auto snapshot = catalog.assetSnapshot(ids[i].toStdString());
                         if (!snapshot)
                             throw std::runtime_error(
                                 "Comparison photo is no longer in the catalog.");
-                        assets[i] = std::move(snapshot->asset);
+                        auto &asset = assets.emplace_back(std::move(snapshot->asset));
                         if (beforeAfter)
-                            assets[i].edits = i == 0 ? luma::EditDocument{} : activeEdits;
-                        else if (assets[i].id == active)
-                            assets[i].edits = activeEdits;
-                        names.append(QString::fromStdString(luma::pathUtf8(assets[i].path.filename())));
+                            asset.edits = i == 0 ? luma::EditDocument{} : activeEdits;
+                        else if (asset.id == active)
+                            asset.edits = activeEdits;
+                        names.append(QString::fromStdString(luma::pathUtf8(asset.path.filename())));
                     }
-                    for (int i = 0; i < 2; ++i) {
+                    const int maxEdge = fullResolution ? 0 : survey ? 1200 : 2560;
+                    for (std::size_t i = 0; i < assets.size(); ++i) {
                         luma::checkCancellation(context.stopToken());
-                        const auto decoded = service.fullResolution(assets[i], context.stopToken());
-                        const auto preview =
-                            fullResolution ? std::optional<luma::FloatImage>{}
-                                           : std::optional<luma::FloatImage>{luma::standardPreview(
-                                                 decoded->image, 2560, context.stopToken())};
-                        const auto &input = preview ? *preview : decoded->image;
-                        const double scale =
-                            static_cast<double>(input.width) / decoded->image.width;
-                        const auto rendered = luma::renderCPU(
-                            input, assets[i].edits, assets[i].metadata.orientation, profile,
-                            context.stopToken(), decoded->calibration, luma::DetailDiagnostic::none,
-                            scale, assets[i].metadata, {}, nullptr, {}, 4,
-                            hdrToneMapping ? luma::DisplayMapping::adaptiveHDR
-                                           : luma::DisplayMapping::clip);
-                        images[i] = QImage(rendered.rgba.data(), rendered.width, rendered.height,
-                                           static_cast<qsizetype>(rendered.width) * 4,
-                                           QImage::Format_RGBA8888)
-                                        .copy();
-                        if (images[i].isNull())
-                            throw std::runtime_error("Cannot allocate the comparison preview.");
+                        try {
+                            images[i] = renderComparison(service, assets[i], catalogPath, maxEdge,
+                                                         profile, hdrToneMapping, context.stopToken());
+                            errors.append(QString());
+                        } catch (const std::exception &failure) {
+                            if (!survey || context.stopToken().isCancelled())
+                                throw;
+                            errors.append(QString::fromUtf8(failure.what()));
+                        }
                     }
                 } catch (const std::exception &failure) {
                     error = QString::fromUtf8(failure.what());
@@ -114,16 +158,16 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                     return;
                 QMetaObject::invokeMethod(
                     self,
-                    [self, revision, images = std::move(images), names, error]() mutable {
+                    [self, revision, images = std::move(images), names, errors, error]() mutable {
                         if (!self || self->compareRevision_ != revision)
                             return;
                         self->compareBusy_ = false;
                         self->compareError_ = error;
                         self->compareReady_ = error.isEmpty();
                         if (error.isEmpty()) {
-                            self->provider_->updateCompare(std::move(images[0]),
-                                                           std::move(images[1]));
+                            self->provider_->updateCompare(std::move(images));
                             self->compareNames_ = names;
+                            self->compareErrors_ = errors;
                             ++self->compareImageRevision_;
                         }
                         emit self->stateChanged();

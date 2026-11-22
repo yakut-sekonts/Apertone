@@ -1,4 +1,6 @@
 #include "platform/macos/ImageExporter.h"
+#include "platform/windows/UltraHdr.h"
+#include "platform/windows/TiffWriter.h"
 #include "core/export/DngWriter.h"
 #include "core/export/LinearOutput.h"
 #include "core/io/FileSystem.h"
@@ -116,11 +118,16 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
         }
     }
     const auto format = opts.format == ExportFormat::tiff16 ? QImage::Format_RGBA64
-                         : opts.format == ExportFormat::jpeg ? QImage::Format_RGB888
-                                                            : QImage::Format_RGBA8888;
+                        : opts.format == ExportFormat::jpeg ? QImage::Format_RGB888
+                        : opts.compression == TiffCompression::zip ? QImage::Format_ARGB32
+                                                                   : QImage::Format_RGBA8888;
     const auto output = input.convertedToColorSpace(space, format);
     if (output.isNull())
         throw std::runtime_error("Cannot convert export image to the selected color space.");
+    if (opts.compression == TiffCompression::zip) {
+        windows::writeZipTiff(output, std::filesystem::path(path.toStdWString()), stop);
+        return;
+    }
     const QByteArray codec = opts.format == ExportFormat::jpeg ? "jpeg"
                              : opts.format == ExportFormat::png ? "png"
                                                                 : "tiff";
@@ -128,8 +135,6 @@ void encodeRaster(const LinearOutput &image, const QColorSpace &space, const Exp
     if (opts.format == ExportFormat::jpeg)
         writer.setQuality(opts.quality);
     if (codec == "tiff") {
-        if (opts.compression == TiffCompression::zip)
-            throw std::runtime_error("TIFF ZIP compression is unavailable on Windows.");
         writer.setCompression(opts.compression == TiffCompression::lzw ? 1 : 0);
     }
     checkCancellation(stop);
@@ -176,6 +181,8 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                     dest[i + 2] = value.blue();
                 }
             }, staging, space.description().toStdString(), {}, stop);
+    } else if (options.format == ExportFormat::jpegHDR) {
+        windows::writeUltraHdrJpeg(image, staging, options.quality, stop);
     } else {
         encodeRaster(image, space, options, QString::fromStdWString(staging.native()), stop);
     }

@@ -5,17 +5,19 @@ void PreviewProvider::update(QImage image) {
     std::lock_guard lock(mutex_);
     image_ = std::move(image);
 }
-void PreviewProvider::updateCompare(QImage left, QImage right) {
+void PreviewProvider::updateCompare(std::vector<QImage> images) {
     std::lock_guard lock(mutex_);
-    compareLeft_ = std::move(left);
-    compareRight_ = std::move(right);
+    comparison_ = std::move(images);
 }
 QImage PreviewProvider::requestImage(const QString &id, QSize *size, const QSize &) {
     std::lock_guard lock(mutex_);
     const auto key = id.section('?', 0, 0);
-    const auto &result = key == "compare-left"    ? compareLeft_
-                         : key == "compare-right" ? compareRight_
-                                                  : image_;
+    QImage result = image_;
+    if (key.startsWith(QStringLiteral("compare-"))) {
+        bool valid = false;
+        const auto index = key.mid(8).toUInt(&valid);
+        result = valid && index < comparison_.size() ? comparison_[index] : QImage();
+    }
     if (size) {
         *size = result.size();
     }

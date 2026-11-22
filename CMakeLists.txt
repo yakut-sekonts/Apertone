@@ -31,6 +31,7 @@ include(cmake/Dependencies.cmake)
 
 add_library(luma_core STATIC
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
+    core/catalog/LightroomMigration.cpp
     ${apertone_staging} core/io/FileSystem.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
@@ -83,16 +84,23 @@ target_include_directories(luma_macos PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_macos PRIVATE luma_lcms "-framework AppKit" "-framework ColorSync" "-framework CoreImage" "-framework ImageIO" "-framework CoreText" "-framework UniformTypeIdentifiers")
 target_compile_options(luma_macos PRIVATE -Wall -Wextra -Wpedantic -Werror)
 else()
+    include(cmake/UltraHdr.cmake)
     add_library(luma_windows STATIC platform/windows/RasterDecoder.cpp platform/windows/ImageExporter.cpp
-        platform/windows/PhotoMetadataIO.cpp platform/windows/PlatformServices.cpp)
+        platform/windows/PhotoMetadataIO.cpp platform/windows/PlatformServices.cpp
+        platform/windows/UltraHdr.cpp platform/windows/TiffWriter.cpp)
     target_include_directories(luma_windows PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi)
+    target_link_libraries(luma_windows PRIVATE luma_core Qt6::Gui Qt6::Xml gdi32 psapi ole32 shlwapi uhdr)
     target_compile_options(luma_windows PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
+add_library(luma_presets STATIC apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
+target_link_libraries(luma_presets PUBLIC luma_core Qt6::Core)
+target_compile_options(luma_presets PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/DerivedProvenance.cpp apps/shared/DetailService.cpp apps/shared/MergeService.cpp apps/shared/BackupService.cpp apps/shared/MetadataService.cpp apps/shared/RelinkService.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
+target_sources(luma_services PRIVATE apps/shared/OfflinePreview.cpp apps/shared/LightroomCatalog.cpp
+    apps/shared/LightroomDevelop.cpp)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform})
+target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets)
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
@@ -111,12 +119,12 @@ qt_add_executable(Apertone MACOSX_BUNDLE
     apps/desktop/DiagnosticsController.cpp apps/desktop/DiagnosticsController.h
     apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp
     apps/desktop/BatchController.cpp apps/desktop/BatchController.h
-    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
+    apps/desktop/PresetController.cpp apps/desktop/PresetController.h apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
     apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
-    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
+    apps/desktop/main.cpp apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/LibraryAcceptance.cpp apps/desktop/LocalMaskAcceptance.cpp)
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
-    QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
+    QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
 target_compile_options(Apertone PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -294,9 +302,9 @@ if(BUILD_TESTING AND APPLE)
     find_package(Qt6 6.10.3 REQUIRED COMPONENTS Test)
     qt_add_executable(luma_ux_tests MACOSX_BUNDLE tests/ux/main.cpp tests/ux/UxContext.cpp tests/ux/UxPixels.cpp tests/ux/UxDriver.cpp tests/ux/UxMetrics.cpp tests/ux/SqliteFault.cpp tests/ux/RecoveryScenarios.cpp tests/ux/BasicScenarios.cpp tests/ux/LibraryScenarios.cpp tests/ux/MaskScenarios.cpp tests/ux/LifecycleScenarios.cpp tests/ux/ImportScenarios.cpp tests/ux/ExportScenarios.cpp tests/ux/RestartScenarios.cpp tests/ux/BatchScenarios.cpp tests/ux/GeometryScenarios.cpp tests/ux/CropScenarios.cpp tests/ux/AccessibilityScenarios.cpp tests/ux/LibraryScaleScenarios.cpp tests/ux/SelectionScenarios.cpp tests/ux/KeyboardScenarios.cpp tests/ux/NavigationScenarios.cpp tests/ux/FilterExtraScenarios.cpp tests/ux/DetailScenarios.cpp tests/ux/LensScenarios.cpp tests/ux/AdvancedScenarios.cpp tests/ux/PresetScenarios.cpp tests/ux/PresetExtraScenarios.cpp tests/ux/PresetRemainingScenarios.cpp tests/ux/HistoryStressScenarios.cpp tests/ux/ImportExtraScenarios.cpp tests/ux/CurrentPerformanceScenarios.cpp tests/ux/WhiteBalanceScenarios.cpp tests/ux/PreviewBackendScenarios.cpp tests/ux/ZoomScenarios.cpp tests/ux/GestureRemainingScenarios.cpp tests/ux/VisualRemainingScenarios.cpp tests/ux/LibraryRemainingScenarios.cpp tests/ux/BatchUpdateRemainingScenarios.cpp tests/ux/AppExtraScenarios.cpp tests/ux/ExportExtraScenarios.cpp tests/ux/PreviewExtraScenarios.cpp tests/ux/RecoveryExtraScenarios.cpp tests/ux/AsyncScenarios.cpp tests/ux/TransformScenarios.cpp tests/ux/TransformExtraScenarios.cpp tests/ux/LocalizationScenarios.cpp tests/ux/UpdaterScenarios.cpp
         apps/desktop/ExportController.cpp apps/shared/ExportSettings.cpp
-        apps/desktop/BatchController.cpp apps/desktop/PresetController.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
+        apps/desktop/BatchController.cpp apps/desktop/PresetController.cpp
         apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
-        apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/UpdateController.cpp)
+        apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
     target_sources(luma_ux_tests PRIVATE apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h apps/desktop/DiagnosticsController.cpp
         apps/desktop/DiagnosticSession.cpp platform/macos/CrashCapture.mm)
@@ -410,14 +418,14 @@ if(BUILD_TESTING AND APPLE)
     target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME update-restart-guard COMMAND luma_update_tests)
     qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp tests/unit/ExportExifFixture.mm apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
-        apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp
+        apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
-        apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp apps/desktop/PresetController.cpp apps/desktop/PresetController.h
+        apps/desktop/PresetController.cpp apps/desktop/PresetController.h
         apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp)
     target_link_libraries(luma_batch_tests PRIVATE luma_services Qt6::Quick Qt6::QuickControls2)
     target_compile_options(luma_batch_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/LocalCompleteEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp
+    qt_add_executable(luma_preset_tests tests/unit/PresetTests.cpp tests/unit/LocalEditorTests.cpp tests/unit/LocalCompleteEditorTests.cpp tests/unit/XmpPresetTests.cpp tests/unit/FilterEditorTests.cpp tests/unit/CropEditorTests.cpp tests/unit/LensEditorTests.cpp tests/unit/TransformEditorTests.cpp
         apps/desktop/PresetController.cpp apps/desktop/PresetController.h
         apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp)
@@ -442,7 +450,7 @@ if(BUILD_TESTING AND APPLE)
     target_compile_options(luma_detail_resolution_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME detail-resolution-quality-contract COMMAND luma_detail_resolution_tests)
     set_tests_properties(detail-resolution-quality-contract PROPERTIES TIMEOUT 30 LABELS "unit;detail;image-quality")
-    add_executable(luma_filter_tests tests/unit/FilterTests.cpp apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
+    add_executable(luma_filter_tests tests/unit/FilterTests.cpp)
     target_link_libraries(luma_filter_tests PRIVATE luma_services Qt6::Gui)
     target_compile_options(luma_filter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME builtin-filter-photographic-quality COMMAND luma_filter_tests "${CMAKE_SOURCE_DIR}/tests/assets/filters" "${CMAKE_BINARY_DIR}/qa/filters")
@@ -504,12 +512,11 @@ if(BUILD_TESTING AND APPLE)
     target_compile_options(luma_copy_publication_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME copy-publication-single-link COMMAND luma_copy_publication_tests)
     set_tests_properties(copy-publication-single-link PROPERTIES TIMEOUT 30 LABELS "unit;import")
-    add_executable(luma_library_tests tests/unit/LibraryTests.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryMaintenance.cpp)
+    add_executable(luma_library_tests tests/unit/LibraryTests.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp)
     add_executable(luma_duplicate_fingerprint_tests tests/unit/DuplicateFingerprintTests.cpp)
     target_link_libraries(luma_duplicate_fingerprint_tests PRIVATE luma_core)
     target_compile_options(luma_duplicate_fingerprint_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME library-duplicate-fingerprints COMMAND luma_duplicate_fingerprint_tests)
-    target_sources(luma_library_tests PRIVATE apps/shared/PresetStore.cpp apps/shared/XmpPresetImport.cpp apps/shared/BuiltinPresets.cpp)
     target_link_libraries(luma_library_tests PRIVATE luma_services Qt6::Core)
     target_compile_options(luma_library_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME library-fingerprint-model COMMAND luma_library_tests --fingerprints)
@@ -614,9 +621,19 @@ elseif(BUILD_TESTING AND WIN32)
     add_executable(luma_crop_tests tests/unit/CropTests.cpp)
     target_link_libraries(luma_crop_tests PRIVATE luma_core)
     add_test(NAME crop-geometry-unit COMMAND luma_crop_tests)
+    add_executable(luma_windows_uhdr_tests tests/unit/WindowsUltraHdrTests.cpp)
+    target_link_libraries(luma_windows_uhdr_tests PRIVATE luma_core luma_windows Qt6::Gui uhdr)
+    target_compile_options(luma_windows_uhdr_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME windows-ultra-hdr-jpeg COMMAND luma_windows_uhdr_tests)
     add_test(NAME windows-daily-workflow COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_SOURCE_DIR}/tests/integration/windows.py"
         "$<TARGET_FILE:Apertone>" "$<TARGET_FILE:luma_cli>")
     set_tests_properties(windows-daily-workflow PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
+endif()
+if(BUILD_TESTING)
+    add_test(NAME lightroom-catalog-import COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/tests/integration/lightroom.py" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(lightroom-catalog-import PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 120)
 endif()

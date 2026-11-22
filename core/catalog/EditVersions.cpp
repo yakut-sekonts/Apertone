@@ -83,40 +83,45 @@ std::vector<EditVersionInfo> Catalog::editVersions(const std::string &assetID) c
 }
 std::string Catalog::createEditVersion(const std::string &assetID, const std::string &name,
                                        const EditDocument &edits) {
-    validateName(name);
-    const auto document = encodeEditSnapshot(edits);
-    const auto id = newID();
     execute("BEGIN IMMEDIATE;");
     try {
-        Statement asset(db_, "SELECT 1 FROM assets WHERE id=?1");
-        asset.text(1, assetID);
-        if (!asset.row())
-            throw std::runtime_error("The photo is no longer in the catalog.");
-        Statement budget(db_, "SELECT COUNT(*),COALESCE(SUM(length(CAST(document AS BLOB))),0) "
-                              "FROM edit_versions WHERE asset_id=?1");
-        budget.text(1, assetID);
-        if (!budget.row() || budget.integer(0) >= maximumVersions ||
-            budget.integer(1) > maximumStoredBytes - static_cast<std::int64_t>(document.size()))
-            throw std::runtime_error(
-                "A photo supports at most 100 versions and 256 MiB of version data.");
-        Statement duplicate(db_, "SELECT 1 FROM edit_versions WHERE asset_id=?1 AND name=?2");
-        duplicate.text(1, assetID);
-        duplicate.text(2, name);
-        if (duplicate.row())
-            throw std::runtime_error("A version with this name already exists.");
-        Statement insert(
-            db_, "INSERT INTO edit_versions(id,asset_id,name,document) VALUES(?1,?2,?3,?4)");
-        insert.text(1, id);
-        insert.text(2, assetID);
-        insert.text(3, name);
-        insert.text(4, document);
-        insert.row();
+        auto id = insertEditVersion(assetID, name, edits);
         execute("COMMIT;");
         return id;
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
         throw;
     }
+}
+std::string Catalog::insertEditVersion(const std::string &assetID, const std::string &name,
+                                       const EditDocument &edits) {
+    validateName(name);
+    const auto document = encodeEditSnapshot(edits);
+    const auto id = newID();
+    Statement asset(db_, "SELECT 1 FROM assets WHERE id=?1");
+    asset.text(1, assetID);
+    if (!asset.row())
+        throw std::runtime_error("The photo is no longer in the catalog.");
+    Statement budget(db_, "SELECT COUNT(*),COALESCE(SUM(length(CAST(document AS BLOB))),0) "
+                          "FROM edit_versions WHERE asset_id=?1");
+    budget.text(1, assetID);
+    if (!budget.row() || budget.integer(0) >= maximumVersions ||
+        budget.integer(1) > maximumStoredBytes - static_cast<std::int64_t>(document.size()))
+        throw std::runtime_error(
+            "A photo supports at most 100 versions and 256 MiB of version data.");
+    Statement duplicate(db_, "SELECT 1 FROM edit_versions WHERE asset_id=?1 AND name=?2");
+    duplicate.text(1, assetID);
+    duplicate.text(2, name);
+    if (duplicate.row())
+        throw std::runtime_error("A version with this name already exists.");
+    Statement insert(
+        db_, "INSERT INTO edit_versions(id,asset_id,name,document) VALUES(?1,?2,?3,?4)");
+    insert.text(1, id);
+    insert.text(2, assetID);
+    insert.text(3, name);
+    insert.text(4, document);
+    insert.row();
+    return id;
 }
 EditDocument Catalog::editVersion(const std::string &assetID, const std::string &id,
                                   std::int64_t revision) const {

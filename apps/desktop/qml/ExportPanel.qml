@@ -13,13 +13,23 @@ Dialog {
     height: Math.min(parent.height - 50, 790)
     property var form: exporter.settings
     readonly property bool windowsBuild: Qt.platform.os === "windows"
+    readonly property var formats: [
+        {tag: 0, name: "JPEG"},
+        {tag: 1, name: "PNG"},
+        {tag: 2, name: "TIFF · 16 bit"},
+        {tag: 3, name: "TIFF · 8 bit"},
+        {tag: 4, name: qsTranslate("Apertone", "DNG · processed Linear RGB")},
+        panel.windowsBuild ? {tag: 6, name: qsTranslate("Apertone", "JPEG · Ultra HDR")}
+                           : {tag: 5, name: qsTranslate("Apertone", "HEIC · Adaptive HDR")}
+    ]
     function update(key, value) { const copy = Object.assign({}, form); copy[key] = value; form = copy }
     function loadForm() {
         const copy = Object.assign({}, exporter.settings)
         if (windowsBuild) {
             if (copy.format === 5) copy.format = 0
-            if (copy.compression === 2) copy.compression = 0
             copy.metadata = 0
+        } else if (copy.format === 6) {
+            copy.format = 0
         }
         form = copy
     }
@@ -57,39 +67,34 @@ Dialog {
             Label { visible: panel.form.conflict === 2; text: qsTranslate("Apertone", "Files with matching names will be replaced."); color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true }
             ApertoneComboBox {
                 objectName: "exportFormat"
-                model: {
-                    const formats = ["JPEG", "PNG", "TIFF · 16 bit", "TIFF · 8 bit", qsTranslate("Apertone", "DNG · processed Linear RGB")]
-                    if (!panel.windowsBuild) formats.push(qsTranslate("Apertone", "HEIC · Adaptive HDR"))
-                    return formats
-                }
-                currentIndex: panel.form.format
+                model: panel.formats
+                textRole: "name"
+                valueRole: "tag"
+                currentIndex: panel.formats.findIndex(entry => entry.tag === panel.form.format)
                 onActivated: {
-                    panel.update("format", currentIndex)
-                    if (currentIndex !== 2 && currentIndex !== 3) panel.update("compression", 0)
-                    if (currentIndex === 5) panel.update("colorSpace", 0)
+                    panel.update("format", currentValue)
+                    if (currentValue !== 2 && currentValue !== 3) panel.update("compression", 0)
+                    if (currentValue === 5 || currentValue === 6) panel.update("colorSpace", 0)
                 }
                 Layout.fillWidth: true
             }
             Label { visible: panel.form.format === 4; text: qsTranslate("Apertone", "DNG contains applied edits, not archived camera sensor data. Minimum 22 px on each side."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
             Label { visible: panel.form.format === 5; text: qsTranslate("Apertone", "Adaptive HDR includes an SDR-compatible base and ISO gain map. Requires macOS 15 or later."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
+            Label { visible: panel.form.format === 6; text: qsTranslate("Apertone", "Ultra HDR keeps an SDR-compatible JPEG and a gain map for HDR displays."); wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 12 }
             RowLayout {
-                visible: panel.form.format === 0 || panel.form.format === 5
+                visible: panel.form.format === 0 || panel.form.format === 5 || panel.form.format === 6
                 Label { text: panel.form.format === 5 ? qsTranslate("Apertone", "HEIC quality") : qsTranslate("Apertone", "JPEG quality") }
                 ApertoneSpinBox { from: 1; to: 100; value: panel.form.quality; editable: true; onValueModified: panel.update("quality", value) }
             }
             ApertoneComboBox {
                 objectName: "export.compression"
                 visible: panel.form.format === 2 || panel.form.format === 3
-                model: {
-                    const methods = [qsTranslate("Apertone", "TIFF · uncompressed"), "TIFF · LZW"]
-                    if (!panel.windowsBuild) methods.push("TIFF · ZIP")
-                    return methods
-                }
+                model: [qsTranslate("Apertone", "TIFF · uncompressed"), "TIFF · LZW", "TIFF · ZIP"]
                 currentIndex: panel.form.compression
                 onActivated: panel.update("compression", currentIndex)
                 Layout.fillWidth: true
             }
-            ApertoneComboBox { objectName: "export.colorSpace"; enabled: panel.form.format !== 5; model: ["sRGB", "Display P3", "Adobe RGB (1998)", "ProPhoto RGB"]; currentIndex: panel.form.colorSpace; onActivated: panel.update("colorSpace", currentIndex); Layout.fillWidth: true }
+            ApertoneComboBox { objectName: "export.colorSpace"; enabled: panel.form.format !== 5 && panel.form.format !== 6; model: ["sRGB", "Display P3", "Adobe RGB (1998)", "ProPhoto RGB"]; currentIndex: panel.form.colorSpace; onActivated: panel.update("colorSpace", currentIndex); Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", "Size after Crop / Transform") }
             RowLayout {
                 ApertoneComboBox { objectName: "export.resize"; model: [qsTranslate("Apertone", "Original size"), qsTranslate("Apertone", "Width, px"), qsTranslate("Apertone", "Height, px"), qsTranslate("Apertone", "Long edge, px"), qsTranslate("Apertone", "Short edge, px"), qsTranslate("Apertone", "Megapixels"), qsTranslate("Apertone", "Percentage")]; currentIndex: panel.form.resize; onActivated: panel.update("resize", currentIndex); Layout.fillWidth: true }

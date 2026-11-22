@@ -4,7 +4,7 @@
 def remove_post_v11_features(database):
     # This is fixture construction, never a production downgrade path. Keep the
     # schema guard: a later schema must explicitly update its historical fixtures.
-    assert database.execute("PRAGMA user_version").fetchone() == (23,)
+    assert database.execute("PRAGMA user_version").fetchone() == (24,)
     for statement in (
         "DROP TABLE edit_history_states",
         "DROP TABLE burst_members", "DROP TABLE burst_stacks",

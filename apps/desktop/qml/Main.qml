@@ -170,6 +170,15 @@ ApplicationWindow {
                 ApertoneButton { objectName: "editor.retrySave"; visible: editor.saving && !editor.busy; text: qsTranslate("Apertone", "Retry save"); onClicked: editor.retrySave() }
             }
         }
+        Label {
+            visible: editor.offlinePreview && !root.libraryMode
+            text: qsTranslate("Apertone", "Editing offline preview. Reconnect the original to export.")
+            color: Theme.muted
+            Layout.fillWidth: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
+            wrapMode: Text.Wrap
+        }
         RowLayout {
             visible: editor.exporting
             Layout.fillWidth: true; Layout.margins: visible ? 10 : 0

@@ -16,6 +16,7 @@ Rectangle {
         faceGroupFilter.currentIndex = Math.max(0, index)
     })
     CompareDialog { id:compareDialog }
+    SurveyDialog { id: surveyDialog }
     SmartCollectionDialog { id: smartCollection }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
@@ -135,6 +136,13 @@ Rectangle {
         library.setIntelligentFilter([-2, 1, 0, -1][suggestionFilter.currentIndex], pane.intelligentFaceGroupID, bestOfBurst.checked)
     }
     function allowShortcut() { return library.selectedCount > 0 && !library.working && !(Window.window.activeFocusItem && typeof Window.window.activeFocusItem.cursorPosition === "number") }
+    readonly property bool canSurvey: library.selectedCount >= 2 && library.selectedCount <= 12 &&
+                                      !library.working && !library.selecting && !editor.busy
+    Shortcut {
+        sequence: "N"
+        enabled: pane.visible && pane.canSurvey && pane.allowShortcut() && !surveyDialog.visible && !compareDialog.visible
+        onActivated: surveyDialog.showSelection()
+    }
     Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(1) }
     Shortcut { sequence: "X"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(-1) }
     Shortcut { sequence: "U"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(0) }
@@ -199,6 +207,99 @@ Rectangle {
         }
     }
     FingerprintReviewDialog { id: fingerprintDialog; libraryModel: library }
+    FileDialog {
+        id: lightroomFile
+        title: qsTranslate("Apertone", "Lightroom catalog")
+        nameFilters: ["Lightroom Classic (*.lrcat *.LRCAT)"]
+        onAccepted: {
+            lightroomDialog.source = selectedFile
+            library.inspectLightroom(selectedFile)
+            lightroomDialog.open()
+        }
+    }
+    Dialog {
+        id: lightroomDialog
+        objectName: "library.lightroomImport"
+        title: qsTranslate("Apertone", "Lightroom catalog")
+        property url source
+        readonly property var report: library.lightroomReport
+        modal: true
+        closePolicy: Popup.NoAutoClose
+        anchors.centerIn: parent
+        width: Math.min(590, parent.width - 60)
+        contentItem: ColumnLayout {
+            Label {
+                visible: library.importing
+                text: qsTranslate("Apertone", library.status)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            ProgressBar {
+                visible: library.importing
+                value: library.progress
+                indeterminate: value === 0
+                Layout.fillWidth: true
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.fingerprint)
+                text: qsTranslate("Apertone", "%1 photos · %2 available · %3 missing · %4 unsupported")
+                      .arg(lightroomDialog.report.photos || 0).arg(lightroomDialog.report.available || 0)
+                      .arg(lightroomDialog.report.missing || 0).arg(lightroomDialog.report.unsupported || 0)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.fingerprint)
+                text: qsTranslate("Apertone", "%1 edits mapped · %2 partial · %3 unmapped · %4 virtual copies")
+                      .arg(lightroomDialog.report.mappedEdits || 0).arg(lightroomDialog.report.partialEdits || 0)
+                      .arg(lightroomDialog.report.unmappedEdits || 0).arg(lightroomDialog.report.virtualCopies || 0)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied)
+                text: qsTranslate("Apertone", "%1 added · %2 processing versions · %3 already imported · %4 unreadable")
+                      .arg(lightroomDialog.report.added || 0).arg(lightroomDialog.report.versions || 0)
+                      .arg(lightroomDialog.report.unchanged || 0).arg(lightroomDialog.report.unreadable || 0)
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+            }
+            Label {
+                visible: library.error.length > 0
+                text: qsTranslate("Apertone", library.error)
+                textFormat: Text.PlainText
+                color: Theme.negative
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+            }
+            ScrollView {
+                visible: Boolean(lightroomDialog.report.warnings && lightroomDialog.report.warnings.length)
+                Layout.fillWidth: true
+                Layout.preferredHeight: visible ? 170 : 0
+                contentWidth: availableWidth
+                Label {
+                    text: lightroomDialog.report.warnings ? lightroomDialog.report.warnings.join("\n") : ""
+                    width: parent.width
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WrapAnywhere
+                }
+            }
+        }
+        footer: DialogButtonBox {
+            ApertoneButton {
+                text: qsTranslate("Apertone", library.importing ? "Cancel" : "Close")
+                DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                onClicked: library.importing ? library.cancelImport() : lightroomDialog.close()
+            }
+            ApertoneButton {
+                objectName: "library.applyLightroom"
+                text: qsTranslate("Apertone", "Import")
+                DialogButtonBox.buttonRole: DialogButtonBox.ActionRole
+                enabled: !library.working && !lightroomDialog.report.applied && lightroomDialog.report.available > 0
+                onClicked: library.applyLightroom(lightroomDialog.source, lightroomDialog.report.fingerprint)
+            }
+        }
+    }
     RowLayout {
         anchors.fill: parent; spacing: 0
         Rectangle {
@@ -207,6 +308,7 @@ Rectangle {
                 anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: Theme.panelSpacing
                 Label { text: qsTranslate("Apertone", "LIBRARY"); font.pixelSize: 10; color: Theme.faint; font.letterSpacing: 1.5 }
                 ApertoneButton { objectName: "library.importButton"; text: qsTranslate("Apertone", "+  Import"); Layout.fillWidth: true; enabled: !library.working; onClicked: importDialog.open() }
+                ApertoneButton { objectName: "library.lightroomButton"; text: qsTranslate("Apertone", "Import Lightroom catalog…"); Layout.fillWidth: true; enabled: !library.working; onClicked: lightroomFile.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
                 ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
                 ApertoneButton { objectName: "semantic.open"; visible: Qt.platform.os !== "windows"; text: qsTranslate("Apertone", "Search by description"); Layout.fillWidth: true; onClicked: semanticSearch.open() }
@@ -219,6 +321,12 @@ Rectangle {
                         id: photoActions
                         MenuItem { objectName: "library.photoMetadata"; text: qsTranslate("Apertone", "Photo metadata"); enabled: library.selectedCount === 1 && !library.working; onTriggered: photoMetadata.showPhoto(library.selectedAssetIDs()[0]) }
                         MenuItem { text: qsTranslate("Apertone", "Compare Select / Candidate"); enabled: library.selectedCount === 2 && !library.working && !editor.busy; onTriggered: {editor.prepareCompare(library.selectedAssetIDs());compareDialog.open()} }
+                        MenuItem {
+                            objectName: "library.openSurvey"
+                            text: qsTranslate("Apertone", "Survey")
+                            enabled: pane.canSurvey
+                            onTriggered: surveyDialog.showSelection()
+                        }
                         MenuItem { objectName: "library.hdr"; text: qsTranslate("Apertone", "HDR merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 9 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: hdrDialog.open() }
                         MenuItem { objectName: "library.panorama"; text: qsTranslate("Apertone", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
                     }
@@ -244,7 +352,13 @@ Rectangle {
                 ApertoneButton { objectName: "library.newCollection"; text: qsTranslate("Apertone", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
                 ApertoneButton { objectName: "library.renameCollection"; text: qsTranslate("Apertone", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
                 ApertoneButton { objectName: "library.deleteCollection"; text: qsTranslate("Apertone", "Delete collection"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: deleteDialog.open() }
-                Label { text: qsTranslate("Apertone", "Double-click → Develop\n⌘ / Shift → select\n0–5 · P / X / U"); color: Theme.faint; font.pixelSize: 10; Layout.topMargin: 8 }
+                Label {
+                    text: {
+                        const keys = qsTranslate("Apertone", "Double-click → Develop\n⌘ / Shift → select\n0–5 · P / X / U")
+                        return Qt.platform.os === "windows" ? keys.replace("⌘", "Ctrl") : keys
+                    }
+                    color: Theme.faint; font.pixelSize: 10; Layout.topMargin: 8
+                }
             }
         }
         ColumnLayout {

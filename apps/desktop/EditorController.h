@@ -47,6 +47,7 @@ class EditorController final : public QObject {
 #endif
     Q_PROPERTY(QVariantMap comparison READ comparison NOTIFY stateChanged)
     Q_PROPERTY(QString photoID READ photoID NOTIFY stateChanged)
+    Q_PROPERTY(bool offlinePreview READ offlinePreview NOTIFY stateChanged)
     Q_PROPERTY(QVariantList localComponents READ localComponents NOTIFY stateChanged)
     Q_PROPERTY(bool localSampling READ localSampling NOTIFY stateChanged)
     Q_PROPERTY(bool localGestureActive READ localGestureActive NOTIFY stateChanged)
@@ -353,6 +354,7 @@ class EditorController final : public QObject {
     }
     void setZoomFactor(double factor);
     bool zoomAvailable() const;
+    bool offlinePreview() const { return session_ && session_->offline; }
     static constexpr double minimumZoomFactor() {
         return 0.01;
     }
@@ -558,6 +560,7 @@ class EditorController final : public QObject {
     void setPointColorRange(bool value);
     QVariantMap comparison() const;
     Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
+    Q_INVOKABLE void prepareSurvey(const QStringList &ids);
     Q_INVOKABLE void prepareBeforeAfter(bool fullResolution = false);
     Q_INVOKABLE void closeCompare();
     Q_INVOKABLE void autoAdjust();
@@ -688,8 +691,9 @@ class EditorController final : public QObject {
     bool compareBusy_ = false, compareReady_ = false, compareFull_ = false;
     bool compareBeforeAfter_ = false;
     QString compareError_;
-    QStringList compareIDs_, compareNames_;
-    void prepareCompareImpl(const QStringList &ids, bool fullResolution, bool beforeAfter);
+    QStringList compareIDs_, compareNames_, compareErrors_;
+    void prepareCompareImpl(const QStringList &ids, bool fullResolution, bool beforeAfter,
+                            bool survey = false);
     luma::JobManager creativeJobs_;
     luma::JobHandle creativeJob_;
     std::uint64_t creativeRevision_ = 0;

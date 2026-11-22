@@ -543,6 +543,13 @@ void LibraryModel::clearSelection() {
     anchor_ = -1;
     selectionChanged();
 }
+bool LibraryModel::removeFromSelection(const QString &id) {
+    if (working() || selecting_ || !selected_.remove(id))
+        return false;
+    anchor_ = -1;
+    selectionChanged();
+    return true;
+}
 void LibraryModel::select(int row, bool toggle, bool range) {
     if (row < 0 || row >= count_ || closing_ || externalBusy_)
         return;
@@ -757,11 +764,11 @@ void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &d
             emit stateChanged();
             return;
         }
-        sources.emplace_back(url.toLocalFile().toStdString());
+        sources.emplace_back(luma::pathFromUtf8(url.toLocalFile().toStdString()));
     }
     luma::ImportOptions options;
     options.mode = copy ? luma::ImportMode::copy : luma::ImportMode::add;
-    options.destination = destination.toLocalFile().toStdString();
+    options.destination = luma::pathFromUtf8(destination.toLocalFile().toStdString());
     options.recursive = recursive;
     options.skipDuplicates = skipDuplicates;
     startImport(std::move(sources), std::move(options));

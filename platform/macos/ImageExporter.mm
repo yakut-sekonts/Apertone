@@ -103,6 +103,8 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
                 CancellationToken stop, const std::function<void(double)> &progress,
                 const std::filesystem::path &metadataSource, const ExportInstallGuard &installGuard,
                 const std::optional<MetadataOverlay> &metadataOverlay) {
+    if (options.format == ExportFormat::jpegHDR)
+        throw std::runtime_error("Ultra HDR JPEG is unavailable in the macOS build.");
     if (options.advanced() || !decoded.image.alpha.empty()) {
         writeAdvancedImage(decoded, edits, destination, options, stop, progress, metadataSource,
                            installGuard, metadataOverlay);

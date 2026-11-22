@@ -15,6 +15,9 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
         QElapsedTimer clock;
         qint64 captureAfter = 0;
         QString thumbnailBeforeEdit;
+        QObject *survey = nullptr;
+        QStringList surveyIDs;
+        bool surveyChecked = false;
     };
     auto state = std::make_shared<State>();
     state->clock.start();
@@ -53,6 +56,54 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
             case 2:
                 if (library.selectedCount() != 2)
                     return;
+                if (!state->surveyChecked) {
+                    if (!state->survey) {
+                        state->survey = window->findChild<QObject *>(QStringLiteral("library.survey"));
+                        state->surveyIDs = library.selectedAssetIDs();
+                        if (!state->survey ||
+                            !QMetaObject::invokeMethod(state->survey, "showSelection")) {
+                            std::cerr << "Cannot open the Survey dialog\n";
+                            app.exit(1);
+                        }
+                        return;
+                    }
+                    const auto comparison = editor.comparison();
+                    if (comparison.value("busy").toBool())
+                        return;
+                    if (!comparison.value("ready").toBool()) {
+                        std::cerr << "Survey preview failed: "
+                                  << comparison.value("error").toString().toStdString() << '\n';
+                        app.exit(1);
+                        return;
+                    }
+                    const auto findItem = [](QQuickItem *root, const QString &name, auto &&find)
+                        -> QQuickItem * {
+                        if (root->objectName() == name)
+                            return root;
+                        for (auto *child : root->childItems())
+                            if (auto *item = find(child, name, find))
+                                return item;
+                        return nullptr;
+                    };
+                    for (const auto &id : state->surveyIDs) {
+                        const auto *image = findItem(window->contentItem(),
+                                                    "library.surveyPreview." + id, findItem);
+                        if (!image || image->property("status").toInt() != 1)
+                            return;
+                    }
+                    auto *remove = findItem(window->contentItem(),
+                                            "library.surveyRemove." + state->surveyIDs.first(), findItem);
+                    if (!remove || !QMetaObject::invokeMethod(remove, "clicked") ||
+                        library.selectedAssetIDs() != QStringList{state->surveyIDs.last()} ||
+                        editor.hasPhoto() || !QMetaObject::invokeMethod(state->survey, "close")) {
+                        std::cerr << "Survey changed the wrong selection or active photo\n";
+                        app.exit(1);
+                        return;
+                    }
+                    state->surveyChecked = true;
+                    library.selectAll();
+                    return;
+                }
                 state->phase = 3;
                 library.rate(4);
                 break;

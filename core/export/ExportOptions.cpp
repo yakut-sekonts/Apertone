@@ -27,7 +27,7 @@ void WatermarkOptions::validate() const {
 void ExportOptions::validate() const {
     if (quality < 1 || quality > 100)
         throw std::runtime_error("Lossy export quality must be 1–100.");
-    if (!within(format, ExportFormat::heicHDR) || !within(colorSpace, ExportColorSpace::proPhoto) ||
+    if (!within(format, ExportFormat::jpegHDR) || !within(colorSpace, ExportColorSpace::proPhoto) ||
         !within(compression, TiffCompression::zip) || !within(resize, ResizeMode::percentage) ||
         !within(outputMedium, OutputMedium::glossy) || !within(outputAmount, SharpenAmount::high) ||
         !within(metadata, MetadataPolicy::removeLocation) || !std::isfinite(resizeValue) ||
@@ -36,14 +36,16 @@ void ExportOptions::validate() const {
     if (compression != TiffCompression::none && format != ExportFormat::tiff8 &&
         format != ExportFormat::tiff16)
         throw std::runtime_error("TIFF compression requires TIFF output.");
-    if (format == ExportFormat::heicHDR && colorSpace != ExportColorSpace::srgb)
-        throw std::runtime_error("Adaptive HDR HEIC requires the linear sRGB working space.");
+    if ((format == ExportFormat::heicHDR || format == ExportFormat::jpegHDR) &&
+        colorSpace != ExportColorSpace::srgb)
+        throw std::runtime_error("HDR gain map export requires the linear sRGB working space.");
     watermark.validate();
 }
 bool ExportOptions::advanced() const {
     validate();
     return format == ExportFormat::tiff8 || format == ExportFormat::dng ||
-           format == ExportFormat::heicHDR || colorSpace != ExportColorSpace::srgb ||
+           format == ExportFormat::heicHDR || format == ExportFormat::jpegHDR ||
+           colorSpace != ExportColorSpace::srgb ||
            compression != TiffCompression::none || resize != ResizeMode::original ||
            outputMedium != OutputMedium::off || metadata != MetadataPolicy::none ||
            (watermark.kind != WatermarkKind::none && watermark.opacity > 0);
@@ -92,6 +94,7 @@ std::string ExportOptions::extension() const {
     validate();
     switch (format) {
     case ExportFormat::jpeg:
+    case ExportFormat::jpegHDR:
         return ".jpg";
     case ExportFormat::png:
         return ".png";

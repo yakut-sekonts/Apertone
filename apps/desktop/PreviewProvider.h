@@ -3,6 +3,7 @@
 #include <QQuickImageProvider>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 // One cache entry owns both the pixels and the analysis of that exact render.
 struct RenderedPreview {
@@ -14,10 +15,11 @@ class PreviewProvider final : public QQuickImageProvider {
   public:
     PreviewProvider();
     void update(QImage image);
-    void updateCompare(QImage left, QImage right);
+    void updateCompare(std::vector<QImage> images);
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
 
   private:
     std::mutex mutex_;
-    QImage image_, compareLeft_, compareRight_;
+    QImage image_;
+    std::vector<QImage> comparison_;
 };

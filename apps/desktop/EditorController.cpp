@@ -287,7 +287,8 @@ bool EditorController::zoomToolsCompatible() const {
     return !whiteBalancePicking_ && !pointColorPicking_ && retouchMode_ == QStringLiteral("off");
 }
 bool EditorController::zoomAvailable() const {
-    return editable() && zoomToolsCompatible() && pressure_ == luma::macos::MemoryPressure::normal;
+    return editable() && !offlinePreview() && zoomToolsCompatible() &&
+           pressure_ == luma::macos::MemoryPressure::normal;
 }
 QString EditorController::zoomMode() const {
     if (!zoomToolsCompatible() || zoomMode_ == PreviewZoom::fit)

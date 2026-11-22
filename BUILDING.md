@@ -5,8 +5,9 @@
 Use Windows 10 or 11 x64, the Qt 6.10.3 MinGW kit with Qt Image Formats,
 MinGW-w64 GCC 13.1, CMake 3.25 or later, Ninja and Python 3.12. Set
 `$qt` and `$mingw` to the kit and compiler installation directories.
-The build downloads the existing hash-pinned LibRaw, SQLite, LittleCMS
-and Lensfun sources. The Windows build uses the CPU Develop renderer.
+The build downloads hash-pinned LibRaw, SQLite, LittleCMS, Lensfun,
+libjpeg-turbo and libultrahdr sources. The Windows build uses the CPU Develop
+renderer.
 
 ```powershell
 $qt = "C:/Qt/6.10.3/mingw_64"
@@ -28,11 +29,28 @@ when moving it to another drive. Launch `Apertone.exe` for the desktop app.
 The default catalog is in the user's Windows application-data directory.
 Use `--catalog <path>` to choose a catalog or isolate an acceptance run.
 
-The Windows build supports the shared editor, library, presets, manual masks,
-metadata sidecars, CPU culling and JPEG, PNG, TIFF and Linear DNG export.
-Windows provider work for Core ML/Vision features, automatic updates,
-HDR HEIC and source metadata export is tracked in the
-[Lightroom parity backlog](docs/LIGHTROOM_PARITY.md).
+The Windows desktop includes the editor, Library, presets, manual masks,
+metadata sidecars, CPU culling, Survey, and JPEG, PNG, TIFF, Linear DNG and
+Ultra HDR JPEG export. TIFF export offers 8-bit or 16-bit channels with ZIP
+compression and an embedded ICC profile.
+
+Open a photo in Develop while its original is connected to generate an
+editable offline preview. The catalog cache retains up to 1 GiB of previews.
+Reconnect the source for a full-resolution export.
+
+Use Library → Import Lightroom catalog to preview a Lightroom Classic
+migration and choose when to apply it. To inspect and migrate from PowerShell,
+run the CLI from the deployment folder.
+
+```powershell
+.\apertone-cli.exe lightroom inspect "D:\Photos\Archive.lrcat"
+.\apertone-cli.exe lightroom import "D:\Photos\Archive.lrcat" --catalog "D:\Photos\Apertone.sqlite"
+.\apertone-cli.exe export "D:\Photos\HDR.jpg" --format jpeg-hdr --catalog "D:\Photos\Apertone.sqlite"
+```
+
+Select a photograph in Develop before running the export command. The
+[Lightroom parity backlog](docs/LIGHTROOM_PARITY.md) records migration coverage,
+Windows provider work and the remaining release checks.
 
 ## Building on macOS
 
