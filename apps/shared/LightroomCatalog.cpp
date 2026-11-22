@@ -186,6 +186,21 @@ std::string metadataText(const std::string &value, bool multiline = false) {
     return text.toStdString();
 }
 
+bool samePath(const std::filesystem::path &left, const std::filesystem::path &right) {
+#ifdef _WIN32
+    const auto normalized = [](const std::filesystem::path &path) {
+        return QDir::fromNativeSeparators(QString::fromStdWString(path.native()));
+    };
+    if (normalized(left).compare(normalized(right), Qt::CaseInsensitive) == 0)
+        return true;
+#else
+    if (left == right)
+        return true;
+#endif
+    std::error_code error;
+    return std::filesystem::equivalent(left, right, error);
+}
+
 std::map<std::string, DescriptiveMetadata> catalogDescriptions(sqlite3 *db, CancellationToken stop) {
     std::map<std::string, DescriptiveMetadata> values;
     if (hasTable(db, "AgLibraryIPTC")) {
@@ -254,11 +269,12 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         requireTable(db, "AgLibraryKeywordImage");
         Statement tags(db, "SELECT i.id_global,k.name FROM AgLibraryKeywordImage m "
                            "JOIN AgLibraryKeyword k ON k.id_local=m.tag "
-                           "JOIN Adobe_images i ON i.id_local=m.image ORDER BY m.id_local");
+                           "JOIN Adobe_images i ON i.id_local=m.image "
+                           "WHERE length(CAST(k.name AS BLOB)) BETWEEN 1 AND 512 ORDER BY m.id_local");
         while (tags.row()) {
             checkCancellation(stop);
-            const auto keyword = tags.string(1);
-            if (keyword.empty() || keyword.size() > 512)
+            const auto keyword = metadataText(tags.string(1));
+            if (keyword.size() > 512 || keyword.find_first_not_of(' ') == keyword.npos)
                 continue;
             auto &values = descriptions[tags.string(0)].keywords;
             if (values.size() < 256 && std::ranges::find(values, keyword) == values.end())
@@ -268,8 +284,8 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
 
     Statement images(db, "SELECT i.id_global,master.id_global,i.copyName,i.rating,i.pick,"
                          "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
-                         "f.baseName,f.extension,CASE WHEN length(s.text)<=1048576 THEN s.text "
-                         "ELSE NULL END,COALESCE(length(s.text),0) "
+                         "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
+                         "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0) "
                          "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
                          "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
                          "LEFT JOIN AgLibraryRootFolder root ON root.id_local=folder.rootFolder "
@@ -417,10 +433,7 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
     const auto input = std::filesystem::canonical(source);
     const auto destination = std::filesystem::weakly_canonical(target);
     for (const auto suffix : {"", "-wal", "-shm", "-journal"}) {
-        const auto protectedPath = pathWithSuffix(input, suffix);
-        std::error_code error;
-        if (protectedPath == destination ||
-            std::filesystem::equivalent(protectedPath, destination, error))
+        if (samePath(pathWithSuffix(input, suffix), destination))
             throw std::runtime_error("Choose an Apertone catalog for the migration destination.");
     }
     Snapshot snapshot(input, stop);

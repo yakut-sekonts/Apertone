@@ -125,6 +125,9 @@ def verify(binary, folder):
         run(binary, "lightroom", "import", source, "--catalog", wal, expected=1)
         journal = source.with_name(source.name + "-journal")
         run(binary, "lightroom", "import", source, "--catalog", journal, expected=1)
+        if sys.platform == "win32":
+            case_alias = journal.with_name(journal.name.upper())
+            run(binary, "lightroom", "import", source, "--catalog", case_alias, expected=1)
         assert not journal.exists()
         assert tuple(digest(path) for path in (source, wal, raw)) == before
     finally:
