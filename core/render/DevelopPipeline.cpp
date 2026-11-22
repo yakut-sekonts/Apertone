@@ -17,11 +17,20 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
               ToneCurve(edits.curves[3])} {
     edits.validate();
     creativeColorActive_ = creativeColorActive(edits);
+    const auto &profile = edits.creative.cameraProfile.profile;
+    if (!edits.creative.cameraProfile.digest.empty() && !profile)
+        throw std::runtime_error("The selected camera profile is unavailable.");
+    if (profile) {
+        calibration_ = applyDcpCalibration(calibration_, *profile);
+        gains_ = calibration_.asShotGains;
+        profileTemperature_ = calibration_.asShotTemperature;
+    }
     if (edits.customWhiteBalance && edits.enabled(Correction::whiteBalance)) {
         const auto resolved =
-            resolveRawColorCalibration(calibration, edits.temperature, edits.tint);
+            resolveRawColorCalibration(calibration_, edits.temperature, edits.tint);
         calibration_.cameraToSRGB = resolved.cameraToSRGB;
         gains_ = resolved.gains;
+        profileTemperature_ = edits.temperature;
     }
     for (auto value : calibration_.cameraToSRGB)
         if (!std::isfinite(value))
@@ -30,7 +39,8 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
         if (!std::isfinite(value) || value <= 0)
             throw std::runtime_error("Invalid As Shot WB.");
     exposureGain_ =
-        static_cast<float>(std::exp2(edits.enabled(Correction::exposure) ? edits.exposure : 0));
+        static_cast<float>(std::exp2((edits.enabled(Correction::exposure) ? edits.exposure : 0) +
+                                     (profile ? profile->baselineExposure : 0)));
     curvesActive_ = edits.enabled(Correction::curves) &&
                     (edits.curveShadows != 0 || edits.curveDarks != 0 || edits.curveLights != 0 ||
                      edits.curveHighlights != 0 ||
@@ -82,8 +92,14 @@ std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
     std::array<float, 3> rgb{};
     const auto &m = calibration_.cameraToSRGB;
     for (std::size_t c = 0; c < 3; ++c)
-        rgb[c] = (m[c * 3] * camera[0] + m[c * 3 + 1] * camera[1] + m[c * 3 + 2] * camera[2]) *
-                 exposureGain_;
+        rgb[c] = m[c * 3] * camera[0] + m[c * 3 + 1] * camera[1] + m[c * 3 + 2] * camera[2];
+    const auto &profile = edits_.creative.cameraProfile.profile;
+    if (profile)
+        rgb = applyDcpHueSaturation(*profile, rgb, profileTemperature_);
+    for (auto &channel : rgb)
+        channel *= exposureGain_;
+    if (profile)
+        rgb = applyDcpLook(*profile, rgb);
     const double luminance = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
     const double contrast = amount(edits_, Correction::contrast, edits_.contrast);
     const double shadows = amount(edits_, Correction::shadows, edits_.shadows);

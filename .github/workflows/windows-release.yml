@@ -55,6 +55,8 @@ jobs:
           $env:PATH = "$(Resolve-Path build-windows);$env:PATH"
           ctest --test-dir build-windows --output-on-failure
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Qualify exFAT Copy, Move and interrupted import recovery
+        run: .\scripts\verify-windows-exfat.ps1 -Cli build-windows/bin/apertone-cli.exe
       - name: Verify and archive the portable Windows distribution
         run: |
           $qt = (Resolve-Path .tools/qt/6.10.3/mingw_64).Path
@@ -115,9 +117,9 @@ jobs:
 
           Apertone is available for Windows 10 and 11 x64. Extract the [Windows ZIP](https://github.com/$repo/releases/download/$tag/$asset) to a folder such as \`E:\Apertone\` and launch \`Apertone.exe\`. Keep the files in the archive together.
 
-          Includes Lightroom Classic catalog migration, virtual copies, dynamic Smart Collections, manual stacks, offline preview preparation, a pinned reference and a review window. Local masks cover subject, background, a clicked object, sky, people, facial regions and relative depth. Windows also adds RAW denoise, metadata policies, PDF delivery, an offline map and an HTML gallery and slideshow.
+          Includes Lightroom Classic catalog migration with saved masks and matching DCP camera profiles, virtual copies, dynamic Smart Collections and Windows still capture through supported camera drivers. Local tools include automatic masks, RAW denoise, ICC-proofed PDF delivery and web galleries.
 
-          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 26. Apertone saves a pre-migration backup.
+          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 28. Apertone saves a pre-migration backup.
 
           Windows source: [$SOURCE_COMMIT](https://github.com/$repo/commit/$SOURCE_COMMIT)
 

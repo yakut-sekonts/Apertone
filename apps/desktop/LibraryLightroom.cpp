@@ -24,6 +24,10 @@ QVariantMap reportMap(const luma::LightroomCatalogReport &report, bool applied) 
         {"mappedEdits", count(report.mappedEdits)},
         {"partialEdits", count(report.partialEdits)},
         {"unmappedEdits", count(report.unmappedEdits)},
+        {"masksMapped", count(report.masksMapped)},
+        {"masksSkipped", count(report.masksSkipped)},
+        {"profilesMapped", count(report.profilesMapped)},
+        {"profilesSkipped", count(report.profilesSkipped)},
         {"historyMapped", count(report.historyMapped)},
         {"historyPartial", count(report.historyPartial)},
         {"historySkipped", count(report.historySkipped)},
@@ -48,19 +52,22 @@ void LibraryModel::inspectLightroom(const QUrl &source) {
     runLightroom(source, {});
 }
 
-void LibraryModel::applyLightroom(const QUrl &source, const QString &fingerprint) {
+void LibraryModel::applyLightroom(const QUrl &source, const QString &fingerprint,
+                                  const QUrl &profiles) {
     if (fingerprint.isEmpty() || fingerprint != lightroomReport_.value("fingerprint").toString())
         return;
-    runLightroom(source, fingerprint);
+    runLightroom(source, fingerprint, profiles);
 }
 
-void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint) {
+void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint,
+                                const QUrl &profiles) {
     if (working() || closing_ || !source.isLocalFile() ||
         QFileInfo(source.toLocalFile())
                 .suffix()
                 .compare(QStringLiteral("lrcat"), Qt::CaseInsensitive) != 0)
         return;
     const auto original = luma::pathFromUtf8(source.toLocalFile().toStdString());
+    const auto profileFolder = luma::pathFromUtf8(profiles.toLocalFile().toStdString());
     const auto target = catalog_;
     const auto expected = fingerprint.toStdString();
     const bool apply = !expected.empty();
@@ -74,8 +81,8 @@ void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint) 
     const auto stop = importCancellation_.token();
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
-    imports_.submit(luma::JobPriority::background, [self, original, target, expected, apply,
-                                                    stop](const auto &) {
+    imports_.submit(luma::JobPriority::background, [self, original, target, profileFolder, expected,
+                                                    apply, stop](const auto &) {
         QVariantMap report;
         QString error;
         try {
@@ -92,9 +99,9 @@ void LibraryModel::runLightroom(const QUrl &source, const QString &fingerprint) 
                     },
                     Qt::QueuedConnection);
             };
-            const auto result =
-                apply ? luma::importLightroomCatalog(original, target, expected, stop, progress)
-                      : luma::inspectLightroomCatalog(original, stop);
+            const auto result = apply ? luma::importLightroomCatalog(original, target, expected,
+                                                                     stop, progress, profileFolder)
+                                      : luma::inspectLightroomCatalog(original, stop);
             report = reportMap(result, apply);
         } catch (const std::exception &failure) {
             if (!stop.isCancelled())

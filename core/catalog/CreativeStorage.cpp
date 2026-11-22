@@ -3,6 +3,44 @@
 #include "core/catalog/SqliteStatement.h"
 namespace luma {
 namespace detail {
+void restoreCameraProfile(sqlite3 *db, DcpSelection &selection) {
+    if (selection.digest.empty())
+        return;
+    Statement query(
+        db, "SELECT typeof(payload),length(payload),payload FROM camera_profiles WHERE digest=?1");
+    query.text(1, selection.digest);
+    if (!query.row() || query.string(0) != "blob" || query.integer(1) < 8 ||
+        query.integer(1) > static_cast<std::int64_t>(maximumDcpBytes))
+        throw std::runtime_error("The catalog camera profile is missing or invalid.");
+    // Thumbnails and history for the same profile can share the decoded tables.
+    static thread_local std::string digest;
+    static thread_local std::weak_ptr<const DcpProfile> cached;
+    if (digest == selection.digest)
+        selection.profile = cached.lock();
+    if (!selection.profile) {
+        selection.profile = readDcpProfile(query.payload(2));
+        digest = selection.digest;
+        cached = selection.profile;
+    }
+}
+
+void storeCameraProfile(sqlite3 *db, const DcpSelection &selection) {
+    if (selection.digest.empty())
+        return;
+    Statement known(db, "SELECT 1 FROM camera_profiles WHERE digest=?1");
+    known.text(1, selection.digest);
+    if (known.row())
+        return;
+    if (!selection.profile)
+        throw std::runtime_error("The selected camera profile has no data.");
+    const auto &data = selection.profile->source;
+    Statement insert(db, "INSERT INTO camera_profiles(digest,payload) VALUES(?1,?2)");
+    insert.text(1, selection.digest);
+    insert.blob(2, {reinterpret_cast<const std::uint8_t *>(data.data()), data.size()},
+                maximumDcpBytes);
+    insert.row();
+}
+
 CreativeSettings readCreative(sqlite3 *db, const std::string &assetID) {
     Statement query(db, "SELECT typeof(document),length(CAST(document AS BLOB)),document FROM "
                         "edit_creative WHERE asset_id=?1");
@@ -10,9 +48,20 @@ CreativeSettings readCreative(sqlite3 *db, const std::string &assetID) {
     if (!query.row() || query.string(0) != "text" || query.integer(1) < 1 ||
         query.integer(1) > 8192)
         throw std::runtime_error("Missing or invalid creative adjustment document.");
-    return decodeCreative(query.string(2));
+    auto result = decodeCreative(query.string(2));
+    restoreCameraProfile(db, result.cameraProfile);
+    return result;
 }
 } // namespace detail
+void Catalog::migrateCameraProfiles() {
+    execute(R"sql(
+        CREATE TABLE camera_profiles(
+            digest TEXT PRIMARY KEY CHECK(length(digest)=64),
+            payload BLOB NOT NULL CHECK(typeof(payload)='blob' AND length(payload) BETWEEN 8 AND 4194304));
+        INSERT INTO schema_migrations(version) VALUES(28);
+        PRAGMA user_version=28;
+    )sql");
+}
 void Catalog::migrateCreative() {
     const auto initial = encodeCreative({}); // Fixed numeric codec; no user text in DDL.
     execute(("CREATE TABLE edit_creative(asset_id TEXT PRIMARY KEY REFERENCES "
@@ -29,6 +78,7 @@ void Catalog::migrateCreative() {
                 .c_str());
 }
 void Catalog::writeCreative(const std::string &assetID, const CreativeSettings &settings) {
+    detail::storeCameraProfile(db_, settings.cameraProfile);
     detail::Statement query(db_, "UPDATE edit_creative SET document=?1 WHERE asset_id=?2");
     query.text(1, encodeCreative(settings));
     query.text(2, assetID);

@@ -38,6 +38,7 @@ inline const std::string removePostV11Tables = std::string(removePostV23Tables) 
     DROP TRIGGER initialize_creative;
     DROP TABLE edit_creative;
     DROP TABLE edit_versions;
+    DROP TABLE camera_profiles;
     DROP TRIGGER initialize_asset_metadata;
     DROP TRIGGER update_organization_metadata;
     DROP TRIGGER update_color_label_metadata;

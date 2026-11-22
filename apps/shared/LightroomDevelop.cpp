@@ -19,7 +19,7 @@ bool digit(char ch) {
 class LiteralTable {
   public:
     explicit LiteralTable(std::string_view bytes) : bytes_(bytes) {}
-    QByteArray toXmp() {
+    QByteArray toXmp(LightroomDevelopExtras *extras) {
         if (bytes_.empty() || bytes_.size() > 1'048'576 || identifier() != "s")
             invalid();
         expect('=');
@@ -39,12 +39,26 @@ class LiteralTable {
             expect('=');
             xml.writeStartElement(QStringLiteral("crs:") + fromString(key));
             if (peek() == '{') {
-                if (isCurve(key))
+                if (extras && key == "MaskGroupBasedCorrections") {
+                    expect('{');
+                    while (!take('}')) {
+                        if (extras->masks.size() >= 128)
+                            invalid();
+                        LightroomMaskGroup group;
+                        group.fields = readMaskProperties(&group.components);
+                        extras->masks.push_back(std::move(group));
+                        if (!take(',') && peek() != '}')
+                            invalid();
+                    }
+                } else if (isCurve(key))
                     writeCurve(xml);
                 else
                     skipTable();
             } else {
-                xml.writeCharacters(scalar());
+                const auto value = scalar();
+                if (extras && key == "CameraProfile")
+                    extras->cameraProfile = value;
+                xml.writeCharacters(value);
             }
             xml.writeEndElement();
             if (!take(',') && peek() != '}')
@@ -299,6 +313,35 @@ class LiteralTable {
             invalid();
         return value;
     }
+    LightroomProperties readMaskProperties(std::vector<LightroomProperties> *components) {
+        LightroomProperties result;
+        expect('{');
+        for (int fields = 0; !take('}'); ++fields) {
+            if (fields >= 256)
+                invalid();
+            const auto key = identifier();
+            expect('=');
+            if (peek() == '{') {
+                if (components && key == "CorrectionMasks") {
+                    expect('{');
+                    while (!take('}')) {
+                        if (components->size() >= 33)
+                            invalid();
+                        components->push_back(readMaskProperties(nullptr));
+                        if (!take(',') && peek() != '}')
+                            invalid();
+                    }
+                } else {
+                    skipTable();
+                }
+            } else if (!result.emplace(key, scalar()).second) {
+                invalid();
+            }
+            if (!take(',') && peek() != '}')
+                invalid();
+        }
+        return result;
+    }
     void skipTable() {
         expect('{');
         int depth = 1;
@@ -337,8 +380,12 @@ class LiteralTable {
 };
 } // namespace
 
-PresetImport decodeLightroomDevelop(std::string_view document) {
-    return decodeXmpPreset(LiteralTable(document).toXmp(), QStringLiteral("Lightroom Develop"));
+PresetImport decodeLightroomDevelop(std::string_view document, LightroomDevelopExtras *extras) {
+    LightroomDevelopExtras parsed;
+    const auto xml = LiteralTable(document).toXmp(extras ? &parsed : nullptr);
+    if (extras)
+        *extras = std::move(parsed);
+    return decodeXmpPreset(xml, QStringLiteral("Lightroom Develop"), true);
 }
 SmartRule decodeLightroomSmartRule(std::string_view document) {
     return LiteralTable(document).toSmartRule();

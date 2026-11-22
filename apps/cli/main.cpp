@@ -1,6 +1,8 @@
 #include "apps/cli/Json.h"
 #include "apps/cli/LibraryCommands.h"
+#include "apps/shared/CameraProfileImport.h"
 #include "apps/shared/PhotoDelivery.h"
+#include "apps/shared/PhotoFormats.h"
 #include "apps/shared/SessionService.h"
 #include "apps/shared/WebDavGallery.h"
 #include "core/io/Path.h"
@@ -153,7 +155,7 @@ int main(int argc, char **argv) {
                 << "       apertone wb as-shot --catalog FILE\n"
                 << "       apertone export DEST [--quality N] [--overwrite] --catalog FILE\n"
                 << "       apertone deliver contact-sheet|book|gallery|slideshow DEST TITLE IDS... "
-                   "--catalog FILE\n"
+                   "[--proof ICC] --catalog FILE\n"
                 << "       apertone prepare-offline IDS... --catalog FILE\n"
                 << "       apertone catalog verify --catalog FILE\n"
                 << "       apertone import add SOURCES... | import copy|move DEST SOURCES... "
@@ -177,10 +179,14 @@ int main(int argc, char **argv) {
                 << "       apertone publish-webdav HTTPS_FOLDER NEW_FOLDER TITLE IDS... --catalog "
                    "FILE\n"
                 << "       apertone lightroom inspect SOURCE.lrcat\n"
-                << "       apertone lightroom import SOURCE.lrcat --catalog FILE\n";
+                << "       apertone lightroom import SOURCE.lrcat [--profiles FOLDER] --catalog "
+                   "FILE\n"
+                << "       apertone camera-profile FILE.dcp | clear | show --catalog FILE\n";
             return 0;
         }
-        if (arguments[0] == "lightroom" && luma::cli::libraryCommand(catalog, arguments))
+        if ((arguments[0] == "lightroom" ||
+             arguments == std::vector<std::string>{"camera", "list"}) &&
+            luma::cli::libraryCommand(catalog, arguments))
             return 0;
         if (catalog.empty()) {
             throw std::runtime_error("Specify --catalog FILE explicitly.");
@@ -195,8 +201,14 @@ int main(int argc, char **argv) {
 #endif
             const auto mode = exportChoice<luma::DeliveryFormat>(
                 arguments[1], std::array{"contact-sheet", "book", "gallery", "slideshow"});
-            luma::deliverPhotos(catalog, {arguments.begin() + 4, arguments.end()},
-                                luma::pathFromUtf8(arguments[2]), mode, arguments[3]);
+            auto lastID = arguments.end();
+            std::filesystem::path proof;
+            if (arguments.size() >= 7 && arguments[arguments.size() - 2] == "--proof") {
+                proof = luma::pathFromUtf8(arguments.back());
+                lastID -= 2;
+            }
+            luma::deliverPhotos(catalog, {arguments.begin() + 4, lastID},
+                                luma::pathFromUtf8(arguments[2]), mode, arguments[3], proof);
             std::cout << "{\"delivered\":true}\n";
         } else if (arguments[0] == "publish-webdav" && arguments.size() >= 5) {
 #ifndef _WIN32
@@ -243,6 +255,30 @@ int main(int argc, char **argv) {
             }
             service.save(asset->id, ev);
             std::cout << "{\"saved\":true}\n";
+        } else if (arguments[0] == "camera-profile" && arguments.size() == 2) {
+            luma::Catalog connection(catalog);
+            const auto asset = connection.activeAsset();
+            if (!asset || !luma::isSupportedRawExtension(asset->path))
+                throw std::runtime_error("Open a RAW before choosing a DNG camera profile.");
+            auto next = asset->edits;
+            auto &profile = next.creative.cameraProfile;
+            if (arguments[1] != "show") {
+                profile = arguments[1] == "clear"
+                              ? luma::DcpSelection{}
+                              : luma::loadCameraProfile(luma::pathFromUtf8(arguments[1]));
+                if (profile.profile &&
+                    !luma::cameraProfileMatches(*profile.profile, asset->metadata.camera))
+                    throw std::runtime_error("This DNG camera profile is for a different camera.");
+                if (next != asset->edits) {
+                    const auto prior = connection.editHistory(asset->id);
+                    auto history =
+                        prior ? luma::EditHistory(*prior) : luma::EditHistory(asset->edits);
+                    history.apply(next, "Camera profile");
+                    connection.saveEditsAndHistory(asset->id, next, history.persisted());
+                }
+            }
+            std::cout << "{\"profile\":" << quoted(profile.profile ? profile.profile->name : "")
+                      << ",\"digest\":" << quoted(profile.digest) << "}\n";
         } else if (arguments[0] == "lens" && arguments.size() == 2 && arguments[1] == "profiles") {
             std::cout << '[';
             bool first = true;

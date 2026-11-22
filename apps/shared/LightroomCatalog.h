@@ -18,6 +18,10 @@ struct LightroomCatalogReport {
     std::size_t mappedEdits = 0;
     std::size_t partialEdits = 0;
     std::size_t unmappedEdits = 0;
+    std::size_t masksMapped = 0;
+    std::size_t masksSkipped = 0;
+    std::size_t profilesMapped = 0;
+    std::size_t profilesSkipped = 0;
     std::size_t historyMapped = 0;
     std::size_t historyPartial = 0;
     std::size_t historySkipped = 0;
@@ -35,5 +39,6 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
                                               const std::filesystem::path &target,
                                               const std::string &expectedFingerprint,
                                               CancellationToken stop = {},
-                                              const std::function<void(double)> &progress = {});
+                                              const std::function<void(double)> &progress = {},
+                                              const std::filesystem::path &profileFolder = {});
 } // namespace luma

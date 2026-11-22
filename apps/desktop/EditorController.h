@@ -96,6 +96,8 @@ class EditorController final : public QObject {
     Q_PROPERTY(bool customWhiteBalance READ customWhiteBalance NOTIFY stateChanged)
     Q_PROPERTY(QVariantList creativeParameters READ creativeParameters CONSTANT)
     Q_PROPERTY(bool creativeBusy READ creativeBusy NOTIFY stateChanged)
+    Q_PROPERTY(bool cameraProfileAvailable READ cameraProfileAvailable NOTIFY stateChanged)
+    Q_PROPERTY(QString cameraProfileName READ cameraProfileName NOTIFY stateChanged)
     Q_PROPERTY(bool pointColorPicking READ pointColorPicking WRITE setPointColorPicking NOTIFY
                    stateChanged)
     Q_PROPERTY(
@@ -567,6 +569,9 @@ class EditorController final : public QObject {
     }
     void setWhiteBalancePicking(bool enabled);
     QVariantList creativeParameters() const;
+    bool cameraProfileAvailable() const;
+    QString cameraProfileName() const;
+    Q_INVOKABLE void setCameraProfile(const QUrl &url);
     bool creativeBusy() const {
         return creativeBusy_;
     }

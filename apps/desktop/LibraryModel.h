@@ -30,6 +30,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(bool preparingPreviews READ preparingPreviews NOTIFY stateChanged)
     Q_PROPERTY(bool preparingDelivery READ preparingDelivery NOTIFY stateChanged)
     Q_PROPERTY(QString captureFolder READ captureFolder NOTIFY stateChanged)
+    Q_PROPERTY(bool tetherAvailable READ tetherAvailable CONSTANT)
+    Q_PROPERTY(bool cameraBusy READ cameraBusy NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList tetherCameras READ tetherCameras NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QString importReport READ importReport NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap lightroomReport READ lightroomReport NOTIFY stateChanged)
@@ -146,6 +149,16 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE QVariantList cardSources() const;
     Q_INVOKABLE void startCaptureFolder(const QUrl &folder);
     Q_INVOKABLE void stopCaptureFolder();
+    Q_INVOKABLE void refreshCameras();
+    Q_INVOKABLE void captureWithCamera(const QString &id, const QUrl &folder);
+    Q_INVOKABLE void cancelCamera();
+    bool tetherAvailable() const;
+    bool cameraBusy() const {
+        return cameraBusy_;
+    }
+    QVariantList tetherCameras() const {
+        return tetherCameras_;
+    }
     QString captureFolder() const {
         return captureFolder_;
     }
@@ -327,7 +340,8 @@ class LibraryModel final : public QAbstractListModel {
         return lightroomReport_;
     }
     Q_INVOKABLE void inspectLightroom(const QUrl &source);
-    Q_INVOKABLE void applyLightroom(const QUrl &source, const QString &fingerprint);
+    Q_INVOKABLE void applyLightroom(const QUrl &source, const QString &fingerprint,
+                                    const QUrl &profiles);
     Q_INVOKABLE void importFiles(const QList<QUrl> &sources, bool copy, const QUrl &destination,
                                  bool recursive, bool skipDuplicates);
     Q_INVOKABLE bool refreshLastImport();
@@ -352,7 +366,7 @@ class LibraryModel final : public QAbstractListModel {
 
   private:
     bool startImport(std::vector<std::filesystem::path> sources, luma::ImportOptions options);
-    void runLightroom(const QUrl &source, const QString &fingerprint);
+    void runLightroom(const QUrl &source, const QString &fingerprint, const QUrl &profiles = {});
     bool startNextImportSourceRefresh();
     std::filesystem::path catalog_;
     luma::JobManager reads_, writes_, imports_;
@@ -395,6 +409,9 @@ class LibraryModel final : public QAbstractListModel {
     bool preparingPreviews_ = false;
     bool preparingDelivery_ = false;
     QString captureFolder_;
+    QVariantList tetherCameras_;
+    bool cameraBusy_ = false;
+    void cameraRequest(const QString &id, const QUrl &folder);
     struct CaptureFile {
         qint64 size = -1, modified = 0;
         bool considered = false;

@@ -29,7 +29,8 @@ struct PresetImport {
     bool xmp = false;
     QString sourceVersion{}, processVersion{};
 };
-PresetImport decodeXmpPreset(const QByteArray &xml, const QString &fallbackName);
+PresetImport decodeXmpPreset(const QByteArray &xml, const QString &fallbackName,
+                             bool allowPartialSettings = false);
 
 // A bounded collection shared by catalogs in the same directory. Mutations reload
 // under a lock and replace the complete file atomically, preserving other writers.

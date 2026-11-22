@@ -1,6 +1,9 @@
 #include "apps/shared/LightroomCatalog.h"
+#include "apps/shared/CameraProfileImport.h"
 #include "apps/shared/LightroomDevelop.h"
+#include "apps/shared/LightroomMaskArchive.h"
 #include "apps/shared/PhotoDecoder.h"
+#include "apps/shared/PhotoFormats.h"
 #include "core/catalog/Catalog.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/image/Bayer.h"
@@ -430,7 +433,8 @@ void readDevelopSnapshots(sqlite3 *db, std::int64_t imageID, LightroomMigrationP
 }
 
 Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
-          const std::function<void(double)> &progress = {}) {
+          const std::function<void(double)> &progress = {},
+          const LightroomMaskArchive *masks = nullptr, CameraProfileDirectory *profiles = nullptr) {
     auto *db = snapshot.database();
     for (const char *table :
          {"Adobe_images", "AgLibraryFile", "AgLibraryFolder", "AgLibraryRootFolder",
@@ -587,9 +591,11 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         photo.copyName =
             master.empty() ? "" : displayName(images.string(2), "Virtual copy").toStdString();
         photo.developDocument = images.string(11);
+        LightroomDevelopExtras extras;
         if (images.integer(12) > 0) {
             try {
-                const auto edit = decodeLightroomDevelop(photo.developDocument);
+                const auto edit =
+                    decodeLightroomDevelop(photo.developDocument, prepare ? &extras : nullptr);
                 photo.edits = mergeSettings(EditDocument{}, edit.preset.settings,
                                             edit.preset.groups, edit.preset.parameters);
                 ++report.mappedEdits;
@@ -650,6 +656,61 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             description.validate();
             photo.metadata.descriptive = std::move(description);
             photo.metadata.descriptiveSource = photo.path;
+            bool convertedLocalAdjustments = false;
+            if (masks) {
+                std::vector<LocalMask> converted;
+                for (std::size_t i = 0; i < extras.masks.size(); ++i) {
+                    checkCancellation(stop);
+                    try {
+                        auto layer = convertLightroomMask(extras.masks[i], *masks, i, stop);
+                        converted.push_back(std::move(layer));
+                        try {
+                            validateLocalMasks(converted);
+                        } catch (...) {
+                            converted.pop_back();
+                            throw;
+                        }
+                        ++report.masksMapped;
+                    } catch (const std::exception &) {
+                        checkCancellation(stop);
+                        ++report.masksSkipped;
+                    }
+                }
+                if (!converted.empty()) {
+                    if (!photo.edits)
+                        photo.edits.emplace();
+                    photo.edits->localMasks = std::move(converted);
+                    convertedLocalAdjustments = true;
+                }
+            }
+            if (profiles && isSupportedRawExtension(photo.path) &&
+                !extras.cameraProfile.isEmpty() &&
+                extras.cameraProfile.compare(QStringLiteral("Embedded"), Qt::CaseInsensitive) !=
+                    0) {
+                auto profile = profiles->find(extras.cameraProfile, photo.metadata.camera, stop);
+                if (profile.digest.empty()) {
+                    ++report.profilesSkipped;
+                } else {
+                    if (!photo.edits)
+                        photo.edits.emplace();
+                    photo.edits->creative.cameraProfile = std::move(profile);
+                    ++report.profilesMapped;
+                    convertedLocalAdjustments = true;
+                }
+            }
+            if (convertedLocalAdjustments) {
+                QCryptographicHash hash(QCryptographicHash::Sha256);
+                hash.addData(QByteArray::fromStdString(photo.developDocument));
+                hash.addData(QByteArray::fromStdString(photo.edits->creative.cameraProfile.digest));
+                for (const auto &mask : photo.edits->localMasks)
+                    hash.addData(QByteArray::fromStdString(mask.id));
+                const auto identity = hash.result();
+                photo.localAdjustments = LightroomMigrationSnapshot{
+                    QUuid::fromRfc4122(identity.first(16))
+                        .toString(QUuid::WithoutBraces)
+                        .toStdString(),
+                    "Lightroom · Masks and camera profile", *photo.edits};
+            }
             if (importHistory && photo.edits) {
                 const auto reference = images.string(16);
                 readDevelopHistory(db, images.integer(15), sourceID(reference) ? reference : "",
@@ -756,7 +817,8 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
                                               const std::filesystem::path &target,
                                               const std::string &expectedFingerprint,
                                               CancellationToken stop,
-                                              const std::function<void(double)> &progress) {
+                                              const std::function<void(double)> &progress,
+                                              const std::filesystem::path &profileFolder) {
     const auto input = std::filesystem::canonical(source);
     const auto destination = std::filesystem::weakly_canonical(target);
     for (const auto suffix : {"", "-wal", "-shm", "-journal"}) {
@@ -766,7 +828,9 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
     Snapshot snapshot(input, stop);
     if (!expectedFingerprint.empty() && expectedFingerprint != snapshot.fingerprint)
         throw std::runtime_error("Lightroom catalog changed since preview. Scan it again.");
-    auto plan = scan(snapshot, true, stop, progress);
+    const LightroomMaskArchive masks(input, stop);
+    CameraProfileDirectory profiles(profileFolder, stop);
+    auto plan = scan(snapshot, true, stop, progress, &masks, &profiles);
     checkCancellation(stop);
     if (plan.photos.empty() && plan.collections.empty() && plan.keywords.empty())
         return std::move(plan.report);

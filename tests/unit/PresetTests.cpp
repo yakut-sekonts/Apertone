@@ -32,14 +32,17 @@ void require(bool result, const char *message) {
     if (!result)
         throw std::runtime_error(message);
 }
-template <typename F> void throws(F operation) {
+template <typename F>
+void throws(F operation, std::source_location where = std::source_location::current()) {
     bool failed = false;
     try {
         operation();
     } catch (const std::exception &) {
         failed = true;
     }
-    require(failed, "Expected invalid preset to be rejected.");
+    if (!failed)
+        throw std::runtime_error("Expected invalid preset to be rejected at PresetTests.cpp:" +
+                                 std::to_string(where.line()));
 }
 QByteArray read(const QString &path) {
     QFile file(path);
@@ -430,7 +433,7 @@ void storeTests(const QString &root) {
     throws([&] { a.load(); });
     throws([&] { a.put(preset); });
     auto future = QJsonDocument::fromJson(before).object();
-    future["schemaVersion"] = 12;
+    future["schemaVersion"] = 65535;
     const auto futureBytes = QJsonDocument(future).toJson();
     write(path, futureBytes);
     throws([&] { a.put(preset); });

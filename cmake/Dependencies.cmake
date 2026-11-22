@@ -1,5 +1,29 @@
 include(FetchContent)
 
+# Lightroom Classic stores grayscale mask tiles as DNG JPEG XL codestreams.
+FetchContent_Declare(apertone_jpegxl
+    GIT_REPOSITORY https://github.com/libjxl/libjxl.git
+    GIT_TAG v0.13.0 GIT_SHALLOW TRUE
+    GIT_CONFIG core.symlinks=false
+    GIT_SUBMODULES third_party/brotli third_party/highway third_party/skcms
+    SOURCE_SUBDIR aperture-data-only)
+FetchContent_MakeAvailable(apertone_jpegxl)
+execute_process(COMMAND git -C "${apertone_jpegxl_SOURCE_DIR}" rev-parse HEAD
+    OUTPUT_VARIABLE aperture_jxl_revision OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND_ERROR_IS_FATAL ANY)
+if(NOT aperture_jxl_revision STREQUAL "5a7da83447212fe4900fc29ce97430b881caa67e")
+    message(FATAL_ERROR "Unexpected JPEG XL source revision.")
+endif()
+function(aperture_add_jpegxl)
+    set(BUILD_SHARED_LIBS OFF)
+    set(BUILD_TESTING OFF)
+    set(JPEGXL_ENABLE_SKCMS ON CACHE INTERNAL "Use the pinned JPEG XL color library")
+    foreach(feature TOOLS FUZZERS DEVTOOLS DOXYGEN MANPAGES BENCHMARK EXAMPLES JNI OPENEXR SJPEG TCMALLOC TRANSCODE_JPEG)
+        set(JPEGXL_ENABLE_${feature} OFF CACHE INTERNAL "Apertone requires the JPEG XL decoder")
+    endforeach()
+    add_subdirectory("${apertone_jpegxl_SOURCE_DIR}" "${apertone_jpegxl_BINARY_DIR}" EXCLUDE_FROM_ALL)
+endfunction()
+aperture_add_jpegxl()
+
 # Runtime sources are immutable releases, verified before extraction.
 FetchContent_Declare(libraw
     URL https://www.libraw.org/data/LibRaw-0.21.5.tar.gz
@@ -38,6 +62,25 @@ target_include_directories(luma_lcms SYSTEM PUBLIC "${lcms_SOURCE_DIR}/include")
 find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Core Gui Network Quick QuickControls2)
 if(WIN32)
     find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Xml)
+    # Use the matching Windows Portable Devices headers missing from the Qt MinGW distribution.
+    # Keep the rest of its Windows ABI headers in place.
+    set(apertone_wpd_include "${CMAKE_BINARY_DIR}/generated/wpd")
+    file(MAKE_DIRECTORY "${apertone_wpd_include}")
+    set(apertone_wpd_upstream "https://raw.githubusercontent.com/mingw-w64/mingw-w64/v12.0.0/mingw-w64-headers/include")
+    function(apertone_wpd_header name expected)
+        set(header "${apertone_wpd_include}/${name}")
+        if(EXISTS "${header}")
+            file(SHA256 "${header}" actual)
+            if(actual STREQUAL expected)
+                return()
+            endif()
+        endif()
+        file(DOWNLOAD "${apertone_wpd_upstream}/${name}" "${header}" EXPECTED_HASH "SHA256=${expected}"
+            TLS_VERIFY ON TIMEOUT 30)
+    endfunction()
+    apertone_wpd_header(portabledevice.h 893f0b515a4a216ada26a6f60bab1232dcc453fb65a6f52c91fe670835225aaf)
+    apertone_wpd_header(portabledeviceapi.h ab15dd0867eced15cd12e98f809312ffa1c42fd1840b5ff31cf2c59209751d20)
+    apertone_wpd_header(portabledevicetypes.h 6e82dc790c4a49245b498748f37958062e51bfead34348c188f5a3dfaad1198c)
 endif()
 
 # Only calibration data are consumed; Lensfun library/build code is not compiled.

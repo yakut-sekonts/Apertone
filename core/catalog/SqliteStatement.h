@@ -33,8 +33,8 @@ class Statement {
         if (sqlite3_bind_int64(statement_, index, value) != SQLITE_OK)
             fail();
     }
-    void blob(int index, std::span<const std::uint8_t> value) {
-        if (value.size() > 8192 ||
+    void blob(int index, std::span<const std::uint8_t> value, std::size_t limit = 8192) {
+        if (value.size() > limit ||
             sqlite3_bind_blob(statement_, index, value.data(), static_cast<int>(value.size()),
                               SQLITE_TRANSIENT) != SQLITE_OK)
             fail();

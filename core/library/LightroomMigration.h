@@ -27,6 +27,7 @@ struct LightroomMigrationPhoto {
     std::optional<std::int64_t> editedAt;
     std::optional<PersistedEditHistory> history;
     std::vector<LightroomMigrationSnapshot> snapshots;
+    std::optional<LightroomMigrationSnapshot> localAdjustments;
 };
 
 struct LightroomMigrationCollection {

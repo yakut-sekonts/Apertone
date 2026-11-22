@@ -5,6 +5,11 @@
 #include "core/io/Path.h"
 #include <charconv>
 #include <iostream>
+#ifdef _WIN32
+#include "platform/windows/TetherCapture.h"
+#include <QString>
+#include <future>
+#endif
 namespace luma::cli {
 namespace {
 int integer(const std::string &text) {
@@ -21,6 +26,33 @@ void summary(const ImportSummary &value) {
 }
 } // namespace
 bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std::string> &args) {
+#ifdef _WIN32
+    if (args == std::vector<std::string>{"camera", "list"}) {
+        const auto devices =
+            std::async(std::launch::async, [] { return windows::tetherCameras(); }).get();
+        std::cout << '[';
+        for (std::size_t i = 0; i < devices.size(); ++i) {
+            if (i)
+                std::cout << ',';
+            const auto &device = devices[i];
+            std::cout << "{\"id\":" << quoted(QString::fromStdWString(device.id).toStdString())
+                      << ",\"name\":" << quoted(QString::fromStdWString(device.name).toStdString())
+                      << '}';
+        }
+        std::cout << "]\n";
+        return true;
+    }
+    if (args[0] == "camera" && args.size() == 4 && args[1] == "capture") {
+        auto files = std::async(std::launch::async, [&] {
+                         return windows::captureTetheredPhotos(
+                             QString::fromStdString(args[2]).toStdWString(),
+                             std::filesystem::absolute(pathFromUtf8(args[3])));
+                     }).get();
+        summary(LibraryService(catalog).import(files, {}));
+        std::cout << '\n';
+        return true;
+    }
+#endif
     if (args[0] == "copy" && args.size() >= 3) {
         Catalog db(catalog);
         if (args[1] == "create" && args.size() == 4)
@@ -34,13 +66,19 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                 "Use copy create ID NAME, copy rename ID NAME, or copy delete ID.");
         return true;
     }
-    if (args[0] == "lightroom" && args.size() == 3 &&
+    if (args[0] == "lightroom" && args.size() >= 3 &&
         (args[1] == "inspect" || args[1] == "import")) {
+        const bool apply = args[1] == "import";
+        if (args.size() != 3 && !(apply && args.size() == 5 && args[3] == "--profiles"))
+            throw std::runtime_error("Use lightroom import SOURCE [--profiles FOLDER].");
         const auto source = pathFromUtf8(args[2]);
-        if (args[1] == "import" && catalog.empty())
+        if (apply && catalog.empty())
             throw std::runtime_error("Specify a destination Apertone catalog with --catalog.");
-        const auto report = args[1] == "inspect" ? inspectLightroomCatalog(source)
-                                                 : importLightroomCatalog(source, catalog, {});
+        const auto profileFolder =
+            args.size() == 5 ? pathFromUtf8(args[4]) : std::filesystem::path{};
+        const auto report = apply
+                                ? importLightroomCatalog(source, catalog, {}, {}, {}, profileFolder)
+                                : inspectLightroomCatalog(source);
         std::cout << "{\"photos\":" << report.photos << ",\"available\":" << report.available
                   << ",\"missing\":" << report.missing << ",\"unsupported\":" << report.unsupported
                   << ",\"virtualCopies\":" << report.virtualCopies
@@ -50,6 +88,10 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"mappedEdits\":" << report.mappedEdits
                   << ",\"partialEdits\":" << report.partialEdits
                   << ",\"unmappedEdits\":" << report.unmappedEdits
+                  << ",\"masksMapped\":" << report.masksMapped
+                  << ",\"masksSkipped\":" << report.masksSkipped
+                  << ",\"profilesMapped\":" << report.profilesMapped
+                  << ",\"profilesSkipped\":" << report.profilesSkipped
                   << ",\"historyMapped\":" << report.historyMapped
                   << ",\"historyPartial\":" << report.historyPartial
                   << ",\"historySkipped\":" << report.historySkipped

@@ -12,7 +12,7 @@ namespace luma {
 namespace {
 constexpr std::size_t legacyParameterCount = 34;
 constexpr std::uint32_t legacyCorrectionMask = 4063232;
-constexpr int creativeVersion = 6;
+constexpr int creativeVersion = 7;
 std::size_t parameterCount(int version) {
     return version < 5 ? legacyParameterCount : version == 5 ? 43 : creativeParameters.size();
 }
@@ -119,6 +119,9 @@ void CreativeSettings::setParameter(std::string_view name, double value) {
 void CreativeSettings::validate() const {
     if (enabled & ~creativeCorrectionMask)
         throw std::runtime_error("Invalid creative adjustment flags.");
+    if ((!cameraProfile.digest.empty() && !validDigest(cameraProfile.digest)) ||
+        (cameraProfile.profile && cameraProfile.digest.empty()))
+        throw std::runtime_error("Invalid camera profile reference.");
     for (std::size_t i = 0; i < values.size(); ++i) {
         const auto &p = creativeParameters[i];
         if (!std::isfinite(values[i]) || values[i] < p.minimum || values[i] > p.maximum)
@@ -161,11 +164,13 @@ std::string encodeVersion(const CreativeSettings &settings, int version) {
                 << layer.deterministicFallback;
         out << '\n';
     }
+    if (version >= 7)
+        out << std::quoted(settings.cameraProfile.digest) << '\n';
     return out.str();
 }
 } // namespace
 std::string encodeCreative(const CreativeSettings &settings) {
-    return encodeVersion(settings, creativeVersion);
+    return encodeVersion(settings, settings.cameraProfile.digest.empty() ? 6 : creativeVersion);
 }
 CreativeSettings decodeCreative(std::string_view text) {
     if (text.empty() || text.size() > 262144)
@@ -224,6 +229,8 @@ CreativeSettings decodeCreative(std::string_view text) {
             result.quickLooks.push_back(std::move(layer));
         }
     }
+    if (version >= 7 && !(in >> std::quoted(result.cameraProfile.digest)))
+        throw std::runtime_error("Invalid stored camera profile reference.");
     if (encodeVersion(result, version) != text)
         throw std::runtime_error("Invalid creative adjustment document.");
     return result;

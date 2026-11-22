@@ -111,7 +111,8 @@ PointCurve pointCurve(const Node &node) {
     return curve;
 }
 } // namespace
-PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackName) {
+PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackName,
+                             bool allowPartialSettings) {
     require(!bytes.isEmpty() && bytes.size() <= 1'048'576,
             "XMP preset is empty or exceeds the 1 MiB limit.");
     QXmlStreamReader reader(bytes);
@@ -181,8 +182,14 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
     const auto set = [&](const QString &key, const std::string &parameter) {
         if (!fields.contains(key))
             return;
-        preset.settings.setParameter(parameter, number(text(key)));
-        preset.parameters.push_back(parameter);
+        try {
+            preset.settings.setParameter(parameter, number(text(key)));
+            preset.parameters.push_back(parameter);
+        } catch (const std::runtime_error &) {
+            if (!allowPartialSettings)
+                throw;
+            result.unsupported.append(key);
+        }
     };
     const auto preferred = [&](const char *modern, const char *legacy,
                                const std::string &parameter) {
@@ -300,11 +307,17 @@ PresetImport decodeXmpPreset(const QByteArray &bytes, const QString &fallbackNam
         const auto key = fields.contains(modern) ? modern : legacy;
         if (!fields.contains(key))
             continue;
-        preset.settings.curves[i] = pointCurve(fields[key]);
-        preset.parameters.push_back("points." + std::string(curveChannels[i]));
         consumed.insert(key);
         if (fields.contains(modern))
             consumed.insert(legacy);
+        try {
+            preset.settings.curves[i] = pointCurve(fields[key]);
+            preset.parameters.push_back("points." + std::string(curveChannels[i]));
+        } catch (const std::runtime_error &) {
+            if (!allowPartialSettings)
+                throw;
+            result.unsupported.append(key);
+        }
     }
     const auto curveName = fields.contains(QStringLiteral("ToneCurveName2012"))
                                ? QStringLiteral("ToneCurveName2012")

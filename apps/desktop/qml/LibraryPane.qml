@@ -166,6 +166,69 @@ Rectangle {
         title: qsTranslate("Apertone", "Folder used by the tethered capture app")
         onAccepted: library.startCaptureFolder(selectedFolder)
     }
+    FolderDialog {
+        id: cameraDestination
+        title: qsTranslate("Apertone", "Choose a camera capture folder")
+        onAccepted: cameraDialog.destination = selectedFolder
+    }
+    Dialog {
+        id: cameraDialog
+        objectName: "library.tetherDialog"
+        anchors.centerIn: parent
+        modal: true
+        width: Math.min(480, parent.width - 32)
+        title: qsTranslate("Apertone", "Tethered camera")
+        property url destination
+        closePolicy: library.cameraBusy ? Popup.NoAutoClose : Popup.CloseOnEscape
+        onOpened: library.refreshCameras()
+        contentItem: ColumnLayout {
+            ApertoneComboBox {
+                id: tetherCamera
+                objectName: "library.tetherDevice"
+                Layout.fillWidth: true
+                model: library.tetherCameras; textRole: "name"; valueRole: "id"
+                enabled: !library.working
+                Accessible.name: qsTranslate("Apertone", "Tethered camera")
+            }
+            Label {
+                text: qsTranslate("Apertone", "No camera with Windows shutter control detected.")
+                visible: !library.working && tetherCamera.count === 0 && !library.error
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+            ApertoneButton {
+                text: qsTranslate("Apertone", "Choose a camera capture folder")
+                enabled: !library.working
+                onClicked: cameraDestination.open()
+            }
+            Label {
+                text: cameraDialog.destination.toString()
+                visible: !!text; elide: Text.ElideMiddle; Layout.fillWidth: true
+            }
+            BusyIndicator { running: library.cameraBusy; visible: running }
+            Label {
+                text: qsTranslate("Apertone", library.error || library.status)
+                visible: !!text; Layout.fillWidth: true; wrapMode: Text.Wrap
+                textFormat: Text.PlainText
+            }
+        }
+        footer: DialogButtonBox {
+            ApertoneButton {
+                text: library.cameraBusy ? qsTranslate("Apertone", "Cancel") : qsTranslate("Apertone", "Close")
+                onClicked: library.cameraBusy ? library.cancelCamera() : cameraDialog.close()
+            }
+            ApertoneButton {
+                text: qsTranslate("Apertone", "Refresh")
+                enabled: !library.working
+                onClicked: library.refreshCameras()
+            }
+            ApertoneButton {
+                objectName: "library.tetherShutter"
+                text: qsTranslate("Apertone", "Take photo")
+                enabled: !library.working && tetherCamera.currentIndex >= 0 && !!cameraDialog.destination.toString()
+                onClicked: library.captureWithCamera(tetherCamera.currentValue, cameraDialog.destination)
+            }
+        }
+    }
     Dialog {
         id: virtualCopyName
         modal: true
@@ -300,15 +363,22 @@ Rectangle {
         nameFilters: ["Lightroom Classic (*.lrcat *.LRCAT)"]
         onAccepted: {
             lightroomDialog.source = selectedFile
+            lightroomDialog.profiles = ""
             library.inspectLightroom(selectedFile)
             lightroomDialog.open()
         }
+    }
+    FolderDialog {
+        id: lightroomProfiles
+        title: qsTranslate("Apertone", "Choose a DNG camera profiles folder")
+        onAccepted: lightroomDialog.profiles = selectedFolder
     }
     Dialog {
         id: lightroomDialog
         objectName: "library.lightroomImport"
         title: qsTranslate("Apertone", "Lightroom catalog")
         property url source
+        property url profiles
         readonly property var report: library.lightroomReport
         modal: true
         closePolicy: Popup.NoAutoClose
@@ -350,6 +420,21 @@ Rectangle {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
             }
+            RowLayout {
+                visible: Boolean(lightroomDialog.report.fingerprint) && !lightroomDialog.report.applied
+                Layout.fillWidth: true
+                ApertoneButton {
+                    objectName: "library.lightroomProfiles"
+                    text: qsTranslate("Apertone", "Camera profiles folder")
+                    onClicked: lightroomProfiles.open()
+                }
+                Label {
+                    Layout.fillWidth: true
+                    elide: Text.ElideLeft
+                    textFormat: Text.PlainText
+                    text: lightroomDialog.profiles.toString()
+                }
+            }
             Label {
                 visible: Boolean(lightroomDialog.report.applied)
                 text: qsTranslate("Apertone", "%1 added · %2 processing versions · %3 already imported · %4 unreadable")
@@ -376,6 +461,18 @@ Rectangle {
                 text: qsTranslate("Apertone", "%1 Develop snapshots imported · %2 partially mapped · %3 skipped")
                       .arg(lightroomDialog.report.snapshots || 0).arg(lightroomDialog.report.snapshotsPartial || 0)
                       .arg(lightroomDialog.report.snapshotsSkipped || 0)
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.masksMapped > 0 || lightroomDialog.report.masksSkipped > 0)
+                text: qsTranslate("Apertone", "%1 Lightroom masks mapped · %2 skipped")
+                      .arg(lightroomDialog.report.masksMapped || 0).arg(lightroomDialog.report.masksSkipped || 0)
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.profilesMapped > 0 || lightroomDialog.report.profilesSkipped > 0)
+                text: qsTranslate("Apertone", "%1 DNG camera profiles mapped · %2 skipped")
+                      .arg(lightroomDialog.report.profilesMapped || 0).arg(lightroomDialog.report.profilesSkipped || 0)
                 Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             Label {
@@ -412,7 +509,8 @@ Rectangle {
                 enabled: !library.working && !lightroomDialog.report.applied &&
                          (lightroomDialog.report.available > 0 || lightroomDialog.report.manualCollections > 0 ||
                           lightroomDialog.report.smartRulesMapped > 0)
-                onClicked: library.applyLightroom(lightroomDialog.source, lightroomDialog.report.fingerprint)
+                onClicked: library.applyLightroom(lightroomDialog.source, lightroomDialog.report.fingerprint,
+                                                   lightroomDialog.profiles)
             }
         }
     }
@@ -445,6 +543,13 @@ Rectangle {
                     text: library.captureFolder ? qsTranslate("Apertone", "Stop watching capture folder") : qsTranslate("Apertone", "Watch capture folder…")
                     enabled: !!library.captureFolder || !library.working
                     onClicked: library.captureFolder ? library.stopCaptureFolder() : captureFolderPicker.open()
+                }
+                ApertoneButton {
+                    objectName: "library.tetherOpen"
+                    text: qsTranslate("Apertone", "Tethered camera…")
+                    visible: library.tetherAvailable
+                    Layout.fillWidth: true; enabled: !library.working
+                    onClicked: cameraDialog.open()
                 }
                 ApertoneButton { objectName: "library.lightroomButton"; text: qsTranslate("Apertone", "Import Lightroom catalog…"); Layout.fillWidth: true; enabled: !library.working; onClicked: lightroomFile.open() }
                 ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }

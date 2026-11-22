@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import shutil
 import sqlite3
+import struct
 import subprocess
 import sys
 import tempfile
@@ -55,6 +56,102 @@ def digest(file):
 def compressed(text):
     data = text.encode("utf-8")
     return len(data).to_bytes(4, "big") + zlib.compress(data)
+
+
+def tiff_header(magic, fields):
+    field_end = 14 + 12 * len(fields)
+    header = bytearray(struct.pack("<2sHIH", b"II", magic, 8, len(fields)))
+    payload = bytearray()
+    for tag, kind, count, data in sorted(fields):
+        header += struct.pack("<HHI", tag, kind, count)
+        if len(data) <= 4:
+            header += data.ljust(4, b"\0")
+        else:
+            header += struct.pack("<I", field_end + len(payload))
+            payload += data
+    return header + bytes(4) + payload
+
+
+def profile_fixture(path):
+    model, name = b"Luma Synthetic Bayer Camera\0", b"User profile\0"
+    matrix = b"".join(struct.pack("<ii", int(i in (0, 4, 8)), 1) for i in range(9))
+    curve = struct.pack("<6f", 0, 0, 0.5, 0.37, 1, 1)
+    path.write_bytes(tiff_header(0x4352, [
+        (50708, 2, len(model), model), (50936, 2, len(name), name),
+        (50778, 3, 1, struct.pack("<H", 21)), (50721, 10, 9, matrix),
+        (50940, 11, 6, curve), (51109, 10, 1, struct.pack("<ii", 1, 4)),
+    ]))
+
+
+def bitmap_fixture():
+    pixels = bytes([0, 0, 224, 255] * 4)
+    fields = [(256, 4, 4), (257, 4, 4), (258, 3, 8), (259, 3, 1), (262, 3, 1),
+              (277, 3, 1), (278, 4, 4), (279, 4, len(pixels))]
+    fields.append((273, 4, 14 + 12 * (len(fields) + 1)))
+    return b"\x02\0\0\0\x01" + bytes(11) + tiff_header(
+        42, [(tag, kind, 1, struct.pack("<I" if kind == 4 else "<H", value))
+             for tag, kind, value in fields]) + pixels
+
+
+def verify_extras(binary, folder):
+    folder.mkdir()
+    raw = folder / "Кадр.DNG"
+    shutil.copyfile(Path(__file__).resolve().parents[1] / "assets/migration-051/01-complete.DNG", raw)
+    source, target = folder / "Source.lrcat", folder / "Apertone.sqlite"
+    archive = source.with_suffix(".lrcat-data")
+    archive.mkdir()
+    packed = bitmap_fixture()
+    key = hashlib.md5(packed).hexdigest()
+    blob = archive / "000001.blob"
+    profiles = folder / "Profiles"
+    profiles.mkdir()
+    profile = profiles / "User profile.dcp"
+    profile_fixture(profile)
+    db = create_lightroom(source, folder)
+    try:
+        settings = (
+            's={Exposure2012=0.5,SharpenRadius=99,CameraProfile="User profile",'
+            'MaskGroupBasedCorrections={{CorrectionName="Sky",LocalExposure2012=0.25,'
+            'CorrectionMasks={{What="Mask/Image",Origin="2,1",WholeImageArea="0,0,8,8",'
+            f'MaskDigest="{key}"'
+            '}}},{CorrectionName="Gradient",LocalContrast2012=0.2,'
+            'CorrectionMasks={{What="Mask/Gradient",FullX=0.25,FullY=0.25,'
+            'ZeroX=0.75,ZeroY=0.75}}}}}'
+        )
+        db.execute("UPDATE Adobe_imageDevelopSettings SET text=?,historySettingsID=NULL WHERE image=1",
+                   (settings,))
+        db.commit()
+        before = digest(source), digest(raw), digest(profile)
+        initial = run(binary, "lightroom", "import", source, "--catalog", target)
+        assert (initial["masksMapped"], initial["masksSkipped"], initial["profilesSkipped"]) == (1, 1, 1), initial
+        assert run(binary, "open", raw, "--catalog", target)["exposure"] == 0.5
+        run(binary, "exposure", "-0.35", "--catalog", target)
+
+        frame = struct.pack("<II", 0x00248F37, 1) + bytes(22) + struct.pack("<QQ", 32, len(packed))
+        blob.write_bytes(frame + bytes(16) + key.upper().encode("ascii") + packed)
+        extras = ("lightroom", "import", source, "--profiles", profiles, "--catalog")
+        update = run(binary, *extras, target)
+        assert (update["masksMapped"], update["masksSkipped"], update["profilesMapped"]) == (2, 0, 1), update
+        assert update["snapshots"] == 1 and update["unchanged"] == 2, update
+        assert run(binary, "restore", "--catalog", target)["exposure"] == -0.35
+        assert run(binary, *extras, target)["snapshots"] == 0
+
+        fresh = folder / "Fresh.sqlite"
+        assert run(binary, *extras, fresh)["masksMapped"] == 2
+        run(binary, "open", raw, "--catalog", fresh)
+        assert run(binary, "camera-profile", "show", "--catalog", fresh) == {
+            "profile": "User profile", "digest": digest(profile)}
+        with closing(sqlite3.connect(fresh)) as catalog:
+            assert catalog.execute("SELECT count(*) FROM edit_local_masks").fetchone() == (2,)
+            assert catalog.execute("SELECT digest FROM camera_profiles").fetchone() == (digest(profile),)
+        edited, cleared = folder / "Edited.png", folder / "Default.png"
+        run(binary, "export", edited, "--catalog", fresh)
+        run(binary, "camera-profile", "clear", "--catalog", fresh)
+        run(binary, "export", cleared, "--catalog", fresh)
+        assert digest(edited) != digest(cleared)
+        assert (digest(source), digest(raw), digest(profile)) == before
+    finally:
+        db.close()
 
 
 def create_lightroom(file, originals):
@@ -143,7 +240,7 @@ def verify(binary, folder):
         assert (imported["added"], imported["copies"], imported["versions"],
                 imported["collections"], imported["smartCollectionsImported"]) == (1, 1, 0, 3, 2), imported
         with closing(sqlite3.connect(target)) as db_target:
-            assert db_target.execute("PRAGMA user_version").fetchone() == (27,)
+            assert db_target.execute("PRAGMA user_version").fetchone() == (28,)
             collections = {row['name']: row['id'] for row in run(binary, "collections", "--catalog", target)}
             assert set(collections) == {"Портфолио", "Lightroom · Отбор", "Lightroom · Недавно правленные"}
             sets = run(binary, "sets", "--catalog", target)
@@ -251,3 +348,4 @@ if __name__ == "__main__":
     cli = Path(sys.argv[1]).resolve(strict=True)
     with tempfile.TemporaryDirectory(prefix="apertone-lrcat-", dir=Path.cwd()) as folder:
         verify(cli, Path(folder))
+        verify_extras(cli, Path(folder) / "Extras")

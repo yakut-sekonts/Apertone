@@ -30,6 +30,11 @@ Apertone's original source is Apache-2.0. Dependencies retain their own licenses
   amalgamation; no dependency on the host SQLite library.
 - **LittleCMS 2.17** — https://github.com/mm2/Little-CMS/tree/lcms2.17
   ICC conversion. **MIT**. Statically compiled, with the upstream LICENSE notice.
+- **libjxl 0.13.0** — https://github.com/libjxl/libjxl/releases/tag/v0.13.0
+  Grayscale JPEG XL decoding for Lightroom mask tiles. **BSD-3-Clause** with
+  the upstream patent grant. The decoder links **Brotli** (MIT), **Highway**
+  (Apache-2.0) and **skcms** (BSD-3-Clause) from pinned upstream revisions.
+  The Windows archive includes their licenses.
 - **libultrahdr 2.0.2** — https://github.com/google/libultrahdr/tree/v2.0.2
   Windows JPEG gain map encoding. **Apache-2.0**. The static build includes only
   the JPEG codec and ships the upstream license.

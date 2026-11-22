@@ -267,6 +267,7 @@ class Catalog {
     void migrateVirtualCopies();
     void migrateLightroomSmartRules();
     void migrateOrganization();
+    void migrateCameraProfiles();
     void recordImportedKeyword(const CatalogKeyword &keyword);
     std::string insertSmartCollection(const std::string &name, const std::string &document,
                                       const std::string &setID = {});

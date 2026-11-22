@@ -21,5 +21,6 @@ struct RawColorCalibration {
     std::array<float, 3> asShotNeutral{1, 1, 1};
     std::array<DngColorProfile, 2> dngProfiles{};
     std::uint8_t dngProfileCount = 0;
+    double asShotTemperature = 6500;
 };
 } // namespace luma

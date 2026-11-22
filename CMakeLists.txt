@@ -31,6 +31,7 @@ endif()
 include(cmake/Dependencies.cmake)
 
 add_library(luma_core STATIC
+    core/io/TiffDirectory.cpp core/color/DcpProfile.cpp
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
     core/catalog/LightroomMigration.cpp core/catalog/VirtualCopies.cpp
     core/catalog/CollectionSets.cpp core/catalog/KeywordCatalog.cpp
@@ -102,7 +103,8 @@ target_link_libraries(luma_presets PUBLIC luma_core Qt6::Core)
 target_compile_options(luma_presets PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/DerivedProvenance.cpp apps/shared/DetailService.cpp apps/shared/MergeService.cpp apps/shared/BackupService.cpp apps/shared/MetadataService.cpp apps/shared/RelinkService.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
 target_sources(luma_services PRIVATE apps/shared/OfflinePreview.cpp apps/shared/PhotoDelivery.cpp apps/shared/LightroomCatalog.cpp
-    apps/shared/LightroomDevelop.cpp apps/shared/WebDavGallery.cpp)
+    apps/shared/LightroomDevelop.cpp apps/shared/LightroomMaskArchive.cpp apps/shared/CameraProfileImport.cpp
+    apps/shared/WebDavGallery.cpp)
 if(WIN32)
     set(ZLIB_USE_STATIC_LIBS ON)
 endif()
@@ -116,9 +118,14 @@ if(MINGW AND NOT ZLIB_ROOT)
     endif()
 endif()
 find_package(ZLIB REQUIRED)
-target_link_libraries(luma_services PRIVATE ZLIB::ZLIB)
+target_link_libraries(luma_services PRIVATE ZLIB::ZLIB jxl_dec)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets PRIVATE Qt6::Gui Qt6::Network)
+if(WIN32)
+    target_sources(luma_services PRIVATE platform/windows/TetherCapture.cpp)
+    target_include_directories(luma_services SYSTEM PRIVATE "${apertone_wpd_include}")
+    target_link_libraries(luma_services PRIVATE ole32 portabledeviceguids uuid)
+endif()
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
@@ -166,7 +173,17 @@ add_custom_command(TARGET Apertone POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "${sparkle_SOURCE_DIR}/LICENSE"
         "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Sparkle-LICENSE.txt"
     COMMAND ${CMAKE_COMMAND} -E copy "${plcrashreporter_SOURCE_DIR}/LICENSE"
-        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt")
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/PLCrashReporter-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${apertone_jpegxl_SOURCE_DIR}/LICENSE"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Libjxl-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${apertone_jpegxl_SOURCE_DIR}/PATENTS"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Libjxl-PATENTS.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${apertone_jpegxl_SOURCE_DIR}/third_party/brotli/LICENSE"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Brotli-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${apertone_jpegxl_SOURCE_DIR}/third_party/highway/LICENSE"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Highway-LICENSE.txt"
+    COMMAND ${CMAKE_COMMAND} -E copy "${apertone_jpegxl_SOURCE_DIR}/third_party/skcms/LICENSE"
+        "$<TARGET_BUNDLE_DIR:Apertone>/Contents/Resources/ThirdParty/Skcms-LICENSE.txt")
 set_source_files_properties(resources/branding/Apertone.icns PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 target_sources(Apertone PRIVATE resources/branding/Apertone.icns)
 set_target_properties(Apertone PROPERTIES
@@ -213,6 +230,11 @@ if(WIN32)
     set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone-cli)
     install(TARGETS Apertone luma_cli luma_libraw RUNTIME DESTINATION .)
     install(FILES LICENSE THIRD_PARTY_LICENSES.md DESTINATION .)
+    install(FILES "${apertone_jpegxl_SOURCE_DIR}/LICENSE" "${apertone_jpegxl_SOURCE_DIR}/PATENTS"
+        DESTINATION licenses/jpeg-xl)
+    install(FILES "${apertone_jpegxl_SOURCE_DIR}/third_party/brotli/LICENSE" DESTINATION licenses/brotli)
+    install(FILES "${apertone_jpegxl_SOURCE_DIR}/third_party/highway/LICENSE" DESTINATION licenses/highway)
+    install(FILES "${apertone_jpegxl_SOURCE_DIR}/third_party/skcms/LICENSE" DESTINATION licenses/skcms)
 endif()
 
 include(CTest)

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/color/DcpProfile.h"
 #include "core/edits/QuickLookTypes.h"
 #include <array>
 #include <cstdint>
@@ -80,6 +81,7 @@ struct CreativeSettings {
     std::array<double, creativeParameters.size()> values{};
     std::uint32_t enabled = creativeCorrectionMask;
     std::vector<QuickLookLayer> quickLooks;
+    DcpSelection cameraProfile;
     CreativeSettings();
     double parameter(std::string_view name) const;
     void setParameter(std::string_view name, double value);

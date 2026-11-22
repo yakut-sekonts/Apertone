@@ -54,7 +54,7 @@ def main():
         run("collection", "delete", collection)
         assert run("restore")["exposure"] == 1.25
         with sqlite3.connect(catalog) as db:
-            assert db.execute("PRAGMA user_version").fetchone()[0] == 27
+            assert db.execute("PRAGMA user_version").fetchone()[0] == 28
             assert db.execute("SELECT schema_version FROM edit_documents LIMIT 1").fetchone()[0] == 8
         destination = root / "copy"
         destination.mkdir()
@@ -74,7 +74,10 @@ def main():
         # Treat missing QML bindings as failures, not cosmetic log noise.
         assert "ReferenceError" not in result.stderr and "Unable to assign" not in result.stderr, result.stderr
         with sqlite3.connect(gui_catalog) as db:
-            assert db.execute("SELECT COUNT(*) FROM assets WHERE rating=4 AND flag=1 AND color_label='blue'").fetchone()[0] == 2
+            rows = db.execute("SELECT original_asset_id,rating,flag,color_label FROM assets "
+                              "ORDER BY original_asset_id IS NOT NULL").fetchall()
+            assert len(rows) == 3 and all(row[1:] == (4, 1, 'blue') for row in rows), rows
+            assert rows[0][0] is None and rows[1][0] is None and rows[2][0], rows
             assert db.execute("SELECT COUNT(*) FROM collection_assets").fetchone()[0] == 2
             assert db.execute("SELECT exposure FROM edit_documents JOIN session ON session.asset_id=edit_documents.asset_id").fetchone()[0] == 1.75
         thumbnails = list((root / "gui.sqlite.luma-cache/thumbnails").glob("*.jpg"))

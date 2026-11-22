@@ -26,7 +26,7 @@ class MigrationAuditTests(unittest.TestCase):
         shutil.copyfile(self.catalog, self.backup)
         # Deliberately minimal auditor control; only the native app exercises real migrations.
         with closing(sqlite3.connect(self.catalog)) as db, db:
-            db.execute('PRAGMA user_version=27')
+            db.execute('PRAGMA user_version=28')
             db.execute('ALTER TABLE assets ADD COLUMN original_asset_id TEXT')
             db.execute("ALTER TABLE assets ADD COLUMN copy_name TEXT NOT NULL DEFAULT ''")
             db.execute('CREATE TABLE derived_images(path TEXT PRIMARY KEY)')

@@ -16,7 +16,8 @@ class DevelopPipeline {
     bool gpuCompatible() const {
         // Combined curve/HSL HDR remapping amplifies FP32 rounding beyond the
         // qualified error budget. Preserve the double-precision CPU reference.
-        return !creativeColorActive_ && !(curvesActive_ && hslActive_);
+        return !edits_.creative.cameraProfile.profile && !creativeColorActive_ &&
+               !(curvesActive_ && hslActive_);
     }
 
   private:
@@ -24,6 +25,7 @@ class DevelopPipeline {
     EditDocument edits_;
     RawColorCalibration calibration_;
     std::array<float, 3> gains_;
+    double profileTemperature_ = 6500;
     float exposureGain_ = 1;
     std::array<ToneCurve, 4> curves_;
     bool curvesActive_ = false;

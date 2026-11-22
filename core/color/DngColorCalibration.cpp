@@ -259,5 +259,6 @@ void finalizeDngColorCalibration(RawColorCalibration &calibration) {
     const auto resolved = resolveDng(calibration, bestTemperature, 0, &calibration.asShotNeutral);
     calibration.cameraToSRGB = resolved.cameraToSRGB;
     calibration.asShotGains = resolved.gains;
+    calibration.asShotTemperature = bestTemperature;
 }
 } // namespace luma

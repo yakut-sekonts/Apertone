@@ -1,11 +1,43 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 ColumnLayout {
     id: panel
     property int section: sectionPicker.currentValue ?? 256
     property string gradingChannel: wheelPicker.currentValue ?? "shadows"
     spacing: Theme.panelSpacing
+    FileDialog {
+        id: cameraProfileFile
+        title: qsTranslate("Apertone", "Choose a DNG camera profile")
+        nameFilters: ["DNG camera profiles (*.dcp *.DCP)"]
+        onAccepted: editor.setCameraProfile(selectedFile)
+    }
+    Label {
+        visible: editor.cameraProfileAvailable && editor.cameraProfileName.length > 0
+        text: editor.cameraProfileName
+        textFormat: Text.PlainText
+        elide: Text.ElideRight
+        Layout.fillWidth: true
+    }
+    RowLayout {
+        visible: editor.cameraProfileAvailable
+        Layout.fillWidth: true
+        ApertoneButton {
+            objectName: "develop.cameraProfile"
+            text: qsTranslate("Apertone", "Load camera profile")
+            enabled: !editor.busy && !editor.editingLocked
+            Layout.fillWidth: true
+            onClicked: cameraProfileFile.open()
+        }
+        ApertoneButton {
+            objectName: "develop.clearCameraProfile"
+            visible: editor.cameraProfileName.length > 0
+            text: qsTranslate("Apertone", "Clear")
+            enabled: !editor.busy && !editor.editingLocked
+            onClicked: editor.setCameraProfile("")
+        }
+    }
     ApertoneButton {
         objectName: "develop.autoAdjust"
         text: qsTranslate("Apertone", "Auto Adjust"); Layout.fillWidth: true

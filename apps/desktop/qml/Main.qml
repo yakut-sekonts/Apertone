@@ -504,8 +504,8 @@ ApplicationWindow {
                         }
                     }
                     }
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter; spacing: Theme.panelSpacing
+                    Flow {
+                        Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: Theme.panelSpacing
                         ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                         ApertoneButton {

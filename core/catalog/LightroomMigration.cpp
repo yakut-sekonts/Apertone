@@ -77,13 +77,16 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
         writeEditHistory(id, history);
         result.historySteps += history.entries.size();
     };
-    const auto restoreSnapshots = [&](const std::string &id, const LightroomMigrationPhoto &photo) {
-        if (photo.snapshots.empty())
+    const auto restoreSnapshots = [&](const std::string &id, const LightroomMigrationPhoto &photo,
+                                      bool existing) {
+        const auto asset = existing && photo.localAdjustments ? assetByID(id) : std::nullopt;
+        const bool addAdjustments = asset && asset->edits != photo.localAdjustments->edits;
+        if (photo.snapshots.empty() && !addAdjustments)
             return;
         std::set<std::string> names;
         for (const auto &version : editVersions(id))
             names.insert(version.name);
-        for (const auto &snapshot : photo.snapshots) {
+        const auto addSnapshot = [&](const LightroomMigrationSnapshot &snapshot) {
             checkCancellation(stop);
             Statement known(db_, "SELECT 1 FROM lightroom_migration_snapshots WHERE "
                                  "source_catalog=?1 AND source_photo=?2 AND source_snapshot=?3");
@@ -91,13 +94,13 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             known.text(2, photo.sourceID);
             known.text(3, snapshot.sourceID);
             if (known.row())
-                continue;
+                return;
             auto name = snapshot.name;
             for (int suffix = 2; names.contains(name); ++suffix)
                 name = snapshot.name + " (" + std::to_string(suffix) + ")";
             if (insertEditVersion(id, name, snapshot.edits, true).empty()) {
                 ++result.snapshotsWithoutRoom;
-                continue;
+                return;
             }
             names.insert(std::move(name));
             Statement mapping(db_,
@@ -108,7 +111,11 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             mapping.text(3, snapshot.sourceID);
             mapping.row();
             ++result.snapshots;
-        }
+        };
+        for (const auto &snapshot : photo.snapshots)
+            addSnapshot(snapshot);
+        if (addAdjustments)
+            addSnapshot(*photo.localAdjustments);
     };
     std::set<std::string> newlyMapped;
     execute("BEGIN IMMEDIATE;");
@@ -121,7 +128,7 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             checkCancellation(stop);
             if (const auto existing = mappedAsset(photo.sourceID); !existing.empty()) {
                 restoreHistory(existing, photo, true);
-                restoreSnapshots(existing, photo);
+                restoreSnapshots(existing, photo, true);
                 ++result.unchanged;
                 continue;
             }
@@ -173,7 +180,7 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             record.integer(9, metadata.flag);
             record.text(10, metadata.label);
             record.row();
-            restoreSnapshots(destination, photo);
+            restoreSnapshots(destination, photo, false);
             newlyMapped.insert(photo.sourceID);
         }
         std::map<std::int64_t, const LightroomMigrationCollection *> sourceSets;

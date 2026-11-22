@@ -22,7 +22,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr int currentCatalogSchema = 27;
+constexpr int currentCatalogSchema = 28;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -452,8 +452,12 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
             )sql");
             current = 26;
         }
-        if (current == 26)
+        if (current == 26) {
             migrateOrganization();
+            current = 27;
+        }
+        if (current == 27)
+            migrateCameraProfiles();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

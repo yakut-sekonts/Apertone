@@ -245,7 +245,7 @@ void catalogChecks() {
     require(sqlite3_open(path.c_str(), &raw) == SQLITE_OK, "Cannot inspect culling schema.");
     sqlite3_stmt *statement = nullptr;
     require(sqlite3_prepare_v2(raw, "PRAGMA user_version", -1, &statement, nullptr) == SQLITE_OK &&
-                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 27,
+                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 28,
             "Catalog did not migrate to the current schema.");
     sqlite3_finalize(statement);
     sqlite3_close(raw);
@@ -272,7 +272,7 @@ void migrationChecks() {
     sqlite3_stmt *version = nullptr;
     require(sqlite3_prepare_v2(database, "PRAGMA user_version", -1, &version, nullptr) ==
                     SQLITE_OK &&
-                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 27,
+                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 28,
             "Schema-21 catalog did not migrate to the current schema.");
     sqlite3_finalize(version);
     sqlite3_close(database);

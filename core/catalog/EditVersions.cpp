@@ -1,4 +1,5 @@
 #include "core/catalog/Catalog.h"
+#include "core/catalog/CreativeStorage.h"
 #include "core/catalog/Identity.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/edits/EditSnapshot.h"
@@ -117,6 +118,7 @@ std::string Catalog::insertEditVersion(const std::string &assetID, const std::st
     duplicate.text(2, name);
     if (duplicate.row())
         throw std::runtime_error("A version with this name already exists.");
+    detail::storeCameraProfile(db_, edits.creative.cameraProfile);
     Statement insert(db_,
                      "INSERT INTO edit_versions(id,asset_id,name,document) VALUES(?1,?2,?3,?4)");
     insert.text(1, id);
@@ -143,7 +145,9 @@ EditDocument Catalog::editVersion(const std::string &assetID, const std::string 
     const auto document = query.string(2);
     if (document.size() != static_cast<std::size_t>(query.integer(1)))
         throw std::runtime_error("Invalid processing version document.");
-    return decodeEditSnapshot(document);
+    auto edits = decodeEditSnapshot(document);
+    detail::restoreCameraProfile(db_, edits.creative.cameraProfile);
+    return edits;
 }
 void Catalog::renameEditVersion(const std::string &assetID, const std::string &id,
                                 std::int64_t revision, const std::string &name) {

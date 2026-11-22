@@ -1,4 +1,7 @@
 #include "apps/desktop/EditorController.h"
+#include "apps/shared/CameraProfileImport.h"
+#include "apps/shared/PhotoFormats.h"
+#include "core/io/Path.h"
 #include "core/lens/LensCorrection.h"
 #include "core/render/AdvancedColor.h"
 #include "core/render/CropGeometry.h"
@@ -30,6 +33,32 @@ void EditorController::applyAdvanced(luma::EditDocument next) {
     if (next != history_.current()) {
         history_.apply(std::move(next));
         editsChanged();
+    }
+}
+bool EditorController::cameraProfileAvailable() const {
+    return session_ && luma::isSupportedRawExtension(session_->asset.path);
+}
+QString EditorController::cameraProfileName() const {
+    const auto &selected = history_.current().creative.cameraProfile;
+    return selected.profile ? QString::fromStdString(selected.profile->name) : QString();
+}
+void EditorController::setCameraProfile(const QUrl &url) {
+    if (!editable() || !cameraProfileAvailable() || (!url.isEmpty() && !url.isLocalFile()))
+        return;
+    try {
+        auto next = history_.current();
+        auto selected =
+            url.isEmpty()
+                ? luma::DcpSelection{}
+                : luma::loadCameraProfile(luma::pathFromUtf8(url.toLocalFile().toStdString()));
+        if (selected.profile &&
+            !luma::cameraProfileMatches(*selected.profile, session_->asset.metadata.camera))
+            throw std::runtime_error("This DNG camera profile is for a different camera.");
+        next.creative.cameraProfile = std::move(selected);
+        error_.clear();
+        applyAdvanced(std::move(next));
+    } catch (const std::exception &failure) {
+        advancedFailure(failure);
     }
 }
 int EditorController::addCurvePoint(const QString &channel, double x, double y) {

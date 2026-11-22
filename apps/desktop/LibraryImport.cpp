@@ -9,11 +9,13 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLockFile>
+#include <QPointer>
 #include <QSettings>
 #include <QStorageInfo>
 #include <algorithm>
 #include <memory>
 #ifdef _WIN32
+#include "platform/windows/TetherCapture.h"
 #include <windows.h>
 #endif
 
@@ -67,6 +69,96 @@ void savePresets(const QJsonObject &object) {
         throw std::runtime_error("Cannot save import metadata presets.");
 }
 } // namespace
+bool LibraryModel::tetherAvailable() const {
+#ifdef _WIN32
+    return true;
+#else
+    return false;
+#endif
+}
+
+void LibraryModel::refreshCameras() {
+    cameraRequest({}, {});
+}
+
+void LibraryModel::captureWithCamera(const QString &id, const QUrl &folder) {
+    if (!id.isEmpty() && folder.isLocalFile())
+        cameraRequest(id, folder);
+}
+
+void LibraryModel::cancelCamera() {
+    if (cameraBusy_)
+        maintenanceCancellation_.cancel();
+}
+
+void LibraryModel::cameraRequest(const QString &id, const QUrl &folder) {
+#ifdef _WIN32
+    if (working())
+        return;
+    const bool capture = !id.isEmpty();
+    error_.clear();
+    cameraBusy_ = writing_ = true;
+    status_ = capture ? QStringLiteral("Waiting for the camera photo…")
+                      : QStringLiteral("Finding connected cameras…");
+    maintenanceCancellation_ = {};
+    const auto stop = maintenanceCancellation_.token();
+    const QPointer<LibraryModel> self(this);
+    emit stateChanged();
+    try {
+        writes_.submit(
+            luma::JobPriority::background, [self, id, folder, capture, stop](const auto &) {
+                QVariantList devices;
+                std::vector<std::filesystem::path> captured;
+                QString error;
+                try {
+                    if (capture) {
+                        captured = luma::windows::captureTetheredPhotos(
+                            id.toStdWString(),
+                            luma::pathFromUtf8(folder.toLocalFile().toStdString()), stop);
+                    } else {
+                        for (const auto &camera : luma::windows::tetherCameras(stop))
+                            devices.push_back(
+                                QVariantMap{{"id", QString::fromStdWString(camera.id)},
+                                            {"name", QString::fromStdWString(camera.name)}});
+                    }
+                } catch (const std::exception &failure) {
+                    if (!stop.isCancelled())
+                        error = QString::fromUtf8(failure.what());
+                }
+                if (self)
+                    QMetaObject::invokeMethod(
+                        self,
+                        [self, capture, stop, devices = std::move(devices),
+                         captured = std::move(captured), error]() mutable {
+                            if (!self)
+                                return;
+                            self->cameraBusy_ = self->writing_ = false;
+                            self->error_ = error;
+                            self->status_ = QString();
+                            if (!capture)
+                                self->tetherCameras_ = std::move(devices);
+                            if (!self->closing_ && !stop.isCancelled() && !captured.empty()) {
+                                luma::ImportOptions options;
+                                options.mode = luma::ImportMode::add;
+                                options.recursive = false;
+                                self->startImport(std::move(captured), std::move(options));
+                            }
+                            emit self->stateChanged();
+                            self->checkClose();
+                        },
+                        Qt::QueuedConnection);
+            });
+    } catch (const std::exception &failure) {
+        cameraBusy_ = writing_ = false;
+        error_ = QString::fromUtf8(failure.what());
+        emit stateChanged();
+    }
+#else
+    (void)id;
+    (void)folder;
+#endif
+}
+
 QVariantList LibraryModel::cardSources() const {
     QVariantList devices;
     for (const auto &volume : QStorageInfo::mountedVolumes()) {

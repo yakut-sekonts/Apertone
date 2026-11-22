@@ -2,6 +2,7 @@
 #include "tests/ux/PersistenceProbe.h"
 #endif
 #include "core/catalog/Catalog.h"
+#include "core/catalog/CreativeStorage.h"
 #include "core/catalog/SqliteStatement.h"
 #include "core/edits/EditSnapshot.h"
 #include <limits>
@@ -51,6 +52,7 @@ void Catalog::writeEditHistory(const std::string &assetID, const PersistedEditHi
     documents.reserve(history.entries.size());
     std::size_t totalBytes = 0;
     for (const auto &entry : history.entries) {
+        detail::storeCameraProfile(db_, entry.document.creative.cameraProfile);
         documents.push_back(encodeEditSnapshot(entry.document));
         if (documents.back().size() > maximumHistoryBytes - totalBytes)
             throw std::runtime_error("Processing history exceeds its storage limit.");
@@ -132,8 +134,10 @@ std::optional<PersistedEditHistory> Catalog::editHistory(const std::string &asse
         } else if (query.integer(4) != 0) {
             throw std::runtime_error("Invalid stored processing history.");
         }
-        result.entries.push_back({static_cast<std::uint64_t>(query.integer(1)), query.string(2),
-                                  decodeEditSnapshot(document)});
+        auto edits = decodeEditSnapshot(document);
+        detail::restoreCameraProfile(db_, edits.creative.cameraProfile);
+        result.entries.push_back(
+            {static_cast<std::uint64_t>(query.integer(1)), query.string(2), std::move(edits)});
         ++position;
     }
     if (result.entries.empty())
