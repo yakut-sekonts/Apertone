@@ -51,8 +51,9 @@ Microsoft Visual C++ x64 Redistributable.
 - Export contact sheets and photo books with ICC soft proofing. Offscreen
   PDFs embed caption glyphs from installed fonts.
 
-Windows CI verifies card import workflows on an exFAT virtual disk. Physical
-camera, SD card and paper print checks remain open.
+Copy, interrupted import recovery and cross-volume Move passed on both a
+physical exFAT SD card and the Windows CI virtual disk. Camera and driver tests,
+card removal during import and paper print checks remain open.
 [Official 2.5.0 release notes](https://github.com/yakut-sekonts/Apertone/releases/tag/v2.5.0) ·
 [Windows source and build instructions](https://github.com/yakut-sekonts/Apertone/blob/912c3eac4a3de720080555bc05652a91d83aff03/BUILDING.md#windows-x64-development-build)
 
