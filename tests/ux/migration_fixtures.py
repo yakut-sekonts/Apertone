@@ -6,7 +6,9 @@ from pathlib import Path
 import shutil
 import sqlite3
 
-from catalog_invariants import canonical, read_database, SHUTDOWN_MARKERS, STAGING_PREFIXES
+from catalog_invariants import (
+    CURRENT_CATALOG_SCHEMA, canonical, read_database, SHUTDOWN_MARKERS, STAGING_PREFIXES,
+)
 
 FIXTURE = Path(__file__).resolve().parents[1] / 'assets/migration-051'
 ORIGINALS = ('01-complete.DNG', '02-global-local.DNG', '03-common.webp')
@@ -88,7 +90,7 @@ def prepare_migration(state_root, folder=FIXTURE):
 
 
 def compare_historical(before, after):
-    if before['schema'] != 11 or after['schema'] != 27:
+    if before['schema'] != 11 or after['schema'] != CURRENT_CATALOG_SCHEMA:
         raise ValueError('Unexpected migration schema transition')
     for name, expected in before['tables'].items():
         actual = after['tables'].get(name)
@@ -156,7 +158,7 @@ def audit_migration(state_root, evidence_root, child_pid, stage):
     previous = state_root / 'first-migration.json'
     if stage == 'verify' and json.loads(previous.read_text()) != after:
         raise ValueError('Catalog changed after migration restart')
-    result = {'status': 'PASS', 'old_schema': 11, 'new_schema': 27,
+    result = {'status': 'PASS', 'old_schema': before['schema'], 'new_schema': after['schema'],
               'historical_tables': len(before['tables']), **data,
               'asset_ids': ids, 'original_sha256': originals,
               'pre_migration_backup_sha256': digest(backups[0]),

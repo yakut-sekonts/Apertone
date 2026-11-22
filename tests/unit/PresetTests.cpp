@@ -522,7 +522,9 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     child("presetGroup0")->setProperty("checked", false);
     require(QMetaObject::invokeMethod(child("presetGroup0"), "clicked"),
             "Cannot select subset group.");
-    require(child("presetEditor")->property("groups").toInt() == 4094,
+    constexpr int withoutLight = static_cast<int>(
+        luma::allSettingsGroups & ~static_cast<std::uint32_t>(luma::SettingsGroup::light));
+    require(child("presetEditor")->property("groups").toInt() == withoutLight,
             "Group checkbox ignored subset.");
     require(QMetaObject::invokeMethod(child("presetSave"), "clicked"),
             "Cannot update from QML dialog.");
@@ -531,7 +533,7 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
     for (const auto &item : presets.items())
         if (item.toMap()["id"].toString() == id)
             require(item.toMap()["name"].toString() == "QML renamed" &&
-                        item.toMap()["groups"].toInt() == 4094 &&
+                        item.toMap()["groups"].toInt() == withoutLight &&
                         item.toMap()["folderParents"].toStringList() ==
                             QStringList({"Parent/legacy", "Second"}),
                     "QML update lost name or group selection.");

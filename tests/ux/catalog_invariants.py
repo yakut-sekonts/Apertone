@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 import sqlite3
 
+CURRENT_CATALOG_SCHEMA = 28
 REQUIRED_TABLES = frozenset(('assets', 'edit_documents', 'edit_local_masks',
                             'derived_images', 'import_sessions', 'import_items'))
 SHUTDOWN_MARKERS = ('context.owner.destroy.end', 'qguiapplication.owner.destroy.end')
@@ -25,7 +26,7 @@ def read_database(path):
     """Reject malformed, orphaned and non-finite persisted SQL values, without repair."""
     path = canonical(path)
     with closing(sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)) as database:
-        if database.execute('PRAGMA user_version').fetchone() != (28,):
+        if database.execute('PRAGMA user_version').fetchone() != (CURRENT_CATALOG_SCHEMA,):
             raise ValueError('Unexpected restored database schema')
         if database.execute('PRAGMA integrity_check').fetchall() != [('ok',)]:
             raise ValueError('Database integrity check failed')
