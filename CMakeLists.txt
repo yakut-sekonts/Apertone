@@ -33,6 +33,7 @@ include(cmake/Dependencies.cmake)
 add_library(luma_core STATIC
     core/ai/Culling.cpp core/catalog/IntelligentLibrary.cpp core/catalog/PersistentWorkflow.cpp
     core/catalog/LightroomMigration.cpp core/catalog/VirtualCopies.cpp
+    core/catalog/CollectionSets.cpp core/catalog/KeywordCatalog.cpp
     ${apertone_staging} core/io/FileSystem.cpp
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
@@ -101,9 +102,23 @@ target_link_libraries(luma_presets PUBLIC luma_core Qt6::Core)
 target_compile_options(luma_presets PRIVATE -Wall -Wextra -Wpedantic -Werror)
 add_library(luma_services STATIC apps/shared/DerivedImage.cpp apps/shared/DerivedProvenance.cpp apps/shared/DetailService.cpp apps/shared/MergeService.cpp apps/shared/BackupService.cpp apps/shared/MetadataService.cpp apps/shared/RelinkService.cpp apps/shared/PhotoDecoder.cpp apps/shared/SessionService.cpp apps/shared/LibraryService.cpp)
 target_sources(luma_services PRIVATE apps/shared/OfflinePreview.cpp apps/shared/PhotoDelivery.cpp apps/shared/LightroomCatalog.cpp
-    apps/shared/LightroomDevelop.cpp)
+    apps/shared/LightroomDevelop.cpp apps/shared/WebDavGallery.cpp)
+if(WIN32)
+    set(ZLIB_USE_STATIC_LIBS ON)
+endif()
+if(MINGW AND NOT ZLIB_ROOT)
+    execute_process(COMMAND "${CMAKE_C_COMPILER}" "-print-file-name=libz.a"
+        OUTPUT_VARIABLE apertone_mingw_zlib OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(IS_ABSOLUTE "${apertone_mingw_zlib}" AND EXISTS "${apertone_mingw_zlib}")
+        get_filename_component(apertone_mingw_zlib "${apertone_mingw_zlib}" REALPATH)
+        get_filename_component(apertone_mingw_zlib_directory "${apertone_mingw_zlib}" DIRECTORY)
+        get_filename_component(ZLIB_ROOT "${apertone_mingw_zlib_directory}" DIRECTORY)
+    endif()
+endif()
+find_package(ZLIB REQUIRED)
+target_link_libraries(luma_services PRIVATE ZLIB::ZLIB)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets PRIVATE Qt6::Gui)
+target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets PRIVATE Qt6::Gui Qt6::Network)
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 qt_standard_project_setup(REQUIRES 6.10)
@@ -128,7 +143,8 @@ qt_add_executable(Apertone MACOSX_BUNDLE
 set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
-qt_target_qml_sources(Apertone QML_FILES apps/desktop/qml/DeliveryDialog.qml apps/desktop/qml/PhotoMapDialog.qml)
+qt_target_qml_sources(Apertone QML_FILES apps/desktop/qml/DeliveryDialog.qml apps/desktop/qml/PhotoMapDialog.qml
+    apps/desktop/qml/CollectionSetDialog.qml apps/desktop/qml/KeywordDialog.qml)
 qt_add_resources(Apertone aperture_map PREFIX "/map" BASE "resources/maps" FILES resources/maps/world-land.png)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
@@ -317,6 +333,7 @@ if(BUILD_TESTING AND APPLE)
         apps/desktop/EditorController.cpp apps/desktop/EditorAI.cpp apps/desktop/EditorDenoise.cpp apps/desktop/EditorMerge.cpp apps/desktop/EditorDetailDerived.cpp apps/desktop/EditorRetouch.cpp apps/desktop/EditorTransform.cpp apps/desktop/EditorLens.cpp apps/desktop/EditorCrop.cpp apps/desktop/EditorLocal.cpp apps/desktop/EditorMaskComponents.cpp apps/desktop/EditorDetail.cpp apps/desktop/EditorAdvanced.cpp apps/desktop/EditorPresets.cpp apps/desktop/EditorQuickLooks.cpp apps/desktop/EditorVersions.cpp apps/desktop/EditorHistory.cpp apps/desktop/EditorHistogram.cpp apps/desktop/EditorWhiteBalance.cpp apps/desktop/EditorCreative.cpp apps/desktop/EditorCompare.cpp
         apps/desktop/PreviewProvider.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp apps/desktop/UpdateController.cpp)
     target_link_libraries(luma_ux_tests PRIVATE luma_localization luma_services Qt6::Test Qt6::Quick Qt6::QuickControls2)
+    qt_add_resources(luma_ux_tests aperture_ux_map PREFIX "/map" BASE "resources/maps" FILES resources/maps/world-land.png)
     target_sources(luma_ux_tests PRIVATE apps/desktop/AppearanceController.cpp apps/desktop/AppearanceController.h apps/desktop/DiagnosticsController.cpp
         apps/desktop/DiagnosticSession.cpp platform/macos/CrashCapture.mm)
     target_link_libraries(luma_ux_tests PRIVATE luma_crashreporter "-framework CoreServices")
@@ -646,5 +663,9 @@ if(BUILD_TESTING)
     add_test(NAME lightroom-catalog-import COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_SOURCE_DIR}/tests/integration/lightroom.py" "$<TARGET_FILE:luma_cli>")
     set_tests_properties(lightroom-catalog-import PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 120)
+    add_test(NAME webdav-gallery-delivery COMMAND "${Python3_EXECUTABLE}"
+        "${CMAKE_SOURCE_DIR}/tests/integration/webdav.py" "$<TARGET_FILE:luma_cli>")
+    set_tests_properties(webdav-gallery-delivery PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 120)
 endif()

@@ -240,7 +240,8 @@ void sourceBindings(const QString &qmlPath) {
          "filename: \"test\"; thumbnailURL: \"image://controlled/old\"; rating: 0; "
          "flagValue: 0; colorLabel: \"\"; selected: false; activePhoto: false; sourceMissing: "
          "false; cullingScore: 0; cullingRecommendation: 2; cullingReasons: 0; "
-         "faceCount: 0; burstID: \"\"; burstSize: 0; burstBest: false} }")
+         "faceCount: 0; burstID: \"\"; burstSize: 0; burstBest: false; "
+         "stackSize: 0; stackCover: false} }")
             .toUtf8(),
         QUrl());
     wait([&] { return component.status() != QQmlComponent::Loading; });

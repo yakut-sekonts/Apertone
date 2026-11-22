@@ -8,6 +8,11 @@ Rectangle {
     color: Theme.window
     property string currentCollection: ""
     property string editCollectionID: ""
+    property string currentSet: ""
+    readonly property var setChoices: [{id: "", path: qsTranslate("Apertone", "Top level")}].concat(library.collectionSets)
+    readonly property var activeCollection: library.collections.find(row => row.id === currentCollection)
+    onActiveCollectionChanged: if (activeCollection) currentSet = activeCollection.set
+    onSetChoicesChanged: if (!setChoices.some(row => row.id === currentSet)) currentSet = ""
     property string intelligentFaceGroupID: ""
     property var intelligenceGroups: [{"id":"", "displayName":qsTranslate("Apertone", "All face groups"), "name":"", "count":0}].concat(library.faceGroups)
     onIntelligenceGroupsChanged: Qt.callLater(function() {
@@ -20,6 +25,8 @@ Rectangle {
     DeliveryDialog { id: deliveryDialog }
     PhotoMapDialog { id: photoMapDialog }
     SmartCollectionDialog { id: smartCollection }
+    CollectionSetDialog { id: collectionSets; choices: pane.setChoices }
+    KeywordDialog { id: keywordEditor }
     SemanticSearchDialog { id: semanticSearch }
     PhotoMetadataDialog { id: photoMetadata }
     Dialog {
@@ -213,9 +220,31 @@ Rectangle {
     Dialog {
         id: collectionDialog; objectName: "library.collectionDialog"; width: 360; implicitWidth: 360; title: pane.editCollectionID ? qsTranslate("Apertone", "Rename collection") : qsTranslate("Apertone", "New collection"); modal: true; anchors.centerIn: parent
         standardButtons: Dialog.Ok | Dialog.Cancel
-        onOpened: { standardButton(Dialog.Ok).objectName = "library.collectionConfirm"; standardButton(Dialog.Cancel).objectName = "library.collectionCancel" }
-        ApertoneTextField { id: collectionName; objectName: "library.collectionName"; width: 300; placeholderText: qsTranslate("Apertone", "Collection name"); maximumLength: 128; selectByMouse: true }
-        onAccepted: { if (pane.editCollectionID) library.renameCollection(pane.editCollectionID, collectionName.text); else library.createCollection(collectionName.text) }
+        onOpened: {
+            standardButton(Dialog.Ok).objectName = "library.collectionConfirm"
+            standardButton(Dialog.Cancel).objectName = "library.collectionCancel"
+            collectionParent.currentIndex = Math.max(0, collectionParent.indexOfValue(pane.currentSet))
+            collectionName.forceActiveFocus()
+        }
+        ColumnLayout {
+            width: parent.width
+            ApertoneTextField { id: collectionName; objectName: "library.collectionName"; Layout.fillWidth: true; placeholderText: qsTranslate("Apertone", "Collection name"); maximumLength: 128; selectByMouse: true }
+            ApertoneComboBox {
+                id: collectionParent
+                objectName: "library.collectionParent"
+                visible: pane.setChoices.length > 1
+                Layout.fillWidth: true; Layout.minimumWidth: 0
+                model: pane.setChoices; textRole: "path"; valueRole: "id"
+                Accessible.name: qsTranslate("Apertone", "Collection set")
+            }
+        }
+        onAccepted: {
+            const destination = collectionParent.currentValue || ""
+            if (pane.editCollectionID)
+                library.updateCollection(pane.editCollectionID, collectionName.text, destination)
+            else
+                library.createCollection(collectionName.text, destination)
+        }
     }
     Dialog {
         id: deleteDialog; objectName: "library.deleteCollectionDialog"; width: 420; implicitWidth: 420; title: qsTranslate("Apertone", "Delete collection?"); modal: true; anchors.centerIn: parent; standardButtons: Dialog.Ok | Dialog.Cancel
@@ -334,6 +363,20 @@ Rectangle {
                 text: qsTranslate("Apertone", "%1 virtual copies created").arg(lightroomDialog.report.copies || 0)
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.historyMapped > 0 || lightroomDialog.report.historySkipped > 0)
+                text: qsTranslate("Apertone", "%1 Develop states imported · %2 partially mapped · %3 skipped")
+                      .arg(lightroomDialog.report.historySteps || 0).arg(lightroomDialog.report.historyPartial || 0)
+                      .arg(lightroomDialog.report.historySkipped || 0)
+                Layout.fillWidth: true; wrapMode: Text.Wrap
+            }
+            Label {
+                visible: Boolean(lightroomDialog.report.applied) && (lightroomDialog.report.snapshotsMapped > 0 || lightroomDialog.report.snapshotsSkipped > 0)
+                text: qsTranslate("Apertone", "%1 Develop snapshots imported · %2 partially mapped · %3 skipped")
+                      .arg(lightroomDialog.report.snapshots || 0).arg(lightroomDialog.report.snapshotsPartial || 0)
+                      .arg(lightroomDialog.report.snapshotsSkipped || 0)
+                Layout.fillWidth: true; wrapMode: Text.Wrap
             }
             Label {
                 visible: library.error.length > 0
@@ -455,19 +498,49 @@ Rectangle {
                         MenuItem { objectName: "library.panorama"; text: qsTranslate("Apertone", "Panorama merge"); enabled: library.selectedCount >= 2 && library.selectedCount <= 24 && !library.working && !editor.aiBusy && !editor.busy; onTriggered: panoramaDialog.open() }
                     }
                 }
-                Label { text: qsTranslate("Apertone", "COLLECTIONS"); font.pixelSize: 10; color: Theme.faint; Layout.topMargin: 16 }
+                RowLayout {
+                    Layout.fillWidth: true; Layout.topMargin: 8
+                    Label { text: qsTranslate("Apertone", "COLLECTIONS"); font.pixelSize: 10; color: Theme.faint; Layout.fillWidth: true }
+                    ApertoneButton {
+                        objectName: "library.collectionSets"
+                        text: qsTranslate("Apertone", "Sets…")
+                        enabled: !library.working
+                        onClicked: collectionSets.edit(pane.currentSet)
+                    }
+                }
+                ApertoneButton {
+                    objectName: "library.keywordTree"
+                    text: qsTranslate("Apertone", "Keywords…")
+                    Layout.fillWidth: true
+                    enabled: !library.working
+                    onClicked: keywordEditor.open()
+                }
+                ApertoneComboBox {
+                    id: setFilter
+                    objectName: "library.collectionSetFilter"
+                    visible: pane.setChoices.length > 1
+                    Layout.fillWidth: true; Layout.minimumWidth: 0
+                    model: pane.setChoices; textRole: "path"; valueRole: "id"
+                    currentIndex: Math.max(0, indexOfValue(pane.currentSet))
+                    Accessible.name: qsTranslate("Apertone", "Collection set")
+                    onActivated: {
+                        pane.currentCollection = ""
+                        pane.currentSet = currentValue || ""
+                        pane.applyFilter()
+                    }
+                }
                 ScrollView {
                     objectName: "library.collectionsScroll"
                     Layout.fillWidth: true; Layout.fillHeight: true; clip: true; contentWidth: availableWidth
                     Column {
                         width: parent.width; spacing: 4
                         Repeater {
-                            model: library.collections
+                            model: library.collections.filter(row => row.set === pane.currentSet)
                             ApertoneButton { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
                         }
                     }
                 }
-                ApertoneButton {text:qsTranslate("Apertone","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create()}
+                ApertoneButton {text:qsTranslate("Apertone","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create(pane.currentSet)}
                 ApertoneButton {
                     text:qsTranslate("Apertone","Edit rules");Layout.fillWidth:true;enabled:!library.working
                     visible:!!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&c.smart)

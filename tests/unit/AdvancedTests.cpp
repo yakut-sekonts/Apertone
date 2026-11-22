@@ -148,7 +148,7 @@ void catalogTests() {
             catalog.saveEdits(id, original);
             catalog.setRating({id}, 4);
         }
-        sql(path, fixture::removePostV11Tables);
+        sql(path, fixture::removePostV11Tables.c_str());
         sql(path, R"sql(
             BEGIN;
             CREATE TABLE historical_edits(

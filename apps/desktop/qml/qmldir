@@ -33,6 +33,8 @@ ApertoneTextField 1.0 ApertoneTextField.qml
 Main 1.0 Main.qml
 MetadataRow 1.0 MetadataRow.qml
 PhotoCard 1.0 PhotoCard.qml
+CollectionSetDialog 1.0 CollectionSetDialog.qml
+KeywordDialog 1.0 KeywordDialog.qml
 PhotoMetadataDialog 1.0 PhotoMetadataDialog.qml
 PhotoViewport 1.0 PhotoViewport.qml
 PreferencesPanel 1.0 PreferencesPanel.qml

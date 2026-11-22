@@ -50,6 +50,14 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"mappedEdits\":" << report.mappedEdits
                   << ",\"partialEdits\":" << report.partialEdits
                   << ",\"unmappedEdits\":" << report.unmappedEdits
+                  << ",\"historyMapped\":" << report.historyMapped
+                  << ",\"historyPartial\":" << report.historyPartial
+                  << ",\"historySkipped\":" << report.historySkipped
+                  << ",\"historySteps\":" << report.imported.historySteps
+                  << ",\"snapshotsMapped\":" << report.snapshotsMapped
+                  << ",\"snapshotsPartial\":" << report.snapshotsPartial << ",\"snapshotsSkipped\":"
+                  << report.snapshotsSkipped + report.imported.snapshotsWithoutRoom
+                  << ",\"snapshots\":" << report.imported.snapshots
                   << ",\"unreadable\":" << report.unreadable
                   << ",\"added\":" << report.imported.added
                   << ",\"reused\":" << report.imported.reused
@@ -57,6 +65,7 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
                   << ",\"copies\":" << report.imported.copies
                   << ",\"unchanged\":" << report.imported.unchanged
                   << ",\"collections\":" << report.imported.collections
+                  << ",\"collectionSets\":" << report.imported.collectionSets
                   << ",\"smartCollectionsImported\":" << report.imported.smartCollections
                   << ",\"fingerprint\":" << quoted(report.fingerprint) << "}\n";
         return true;
@@ -64,12 +73,12 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
     if (args[0] == "import" && args.size() >= 3) {
         ImportOptions options;
         std::size_t start = 2;
-        if (args[1] == "copy") {
-            options.mode = ImportMode::copy;
+        if (args[1] == "copy" || args[1] == "move") {
+            options.mode = args[1] == "copy" ? ImportMode::copy : ImportMode::move;
             options.destination = pathFromUtf8(args[2]);
             start = 3;
         } else if (args[1] != "add")
-            throw std::runtime_error("Import mode must be add or copy.");
+            throw std::runtime_error("Import mode must be add, copy or move.");
         std::vector<std::filesystem::path> sources;
         for (std::size_t i = start; i < args.size(); ++i) {
             if (args[i] == "--no-recursive")
@@ -160,9 +169,74 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
             if (i)
                 std::cout << ',';
             std::cout << "{\"id\":" << quoted(rows[i].id) << ",\"name\":" << quoted(rows[i].name)
-                      << ",\"count\":" << rows[i].count << '}';
+                      << ",\"count\":" << rows[i].count << ",\"set\":" << quoted(rows[i].setID)
+                      << '}';
         }
         std::cout << "]\n";
+        return true;
+    }
+    if (args == std::vector<std::string>{"sets"}) {
+        const auto rows = Catalog(catalog).collectionSets();
+        std::cout << '[';
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+            if (i)
+                std::cout << ',';
+            const auto &row = rows[i];
+            std::cout << "{\"id\":" << quoted(row.id) << ",\"name\":" << quoted(row.name)
+                      << ",\"parent\":" << quoted(row.parentID) << ",\"path\":" << quoted(row.path)
+                      << '}';
+        }
+        std::cout << "]\n";
+        return true;
+    }
+    if (args[0] == "set" && args.size() >= 3) {
+        Catalog db(catalog);
+        if (args[1] == "create" && args.size() <= 4) {
+            const auto id = db.createCollectionSet(args[2], args.size() == 4 ? args[3] : "");
+            std::cout << "{\"id\":" << quoted(id) << "}\n";
+            return true;
+        }
+        if (args[1] == "update" && (args.size() == 4 || args.size() == 5))
+            db.updateCollectionSet(args[2], args[3], args.size() == 5 ? args[4] : "");
+        else if (args[1] == "delete" && args.size() == 3)
+            db.deleteCollectionSet(args[2]);
+        else
+            throw std::runtime_error("Invalid collection set command.");
+        std::cout << "{\"saved\":true}\n";
+        return true;
+    }
+    if (args == std::vector<std::string>{"keywords"}) {
+        const auto rows = Catalog(catalog).catalogKeywords();
+        std::cout << '[';
+        for (std::size_t i = 0; i < rows.size(); ++i) {
+            if (i)
+                std::cout << ',';
+            const auto &row = rows[i];
+            std::cout << "{\"path\":" << quoted(row.path) << ",\"photos\":" << row.photos
+                      << ",\"aliases\":[";
+            for (std::size_t alias = 0; alias < row.aliases.size(); ++alias) {
+                if (alias)
+                    std::cout << ',';
+                std::cout << quoted(row.aliases[alias]);
+            }
+            std::cout << "]}";
+        }
+        std::cout << "]\n";
+        return true;
+    }
+    if (args[0] == "keyword" && args.size() >= 3) {
+        Catalog db(catalog);
+        if (args[1] == "create")
+            db.saveCatalogKeyword({}, args[2], {args.begin() + 3, args.end()});
+        else if (args[1] == "update" && args.size() >= 4)
+            db.saveCatalogKeyword(args[2], args[3], {args.begin() + 4, args.end()});
+        else if (args[1] == "delete" && args.size() == 3)
+            db.deleteCatalogKeyword(args[2]);
+        else if ((args[1] == "add" || args[1] == "remove") && args.size() >= 4)
+            db.keywordMembership(args[2], {args.begin() + 3, args.end()}, args[1] == "add");
+        else
+            throw std::runtime_error("Invalid keyword command.");
+        std::cout << "{\"saved\":true}\n";
         return true;
     }
     if (args[0] == "stack" && args.size() >= 3) {
@@ -183,12 +257,15 @@ bool libraryCommand(const std::filesystem::path &catalog, const std::vector<std:
     }
     if (args[0] == "collection" && args.size() >= 3) {
         Catalog db(catalog);
-        if (args[1] == "create" && args.size() == 3) {
-            std::cout << "{\"id\":" << quoted(db.createCollection(args[2])) << "}\n";
+        if (args[1] == "create" && args.size() <= 4) {
+            const auto id = db.createCollection(args[2], args.size() == 4 ? args[3] : "");
+            std::cout << "{\"id\":" << quoted(id) << "}\n";
             return true;
         }
         if (args[1] == "rename" && args.size() == 4)
             db.renameCollection(args[2], args[3]);
+        else if (args[1] == "move" && args.size() <= 4)
+            db.moveCollection(args[2], args.size() == 4 ? args[3] : "");
         else if (args[1] == "delete" && args.size() == 3)
             db.deleteCollection(args[2]);
         else if ((args[1] == "add" || args[1] == "remove") && args.size() >= 4)

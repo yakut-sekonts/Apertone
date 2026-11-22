@@ -1,6 +1,7 @@
 #include "core/ai/Culling.h"
 #include "core/catalog/Catalog.h"
 #include "platform/macos/PhotoCulling.h"
+#include "tests/unit/LegacyCatalogFixture.h"
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -244,8 +245,8 @@ void catalogChecks() {
     require(sqlite3_open(path.c_str(), &raw) == SQLITE_OK, "Cannot inspect culling schema.");
     sqlite3_stmt *statement = nullptr;
     require(sqlite3_prepare_v2(raw, "PRAGMA user_version", -1, &statement, nullptr) == SQLITE_OK &&
-                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 23,
-            "Catalog did not migrate through Persistent Workflow schema 23.");
+                sqlite3_step(statement) == SQLITE_ROW && sqlite3_column_int(statement, 0) == 27,
+            "Catalog did not migrate to the current schema.");
     sqlite3_finalize(statement);
     sqlite3_close(raw);
 }
@@ -256,6 +257,7 @@ void migrationChecks() {
     {
         luma::Catalog current(path);
     }
+    sql(path, fixture::removePostV23Tables);
     sql(path, "DROP TABLE edit_history_states;DROP TABLE burst_members;DROP TABLE "
               "burst_stacks;DROP TABLE face_instances;"
               "DROP TABLE face_groups;DROP TABLE culling_analysis;"
@@ -270,8 +272,8 @@ void migrationChecks() {
     sqlite3_stmt *version = nullptr;
     require(sqlite3_prepare_v2(database, "PRAGMA user_version", -1, &version, nullptr) ==
                     SQLITE_OK &&
-                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 23,
-            "Schema-21 catalog did not migrate through schema 23.");
+                sqlite3_step(version) == SQLITE_ROW && sqlite3_column_int(version, 0) == 27,
+            "Schema-21 catalog did not migrate to the current schema.");
     sqlite3_finalize(version);
     sqlite3_close(database);
     const auto backups = temporary.root / "catalog.sqlite.luma-backups";

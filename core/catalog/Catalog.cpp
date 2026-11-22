@@ -22,7 +22,7 @@
 namespace luma {
 namespace {
 using detail::Statement;
-constexpr int currentCatalogSchema = 26;
+constexpr int currentCatalogSchema = 27;
 AssetRecord readAsset(sqlite3 *db, const Statement &query) {
     PhotoMetadata metadata;
     metadata.camera = query.string(3);
@@ -450,7 +450,10 @@ Catalog::Catalog(const std::filesystem::path &path, CatalogOpenMode mode) {
                 INSERT INTO schema_migrations(version) VALUES(26);
                 PRAGMA user_version=26;
             )sql");
+            current = 26;
         }
+        if (current == 26)
+            migrateOrganization();
         execute("COMMIT;");
     } catch (...) {
         sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);

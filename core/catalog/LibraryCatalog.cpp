@@ -19,6 +19,9 @@ constexpr auto where =
     " OR a.camera LIKE ?3 ESCAPE '\\' OR a.lens LIKE ?3 ESCAPE '\\'"
     " OR EXISTS(SELECT 1 FROM asset_keywords k WHERE k.asset_id=a.id AND k.keyword LIKE ?3 ESCAPE "
     "'\\')"
+    " OR EXISTS(SELECT 1 FROM asset_keywords k JOIN keyword_aliases synonym ON "
+    "k.keyword=synonym.path "
+    "WHERE k.asset_id=a.id AND synonym.alias LIKE ?3 ESCAPE '\\')"
     " OR EXISTS(SELECT 1 FROM asset_creators c WHERE c.asset_id=a.id AND c.name LIKE ?3 ESCAPE "
     "'\\')"
     " OR EXISTS(SELECT 1 FROM asset_metadata m WHERE m.asset_id=a.id AND (m.title LIKE ?3 ESCAPE "
@@ -88,10 +91,6 @@ void bindFilter(Statement &query, const LibraryFilter &filter, const QueryFilter
         else
             query.text(index, std::get<std::string>(v));
     }
-}
-void validateName(const std::string &name) {
-    if (name.empty() || name.size() > 512 || name.find_first_not_of(" \t\r\n") == std::string::npos)
-        throw std::runtime_error("Collection name must contain text and fit 128 characters.");
 }
 void requireChanged(sqlite3 *db) {
     if (sqlite3_changes(db) != 1)
@@ -252,13 +251,15 @@ void Catalog::setLabel(const std::vector<std::string> &ids, const std::string &l
     updateMetadata(ids, "UPDATE assets SET color_label=?1 WHERE id=?2", std::nullopt, label);
 }
 std::vector<CollectionRecord> Catalog::collections() const {
-    Statement query(
-        db_,
-        "SELECT c.id,c.name,COUNT(ca.asset_id) FROM collections c LEFT JOIN collection_assets ca"
-        " ON ca.collection_id=c.id GROUP BY c.id ORDER BY c.name COLLATE NOCASE,c.id");
+    Statement query(db_,
+                    "SELECT c.id,COALESCE(e.name,c.name),COUNT(ca.asset_id),COALESCE(e.set_id,'') "
+                    "FROM collections c LEFT JOIN collection_assets ca ON ca.collection_id=c.id "
+                    "LEFT JOIN collection_set_entries e ON e.collection_id=c.id "
+                    "GROUP BY c.id ORDER BY 2 COLLATE NOCASE,c.id");
     std::vector<CollectionRecord> rows;
     while (query.row()) {
         CollectionRecord record{query.string(0), query.string(1), query.integer(2)};
+        record.setID = query.string(3);
         record.smart = smartCollection(record.id).has_value();
         if (record.smart) {
             LibraryFilter filter;
@@ -268,23 +269,6 @@ std::vector<CollectionRecord> Catalog::collections() const {
         rows.push_back(std::move(record));
     }
     return rows;
-}
-std::string Catalog::createCollection(const std::string &name) {
-    validateName(name);
-    const auto id = newID();
-    Statement query(db_, "INSERT INTO collections(id,name) VALUES(?1,?2)");
-    query.text(1, id);
-    query.text(2, name);
-    query.row();
-    return id;
-}
-void Catalog::renameCollection(const std::string &id, const std::string &name) {
-    validateName(name);
-    Statement query(db_, "UPDATE collections SET name=?1 WHERE id=?2");
-    query.text(1, name);
-    query.text(2, id);
-    query.row();
-    requireChanged(db_);
 }
 void Catalog::deleteCollection(const std::string &id) {
     Statement query(db_, "DELETE FROM collections WHERE id=?1");
@@ -690,13 +674,19 @@ Catalog::duplicateFingerprintPageFrom(const std::filesystem::path &path,
     if (sqlite3_exec(db.get(), "BEGIN", nullptr, nullptr, nullptr) != SQLITE_OK)
         throw std::runtime_error(std::string("Cannot start catalog read: ") +
                                  sqlite3_errmsg(db.get()));
+    Statement columns(db.get(), "PRAGMA table_info(assets)");
+    bool supportsCopies = false;
+    while (columns.row())
+        supportsCopies |= columns.string(1) == "original_asset_id";
     const std::string select =
-        "SELECT a.checksum,a.filesize,a.id,a.original_path,a.rowid FROM assets a "
-        "WHERE a.original_asset_id IS NULL AND length(a.checksum)=64 "
-        "AND length(CAST(a.checksum AS BLOB))=64 "
-        "AND a.checksum NOT GLOB '*[^0-9a-f]*' "
+        std::string("SELECT a.checksum,a.filesize,a.id,a.original_path,a.rowid FROM assets a "
+                    "WHERE length(a.checksum)=64 "
+                    "AND length(CAST(a.checksum AS BLOB))=64 "
+                    "AND a.checksum NOT GLOB '*[^0-9a-f]*' ") +
+        (supportsCopies ? "AND a.original_asset_id IS NULL " : "") +
         "AND EXISTS(SELECT 1 FROM assets b WHERE b.checksum=a.checksum "
-        "AND b.filesize=a.filesize AND b.rowid!=a.rowid AND b.original_asset_id IS NULL) ";
+        "AND b.filesize=a.filesize AND b.rowid!=a.rowid" +
+        (supportsCopies ? " AND b.original_asset_id IS NULL) " : ") ");
     DuplicateFingerprintPage result;
     const auto read = [&](const char *predicate, bool bindRowID) {
         const auto sql = select + predicate + " ORDER BY a.checksum,a.filesize,a.rowid LIMIT ?4";

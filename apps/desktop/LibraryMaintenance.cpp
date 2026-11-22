@@ -6,6 +6,7 @@
 #include "apps/shared/PhotoDelivery.h"
 #include "apps/shared/RelinkService.h"
 #include "apps/shared/SessionService.h"
+#include "apps/shared/WebDavGallery.h"
 #include "core/image/Bayer.h"
 #include "core/io/FileSystem.h"
 #include "core/io/Path.h"
@@ -137,15 +138,40 @@ void LibraryModel::cancelOfflinePreviews() {
 }
 void LibraryModel::deliver(int format, const QString &title, const QUrl &destination,
                            const QUrl &proof) {
-    if (working() || selecting_ || !destination.isLocalFile() ||
-        (!proof.isEmpty() && !proof.isLocalFile()))
-        return;
-    const auto ids = selectionIDs();
-    if (ids.empty())
+    if (!destination.isLocalFile() || (!proof.isEmpty() && !proof.isLocalFile()))
         return;
     const auto mode = static_cast<luma::DeliveryFormat>(format);
     const auto target = luma::pathFromUtf8(destination.toLocalFile().toStdString());
     const auto profile = luma::pathFromUtf8(proof.toLocalFile().toStdString());
+    const auto output =
+        mode == luma::DeliveryFormat::webGallery || mode == luma::DeliveryFormat::slideshow
+            ? target / "index.html"
+            : target;
+    startDelivery(QUrl::fromLocalFile(QString::fromStdString(luma::pathUtf8(output))),
+                  [target, mode, title = title.trimmed().toStdString(),
+                   profile](const auto &path, const auto &ids, auto stop, const auto &progress) {
+                      luma::deliverPhotos(path, ids, target, mode, title, profile, stop, progress);
+                  });
+}
+void LibraryModel::publishWebDav(const QString &title, const QString &parent, const QString &folder,
+                                 const QString &user, const QString &password) {
+    startDelivery({}, [title = title.trimmed().toStdString(),
+                       upload = luma::WebDavGallery{QUrl(parent.trimmed(), QUrl::StrictMode),
+                                                    folder.trimmed(), user, password}](
+                          const auto &path, const auto &ids, auto stop, const auto &progress) {
+        luma::publishWebDavGallery(path, ids, title, upload, stop, progress);
+    });
+}
+void LibraryModel::startDelivery(
+    const QUrl &output,
+    std::function<void(const std::filesystem::path &, const std::vector<std::string> &,
+                       luma::CancellationToken, const std::function<void(double)> &)>
+        publish) {
+    if (working() || selecting_)
+        return;
+    const auto ids = selectionIDs();
+    if (ids.empty())
+        return;
     const auto path = catalog_;
     maintenanceCancellation_ = {};
     const auto stop = maintenanceCancellation_.token();
@@ -156,34 +182,28 @@ void LibraryModel::deliver(int format, const QString &title, const QUrl &destina
     status_ = QStringLiteral("Preparing photo delivery…");
     emit stateChanged();
     try {
-        writes_.submit(luma::JobPriority::background, [self, ids, path, mode, target,
-                                                       title = title.trimmed().toStdString(),
-                                                       profile, stop](const auto &) {
+        writes_.submit(luma::JobPriority::background, [self, ids, path, output, stop,
+                                                       publish = std::move(publish)](const auto &) {
             QString error;
             bool completed = false;
             try {
-                luma::deliverPhotos(path, ids, target, mode, title, profile, stop,
-                                    [self](double value) {
-                                        if (self)
-                                            QMetaObject::invokeMethod(
-                                                self,
-                                                [self, value] {
-                                                    if (self) {
-                                                        self->progress_ = value;
-                                                        emit self->stateChanged();
-                                                    }
-                                                },
-                                                Qt::QueuedConnection);
-                                    });
+                publish(path, ids, stop, [self](double value) {
+                    if (self)
+                        QMetaObject::invokeMethod(
+                            self,
+                            [self, value] {
+                                if (self) {
+                                    self->progress_ = value;
+                                    emit self->stateChanged();
+                                }
+                            },
+                            Qt::QueuedConnection);
+                });
                 completed = true;
             } catch (const std::exception &failure) {
                 if (!stop.isCancelled())
                     error = QString::fromUtf8(failure.what());
             }
-            const auto output =
-                mode == luma::DeliveryFormat::webGallery || mode == luma::DeliveryFormat::slideshow
-                    ? target / "index.html"
-                    : target;
             if (self)
                 QMetaObject::invokeMethod(
                     self,
@@ -198,8 +218,7 @@ void LibraryModel::deliver(int format, const QString &title, const QUrl &destina
                                             : QStringLiteral("Photo delivery failed.");
                         emit self->stateChanged();
                         if (completed)
-                            emit self->deliveryReady(QUrl::fromLocalFile(
-                                QString::fromStdString(luma::pathUtf8(output))));
+                            emit self->deliveryReady(output);
                         self->checkClose();
                     },
                     Qt::QueuedConnection);

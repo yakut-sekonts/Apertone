@@ -41,6 +41,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(bool fingerprintHasPrevious READ fingerprintHasPrevious NOTIFY stateChanged)
     Q_PROPERTY(QString fingerprintError READ fingerprintError NOTIFY stateChanged)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList collectionSets READ collectionSets NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList catalogKeywords READ catalogKeywords NOTIFY catalogKeywordsChanged)
     Q_PROPERTY(bool semanticEnabled READ semanticEnabled NOTIFY stateChanged)
     Q_PROPERTY(bool semanticBusy READ semanticBusy NOTIFY stateChanged)
     Q_PROPERTY(double semanticProgress READ semanticProgress NOTIFY stateChanged)
@@ -135,6 +137,9 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void cancelOfflinePreviews();
     Q_INVOKABLE void deliver(int format, const QString &title, const QUrl &destination,
                              const QUrl &proof);
+    Q_INVOKABLE void publishWebDav(const QString &title, const QString &parent,
+                                   const QString &folder, const QString &user,
+                                   const QString &password);
     Q_INVOKABLE void cancelDelivery();
     Q_INVOKABLE void loadPhotoLocations();
     Q_INVOKABLE void openMapPhoto(const QString &id);
@@ -221,6 +226,12 @@ class LibraryModel final : public QAbstractListModel {
     QVariantList collections() const {
         return collections_;
     }
+    QVariantList collectionSets() const {
+        return collectionSets_;
+    }
+    QVariantList catalogKeywords() const {
+        return catalogKeywords_;
+    }
     bool semanticEnabled() const {
         return semanticEnabled_;
     }
@@ -292,11 +303,21 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void label(const QString &value);
     Q_INVOKABLE void editSmartCollection(const QString &id, const QString &name);
     Q_INVOKABLE void saveSmartCollection(const QString &id, const QString &name,
-                                         const QString &revision, const QVariantMap &rule);
-    Q_INVOKABLE void createCollection(const QString &name);
+                                         const QString &revision, const QVariantMap &rule,
+                                         const QString &setID = {});
+    Q_INVOKABLE void createCollection(const QString &name, const QString &setID = {});
     Q_INVOKABLE void renameCollection(const QString &id, const QString &name);
+    Q_INVOKABLE void updateCollection(const QString &id, const QString &name, const QString &setID);
     Q_INVOKABLE void deleteCollection(const QString &id);
+    Q_INVOKABLE void saveCollectionSet(const QString &id, const QString &name,
+                                       const QString &parentID);
+    Q_INVOKABLE void deleteCollectionSet(const QString &id);
     Q_INVOKABLE void collectionMembership(const QString &id, bool add);
+    Q_INVOKABLE void loadCatalogKeywords();
+    Q_INVOKABLE void saveCatalogKeyword(const QString &previous, const QString &path,
+                                        const QStringList &aliases);
+    Q_INVOKABLE void deleteCatalogKeyword(const QString &path);
+    Q_INVOKABLE void keywordMembership(const QString &path, bool add);
     QVariantList importMetadataPresets() const;
     Q_INVOKABLE bool saveImportMetadataPreset(const QString &name, const QVariantMap &values);
     Q_INVOKABLE bool removeImportMetadataPreset(const QString &name);
@@ -323,6 +344,7 @@ class LibraryModel final : public QAbstractListModel {
     void openRequested(const QUrl &url);
     void closeReady();
     void metadataChanged();
+    void catalogKeywordsChanged();
     void deliveryReady(const QUrl &url);
     void photoLocationsReady(const QVariantList &locations, const QString &error);
     void smartCollectionReady(const QString &id, const QString &name, const QString &revision,
@@ -364,6 +386,9 @@ class LibraryModel final : public QAbstractListModel {
     luma::LibraryFilter filter_;
     QTimer filterTimer_;
     QVariantList collections_;
+    QVariantList collectionSets_;
+    QVariantList catalogKeywords_;
+    std::uint64_t keywordRevision_ = 0;
     int count_ = 0, anchor_ = -1;
     std::uint64_t revision_ = 0, selectionRevision_ = 0, thumbnailGeneration_ = 0;
     bool externalBusy_ = false;
@@ -419,4 +444,9 @@ class LibraryModel final : public QAbstractListModel {
                 bool syncXMP = false);
     bool refreshMetadata(const std::vector<std::string> &ids, int role, const QVariant &value);
     void checkClose();
+    void startDelivery(
+        const QUrl &output,
+        std::function<void(const std::filesystem::path &, const std::vector<std::string> &,
+                           luma::CancellationToken, const std::function<void(double)> &)>
+            publish);
 };

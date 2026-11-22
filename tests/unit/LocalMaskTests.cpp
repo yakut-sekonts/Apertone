@@ -303,7 +303,7 @@ void persistence(const std::filesystem::path &root) {
         edits.exposure = .7;
         db.saveEdits(id, edits);
     }
-    sql(path, fixture::removePostV11Tables);
+    sql(path, fixture::removePostV11Tables.c_str());
     sql(path, "DROP TRIGGER initialize_local_masks;DROP TABLE edit_local_masks;DELETE FROM "
               "schema_migrations WHERE version>=10;PRAGMA user_version=9;");
     {
@@ -357,7 +357,7 @@ void persistence(const std::filesystem::path &root) {
         metadata.height = 2;
         db.addAndSelect(root / "other.dng", "other", metadata);
     }
-    sql(bad, fixture::removePostV11Tables);
+    sql(bad, fixture::removePostV11Tables.c_str());
     sql(bad, "DROP TRIGGER initialize_local_masks;DROP TABLE edit_local_masks;DELETE FROM "
              "schema_migrations WHERE version>=10;PRAGMA user_version=9;PRAGMA "
              "ignore_check_constraints=ON;UPDATE edit_documents SET schema_version=99;");

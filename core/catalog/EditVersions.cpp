@@ -94,7 +94,7 @@ std::string Catalog::createEditVersion(const std::string &assetID, const std::st
     }
 }
 std::string Catalog::insertEditVersion(const std::string &assetID, const std::string &name,
-                                       const EditDocument &edits) {
+                                       const EditDocument &edits, bool skipIfFull) {
     validateName(name);
     const auto document = encodeEditSnapshot(edits);
     const auto id = newID();
@@ -106,9 +106,12 @@ std::string Catalog::insertEditVersion(const std::string &assetID, const std::st
                           "FROM edit_versions WHERE asset_id=?1");
     budget.text(1, assetID);
     if (!budget.row() || budget.integer(0) >= maximumVersions ||
-        budget.integer(1) > maximumStoredBytes - static_cast<std::int64_t>(document.size()))
+        budget.integer(1) > maximumStoredBytes - static_cast<std::int64_t>(document.size())) {
+        if (skipIfFull)
+            return {};
         throw std::runtime_error(
             "A photo supports at most 100 versions and 256 MiB of version data.");
+    }
     Statement duplicate(db_, "SELECT 1 FROM edit_versions WHERE asset_id=?1 AND name=?2");
     duplicate.text(1, assetID);
     duplicate.text(2, name);

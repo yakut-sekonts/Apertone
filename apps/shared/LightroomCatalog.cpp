@@ -18,6 +18,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <zlib.h>
 
 namespace luma {
 namespace {
@@ -287,7 +288,146 @@ struct Scan {
     LightroomCatalogReport report;
     std::vector<LightroomMigrationPhoto> photos;
     std::vector<LightroomMigrationCollection> collections;
+    std::vector<CatalogKeyword> keywords;
 };
+
+std::string stateLiteral(const Statement &row) {
+    auto bytes = row.payload(3);
+    if (row.string(2) == "text")
+        return bytes;
+    if (row.string(2) != "blob" || bytes.size() < 6)
+        return {};
+    // Lightroom's SQLite zipString stores a big-endian decoded length followed by zlib.
+    std::uint32_t size = 0;
+    for (std::size_t i = 0; i < 4; ++i)
+        size = (size << 8) | static_cast<unsigned char>(bytes[i]);
+    if (size == 0 || size > 1'048'576)
+        return {};
+    std::string text(size, '\0');
+    uLongf decodedSize = size;
+    uLong compressedSize = static_cast<uLong>(bytes.size() - 4);
+    const auto result =
+        uncompress2(reinterpret_cast<Bytef *>(text.data()), &decodedSize,
+                    reinterpret_cast<const Bytef *>(bytes.data() + 4), &compressedSize);
+    if (result != Z_OK || decodedSize != size || compressedSize != bytes.size() - 4)
+        return {};
+    return text;
+}
+
+bool hasStateTable(sqlite3 *db, const char *table, std::initializer_list<const char *> columns) {
+    return hasTable(db, table) &&
+           std::ranges::all_of(columns, [=](auto name) { return hasColumn(db, table, name); });
+}
+
+std::pair<EditDocument, bool> decodeState(const Statement &row) {
+    const auto decoded = decodeLightroomDevelop(stateLiteral(row));
+    const auto &settings = decoded.preset;
+    return {mergeSettings(EditDocument{}, settings.settings, settings.groups, settings.parameters),
+            !decoded.unsupported.isEmpty()};
+}
+
+void readDevelopHistory(sqlite3 *db, std::int64_t imageID, const std::string &currentSource,
+                        LightroomMigrationPhoto &photo, LightroomCatalogReport &report,
+                        CancellationToken stop) {
+    // The native history can hold 201 states. Keep one slot for the active edit.
+    const auto isCurrent = currentSource.empty() ? "0" : "COALESCE(id_global=?2,0)";
+    const auto sql =
+        std::string("WITH matching AS (SELECT id_local,dateCreated,") +
+        "CASE WHEN length(CAST(name AS BLOB))<=1024 THEN name END AS label,"
+        "typeof(text) AS kind,CASE WHEN length(CAST(text AS BLOB))<=1048576 THEN text END AS "
+        "data," +
+        isCurrent +
+        " AS active FROM Adobe_libraryImageDevelopHistoryStep WHERE image=?1 "
+        "ORDER BY active DESC,dateCreated DESC,id_local DESC LIMIT 201) "
+        "SELECT id_local,label,kind,data,active,"
+        "row_number() OVER(ORDER BY active DESC,dateCreated DESC,id_local DESC) AS slot "
+        "FROM matching ORDER BY dateCreated DESC,id_local DESC";
+    Statement rows(db, sql.c_str());
+    rows.integer(1, imageID);
+    if (!currentSource.empty())
+        rows.text(2, currentSource);
+    PersistedEditHistory history;
+    std::optional<std::uint64_t> currentID;
+    while (rows.row()) {
+        checkCancellation(stop);
+        if (rows.integer(5) > 200 || report.historyMapped >= 65'536 || rows.integer(0) < 0) {
+            ++report.historySkipped;
+            continue;
+        }
+        try {
+            auto [document, partial] = decodeState(rows);
+            auto label = rows.string(1);
+            if (label.starts_with("$$$/")) {
+                const auto separator = label.find('=');
+                label =
+                    separator == std::string::npos ? std::string{} : label.substr(separator + 1);
+            }
+            label = displayName(label, "Lightroom Develop state").left(64).toStdString();
+            const auto id = static_cast<std::uint64_t>(rows.integer(0));
+            if (rows.integer(4)) {
+                currentID = id;
+                document = *photo.edits;
+            }
+            history.entries.push_back({id, std::move(label), std::move(document)});
+            ++report.historyMapped;
+            report.historyPartial += partial;
+        } catch (const std::exception &) {
+            ++report.historySkipped;
+        }
+    }
+    if (history.entries.empty())
+        return;
+    std::ranges::reverse(history.entries);
+    const auto current =
+        std::find_if(history.entries.rbegin(), history.entries.rend(), [&](const auto &state) {
+            if (currentID)
+                return state.id == *currentID;
+            return currentSource.empty() && state.document == *photo.edits;
+        });
+    if (current != history.entries.rend()) {
+        history.currentIndex =
+            static_cast<std::size_t>(current.base() - history.entries.begin() - 1);
+    } else {
+        // Use dense IDs for imported states so future edits can always advance the counter.
+        history.entries.push_back({0, "Current Lightroom settings", *photo.edits});
+        history.currentIndex = history.entries.size() - 1;
+    }
+    for (std::size_t i = 0; i < history.entries.size(); ++i)
+        history.entries[i].id = i;
+    photo.history = std::move(history);
+}
+
+void readDevelopSnapshots(sqlite3 *db, std::int64_t imageID, LightroomMigrationPhoto &photo,
+                          LightroomCatalogReport &report, CancellationToken stop) {
+    Statement rows(db, R"sql(
+        SELECT CASE WHEN length(CAST(id_global AS BLOB))=36 THEN id_global END,
+               CASE WHEN length(CAST(name AS BLOB))<=1024 THEN name END,
+               typeof(text),CASE WHEN length(CAST(text AS BLOB))<=1048576 THEN text END
+        FROM Adobe_libraryImageDevelopSnapshot WHERE image=?1
+        ORDER BY id_local DESC LIMIT 101
+    )sql");
+    rows.integer(1, imageID);
+    std::size_t scanned = 0;
+    while (rows.row()) {
+        checkCancellation(stop);
+        auto identity = rows.string(0);
+        if (++scanned > 100 || report.snapshotsMapped >= 16'384 || !sourceID(identity)) {
+            ++report.snapshotsSkipped;
+            continue;
+        }
+        try {
+            auto [document, partial] = decodeState(rows);
+            auto name = displayName(rows.string(1), "").left(100).trimmed().toStdString();
+            if (name.empty())
+                name = "Lightroom snapshot";
+            photo.snapshots.push_back({std::move(identity), std::move(name), std::move(document)});
+            ++report.snapshotsMapped;
+            report.snapshotsPartial += partial;
+        } catch (const std::exception &) {
+            ++report.snapshotsSkipped;
+        }
+    }
+}
 
 Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
           const std::function<void(double)> &progress = {}) {
@@ -312,12 +452,13 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         requireTable(db, "AgLibraryKeyword");
         requireTable(db, "AgLibraryKeywordImage");
         const bool keywordParents = hasColumn(db, "AgLibraryKeyword", "parent");
-        const auto keywordTree =
-            keywordParents ? readNameTree(db,
-                                          "SELECT id_local,name,parent FROM AgLibraryKeyword "
-                                          "WHERE length(CAST(name AS BLOB))<=512 ORDER BY id_local",
-                                          stop)
-                           : NameTree{};
+        const auto keywordTree = readNameTree(
+            db,
+            keywordParents ? "SELECT id_local,name,parent FROM AgLibraryKeyword "
+                             "WHERE length(CAST(name AS BLOB)) BETWEEN 1 AND 512 ORDER BY id_local"
+                           : "SELECT id_local,name,NULL FROM AgLibraryKeyword "
+                             "WHERE length(CAST(name AS BLOB)) BETWEEN 1 AND 512 ORDER BY id_local",
+            stop);
         const auto keywordQuery =
             std::string("SELECT i.id_global,k.name,k.id_local,") +
             (keywordParents ? "k.parent" : "NULL") +
@@ -349,6 +490,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
                 }
             }
         }
+        for (const auto &[id, node] : keywordTree) {
+            checkCancellation(stop);
+            auto name = QString::fromStdString(metadataText(node.name)).trimmed().toStdString();
+            if (name.empty())
+                continue;
+            auto aliases = synonyms.find(id);
+            result.keywords.push_back(
+                {qualifyName(name, node.parent, keywordTree, "|", 512),
+                 aliases == synonyms.end() ? std::vector<std::string>{} : aliases->second, 0});
+        }
         while (tags.row()) {
             checkCancellation(stop);
             const auto keyword = metadataText(tags.string(1));
@@ -368,6 +519,19 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         }
     }
 
+    const bool importHistory =
+        prepare && hasStateTable(db, "Adobe_libraryImageDevelopHistoryStep",
+                                 {"id_local", "image", "dateCreated", "name", "text"});
+    const bool importSnapshots =
+        prepare && hasStateTable(db, "Adobe_libraryImageDevelopSnapshot",
+                                 {"id_local", "id_global", "image", "name", "text"});
+    const bool hasHistoryReference =
+        importHistory && hasColumn(db, "Adobe_imageDevelopSettings", "historySettingsID") &&
+        hasColumn(db, "Adobe_libraryImageDevelopHistoryStep", "id_global");
+    const auto historyReference =
+        hasHistoryReference
+            ? "CASE WHEN length(CAST(s.historySettingsID AS BLOB))=36 THEN s.historySettingsID END"
+            : "NULL";
     const auto capture = hasColumn(db, "Adobe_images", "captureTime") ? "i.captureTime" : "NULL";
     const auto edited = hasColumn(db, "Adobe_images", "touchTime") ? "i.touchTime" : "NULL";
     const auto imageQuery =
@@ -375,7 +539,7 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
                     "i.colorLabels,i.fileFormat,root.absolutePath,folder.pathFromRoot,"
                     "f.baseName,f.extension,CASE WHEN length(CAST(s.text AS BLOB))<=1048576 "
                     "THEN s.text ELSE NULL END,COALESCE(length(CAST(s.text AS BLOB)),0),") +
-        capture + "," + edited +
+        capture + "," + edited + ",i.id_local," + historyReference +
         " "
         "FROM Adobe_images i LEFT JOIN AgLibraryFile f ON f.id_local=i.rootFile "
         "LEFT JOIN AgLibraryFolder folder ON folder.id_local=f.folder "
@@ -486,6 +650,13 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
             description.validate();
             photo.metadata.descriptive = std::move(description);
             photo.metadata.descriptiveSource = photo.path;
+            if (importHistory && photo.edits) {
+                const auto reference = images.string(16);
+                readDevelopHistory(db, images.integer(15), sourceID(reference) ? reference : "",
+                                   photo, report, stop);
+            }
+            if (importSnapshots)
+                readDevelopSnapshots(db, images.integer(15), photo, report, stop);
             result.photos.push_back(std::move(photo));
         } catch (const std::exception &error) {
             checkCancellation(stop);
@@ -514,11 +685,12 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
     while (collections.row()) {
         checkCancellation(stop);
         const auto type = collections.string(2);
+        const bool group = type == "com.adobe.ag.library.group";
         const bool smart = type == "com.adobe.ag.library.smart_collection";
-        if (!smart && type != "com.adobe.ag.library.collection")
+        if (!group && !smart && type != "com.adobe.ag.library.collection")
             continue;
         report.smartCollections += smart;
-        report.manualCollections += !smart;
+        report.manualCollections += !group && !smart;
         if (!prepare && !smart)
             continue;
         LightroomMigrationCollection collection;
@@ -526,9 +698,16 @@ Scan scan(Snapshot &snapshot, bool prepare, CancellationToken stop,
         auto name = displayName(collections.string(1), "Collection");
         while (name.toUtf8().size() > 96)
             name.chop(1);
-        collection.name =
-            qualifyName(name.toStdString(), collections.integer(3), collectionTree, " › ", 96);
+        collection.name = name.toStdString();
+        collection.parentSourceID = collections.integer(3);
+        collection.legacyName =
+            qualifyName(collection.name, collection.parentSourceID, collectionTree, " › ", 96);
+        collection.group = group;
         collection.smart = smart;
+        if (group) {
+            result.collections.push_back(std::move(collection));
+            continue;
+        }
         if (smart) {
             if (hasRules) {
                 Statement rule(db,
@@ -589,10 +768,10 @@ LightroomCatalogReport importLightroomCatalog(const std::filesystem::path &sourc
         throw std::runtime_error("Lightroom catalog changed since preview. Scan it again.");
     auto plan = scan(snapshot, true, stop, progress);
     checkCancellation(stop);
-    if (plan.photos.empty() && plan.collections.empty())
+    if (plan.photos.empty() && plan.collections.empty() && plan.keywords.empty())
         return std::move(plan.report);
-    plan.report.imported = Catalog(target).applyLightroomMigration(snapshot.sourceKey, plan.photos,
-                                                                   plan.collections, stop);
+    plan.report.imported = Catalog(target).applyLightroomMigration(
+        snapshot.sourceKey, plan.photos, plan.collections, stop, plan.keywords);
     if (progress)
         progress(1);
     return std::move(plan.report);

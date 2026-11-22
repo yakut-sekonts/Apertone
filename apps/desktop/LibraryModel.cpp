@@ -299,7 +299,7 @@ void LibraryModel::reload(bool clear) {
                                                               viewportAnchor](const auto &context) {
         std::int64_t count = 0;
         int anchorRow = -1;
-        QVariantList collections, faceGroups, importSources, duplicateReview;
+        QVariantList collections, collectionSets, faceGroups, importSources, duplicateReview;
         QVariantMap cullingSummary;
         QString error;
         try {
@@ -315,8 +315,15 @@ void LibraryModel::reload(bool clear) {
             for (const auto &c : db.collections())
                 collections.push_back(QVariantMap{{"id", QString::fromStdString(c.id)},
                                                   {"name", QString::fromStdString(c.name)},
+                                                  {"set", QString::fromStdString(c.setID)},
                                                   {"smart", c.smart},
                                                   {"count", static_cast<qlonglong>(c.count)}});
+            for (const auto &set : db.collectionSets())
+                collectionSets.push_back(
+                    QVariantMap{{"id", QString::fromStdString(set.id)},
+                                {"name", QString::fromStdString(set.name)},
+                                {"parent", QString::fromStdString(set.parentID)},
+                                {"path", QString::fromStdString(set.path)}});
             for (const auto &source : db.importSources()) {
                 std::error_code availabilityError;
                 const bool available = std::filesystem::exists(source.path, availabilityError);
@@ -366,13 +373,14 @@ void LibraryModel::reload(bool clear) {
         if (self)
             QMetaObject::invokeMethod(
                 self,
-                [self, count, collections, faceGroups, importSources, duplicateReview,
-                 cullingSummary, error, revision, anchorRow] {
+                [self, count, collections, collectionSets, faceGroups, importSources,
+                 duplicateReview, cullingSummary, error, revision, anchorRow] {
                     if (!self || self->revision_ != revision)
                         return;
                     self->beginResetModel();
                     self->count_ = static_cast<int>(count);
                     self->collections_ = collections;
+                    self->collectionSets_ = collectionSets;
                     self->importSources_ = importSources;
                     self->duplicateReview_ = duplicateReview;
                     self->faceGroups_ = faceGroups;
@@ -831,11 +839,31 @@ void LibraryModel::label(const QString &value) {
         mutate([ids, value](auto &db) { db.setLabel(*ids, value.toStdString()); },
                [this, ids, value] { return refreshMetadata(*ids, Label, value); }, true);
 }
-void LibraryModel::createCollection(const QString &name) {
-    mutate([name](auto &db) { db.createCollection(name.toStdString()); });
+void LibraryModel::createCollection(const QString &name, const QString &setID) {
+    mutate([name, setID](auto &db) {
+        db.createCollection(name.trimmed().toStdString(), setID.toStdString());
+    });
 }
 void LibraryModel::renameCollection(const QString &id, const QString &name) {
     mutate([id, name](auto &db) { db.renameCollection(id.toStdString(), name.toStdString()); });
+}
+void LibraryModel::updateCollection(const QString &id, const QString &name, const QString &setID) {
+    mutate([id, name, setID](auto &db) {
+        db.updateCollection(id.toStdString(), name.trimmed().toStdString(), setID.toStdString());
+    });
+}
+void LibraryModel::saveCollectionSet(const QString &id, const QString &name,
+                                     const QString &parentID) {
+    mutate([id, name, parentID](auto &db) {
+        if (id.isEmpty())
+            db.createCollectionSet(name.trimmed().toStdString(), parentID.toStdString());
+        else
+            db.updateCollectionSet(id.toStdString(), name.trimmed().toStdString(),
+                                   parentID.toStdString());
+    });
+}
+void LibraryModel::deleteCollectionSet(const QString &id) {
+    mutate([id](auto &db) { db.deleteCollectionSet(id.toStdString()); });
 }
 void LibraryModel::deleteCollection(const QString &id) {
     if (filter_.collectionID == id.toStdString())
@@ -846,6 +874,79 @@ void LibraryModel::collectionMembership(const QString &id, bool add) {
     const auto ids = selectionIDs();
     if (!ids.empty())
         mutate([ids, id, add](auto &db) { db.collectionMembership(id.toStdString(), ids, add); });
+}
+void LibraryModel::loadCatalogKeywords() {
+    if (closing_)
+        return;
+    const auto revision = ++keywordRevision_;
+    const auto catalog = catalog_;
+    const QPointer<LibraryModel> self(this);
+    reads_.submit(luma::JobPriority::interactive, [self, catalog, revision](const auto &context) {
+        if (context.stopToken().isCancelled())
+            return;
+        QVariantList rows;
+        QString error;
+        try {
+            for (const auto &term : luma::Catalog(catalog).catalogKeywords()) {
+                QStringList aliases;
+                for (const auto &alias : term.aliases)
+                    aliases.append(QString::fromStdString(alias));
+                rows.push_back(QVariantMap{{"path", QString::fromStdString(term.path)},
+                                           {"aliases", aliases},
+                                           {"count", static_cast<qlonglong>(term.photos)}});
+            }
+        } catch (const std::exception &failure) {
+            error = QString::fromUtf8(failure.what());
+        }
+        if (self)
+            QMetaObject::invokeMethod(
+                self,
+                [self, rows, error, revision] {
+                    if (!self || self->keywordRevision_ != revision)
+                        return;
+                    self->catalogKeywords_ = rows;
+                    emit self->catalogKeywordsChanged();
+                    if (!error.isEmpty()) {
+                        self->error_ = error;
+                        emit self->stateChanged();
+                    }
+                },
+                Qt::QueuedConnection);
+    });
+}
+void LibraryModel::saveCatalogKeyword(const QString &previous, const QString &path,
+                                      const QStringList &aliases) {
+    std::vector<std::string> names;
+    for (const auto &entry : aliases)
+        if (!entry.trimmed().isEmpty())
+            names.push_back(entry.trimmed().toStdString());
+    mutate(
+        [previous, path, names](auto &db) {
+            db.saveCatalogKeyword(previous.toStdString(), path.trimmed().toStdString(), names);
+        },
+        [this] {
+            loadCatalogKeywords();
+            return false;
+        },
+        true);
+}
+void LibraryModel::deleteCatalogKeyword(const QString &path) {
+    mutate([path](auto &db) { db.deleteCatalogKeyword(path.toStdString()); },
+           [this] {
+               loadCatalogKeywords();
+               return false;
+           },
+           true);
+}
+void LibraryModel::keywordMembership(const QString &path, bool add) {
+    const auto ids = selectionIDs();
+    if (!ids.empty())
+        mutate([path, ids, add](auto &db) { db.keywordMembership(path.toStdString(), ids, add); },
+               [this] {
+                   loadCatalogKeywords();
+                   return false;
+               },
+               true);
 }
 void LibraryModel::importFiles(const QList<QUrl> &urls, bool copy, const QUrl &destination,
                                bool recursive, bool skipDuplicates) {

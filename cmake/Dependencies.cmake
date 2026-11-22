@@ -35,7 +35,7 @@ file(GLOB lcms_sources CONFIGURE_DEPENDS "${lcms_SOURCE_DIR}/src/*.c")
 add_library(luma_lcms STATIC ${lcms_sources})
 target_include_directories(luma_lcms SYSTEM PUBLIC "${lcms_SOURCE_DIR}/include")
 
-find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Core Gui Quick QuickControls2)
+find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Core Gui Network Quick QuickControls2)
 if(WIN32)
     find_package(Qt6 6.10.3 EXACT REQUIRED COMPONENTS Xml)
 endif()

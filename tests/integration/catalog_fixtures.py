@@ -1,11 +1,15 @@
-"""Reconstruct pre-0.6 schemas from disposable schema-23 test catalogs."""
+"""Reconstruct pre-0.6 schemas from disposable current test catalogs."""
 
 
 def remove_post_v11_features(database):
     # This is fixture construction, never a production downgrade path. Keep the
     # schema guard: a later schema must explicitly update its historical fixtures.
-    assert database.execute("PRAGMA user_version").fetchone() == (26,)
+    assert database.execute("PRAGMA user_version").fetchone() == (27,)
     for statement in (
+        "DROP TABLE keyword_aliases", "DROP TABLE catalog_keywords", "DROP TABLE lightroom_migration_sets",
+        "DROP TABLE lightroom_migration_snapshots",
+        "DROP TABLE collection_set_entries", "DROP TABLE collection_sets",
+        "DROP TRIGGER remove_empty_photo_stack", "DROP TABLE photo_stack_members", "DROP TABLE photo_stacks",
         "DROP TABLE lightroom_smart_rules",
         "DROP TABLE lightroom_migration_photos", "DROP TABLE lightroom_migration_collections",
         "DROP TRIGGER validate_virtual_original", "DROP TRIGGER sync_virtual_filename",

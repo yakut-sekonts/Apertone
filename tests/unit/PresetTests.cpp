@@ -195,7 +195,7 @@ void documentTests() {
         mutation(root);
         throws([&] { luma::decodePreset(QJsonDocument(root).toJson()); });
     };
-    change([](auto &root) { root["schemaVersion"] = 10; });
+    change([](auto &root) { root["schemaVersion"] = 999; });
     change([](auto &root) { root["unexpected"] = true; });
     change([](auto &root) { root["name"] = ""; });
     change([](auto &root) { root["settings"] = QJsonObject{}; });
@@ -229,7 +229,7 @@ void documentTests() {
     });
     throws([&] { luma::decodePreset(QByteArray(1024 * 1024 + 1, ' ')); });
     throws([&] { luma::mergeSettings(current, source, 0); });
-    throws([&] { luma::mergeSettings(current, source, 4096); });
+    throws([&] { luma::mergeSettings(current, source, 0x80000000U); });
     auto creativeSource = source;
     creativeSource.setParameter("presence.texture", 37);
     creativeSource.setParameter("point.hue", -45);

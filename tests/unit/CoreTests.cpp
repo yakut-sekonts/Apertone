@@ -541,7 +541,7 @@ void catalogTests() {
         }
         sqlite3 *db = nullptr;
         require(sqlite3_open(path.c_str(), &db) == SQLITE_OK, "Cannot open schema test database.");
-        require(sqlite3_exec(db, fixture::removePostV11Tables, nullptr, nullptr, nullptr) ==
+        require(sqlite3_exec(db, fixture::removePostV11Tables.c_str(), nullptr, nullptr, nullptr) ==
                     SQLITE_OK,
                 "Cannot remove newer features from the historical M0 fixture.");
         const char *legacy = R"sql(

@@ -14,10 +14,21 @@ Dialog {
     property url profile
     property url completedFile
     property bool pdf: format.currentIndex < 2
-    onAboutToShow: completedFile = ""
+    property bool webdav: format.currentIndex === 4
+    property bool published: false
+    readonly property bool validFolderName: {
+        const name = folderName.text.trim()
+        return name.length > 0 && !name.startsWith(".") && !name.endsWith(".") &&
+                !name.split("").some(ch => ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch))
+    }
+    onAboutToShow: { completedFile = ""; published = false }
+    onClosed: password.clear()
     Connections {
         target: library
-        function onDeliveryReady(url) { dialog.completedFile = url }
+        function onDeliveryReady(url) {
+            dialog.completedFile = url
+            dialog.published = !url.toString()
+        }
     }
     FileDialog {
         id: proofChooser
@@ -49,7 +60,8 @@ Dialog {
             Layout.fillWidth: true
             enabled: !library.preparingDelivery
             model: [qsTranslate("Apertone", "Contact sheet PDF"), qsTranslate("Apertone", "Photo book PDF"),
-                    qsTranslate("Apertone", "HTML gallery"), qsTranslate("Apertone", "HTML slideshow")]
+                    qsTranslate("Apertone", "HTML gallery"), qsTranslate("Apertone", "HTML slideshow"),
+                    qsTranslate("Apertone", "WebDAV gallery")]
         }
         ApertoneTextField {
             id: heading
@@ -64,7 +76,6 @@ Dialog {
             Layout.fillWidth: true
             text: "Apertone-gallery"
             maximumLength: 80
-            validator: RegularExpressionValidator { regularExpression: /[^.\\/:*?"<>|\u0000-\u001f][^\\/:*?"<>|\u0000-\u001f]{0,79}/ }
             Accessible.name: qsTranslate("Apertone", "New folder name")
         }
         RowLayout {
@@ -73,10 +84,43 @@ Dialog {
             Label { text: dialog.profile.toString().split("/").pop(); elide: Text.ElideMiddle; Layout.fillWidth: true }
             ApertoneButton { visible: !!dialog.profile.toString(); text: qsTranslate("Apertone", "Clear"); onClicked: dialog.profile = "" }
         }
+        ApertoneTextField {
+            id: endpoint
+            objectName: "delivery.webDavEndpoint"
+            visible: dialog.webdav
+            enabled: !library.preparingDelivery
+            Layout.fillWidth: true; maximumLength: 2048
+            placeholderText: qsTranslate("Apertone", "HTTPS WebDAV folder URL")
+            Accessible.name: placeholderText
+        }
+        RowLayout {
+            visible: dialog.webdav
+            Layout.fillWidth: true
+            ApertoneTextField {
+                id: username
+                Layout.fillWidth: true; maximumLength: 512
+                enabled: !library.preparingDelivery
+                placeholderText: qsTranslate("Apertone", "WebDAV username")
+                Accessible.name: placeholderText
+            }
+            ApertoneTextField {
+                id: password
+                Layout.fillWidth: true; maximumLength: 4096
+                enabled: !library.preparingDelivery
+                echoMode: TextInput.Password
+                placeholderText: qsTranslate("Apertone", "WebDAV password")
+                Accessible.name: placeholderText
+            }
+        }
         ProgressBar { visible: library.preparingDelivery; value: library.progress; Layout.fillWidth: true }
         Label {
+            visible: dialog.webdav && dialog.published && !library.preparingDelivery
+            text: qsTranslate("Apertone", "Gallery published.")
+            Layout.fillWidth: true
+        }
+        Label {
             visible: !!library.error
-            text: library.error
+            text: qsTranslate("Apertone", library.error)
             textFormat: Text.PlainText
             color: Theme.negative
             wrapMode: Text.Wrap
@@ -95,9 +139,21 @@ Dialog {
         }
         ApertoneButton {
             objectName: "delivery.create"
-            text: qsTranslate("Apertone", "Create")
-            enabled: !library.working && !!heading.text.trim() && (dialog.pdf || folderName.acceptableInput)
-            onClicked: dialog.pdf ? pdfChooser.open() : galleryChooser.open()
+            text: dialog.webdav ? qsTranslate("Apertone", "Publish gallery") : qsTranslate("Apertone", "Create")
+            enabled: !library.working && !!heading.text.trim() && (dialog.pdf || dialog.validFolderName)
+                     && (!dialog.webdav || !!endpoint.text.trim())
+            onClicked: {
+                if (dialog.webdav) {
+                    dialog.completedFile = ""
+                    dialog.published = false
+                    library.publishWebDav(heading.text, endpoint.text, folderName.text, username.text, password.text)
+                    password.clear()
+                } else if (dialog.pdf) {
+                    pdfChooser.open()
+                } else {
+                    galleryChooser.open()
+                }
+            }
         }
     }
 }

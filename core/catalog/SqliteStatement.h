@@ -58,6 +58,10 @@ class Statement {
         const auto *value = sqlite3_column_text(statement_, column);
         return value ? reinterpret_cast<const char *>(value) : "";
     }
+    std::string payload(int column) const {
+        const auto *data = static_cast<const char *>(sqlite3_column_blob(statement_, column));
+        return data ? std::string(data, sqlite3_column_bytes(statement_, column)) : std::string{};
+    }
     std::optional<double> optional(int column) const {
         return sqlite3_column_type(statement_, column) == SQLITE_NULL
                    ? std::nullopt

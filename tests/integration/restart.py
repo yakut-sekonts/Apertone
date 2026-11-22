@@ -72,11 +72,14 @@ def main():
         if mode == "synthetic":
             missing = source.with_suffix(".temporarily-missing")
             source.rename(missing)
-            run("restore", expected=1)
+            offline = run("restore")
+            assert offline["offlinePreview"] and offline["exposure"] == -0.75
+            run("export", str(directory / "offline.png"), expected=1)
             with sqlite3.connect(catalog) as connection:
                 assert connection.execute("SELECT exposure FROM edit_documents").fetchone()[0] == -0.75
             missing.rename(source)
-            assert run("restore")["exposure"] == -0.75
+            online = run("restore")
+            assert not online["offlinePreview"] and online["exposure"] == -0.75
         print(f"{mode}: true RAW decode, EXIF, GUI viewer, autosave, restart and original integrity passed")
     return 0
 

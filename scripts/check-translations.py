@@ -5,10 +5,10 @@ import re
 root = Path(__file__).resolve().parents[1]
 directory = root / "resources/i18n"
 codes = ("en", "ru", "zh_CN", "hy", "de", "es", "it", "fr")
-source = json.loads((directory / "en.json").read_text())["messages"]
+source = json.loads((directory / "en.json").read_text(encoding="utf-8"))["messages"]
 assert source and all(key == value for key, value in source.items())
 for code in codes:
-    pack = json.loads((directory / f"{code}.json").read_text())
+    pack = json.loads((directory / f"{code}.json").read_text(encoding="utf-8"))
     assert pack.keys() == {"schema", "locale", "messages"}
     assert pack["schema"] == 1 and pack["locale"] == code
     assert pack["messages"].keys() == source.keys(), code
@@ -18,7 +18,8 @@ for code in codes:
             assert sorted(re.findall(pattern, key)) == sorted(re.findall(pattern, value)), (code, key)
         assert len(value.splitlines()) == len(key.splitlines()), (code, key)
 for path in (root / "apps/desktop/qml").glob("*.qml"):
-    for key in re.findall(r'qsTranslate\("Apertone",\s*("(?:[^"\\]|\\.)*")\)', path.read_text()):
+    text = path.read_text(encoding="utf-8")
+    for key in re.findall(r'qsTranslate\("Apertone",\s*("(?:[^"\\]|\\.)*")\)', text):
         assert not json.loads(key) or json.loads(key) in source, (path, key)
-    assert not re.search("[А-Яа-яЁё]", path.read_text()), f"Unmarked Russian source: {path}"
+    assert not re.search("[А-Яа-яЁё]", text), f"Unmarked Russian source: {path}"
 print(f"Eight catalogs: {len(source)} entries each; source coverage, placeholders and file tokens passed")

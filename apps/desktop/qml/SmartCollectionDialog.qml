@@ -8,11 +8,12 @@ Dialog {
     title:qsTranslate("Apertone","Smart Collection")
     property string collectionID:""
     property string revision:"0"
+    property string targetSet: ""
     property var rule:({kind:"all",children:[{kind:"condition",field:"rating",operation:"ge",value:4}]})
-    function create() {collectionID="";revision="0";name.text="";rule={kind:"all",children:[{kind:"condition",field:"rating",operation:"ge",value:4}]};open()}
+    function create(setID) {collectionID="";targetSet=setID || "";revision="0";name.text="";rule={kind:"all",children:[{kind:"condition",field:"rating",operation:"ge",value:4}]};open()}
     Connections {
         target:library
-        function onSmartCollectionReady(id,title,version,tree) {dialog.collectionID=id;name.text=title;dialog.revision=version;dialog.rule=tree;dialog.open()}
+        function onSmartCollectionReady(id,title,version,tree) {dialog.collectionID=id;dialog.targetSet="";name.text=title;dialog.revision=version;dialog.rule=tree;dialog.open()}
     }
     ColumnLayout {
         anchors.fill:parent
@@ -27,7 +28,7 @@ Dialog {
     }
     footer:DialogButtonBox {
         ApertoneButton {text:qsTranslate("Apertone","Cancel");onClicked:dialog.close()}
-        ApertoneButton {text:qsTranslate("Apertone","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule)}}
+        ApertoneButton {text:qsTranslate("Apertone","Save");enabled:name.text.trim().length>0&&!library.working;onClicked:{dialog.saving=true;library.saveSmartCollection(dialog.collectionID,name.text,dialog.revision,dialog.rule,dialog.targetSet)}}
     }
     Connections {target:library;function onStateChanged(){if(dialog.visible&&!library.working&&dialog.saving){dialog.saving=false;if(library.error.length===0)dialog.close()}}}
     property bool saving:false

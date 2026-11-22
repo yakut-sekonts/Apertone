@@ -1027,3 +1027,16 @@ and exact coverage limits:
   the existing ordering and retain unavailable selections on catalog reopen.
   Skip change notifications when closing an already empty comparison or reference.
 - Exercise mask generation, export, shutdown and restart on the same JPEG.
+
+### LUMA-QA-097 — Legacy fixtures and map resource block macOS qualification
+
+- The first hosted macOS run for the Windows branch compiled and found stale
+  migration fixtures, thumbnail roles, Preset and offline-preview expectations,
+  and a missing map resource in the UX bundle. The main application already
+  bundled the map.
+- Reconstruct the original schemas in fixtures, retain earlier field values
+  when adding virtual-copy columns, and use a legacy duplicate-fingerprint query
+  when inspecting a read-only catalog before the virtual-copy schema.
+- Use the shipped map in the UX target, align the affected fixture expectations
+  with supported workflows and check that every supported language covers the
+  new controls. The latest macOS result is tracked in PR #70.

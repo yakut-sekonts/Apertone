@@ -1,10 +1,30 @@
 #pragma once
+#include <string>
 
 namespace fixture {
+inline constexpr const char *removePostV23Tables = R"sql(
+    DROP TABLE keyword_aliases;
+    DROP TABLE catalog_keywords;
+    DROP TABLE lightroom_migration_sets;
+    DROP TABLE lightroom_migration_snapshots;
+    DROP TABLE collection_set_entries;
+    DROP TABLE collection_sets;
+    DROP TRIGGER remove_empty_photo_stack;
+    DROP TABLE photo_stack_members;
+    DROP TABLE photo_stacks;
+    DROP TABLE lightroom_smart_rules;
+    DROP TABLE lightroom_migration_collections;
+    DROP TABLE lightroom_migration_photos;
+    DROP TRIGGER validate_virtual_original;
+    DROP TRIGGER sync_virtual_filename;
+    DROP INDEX assets_virtual_original;
+    ALTER TABLE assets DROP COLUMN original_asset_id;
+    ALTER TABLE assets DROP COLUMN copy_name;
+)sql";
 // Used only on generated test catalogs before reconstructing a schema 1/2
 // edit_documents table. Remove later features instead of leaving a mixed schema
 // that cannot represent an actual historical catalog.
-inline constexpr const char *removePostV11Tables = R"sql(
+inline const std::string removePostV11Tables = std::string(removePostV23Tables) + R"sql(
     DROP TABLE edit_history_states;
     DROP TABLE burst_members;
     DROP TABLE burst_stacks;

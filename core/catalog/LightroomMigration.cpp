@@ -45,7 +45,8 @@ void Catalog::migrateLightroomSmartRules() {
 
 LightroomMigrationResult Catalog::applyLightroomMigration(
     const std::string &sourceKey, const std::vector<LightroomMigrationPhoto> &photos,
-    const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop) {
+    const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop,
+    const std::vector<CatalogKeyword> &keywords) {
     if (sourceKey.size() != 64 || sourceKey.find_first_not_of("0123456789abcdef") != sourceKey.npos)
         throw std::runtime_error("Invalid Lightroom migration source identity.");
     const auto mappedAsset = [&](const std::string &id) {
@@ -56,12 +57,71 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
         return mapped.row() ? mapped.string(0) : std::string();
     };
     LightroomMigrationResult result;
+    const auto restoreHistory = [&](const std::string &id, const LightroomMigrationPhoto &photo,
+                                    bool existing) {
+        if (!photo.history || !photo.edits)
+            return;
+        if (existing) {
+            Statement count(db_, "SELECT 1 FROM edit_history_states WHERE asset_id=?1 LIMIT 1");
+            count.text(1, id);
+            if (count.row())
+                return;
+            const auto asset = assetByID(id);
+            if (!asset || asset->edits != *photo.edits)
+                return;
+        }
+        const auto &history = *photo.history;
+        if (history.currentIndex >= history.entries.size() ||
+            history.entries[history.currentIndex].document != *photo.edits)
+            throw std::runtime_error("Imported Develop history does not match the active edit.");
+        writeEditHistory(id, history);
+        result.historySteps += history.entries.size();
+    };
+    const auto restoreSnapshots = [&](const std::string &id, const LightroomMigrationPhoto &photo) {
+        if (photo.snapshots.empty())
+            return;
+        std::set<std::string> names;
+        for (const auto &version : editVersions(id))
+            names.insert(version.name);
+        for (const auto &snapshot : photo.snapshots) {
+            checkCancellation(stop);
+            Statement known(db_, "SELECT 1 FROM lightroom_migration_snapshots WHERE "
+                                 "source_catalog=?1 AND source_photo=?2 AND source_snapshot=?3");
+            known.text(1, sourceKey);
+            known.text(2, photo.sourceID);
+            known.text(3, snapshot.sourceID);
+            if (known.row())
+                continue;
+            auto name = snapshot.name;
+            for (int suffix = 2; names.contains(name); ++suffix)
+                name = snapshot.name + " (" + std::to_string(suffix) + ")";
+            if (insertEditVersion(id, name, snapshot.edits, true).empty()) {
+                ++result.snapshotsWithoutRoom;
+                continue;
+            }
+            names.insert(std::move(name));
+            Statement mapping(db_,
+                              "INSERT INTO lightroom_migration_snapshots "
+                              "(source_catalog,source_photo,source_snapshot) VALUES(?1,?2,?3)");
+            mapping.text(1, sourceKey);
+            mapping.text(2, photo.sourceID);
+            mapping.text(3, snapshot.sourceID);
+            mapping.row();
+            ++result.snapshots;
+        }
+    };
     std::set<std::string> newlyMapped;
     execute("BEGIN IMMEDIATE;");
     try {
+        for (const auto &keyword : keywords) {
+            checkCancellation(stop);
+            recordImportedKeyword(keyword);
+        }
         for (const auto &photo : photos) {
             checkCancellation(stop);
-            if (!mappedAsset(photo.sourceID).empty()) {
+            if (const auto existing = mappedAsset(photo.sourceID); !existing.empty()) {
+                restoreHistory(existing, photo, true);
+                restoreSnapshots(existing, photo);
                 ++result.unchanged;
                 continue;
             }
@@ -89,6 +149,7 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             } else if (photo.edits && !existing) {
                 writeEdits(asset.id, *photo.edits);
             }
+            restoreHistory(destination, photo, existing && photo.masterID.empty());
             if (photo.editedAt && (!existing || !photo.masterID.empty())) {
                 Statement timestamp(db_,
                                     "UPDATE edit_documents SET updated_at=datetime(?1,'unixepoch') "
@@ -112,10 +173,64 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             record.integer(9, metadata.flag);
             record.text(10, metadata.label);
             record.row();
+            restoreSnapshots(destination, photo);
             newlyMapped.insert(photo.sourceID);
         }
+        std::map<std::int64_t, const LightroomMigrationCollection *> sourceSets;
+        for (const auto &node : collections)
+            if (node.group && node.sourceID > 0)
+                sourceSets.emplace(node.sourceID, &node);
+        std::map<std::int64_t, std::string> importedSets;
+        std::set<std::int64_t> ancestors;
+        const auto ensureSet = [&](const auto &self, std::int64_t sourceID) -> std::string {
+            checkCancellation(stop);
+            if (const auto known = importedSets.find(sourceID); known != importedSets.end())
+                return known->second;
+            const auto source = sourceSets.find(sourceID);
+            if (source == sourceSets.end() || ancestors.size() >= 16 ||
+                !ancestors.insert(sourceID).second)
+                return {};
+            Statement mapped(db_, "SELECT set_id FROM lightroom_migration_sets "
+                                  "WHERE source_catalog=?1 AND source_set=?2");
+            mapped.text(1, sourceKey);
+            mapped.integer(2, sourceID);
+            std::string id;
+            if (mapped.row()) {
+                id = mapped.string(0);
+            } else {
+                const auto &node = *source->second;
+                const auto parent = self(self, node.parentSourceID);
+                const auto base = parent.empty() ? "Lightroom · " + node.name : node.name;
+                auto name = base;
+                for (int suffix = 2;; ++suffix) {
+                    Statement exists(db_, "SELECT 1 FROM collection_sets WHERE "
+                                          "COALESCE(parent_id,'')=?1 AND name=?2 COLLATE NOCASE");
+                    exists.text(1, parent);
+                    exists.text(2, name);
+                    if (!exists.row())
+                        break;
+                    checkCancellation(stop);
+                    name = base + " (" + std::to_string(suffix) + ")";
+                }
+                id = createCollectionSet(name, parent);
+                Statement record(db_, "INSERT INTO lightroom_migration_sets "
+                                      "(source_catalog,source_set,set_id) VALUES(?1,?2,?3)");
+                record.text(1, sourceKey);
+                record.integer(2, sourceID);
+                record.text(3, id);
+                record.row();
+                ++result.collectionSets;
+            }
+            ancestors.erase(sourceID);
+            importedSets.emplace(sourceID, id);
+            return id;
+        };
+        for (const auto &source : sourceSets)
+            ensureSet(ensureSet, source.first);
         for (const auto &collection : collections) {
             checkCancellation(stop);
+            if (collection.group)
+                continue;
             if (collection.smart) {
                 Statement source(
                     db_, "INSERT OR IGNORE INTO lightroom_smart_rules"
@@ -134,22 +249,49 @@ LightroomMigrationResult Catalog::applyLightroomMigration(
             mapped.integer(2, collection.sourceID);
             std::string id;
             bool created = false;
-            if (mapped.row()) {
-                id = mapped.string(0);
-            } else {
-                const auto base = "Lightroom · " + collection.name;
+            const auto set = importedSets.find(collection.parentSourceID);
+            const auto setID = set == importedSets.end() ? std::string{} : set->second;
+            const auto nameAvailable = [&](const std::string &name, const std::string &except) {
+                Statement exists(db_, setID.empty()
+                                          ? "SELECT 1 FROM collections WHERE "
+                                            "name=?1 COLLATE NOCASE AND id<>?2"
+                                          : "SELECT 1 FROM collection_set_entries WHERE "
+                                            "name=?1 COLLATE NOCASE AND collection_id<>?2 "
+                                            "AND set_id=?3");
+                exists.text(1, name);
+                exists.text(2, except);
+                if (!setID.empty())
+                    exists.text(3, setID);
+                return !exists.row();
+            };
+            const auto availableName = [&](const std::string &base,
+                                           const std::string &except = {}) {
                 auto name = base;
-                for (int suffix = 2;; ++suffix) {
-                    Statement exists(db_, "SELECT 1 FROM collections WHERE name=?1 COLLATE NOCASE");
-                    exists.text(1, name);
-                    if (!exists.row())
-                        break;
+                for (int suffix = 2; !nameAvailable(name, except); ++suffix) {
                     checkCancellation(stop);
                     name = base + " (" + std::to_string(suffix) + ")";
                 }
+                return name;
+            };
+            if (mapped.row()) {
+                id = mapped.string(0);
+                if (!setID.empty()) {
+                    Statement flat(db_, "SELECT 1 FROM collections c WHERE c.id=?1 AND c.name=?2 "
+                                        "AND NOT EXISTS(SELECT 1 FROM collection_set_entries e "
+                                        "WHERE e.collection_id=c.id)");
+                    flat.text(1, id);
+                    flat.text(2, "Lightroom · " + collection.legacyName);
+                    if (flat.row())
+                        updateCollection(id, availableName(collection.name, id), setID);
+                }
+            } else {
+                const auto &legacy =
+                    collection.legacyName.empty() ? collection.name : collection.legacyName;
+                const auto name =
+                    availableName(setID.empty() ? "Lightroom · " + legacy : collection.name);
                 id = collection.rule
-                         ? insertSmartCollection(name, encodeSmartRule(*collection.rule))
-                         : createCollection(name);
+                         ? insertSmartCollection(name, encodeSmartRule(*collection.rule), setID)
+                         : createCollection(name, setID);
                 Statement record(
                     db_, "INSERT INTO lightroom_migration_collections("
                          "source_catalog,source_collection,collection_id) VALUES(?1,?2,?3)");

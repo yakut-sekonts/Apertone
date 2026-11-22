@@ -64,7 +64,8 @@ void LibraryModel::editSmartCollection(const QString &id, const QString &name) {
     });
 }
 void LibraryModel::saveSmartCollection(const QString &id, const QString &name,
-                                       const QString &revision, const QVariantMap &rule) {
+                                       const QString &revision, const QVariantMap &rule,
+                                       const QString &setID) {
     try {
         bool ok = false;
         const auto version = revision.toLongLong(&ok);
@@ -73,8 +74,9 @@ void LibraryModel::saveSmartCollection(const QString &id, const QString &name,
         int count = 0;
         const auto parsed = fromMap(rule, 0, count);
         parsed.validate();
-        mutate([id, name, version, parsed](auto &db) {
-            db.saveSmartCollection(id.toStdString(), name.trimmed().toStdString(), version, parsed);
+        mutate([id, name, version, parsed, setID](auto &db) {
+            db.saveSmartCollection(id.toStdString(), name.trimmed().toStdString(), version, parsed,
+                                   setID.toStdString());
         });
     } catch (const std::exception &failure) {
         error_ = QString::fromUtf8(failure.what());

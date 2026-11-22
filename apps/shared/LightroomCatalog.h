@@ -18,6 +18,12 @@ struct LightroomCatalogReport {
     std::size_t mappedEdits = 0;
     std::size_t partialEdits = 0;
     std::size_t unmappedEdits = 0;
+    std::size_t historyMapped = 0;
+    std::size_t historyPartial = 0;
+    std::size_t historySkipped = 0;
+    std::size_t snapshotsMapped = 0;
+    std::size_t snapshotsPartial = 0;
+    std::size_t snapshotsSkipped = 0;
     std::size_t unreadable = 0;
     std::vector<std::string> warnings;
     LightroomMigrationResult imported;

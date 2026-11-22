@@ -108,7 +108,8 @@ class Catalog {
     void deleteVirtualCopy(const std::string &id);
     LightroomMigrationResult applyLightroomMigration(
         const std::string &sourceKey, const std::vector<LightroomMigrationPhoto> &photos,
-        const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop = {});
+        const std::vector<LightroomMigrationCollection> &collections, CancellationToken stop = {},
+        const std::vector<CatalogKeyword> &keywords = {});
     // Owns a read transaction; use on a dedicated reader connection.
     std::optional<AssetSnapshot> assetSnapshot(const std::string &id);
     bool originalAtPath(const std::filesystem::path &canonicalPath,
@@ -127,9 +128,17 @@ class Catalog {
     void setLabel(const std::vector<std::string> &ids, const std::string &label);
     std::optional<SmartCollectionRecord> smartCollection(const std::string &id) const;
     std::string saveSmartCollection(const std::string &id, const std::string &name,
-                                    std::int64_t revision, const SmartRule &rule);
+                                    std::int64_t revision, const SmartRule &rule,
+                                    const std::string &setID = {});
     std::vector<CollectionRecord> collections() const;
-    std::string createCollection(const std::string &name);
+    std::vector<CollectionSet> collectionSets() const;
+    std::string createCollectionSet(const std::string &name, const std::string &parentID = {});
+    void updateCollectionSet(const std::string &id, const std::string &name,
+                             const std::string &parentID);
+    void deleteCollectionSet(const std::string &id);
+    std::string createCollection(const std::string &name, const std::string &setID = {});
+    void moveCollection(const std::string &id, const std::string &setID);
+    void updateCollection(const std::string &id, const std::string &name, const std::string &setID);
     std::string createPhotoStack(const std::vector<std::string> &ids);
     std::string photoStackFor(const std::string &assetID) const;
     void removePhotoStack(const std::string &stackID);
@@ -138,6 +147,11 @@ class Catalog {
     void deleteCollection(const std::string &id);
     void collectionMembership(const std::string &collectionID, const std::vector<std::string> &ids,
                               bool add);
+    std::vector<CatalogKeyword> catalogKeywords() const;
+    void saveCatalogKeyword(const std::string &previous, const std::string &path,
+                            const std::vector<std::string> &aliases);
+    void deleteCatalogKeyword(const std::string &path);
+    void keywordMembership(const std::string &path, const std::vector<std::string> &ids, bool add);
     std::string beginImport(ImportMode mode, const std::filesystem::path &destination,
                             const std::vector<std::filesystem::path> &sources,
                             std::int64_t ownerPID, bool skipDuplicates = true,
@@ -252,7 +266,10 @@ class Catalog {
     void migrateLightroomMigration();
     void migrateVirtualCopies();
     void migrateLightroomSmartRules();
-    std::string insertSmartCollection(const std::string &name, const std::string &document);
+    void migrateOrganization();
+    void recordImportedKeyword(const CatalogKeyword &keyword);
+    std::string insertSmartCollection(const std::string &name, const std::string &document,
+                                      const std::string &setID = {});
     std::string insertVirtualCopy(const AssetRecord &source, const std::string &name,
                                   const EditDocument &edits, const DescriptiveMetadata &metadata);
     void writeCreative(const std::string &assetID, const CreativeSettings &settings);
@@ -260,7 +277,7 @@ class Catalog {
     void writeLocalMasks(const std::string &assetID, const std::vector<LocalMask> &masks);
     void writeEdits(const std::string &assetID, const EditDocument &edits);
     std::string insertEditVersion(const std::string &assetID, const std::string &name,
-                                  const EditDocument &edits);
+                                  const EditDocument &edits, bool skipIfFull = false);
     void writeEditHistory(const std::string &assetID, const PersistedEditHistory &history);
     void clearEditHistory(const std::string &assetID);
     void execute(const char *sql) const;

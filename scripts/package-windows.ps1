@@ -28,6 +28,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Qt deployment failed ($LASTEXITCODE)."
 }
 foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
+                         "Qt6Network.dll", "tls/qschannelbackend.dll",
                          "platforms/qwindows.dll", "imageformats/qtiff.dll",
                          "imageformats/qwebp.dll", "onnxruntime.dll",
                          "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx",

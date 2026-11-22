@@ -2,6 +2,7 @@
 #include "apps/cli/LibraryCommands.h"
 #include "apps/shared/PhotoDelivery.h"
 #include "apps/shared/SessionService.h"
+#include "apps/shared/WebDavGallery.h"
 #include "core/io/Path.h"
 #include "core/lens/LensProfiles.h"
 #include <QGuiApplication>
@@ -155,16 +156,26 @@ int main(int argc, char **argv) {
                    "--catalog FILE\n"
                 << "       apertone prepare-offline IDS... --catalog FILE\n"
                 << "       apertone catalog verify --catalog FILE\n"
-                << "       apertone import add SOURCES... | import copy DEST SOURCES... "
+                << "       apertone import add SOURCES... | import copy|move DEST SOURCES... "
                    "--catalog FILE\n"
                 << "       apertone library [--search TEXT] [--rating N] [--flag N] [--label "
                    "COLOR] [--collection ID] [--offset N] [--limit N] --catalog FILE\n"
                 << "       apertone rate|flag|label VALUE IDS... --catalog FILE\n"
-                << "       apertone collections | collection create NAME | collection rename ID "
+                << "       apertone sets | set create NAME [PARENT] | set update ID NAME [PARENT] "
+                   "| set delete ID --catalog FILE\n"
+                << "       apertone collections | collection create NAME [SET] | collection rename "
+                   "ID "
                    "NAME --catalog FILE\n"
+                << "       apertone collection move ID [SET] --catalog FILE\n"
+                << "       apertone keywords | keyword create PATH [ALIASES...] | keyword update "
+                   "PATH NEW_PATH [ALIASES...] --catalog FILE\n"
+                << "       apertone keyword add|remove PATH ASSETS... | keyword delete PATH "
+                   "--catalog FILE\n"
                 << "       apertone collection add|remove ID ASSETS... | collection delete ID "
                    "--catalog FILE\n"
                 << "       apertone recover --catalog FILE\n"
+                << "       apertone publish-webdav HTTPS_FOLDER NEW_FOLDER TITLE IDS... --catalog "
+                   "FILE\n"
                 << "       apertone lightroom inspect SOURCE.lrcat\n"
                 << "       apertone lightroom import SOURCE.lrcat --catalog FILE\n";
             return 0;
@@ -187,6 +198,18 @@ int main(int argc, char **argv) {
             luma::deliverPhotos(catalog, {arguments.begin() + 4, arguments.end()},
                                 luma::pathFromUtf8(arguments[2]), mode, arguments[3]);
             std::cout << "{\"delivered\":true}\n";
+        } else if (arguments[0] == "publish-webdav" && arguments.size() >= 5) {
+#ifndef _WIN32
+            int qtArgc = 1;
+            QGuiApplication application(qtArgc, argv);
+#endif
+            const luma::WebDavGallery upload{
+                QUrl(QString::fromStdString(arguments[1]), QUrl::StrictMode),
+                QString::fromStdString(arguments[2]), qEnvironmentVariable("APERTONE_WEBDAV_USER"),
+                qEnvironmentVariable("APERTONE_WEBDAV_PASSWORD")};
+            luma::publishWebDavGallery(catalog, {arguments.begin() + 4, arguments.end()},
+                                       arguments[3], upload);
+            std::cout << "{\"published\":true}\n";
         } else if (arguments[0] == "prepare-offline" && arguments.size() >= 2) {
             const luma::Catalog db(catalog, luma::CatalogOpenMode::existingOnly);
             for (std::size_t i = 1; i < arguments.size(); ++i) {

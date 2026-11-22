@@ -45,6 +45,15 @@ struct CollectionRecord {
     std::string id, name;
     std::int64_t count = 0;
     bool smart = false;
+    std::string setID{};
+};
+struct CollectionSet {
+    std::string id, name, parentID, path;
+};
+struct CatalogKeyword {
+    std::string path;
+    std::vector<std::string> aliases;
+    std::int64_t photos = 0;
 };
 enum class ImportMode : std::uint8_t { add, copy, move };
 struct ImportOptions {
