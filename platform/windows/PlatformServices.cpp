@@ -17,10 +17,11 @@
 #include <QImage>
 #include <QSysInfo>
 #include <array>
-#include <psapi.h>
 #include <stdexcept>
 #include <thread>
 #include <windows.h>
+
+#include <psapi.h>
 
 namespace luma::macos {
 std::string sha256File(const std::filesystem::path &path, CancellationToken stop) {
