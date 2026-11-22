@@ -1,15 +1,15 @@
 # Apertone
 
-Open-source, local-first, non-destructive photo editor for macOS.
+Open-source, local-first, non-destructive photo editor.
 
-Apertone is a local-first photo workspace for Apple Silicon, built with C++20,
-Qt 6/QML, LibRaw, SQLite and LittleCMS. No account or cloud service is required.
+Apertone is a photo workspace built with C++20, Qt 6/QML, LibRaw, SQLite
+and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 
 ![Apertone Develop viewer with a project-generated test DNG](docs/screenshot.png)
 
 ## Releases
 
-[Download the latest published release for macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
+[Download for Windows x64 or macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
 [2.0.0 release notes](docs/releases/v2.0.0.md) ·
 [2.5.0 release notes](docs/releases/v2.5.0.md)
 
@@ -30,7 +30,33 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-## Included in source: phases 0.4–2.0
+### Windows x64 in 2.5.0
+
+Extract the ZIP on Windows 10 or 11 x64 and launch `Apertone.exe`. Keep the
+extracted files together. The local AI models use the
+Microsoft Visual C++ x64 Redistributable.
+[Download the Windows ZIP](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/Apertone-2.5.0-windows-x64.zip) ·
+[SHA-256 manifest](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/SHA256SUMS-windows.txt) ·
+[Microsoft Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)
+
+- Organize photos with independently editable virtual copies, Smart
+  Collections and automatic masks for subjects, sky and people.
+- Import Lightroom Classic catalogs with history, supported camera profiles
+  and saved masks. Apertone can recover matching masks from history and
+  optionally rebuild supported missing AI selections from the originals.
+  Rebuilt masks are marked in the catalog.
+- Open **Library → Tethered camera** for still capture and exposure controls
+  on compatible Windows PTP/MTP drivers. Compatible Nikon cameras can also
+  stream Live View.
+- Export contact sheets and photo books with ICC soft proofing. Offscreen
+  PDFs embed caption glyphs from installed fonts.
+
+Windows CI verifies card import workflows on an exFAT virtual disk. Physical
+camera, SD card and paper print checks remain open.
+[Official 2.5.0 release notes](https://github.com/yakut-sekonts/Apertone/releases/tag/v2.5.0) ·
+[Windows source and build instructions](https://github.com/yakut-sekonts/Apertone/blob/912c3eac4a3de720080555bc05652a91d83aff03/BUILDING.md#windows-x64-development-build)
+
+## macOS source milestones through 2.0
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
