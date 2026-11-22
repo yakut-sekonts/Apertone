@@ -8,7 +8,6 @@
 #include <QColorSpace>
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QFontDatabase>
 #include <QGuiApplication>
 #include <QPainter>
@@ -62,22 +61,22 @@ QImage proofPreview(const SessionService &session, const AssetRecord &asset, int
 QFont pdfFont(QFont font) {
 #ifdef _WIN32
     if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
-        // Qt's Windows offscreen plugin uses FreeType. Unlike the native
-        // integration, its font database doesn't discover installed fonts.
+        // The Windows offscreen plugin uses FreeType with Qt's fonts directory.
+        // Register the installed fonts so mixed-script captions can use fallback.
         static const auto family = [] {
-            const QDir dir(QStandardPaths::writableLocation(QStandardPaths::FontsLocation));
-            for (const auto name : {"segoeui.ttf", "arial.ttf"}) {
-                const auto path = dir.absoluteFilePath(QString::fromLatin1(name));
-                if (!QFileInfo(path).isFile())
-                    continue;
-                const auto id = QFontDatabase::addApplicationFont(path);
-                if (id >= 0) {
-                    const auto families = QFontDatabase::applicationFontFamilies(id);
-                    if (!families.isEmpty())
-                        return families.front();
-                }
+            const auto location = QStandardPaths::writableLocation(QStandardPaths::FontsLocation);
+            if (!location.isEmpty()) {
+                for (const auto &file : QDir(location).entryInfoList({"*.ttf", "*.ttc", "*.otf"},
+                                                                     QDir::Files | QDir::Readable))
+                    QFontDatabase::addApplicationFont(file.absoluteFilePath());
             }
-            throw std::runtime_error("Cannot load a Windows font for PDF captions.");
+            const auto families = QFontDatabase::families();
+            for (const auto name : {"Segoe UI", "Arial"})
+                if (families.contains(QLatin1String(name), Qt::CaseInsensitive))
+                    return QString::fromLatin1(name);
+            if (families.isEmpty())
+                throw std::runtime_error("Cannot load a Windows font for PDF captions.");
+            return families.front();
         }();
         font.setFamily(family);
     }
