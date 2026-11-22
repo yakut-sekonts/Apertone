@@ -53,6 +53,9 @@ QVariantMap EditorController::referencePhoto() const {
             {"source", referenceUrl_}};
 }
 void EditorController::clearReference() {
+    if (!referenceBusy_ && referenceName_.isEmpty() && referenceError_.isEmpty() &&
+        referenceUrl_.isEmpty())
+        return;
     referenceJob_.cancel();
     ++referenceRevision_;
     referenceBusy_ = false;
@@ -136,6 +139,8 @@ QVariantMap EditorController::comparison() const {
             {"right", comparisonURL(1, compareImageRevision_)}};
 }
 void EditorController::closeCompare() {
+    if (compareIDs_.isEmpty() && !compareBusy_ && !compareReady_ && compareError_.isEmpty())
+        return;
     compareJob_.cancel();
     ++compareRevision_;
     compareBusy_ = false;

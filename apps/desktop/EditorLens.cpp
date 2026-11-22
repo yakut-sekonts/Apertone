@@ -33,10 +33,17 @@ QVariantMap EditorController::lensState() const {
             {"caAvailable", resolved.tca.has_value()}};
 }
 QVariantList EditorController::lensOptions() const {
-    QVariantList result{QVariantMap{{"id", ""}, {"name", "Auto · from metadata"}}};
     if (!session_)
-        return result;
-    const auto resolved = luma::resolveLens(session_->asset.metadata, history_.current().lens);
+        return {QVariantMap{{"id", ""}, {"name", "Auto · from metadata"}}};
+    const auto &metadata = session_->asset.metadata;
+    const auto &settings = history_.current().lens;
+    if (lensOptionsCache_ && lensOptionsCache_->camera == metadata.camera &&
+        lensOptionsCache_->profile == settings.profile)
+        return lensOptionsCache_->options;
+
+    // QML sequence indexing can read the whole property for each element.
+    QVariantList result{QVariantMap{{"id", ""}, {"name", "Auto · from metadata"}}};
+    const auto resolved = luma::resolveLens(metadata, settings);
     if (resolved.camera) {
         std::vector<const luma::LensProfile *> profiles;
         for (const auto &profile : luma::lensProfiles())
@@ -51,11 +58,12 @@ QVariantList EditorController::lensOptions() const {
                             {"name", QString::fromUtf8(profile->name) +
                                          QStringLiteral(" · crop %1").arg(profile->cropFactor)}});
     }
-    const auto selected = QString::fromStdString(history_.current().lens.profile);
+    const auto selected = QString::fromStdString(settings.profile);
     if (!selected.isEmpty() && std::none_of(result.begin(), result.end(), [&](const auto &entry) {
             return entry.toMap().value("id").toString() == selected;
         }))
         result.append(QVariantMap{{"id", selected}, {"name", "Unavailable profile · " + selected}});
+    lensOptionsCache_ = LensOptionsCache{metadata.camera, settings.profile, result};
     return result;
 }
 void EditorController::setLensProfile(const QString &id) {

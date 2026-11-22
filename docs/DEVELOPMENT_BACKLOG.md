@@ -1017,3 +1017,13 @@ and exact coverage limits:
   in 102 seconds offscreen and 87 seconds native. Build, affected mandatory
   analysis, preset-storage CTest and workflow YAML parsing pass.
 - Evidence: [preset stress deadline](qualification/2026-10-26/preset-stress-ci-deadline.json).
+
+### LUMA-BUG-096 — Lens profile enumeration stalls Develop on Windows
+
+- A real Nikon JPEG with a facial mask exported successfully, then the desktop
+  became unresponsive. The captured main-thread stack showed QML requesting
+  the full compatible-lens list while reading individual list entries.
+- Reuse the last list for the same camera metadata and selected profile. Keep
+  the existing ordering and retain unavailable selections on catalog reopen.
+  Skip change notifications when closing an already empty comparison or reference.
+- Exercise mask generation, export, shutdown and restart on the same JPEG.

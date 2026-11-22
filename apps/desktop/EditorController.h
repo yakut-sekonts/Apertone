@@ -615,6 +615,12 @@ class EditorController final : public QObject {
   private:
     mutable std::optional<QVariantMap> parametersCache_;
     mutable std::array<std::uint64_t, 3> parametersCacheRevision_{};
+    struct LensOptionsCache {
+        std::string camera;
+        std::string profile;
+        QVariantList options;
+    };
+    mutable std::optional<LensOptionsCache> lensOptionsCache_;
     enum class VersionAction { list, create, restore, rename, remove };
     QVariantList processingVersions_;
     bool versionsBusy_ = false;

@@ -229,7 +229,7 @@ if(BUILD_TESTING AND APPLE)
     add_executable(luma_diagnostic_session_tests tests/unit/DiagnosticSessionTests.cpp
         apps/desktop/DiagnosticSession.cpp)
     target_include_directories(luma_diagnostic_session_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(luma_diagnostic_session_tests PRIVATE Qt6::Core)
+    target_link_libraries(luma_diagnostic_session_tests PRIVATE luma_core Qt6::Core)
     target_compile_options(luma_diagnostic_session_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME diagnostic-session-shutdown COMMAND luma_diagnostic_session_tests)
     set_tests_properties(diagnostic-session-shutdown PROPERTIES TIMEOUT 20 LABELS "unit;diagnostics")
