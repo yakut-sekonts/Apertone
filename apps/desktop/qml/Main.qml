@@ -254,7 +254,17 @@ ApplicationWindow {
                 }
                 Label { text: "Apertone"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
                 ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.showLibraryView("grid") }
-                ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.showDevelop() }
+                ApertoneButton {
+                    objectName: "main.developButton"
+                    text: qsTranslate("Apertone", "Develop")
+                    highlighted: !root.libraryMode
+                    onClicked: {
+                        if (editor.hasPhoto)
+                            root.libraryMode = false
+                        else
+                            root.showDevelop()
+                    }
+                }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
                 ApertoneButton { objectName: "settingsButton"; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
                 UpdateBell {}

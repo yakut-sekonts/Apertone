@@ -4,6 +4,9 @@ on:
     branches: [codex/qa-3-0-keyboard]
 permissions:
   contents: read
+concurrency:
+  group: keyboard-qa-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   keyboard:
     runs-on: macos-15
@@ -32,6 +35,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_keyboard_workflow_regression.py --build build --runs 3 --require-build-provenance
       - name: Selected-asset keyboard regression
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
+      - name: PhotoCard flag localization and Develop history
+        run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
       - name: Save keyboard reports even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -40,5 +45,6 @@ jobs:
           path: |
             build/ux-keyboard-workflow-report/
             build/ux-keyboard-report/
+            build/ux-card-flags-report/
             build/ux-artifacts/*/**/keyboard-workflow.json
           if-no-files-found: warn
