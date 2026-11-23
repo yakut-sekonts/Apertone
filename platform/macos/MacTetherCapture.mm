@@ -89,9 +89,6 @@ QString captureName(ICCameraFile *file) {
     files_ = [NSMutableArray array];
     browser_ = [[ICDeviceBrowser alloc] init];
     browser_.delegate = self;
-    browser_.browsedDeviceTypeMask =
-        static_cast<ICDeviceTypeMask>(static_cast<NSUInteger>(ICDeviceTypeMaskCamera) |
-                                      static_cast<NSUInteger>(ICDeviceLocationTypeMaskLocal));
     timer_ = new QTimer(QCoreApplication::instance());
     timer_->setInterval(100);
     QObject::connect(timer_, &QTimer::timeout, timer_, [request = self] { [request advance]; });
@@ -154,7 +151,10 @@ QString captureName(ICCameraFile *file) {
            moreComing:(BOOL)moreComing {
     (void)browser;
     (void)moreComing;
-    if (finished_ || ![device isKindOfClass:[ICCameraDevice class]])
+    // ImageCaptureCore packs the transport location into ICDevice::type.
+    if (finished_ || ![device isKindOfClass:[ICCameraDevice class]] ||
+        (static_cast<NSUInteger>(device.type) &
+         static_cast<NSUInteger>(ICDeviceLocationTypeMaskLocal)) == 0)
         return;
     const auto key = identifier(device);
     if (key.isEmpty())

@@ -768,18 +768,21 @@ ApplicationWindow {
                             id: pointColorSection
                             objectName: "develop.section.pointColor"
                             title: qsTranslate("Apertone", "Point Color")
+                            expanded: false
                             CreativePanel { section: 512; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
                         DevelopSection {
                             id: gradingSection
                             objectName: "develop.section.grading"
                             title: qsTranslate("Apertone", "Color Grading")
+                            expanded: false
                             CreativePanel { section: 1024; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
                         DevelopSection {
                             id: blackWhiteSection
                             objectName: "develop.section.blackWhite"
                             title: qsTranslate("Apertone", "Black and White")
+                            expanded: false
                             CreativePanel { section: 4096; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
                         DevelopSection {
@@ -807,12 +810,14 @@ ApplicationWindow {
                             id: effectsSection
                             objectName: "develop.section.effects"
                             title: qsTranslate("Apertone", "Effects")
+                            expanded: false
                             CreativePanel { section: 2048; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
                         DevelopSection {
                             id: calibrationSection
                             objectName: "develop.section.calibration"
                             title: qsTranslate("Apertone", "Calibration")
+                            expanded: false
                             CreativePanel { section: 16384; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
                         DevelopSection {
