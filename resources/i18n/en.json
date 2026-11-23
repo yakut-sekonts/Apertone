@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "en",
   "messages": {
+    "Could not check for updates": "Could not check for updates",
+    "Could not prepare the Windows update": "Could not prepare the Windows update",
+    "Could not download the Windows update": "Could not download the Windows update",
+    "Windows update verification failed": "Windows update verification failed",
+    "Preparing Windows update…": "Preparing Windows update…",
+    "Downloading Windows update…": "Downloading Windows update…",
+    "Could not start the Windows update installer": "Could not start the Windows update installer",
     "No compatible camera detected.": "No compatible camera detected.",
     "Connect camera": "Connect camera",
     "Disconnect camera": "Disconnect camera",

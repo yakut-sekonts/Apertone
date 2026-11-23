@@ -211,7 +211,13 @@ elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
     message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Apertone 1.0.")
 endif()
 else()
-    target_sources(Apertone PRIVATE platform/windows/DesktopServices.cpp)
+    target_sources(Apertone PRIVATE platform/windows/DesktopServices.cpp
+        platform/windows/Updater.cpp platform/windows/UpdateRelease.cpp)
+    target_link_libraries(Apertone PRIVATE Qt6::Network)
+    add_executable(ApertoneUpdate WIN32 platform/windows/ApplyUpdate.cpp)
+    target_compile_options(ApertoneUpdate PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    target_link_options(ApertoneUpdate PRIVATE -municode -static)
+    target_link_libraries(ApertoneUpdate PRIVATE user32)
     configure_file(resources/branding/Apertone.rc.in "${CMAKE_CURRENT_BINARY_DIR}/Apertone.rc" @ONLY)
     set_source_files_properties("${CMAKE_CURRENT_BINARY_DIR}/Apertone.rc" PROPERTIES
         OBJECT_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/branding/Apertone.ico")
@@ -230,7 +236,7 @@ target_compile_options(luma_cli PRIVATE -Wall -Wextra -Wpedantic -Werror)
 if(WIN32)
     target_link_options(luma_cli PRIVATE -municode "LINKER:--stack,8388608")
     set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone-cli)
-    install(TARGETS Apertone luma_cli luma_libraw RUNTIME DESTINATION .)
+    install(TARGETS Apertone ApertoneUpdate luma_cli luma_libraw RUNTIME DESTINATION .)
     install(FILES LICENSE THIRD_PARTY_LICENSES.md DESTINATION .)
     install(FILES "${apertone_jpegxl_SOURCE_DIR}/LICENSE" "${apertone_jpegxl_SOURCE_DIR}/PATENTS"
         DESTINATION licenses/jpeg-xl)
@@ -464,11 +470,6 @@ if(BUILD_TESTING AND APPLE)
     target_compile_options(luma_localization_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME language-runtime-preferences COMMAND luma_localization_tests "${CMAKE_SOURCE_DIR}/apps/desktop/qml")
     set_tests_properties(language-runtime-preferences PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
-    qt_add_executable(luma_update_tests tests/unit/UpdateTests.cpp apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h)
-    target_include_directories(luma_update_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
-    target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    add_test(NAME update-restart-guard COMMAND luma_update_tests)
     qt_add_executable(luma_batch_tests tests/unit/ExportQueueTests.cpp tests/unit/ExportExifFixture.mm apps/desktop/ExportController.cpp apps/desktop/ExportController.h apps/shared/ExportSettings.cpp tests/unit/BatchTests.cpp tests/unit/ThumbnailTests.cpp apps/desktop/ThumbnailProvider.cpp apps/desktop/BatchController.cpp
         apps/desktop/BatchController.h apps/desktop/LibraryModel.cpp apps/desktop/LibrarySemantic.cpp apps/desktop/LibraryIntelligence.cpp apps/desktop/LibrarySmart.cpp apps/desktop/LibraryImport.cpp apps/desktop/LibraryLightroom.cpp apps/desktop/LibraryMaintenance.cpp
         apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h
@@ -664,6 +665,17 @@ if(BUILD_TESTING AND APPLE)
     set_tests_properties(nikon-d7500-restart PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     set_tests_properties(synthetic-raw-restart PROPERTIES TIMEOUT 90)
 elseif(BUILD_TESTING AND WIN32)
+    add_executable(luma_windows_update_tests tests/unit/WindowsUpdateReleaseTests.cpp
+        platform/windows/UpdateRelease.cpp)
+    target_include_directories(luma_windows_update_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(luma_windows_update_tests PRIVATE Qt6::Core)
+    target_compile_options(luma_windows_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME windows-update-release-selection COMMAND luma_windows_update_tests)
+    add_test(NAME windows-update-install
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tests/integration/windows_update_install.py"
+            "$<TARGET_FILE:ApertoneUpdate>" "${CMAKE_CXX_COMPILER}")
+    set_tests_properties(windows-update-install PROPERTIES TIMEOUT 120)
     add_executable(luma_camera_ptp_tests tests/unit/CameraPtpTests.cpp platform/windows/CameraPtpData.cpp)
     target_include_directories(luma_camera_ptp_tests PRIVATE "${CMAKE_SOURCE_DIR}")
     target_compile_options(luma_camera_ptp_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -688,6 +700,12 @@ elseif(BUILD_TESTING AND WIN32)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 120)
 endif()
 if(BUILD_TESTING)
+    qt_add_executable(luma_update_tests tests/unit/UpdateTests.cpp
+        apps/desktop/UpdateController.cpp apps/desktop/UpdateController.h)
+    target_include_directories(luma_update_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(luma_update_tests PRIVATE Qt6::Core)
+    target_compile_options(luma_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME update-restart-guard COMMAND luma_update_tests)
     add_test(NAME lightroom-catalog-import COMMAND "${Python3_EXECUTABLE}"
         "${CMAKE_SOURCE_DIR}/tests/integration/lightroom.py" "$<TARGET_FILE:luma_cli>")
     set_tests_properties(lightroom-catalog-import PROPERTIES

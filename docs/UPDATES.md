@@ -73,3 +73,20 @@ keep catalog backups when testing development versions.
 
 Implementation follows Sparkle's [programmatic setup](https://sparkle-project.org/documentation/programmatic-setup/)
 and [gentle reminders](https://sparkle-project.org/documentation/gentle-reminders/).
+
+## Windows updates
+
+The toolbar bell shows manual and daily checks for Windows x64. It looks for
+a newer stable version with a Windows archive in the official GitHub releases.
+Checking automatically can be turned off in the bell.
+
+Choose **Install update** to download the ZIP. Apertone checks the size and
+SHA-256 recorded by GitHub, prepares the replacement beside the installed
+program, and waits for saves, imports and exports before restarting. Keep
+catalogs, photos and custom files outside the portable application folder.
+The installer expects the folder to contain the files from the release package.
+
+Replace an older Windows package that lacks the bell once through the
+[official download](https://github.com/yakut-sekonts/Apertone/releases/latest).
+Future Windows update assets use the release version in
+`Apertone-<version>-windows-x64.zip`.

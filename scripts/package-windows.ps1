@@ -27,7 +27,7 @@ $desktop = Join-Path $output "Apertone.exe"
 if ($LASTEXITCODE -ne 0) {
     throw "Qt deployment failed ($LASTEXITCODE)."
 }
-foreach ($required in @("Apertone.exe", "apertone-cli.exe", "libluma_raw.dll",
+foreach ($required in @("Apertone.exe", "ApertoneUpdate.exe", "apertone-cli.exe", "libluma_raw.dll",
                          "Qt6Network.dll", "tls/qschannelbackend.dll",
                          "platforms/qwindows.dll", "platforms/qoffscreen.dll", "imageformats/qtiff.dll",
                          "imageformats/qwebp.dll", "onnxruntime.dll",
@@ -49,4 +49,8 @@ if ($LASTEXITCODE -ne 0) {
 @("Repository: https://github.com/yakut-sekonts/Apertone", "Commit: $commit",
   "Tree: $tree", "Platform: Windows x64") |
     Set-Content -LiteralPath (Join-Path $output "BUILD-ORIGIN.txt") -Encoding utf8
+Get-ChildItem -LiteralPath $output -File -Recurse -Force |
+    ForEach-Object { [IO.Path]::GetRelativePath($output, $_.FullName).Replace('\', '/') } |
+    Sort-Object -CaseSensitive |
+    Set-Content -LiteralPath (Join-Path $output "UPDATE-FILES.txt") -Encoding utf8
 Get-Item -LiteralPath $desktop

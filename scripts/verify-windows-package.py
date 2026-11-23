@@ -35,6 +35,15 @@ def verify_icons(exe):
 def verify(package):
     source = Path(__file__).resolve().parents[1] / "tests/assets/migration-051/01-complete.DNG"
     desktop, cli = (package / name for name in ("Apertone.exe", "apertone-cli.exe"))
+    inventory = package / "UPDATE-FILES.txt"
+    paths = inventory.read_text(encoding="utf-8-sig").splitlines()
+    expected = {
+        path.relative_to(package).as_posix()
+        for path in package.rglob("*")
+        if path.is_file() and path != inventory
+    }
+    assert len(paths) == len(expected) and set(paths) == expected
+    assert "ApertoneUpdate.exe" in expected
     verify_icons(desktop)
     windows = Path(os.environ["SystemRoot"])
     env = dict(os.environ, PATH=f"{windows / 'System32'};{windows}",

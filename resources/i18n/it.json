@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "it",
   "messages": {
+    "Could not check for updates": "Impossibile verificare la disponibilità di aggiornamenti",
+    "Could not prepare the Windows update": "Impossibile preparare l’aggiornamento per Windows",
+    "Could not download the Windows update": "Impossibile scaricare l’aggiornamento per Windows",
+    "Windows update verification failed": "Verifica dell’aggiornamento per Windows non riuscita",
+    "Preparing Windows update…": "Preparazione dell’aggiornamento per Windows…",
+    "Downloading Windows update…": "Download dell’aggiornamento per Windows…",
+    "Could not start the Windows update installer": "Impossibile avviare il programma di installazione dell’aggiornamento per Windows",
     "No compatible camera detected.": "Nessuna fotocamera compatibile rilevata.",
     "Connect camera": "Collega fotocamera",
     "Disconnect camera": "Scollega fotocamera",

@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "de",
   "messages": {
+    "Could not check for updates": "Suche nach Updates fehlgeschlagen",
+    "Could not prepare the Windows update": "Das Windows-Update konnte nicht vorbereitet werden",
+    "Could not download the Windows update": "Das Windows-Update konnte nicht heruntergeladen werden",
+    "Windows update verification failed": "Die Überprüfung des Windows-Updates ist fehlgeschlagen",
+    "Preparing Windows update…": "Windows-Update wird vorbereitet…",
+    "Downloading Windows update…": "Windows-Update wird heruntergeladen…",
+    "Could not start the Windows update installer": "Das Installationsprogramm für das Windows-Update konnte nicht gestartet werden",
     "No compatible camera detected.": "Keine kompatible Kamera erkannt.",
     "Connect camera": "Kamera verbinden",
     "Disconnect camera": "Kamera trennen",

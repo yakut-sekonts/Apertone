@@ -1,6 +1,6 @@
-#include "apps/desktop/UpdateController.h"
 #include "platform/macos/ApplicationAlert.h"
 #include "platform/macos/CrashCapture.h"
+#include <QString>
 #include <windows.h>
 
 namespace luma::macos {
@@ -17,7 +17,3 @@ bool formatCrashReport(const std::filesystem::path &) noexcept {
     return false;
 }
 } // namespace luma::macos
-
-std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks) {
-    return {};
-}

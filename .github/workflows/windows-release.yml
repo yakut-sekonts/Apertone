@@ -1,4 +1,4 @@
-name: Apertone 2.5 Windows distribution
+name: Apertone Windows distribution
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: aperture-windows-2.5.0
+  group: aperture-windows-release
   cancel-in-progress: false
 
 jobs:
@@ -22,6 +22,8 @@ jobs:
     if: github.repository == 'yakut-sekonts/Apertone'
     runs-on: windows-2022
     timeout-minutes: 60
+    outputs:
+      version: ${{ steps.package.outputs.version }}
     defaults:
       run:
         shell: pwsh
@@ -58,19 +60,25 @@ jobs:
       - name: Qualify exFAT Copy, Move and interrupted import recovery
         run: .\scripts\verify-windows-exfat.ps1 -Cli build-windows/bin/apertone-cli.exe
       - name: Verify and archive the portable Windows distribution
+        id: package
         run: |
           $qt = (Resolve-Path .tools/qt/6.10.3/mingw_64).Path
           .\scripts\package-windows.ps1 -BuildDirectory build-windows -QtBin "$qt/bin" `
             -Destination dist/Apertone-windows-x64
           python scripts/verify-windows-package.py dist/Apertone-windows-x64
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          $archive = "dist/Apertone-2.5.0-windows-x64.zip"
+          $version = (Get-Item -LiteralPath dist/Apertone-windows-x64/Apertone.exe).VersionInfo.ProductVersion
+          if ($version -cnotmatch '\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z') {
+            throw "Invalid Apertone ProductVersion: $version"
+          }
+          $archive = "dist/Apertone-$version-windows-x64.zip"
           Compress-Archive -Path dist/Apertone-windows-x64 -DestinationPath $archive -CompressionLevel Optimal
           (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "version=$version" >> $env:GITHUB_OUTPUT
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: aperture-windows-2.5.0
-          path: dist/Apertone-2.5.0-windows-x64.zip
+          name: aperture-windows-${{ steps.package.outputs.version }}
+          path: dist/Apertone-${{ steps.package.outputs.version }}-windows-x64.zip
           if-no-files-found: error
           compression-level: 0
 
@@ -84,28 +92,32 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          name: aperture-windows-2.5.0
+          name: aperture-windows-${{ needs.build-verify.outputs.version }}
           path: dist
-      - name: Add verified Windows assets and notes to v2.5.0
+      - name: Add verified Windows archive and notes to the matching release
         env:
           GH_TOKEN: ${{ github.token }}
           SOURCE_COMMIT: ${{ github.sha }}
+          PACKAGE_VERSION: ${{ needs.build-verify.outputs.version }}
         run: |
           set -euo pipefail
           repo=yakut-sekonts/Apertone
-          tag=v2.5.0
-          asset=Apertone-2.5.0-windows-x64.zip
-          marker='<!-- aperture-windows-v2.5.0 -->'
+          [[ "$PACKAGE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          tag="v$PACKAGE_VERSION"
+          asset="Apertone-$PACKAGE_VERSION-windows-x64.zip"
+          marker="<!-- aperture-windows-$tag -->"
           digest=$(sha256sum "dist/$asset" | cut -d' ' -f1)
-          gh api "repos/$repo/releases/latest" > release.json
-          jq -e --arg tag "$tag" '.tag_name == $tag and (.draft | not)' release.json >/dev/null
-          present=$(jq -r --arg name "$asset" '.assets[] | select(.name == $name) | .digest' release.json)
-          if [[ -z "$present" ]]; then
+          gh api "repos/$repo/releases/tags/$tag" > release.json
+          jq -e --arg tag "$tag" \
+            '.tag_name == $tag and .draft == false and .prerelease == false and
+              (.assets | type == "array")' release.json >/dev/null
+          if ! jq -e --arg name "$asset" '.assets | any(.name == $name)' release.json >/dev/null; then
             gh release upload "$tag" "dist/$asset" --repo "$repo"
           fi
           gh api "repos/$repo/releases/tags/$tag" > release.json
-          jq -e --arg name "$asset" --arg digest "sha256:$digest" \
-            '.assets | any(.name == $name and .digest == $digest)' release.json >/dev/null
+          jq -e --arg tag "$tag" --arg name "$asset" --arg digest "sha256:$digest" \
+            '.tag_name == $tag and .draft == false and .prerelease == false and
+              (.assets | any(.name == $name and .state == "uploaded" and .digest == $digest))' release.json >/dev/null
           jq -r '.body // ""' release.json > notes.md
           if grep -Fq "$marker" notes.md; then
             grep -Fq "$digest" notes.md
@@ -117,9 +129,11 @@ jobs:
 
           Apertone is available for Windows 10 and 11 x64. Extract the [Windows ZIP](https://github.com/$repo/releases/download/$tag/$asset) to a folder such as \`E:\Apertone\` and launch \`Apertone.exe\`. Keep the files in the archive together.
 
+          Use the bell in Apertone to check for and install Windows updates.
+
           Includes Lightroom Classic catalog migration with saved masks and matching DCP camera profiles, virtual copies, dynamic Smart Collections and Windows still capture through supported camera drivers. Local tools include automatic masks, RAW denoise, ICC-proofed PDF delivery and web galleries.
 
-          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). A catalog opened by this build uses schema 28. Apertone saves a pre-migration backup.
+          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). Apertone backs up an existing catalog before migrating it.
 
           Windows source: [$SOURCE_COMMIT](https://github.com/$repo/commit/$SOURCE_COMMIT)
 

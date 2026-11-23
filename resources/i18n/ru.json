@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "ru",
   "messages": {
+    "Could not check for updates": "Не удалось проверить обновления",
+    "Could not prepare the Windows update": "Не удалось подготовить обновление Windows",
+    "Could not download the Windows update": "Не удалось скачать обновление Windows",
+    "Windows update verification failed": "Проверка обновления Windows не прошла",
+    "Preparing Windows update…": "Подготовка обновления Windows…",
+    "Downloading Windows update…": "Загрузка обновления Windows…",
+    "Could not start the Windows update installer": "Не удалось запустить установщик обновления Windows",
     "No compatible camera detected.": "Совместимая камера не найдена.",
     "Connect camera": "Подключить камеру",
     "Disconnect camera": "Отключить камеру",

@@ -338,7 +338,8 @@ int main(int argc, char **argv) {
     editor.setWindow(window);
     if (parser.isSet(QStringLiteral("smoke-test"))) {
 #ifdef _WIN32
-        if (window->icon().pixmap(32, 32).isNull())
+        const auto *bell = window->findChild<QQuickItem *>(QStringLiteral("updates.bell"));
+        if (window->icon().pixmap(32, 32).isNull() || !bell || !bell->isVisible())
             return 1;
 #endif
         if (parser.isSet(QStringLiteral("test-language"))) {

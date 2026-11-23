@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "hy",
   "messages": {
+    "Could not check for updates": "Չհաջողվեց ստուգել թարմացումները",
+    "Could not prepare the Windows update": "Չհաջողվեց պատրաստել Windows-ի թարմացումը",
+    "Could not download the Windows update": "Չհաջողվեց ներբեռնել Windows-ի թարմացումը",
+    "Windows update verification failed": "Windows-ի թարմացման ստուգումը ձախողվեց",
+    "Preparing Windows update…": "Windows-ի թարմացման նախապատրաստում…",
+    "Downloading Windows update…": "Windows-ի թարմացման ներբեռնում…",
+    "Could not start the Windows update installer": "Չհաջողվեց գործարկել Windows-ի թարմացման տեղադրիչը",
     "No compatible camera detected.": "Համատեղելի տեսախցիկ չի հայտնաբերվել։",
     "Connect camera": "Միացնել տեսախցիկը",
     "Disconnect camera": "Անջատել տեսախցիկը",

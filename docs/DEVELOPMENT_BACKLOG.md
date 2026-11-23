@@ -1040,3 +1040,10 @@ and exact coverage limits:
 - Use the shipped map in the UX target, align the affected fixture expectations
   with supported workflows and check that every supported language covers the
   new controls. The latest macOS result is tracked in PR #70.
+
+### LUMA-BUG-098 — Windows hides the update bell
+
+- Windows hid the shared bell in QML and returned no native updater.
+- Show the bell in Windows and use the shared restart guard. Check stable
+  GitHub releases for a newer Windows x64 ZIP and verify the downloaded archive
+  before preparing the replacement.

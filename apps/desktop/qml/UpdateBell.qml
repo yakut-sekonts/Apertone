@@ -78,12 +78,14 @@ ApertoneButton {
                 Layout.fillWidth: true
             }
             ApertoneButton {
+                objectName: "updates.install"
                 visible: updates.availableVersion.length > 0
                 text: qsTranslate("Apertone", "Install update…")
-                enabled: !updates.restartPending
+                enabled: !updates.restartPending && !updates.checking
                 Layout.fillWidth: true
                 onClicked: {
-                    notifications.close();
+                    if (Qt.platform.os === "osx")
+                        notifications.close();
                     updates.install();
                 }
             }

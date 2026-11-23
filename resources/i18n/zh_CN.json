@@ -2,6 +2,13 @@
   "schema": 1,
   "locale": "zh_CN",
   "messages": {
+    "Could not check for updates": "无法检查更新",
+    "Could not prepare the Windows update": "无法准备 Windows 更新",
+    "Could not download the Windows update": "无法下载 Windows 更新",
+    "Windows update verification failed": "Windows 更新验证失败",
+    "Preparing Windows update…": "正在准备 Windows 更新…",
+    "Downloading Windows update…": "正在下载 Windows 更新…",
+    "Could not start the Windows update installer": "无法启动 Windows 更新安装程序",
     "No compatible camera detected.": "未检测到兼容的相机。",
     "Connect camera": "连接相机",
     "Disconnect camera": "断开相机",
