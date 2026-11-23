@@ -39,7 +39,34 @@ Use the system print dialog for contact sheets and photo books. See the
 [3.0.0 release notes](docs/releases/v3.0.0.md) for platform capabilities and
 limitations.
 
-## Included in source: phases 0.4–2.0
+### Windows x64 in 2.5.0
+
+Extract the ZIP on Windows 10 or 11 x64 and launch `Apertone.exe`. Keep the
+extracted files together. The local AI models use the
+Microsoft Visual C++ x64 Redistributable.
+[Download the Windows ZIP](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/Apertone-2.5.0-windows-x64.zip) ·
+[SHA-256 manifest](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/SHA256SUMS-windows.txt) ·
+[Microsoft Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)
+
+- Organize photos with independently editable virtual copies, Smart
+  Collections and automatic masks for subjects, sky and people.
+- Import Lightroom Classic catalogs with history, supported camera profiles
+  and saved masks. Apertone can recover matching masks from history and
+  optionally rebuild supported missing AI selections from the originals.
+  Rebuilt masks are marked in the catalog.
+- Open **Library → Tethered camera** for still capture and exposure controls
+  on compatible Windows PTP/MTP drivers. Compatible Nikon cameras can also
+  stream Live View.
+- Export contact sheets and photo books with ICC soft proofing. Offscreen
+  PDFs embed caption glyphs from installed fonts.
+
+Copy, interrupted import recovery and cross-volume Move passed on both a
+physical exFAT SD card and the Windows CI virtual disk. Camera and driver tests,
+card removal during import and paper print checks remain open.
+[Official 2.5.0 release notes](https://github.com/yakut-sekonts/Apertone/releases/tag/v2.5.0) ·
+[Windows source and build instructions](https://github.com/yakut-sekonts/Apertone/blob/912c3eac4a3de720080555bc05652a91d83aff03/BUILDING.md#windows-x64-development-build)
+
+## macOS source milestones through 2.0
 
 Version 1.0 contains Metal/caches, local AI/retouch/search, HDR/panorama,
 metadata/XMP, backups/recovery, relinking, named versions, session History and
