@@ -33,7 +33,7 @@ publishing modules.
 
 ## Daily editing and organization
 
-The [3.0.0 release notes](releases/v3.0.0.md) describe the unified Windows and
+The [3.0 release notes](releases/v3.0.1.md) describe the unified Windows and
 macOS source, Library review controls, grouped Develop adjustments, supported
 radial migration, native printing and conditional WebDAV updates. The 2.5
 verification table records the baseline and hardware qualification still needed.

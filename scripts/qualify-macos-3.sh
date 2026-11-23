@@ -21,7 +21,11 @@ if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
     echo "The tracked source must match the commit being checked." >&2
     exit 1
 fi
-grep -Eq '^project\(Apertone VERSION 3\.0\.0 ' CMakeLists.txt
+version=$(awk '$1=="project(Apertone" && $2=="VERSION" {print $3}' CMakeLists.txt)
+if [[ ! "$version" =~ ^3\.0\.[0-9]+$ ]]; then
+    echo "This script qualifies the Apertone 3.0 release series." >&2
+    exit 1
+fi
 for photo in "$@"; do
     if [[ "$photo" != /* || ! -f "$photo" ]]; then
         echo "Use absolute paths to the two existing test photos." >&2
@@ -44,7 +48,7 @@ tools="$PWD/.tools/venv/bin"
 "$tools/python" tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
 ./scripts/release-artifacts.sh build
 "$tools/python" scripts/verify-bundle.py
-"$tools/python" scripts/verify-dmg.py dist/release/Apertone-3.0.0-macos-arm64.dmg
+"$tools/python" scripts/verify-dmg.py "dist/release/Apertone-$version-macos-arm64.dmg"
 
 if (( $# == 2 )); then
     cli="$PWD/build/bin/apertone"

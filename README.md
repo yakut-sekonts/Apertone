@@ -10,7 +10,7 @@ and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 ## Releases
 
 [Download for Windows x64 or macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[3.0.0 release notes](docs/releases/v3.0.0.md) ·
+[3.0 release notes](docs/releases/v3.0.1.md) ·
 [2.5.0 release notes](docs/releases/v2.5.0.md) ·
 [2.0.0 release notes](docs/releases/v2.0.0.md)
 
@@ -36,7 +36,7 @@ For 3.0, both platform packages share one release tag and source commit.
 Use **G** for Grid, **E** for Loupe, **C** for Compare, **N** for Survey and
 **D** for Develop. The View menu exposes workspace visibility controls.
 Use the system print dialog for contact sheets and photo books. See the
-[3.0.0 release notes](docs/releases/v3.0.0.md) for platform capabilities and
+[3.0 release notes](docs/releases/v3.0.1.md) for platform capabilities and
 limitations.
 
 ### Windows x64 in 2.5.0
