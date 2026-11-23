@@ -48,8 +48,8 @@ ApplicationWindow {
         ? libraryPane.viewMode === "loupe" && library.count > 0
         : library.count > 0 || (library.loading && editor.hasPhoto)
 
-    function showLibraryView(view) {
-        if (!libraryMode && editor.hasPhoto && library.selectedCount === 0) {
+    function showLibraryView(view, selectCurrent = true) {
+        if (selectCurrent && !libraryMode && editor.hasPhoto && library.selectedCount === 0) {
             const row = library.reviewPhotoRow(editor.photoID)
             if (row >= 0)
                 library.select(row)
@@ -253,7 +253,7 @@ ApplicationWindow {
                     Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
                 }
                 Label { text: "Apertone"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
-                ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.showLibraryView("grid") }
+                ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.showLibraryView("grid", false) }
                 ApertoneButton {
                     objectName: "main.developButton"
                     text: qsTranslate("Apertone", "Develop")

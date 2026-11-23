@@ -37,6 +37,8 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_keyboard_regression.py --build build --runs 3 --require-build-provenance
       - name: PhotoCard flag localization and Develop history
         run: .tools/venv/bin/python tests/ux/run_card_flag_regression.py --build build --runs 3 --require-build-provenance
+      - name: Library and Develop navigation preserve pending thumbnails
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-LIB-005 --runs 3 --require-build-provenance --report build/ux-thumbnail-away-back-report
       - name: Save keyboard reports even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -46,5 +48,6 @@ jobs:
             build/ux-keyboard-workflow-report/
             build/ux-keyboard-report/
             build/ux-card-flags-report/
+            build/ux-thumbnail-away-back-report/
             build/ux-artifacts/*/**/keyboard-workflow.json
           if-no-files-found: warn
