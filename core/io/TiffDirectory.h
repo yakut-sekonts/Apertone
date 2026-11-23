@@ -10,6 +10,7 @@ class TiffDirectory {
   public:
     explicit TiffDirectory(std::span<const std::uint8_t> bytes, std::uint16_t magic = 42);
     bool has(std::uint16_t tag) const;
+    bool hasType(std::uint16_t tag, std::uint16_t type) const;
     std::vector<std::uint32_t> integers(std::uint16_t tag, std::size_t limit) const;
     std::vector<double> numbers(std::uint16_t tag, std::size_t limit) const;
     std::span<const std::uint8_t> text(std::uint16_t tag, std::size_t limit) const;

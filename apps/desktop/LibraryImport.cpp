@@ -17,6 +17,8 @@
 #ifdef _WIN32
 #include "platform/windows/TetherCapture.h"
 #include <windows.h>
+#elif defined(__APPLE__)
+#include "platform/macos/MacTetherCapture.h"
 #endif
 
 namespace {
@@ -70,6 +72,16 @@ void savePresets(const QJsonObject &object) {
 }
 } // namespace
 bool LibraryModel::tetherAvailable() const {
+#if defined(_WIN32)
+    return true;
+#elif defined(__APPLE__)
+    return luma::macos::cameraCaptureAvailable();
+#else
+    return false;
+#endif
+}
+
+bool LibraryModel::cameraControlsAvailable() const {
 #ifdef _WIN32
     return true;
 #else
@@ -310,8 +322,8 @@ void LibraryModel::setCameraExposure(int property, qint64 value) {
 }
 
 void LibraryModel::cameraRequest(const QString &id, const QUrl &folder) {
-#ifdef _WIN32
-    if (working())
+#if defined(_WIN32) || defined(__APPLE__)
+    if (working() || closing_ || !tetherAvailable())
         return;
     const bool capture = !id.isEmpty();
     error_.clear();
@@ -322,50 +334,59 @@ void LibraryModel::cameraRequest(const QString &id, const QUrl &folder) {
     const auto stop = maintenanceCancellation_.token();
     const QPointer<LibraryModel> self(this);
     emit stateChanged();
+    auto receive = [self, capture, stop](QVariantList devices,
+                                         std::vector<std::filesystem::path> captured,
+                                         QString error) {
+        if (!self)
+            return;
+        self->cameraBusy_ = self->writing_ = false;
+        self->error_ = std::move(error);
+        self->status_ = QString();
+        if (!capture && !stop.isCancelled())
+            self->tetherCameras_ = std::move(devices);
+        if (!self->closing_ && !stop.isCancelled() && !captured.empty()) {
+            luma::ImportOptions options;
+            options.mode = luma::ImportMode::add;
+            options.recursive = false;
+            self->startImport(std::move(captured), std::move(options));
+        }
+        emit self->stateChanged();
+        self->checkClose();
+    };
     try {
-        writes_.submit(
-            luma::JobPriority::background, [self, id, folder, capture, stop](const auto &) {
-                QVariantList devices;
-                std::vector<std::filesystem::path> captured;
-                QString error;
-                try {
-                    if (capture) {
-                        captured = luma::windows::captureTetheredPhotos(
-                            id.toStdWString(),
-                            luma::pathFromUtf8(folder.toLocalFile().toStdString()), stop);
-                    } else {
-                        for (const auto &camera : luma::windows::tetherCameras(stop))
-                            devices.push_back(
-                                QVariantMap{{"id", QString::fromStdWString(camera.id)},
-                                            {"name", QString::fromStdWString(camera.name)}});
-                    }
-                } catch (const std::exception &failure) {
-                    if (!stop.isCancelled())
-                        error = QString::fromUtf8(failure.what());
+#ifdef __APPLE__
+        luma::macos::requestCameraCapture(id, folder.toLocalFile(), stop, std::move(receive));
+#else
+        writes_.submit(luma::JobPriority::background, [self, id, folder, capture, stop,
+                                                       receive = std::move(receive)](const auto &) {
+            QVariantList devices;
+            std::vector<std::filesystem::path> captured;
+            QString error;
+            try {
+                if (capture) {
+                    captured = luma::windows::captureTetheredPhotos(
+                        id.toStdWString(), luma::pathFromUtf8(folder.toLocalFile().toStdString()),
+                        stop);
+                } else {
+                    for (const auto &camera : luma::windows::tetherCameras(stop))
+                        devices.push_back(
+                            QVariantMap{{"id", QString::fromStdWString(camera.id)},
+                                        {"name", QString::fromStdWString(camera.name)}});
                 }
-                if (self)
-                    QMetaObject::invokeMethod(
-                        self,
-                        [self, capture, stop, devices = std::move(devices),
-                         captured = std::move(captured), error]() mutable {
-                            if (!self)
-                                return;
-                            self->cameraBusy_ = self->writing_ = false;
-                            self->error_ = error;
-                            self->status_ = QString();
-                            if (!capture)
-                                self->tetherCameras_ = std::move(devices);
-                            if (!self->closing_ && !stop.isCancelled() && !captured.empty()) {
-                                luma::ImportOptions options;
-                                options.mode = luma::ImportMode::add;
-                                options.recursive = false;
-                                self->startImport(std::move(captured), std::move(options));
-                            }
-                            emit self->stateChanged();
-                            self->checkClose();
-                        },
-                        Qt::QueuedConnection);
-            });
+            } catch (const std::exception &failure) {
+                if (!stop.isCancelled())
+                    error = QString::fromUtf8(failure.what());
+            }
+            if (self)
+                QMetaObject::invokeMethod(
+                    self,
+                    [receive, devices = std::move(devices), captured = std::move(captured),
+                     error = std::move(error)]() mutable {
+                        receive(std::move(devices), std::move(captured), std::move(error));
+                    },
+                    Qt::QueuedConnection);
+        });
+#endif
     } catch (const std::exception &failure) {
         cameraBusy_ = writing_ = false;
         error_ = QString::fromUtf8(failure.what());

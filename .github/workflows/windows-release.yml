@@ -3,18 +3,17 @@ name: Apertone Windows distribution
 on:
   push:
     branches: [codex/windows-lightroom]
+  workflow_call:
+    outputs:
+      version:
+        value: ${{ jobs.build-verify.outputs.version }}
   workflow_dispatch:
-    inputs:
-      publish:
-        description: Publish the Windows archive after release qualification
-        type: boolean
-        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: aperture-windows-release
+  group: aperture-windows-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -73,74 +72,14 @@ jobs:
           }
           $archive = "dist/Apertone-$version-windows-x64.zip"
           Compress-Archive -Path dist/Apertone-windows-x64 -DestinationPath $archive -CompressionLevel Optimal
-          (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$digest  $(Split-Path -Leaf $archive)" | Set-Content -Encoding ascii dist/SHA256SUMS-windows.txt
           "version=$version" >> $env:GITHUB_OUTPUT
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aperture-windows-${{ steps.package.outputs.version }}
-          path: dist/Apertone-${{ steps.package.outputs.version }}-windows-x64.zip
+          path: |
+            dist/Apertone-${{ steps.package.outputs.version }}-windows-x64.zip
+            dist/SHA256SUMS-windows.txt
           if-no-files-found: error
           compression-level: 0
-
-  add-to-release:
-    if: github.repository == 'yakut-sekonts/Apertone' && github.event_name == 'workflow_dispatch' && inputs.publish
-    runs-on: ubuntu-24.04
-    needs: build-verify
-    timeout-minutes: 15
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
-        with:
-          name: aperture-windows-${{ needs.build-verify.outputs.version }}
-          path: dist
-      - name: Add verified Windows archive and notes to the matching release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          SOURCE_COMMIT: ${{ github.sha }}
-          PACKAGE_VERSION: ${{ needs.build-verify.outputs.version }}
-        run: |
-          set -euo pipefail
-          repo=yakut-sekonts/Apertone
-          [[ "$PACKAGE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          tag="v$PACKAGE_VERSION"
-          asset="Apertone-$PACKAGE_VERSION-windows-x64.zip"
-          marker="<!-- aperture-windows-$tag -->"
-          digest=$(sha256sum "dist/$asset" | cut -d' ' -f1)
-          gh api "repos/$repo/releases/tags/$tag" > release.json
-          jq -e --arg tag "$tag" \
-            '.tag_name == $tag and .draft == false and .prerelease == false and
-              (.assets | type == "array")' release.json >/dev/null
-          if ! jq -e --arg name "$asset" '.assets | any(.name == $name)' release.json >/dev/null; then
-            gh release upload "$tag" "dist/$asset" --repo "$repo"
-          fi
-          gh api "repos/$repo/releases/tags/$tag" > release.json
-          jq -e --arg tag "$tag" --arg name "$asset" --arg digest "sha256:$digest" \
-            '.tag_name == $tag and .draft == false and .prerelease == false and
-              (.assets | any(.name == $name and .state == "uploaded" and .digest == $digest))' release.json >/dev/null
-          jq -r '.body // ""' release.json > notes.md
-          if grep -Fq "$marker" notes.md; then
-            grep -Fq "$digest" notes.md
-          else
-            cat >> notes.md <<EOF
-
-          $marker
-          ## Windows x64
-
-          Apertone is available for Windows 10 and 11 x64. Extract the [Windows ZIP](https://github.com/$repo/releases/download/$tag/$asset) to a folder such as \`E:\Apertone\` and launch \`Apertone.exe\`. Keep the files in the archive together.
-
-          Use the bell in Apertone to check for and install Windows updates.
-
-          Includes Lightroom Classic catalog migration with saved masks and matching DCP camera profiles, virtual copies, dynamic Smart Collections and Windows still capture through supported camera drivers. Local tools include automatic masks, RAW denoise, ICC-proofed PDF delivery and web galleries.
-
-          The local models use the [Microsoft Visual C++ x64 Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist). Apertone backs up an existing catalog before migrating it.
-
-          Windows source: [$SOURCE_COMMIT](https://github.com/$repo/commit/$SOURCE_COMMIT)
-
-          Windows ZIP SHA-256: \`$digest\`
-          EOF
-            gh release edit "$tag" --repo "$repo" --notes-file notes.md
-          fi
-          gh api "repos/$repo/releases/tags/$tag" --jq '.body' > published.md
-          grep -Fq "$marker" published.md
-          grep -Fq "$digest" published.md

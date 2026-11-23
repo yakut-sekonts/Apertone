@@ -1,5 +1,6 @@
 #include "core/color/DcpProfile.h"
 #include "core/color/DngColorCalibration.h"
+#include "core/color/DngIlluminant.h"
 #include "core/color/RGBProfiles.h"
 #include "core/io/TiffDirectory.h"
 #include <algorithm>
@@ -131,28 +132,55 @@ double decode(double x) {
     return x <= .04045 ? x / 12.92 : std::pow((x + .055) / 1.055, 2.4);
 }
 
-std::array<float, 3> tableColor(const std::array<float, 3> &input, const DcpHueTable &first,
-                                const DcpHueTable *second = nullptr, double weight = 0) {
+std::array<float, 3> tableColor(const std::array<float, 3> &input, bool gammaEncodedValue,
+                                const auto &correctionAt) {
     auto value = hsv(input);
     if (value.v <= 0)
         return input;
     const double headroom = std::max(1.0, value.v);
     value.v /= headroom;
-    if (first.gammaEncodedValue)
+    if (gammaEncodedValue)
         value.v = encode(value.v);
-    auto correction = lookup(first, value);
-    if (second) {
-        const auto high = lookup(*second, value);
-        for (std::size_t i = 0; i < 3; ++i)
-            correction[i] = std::lerp(correction[i], high[i], weight);
-    }
+    const auto correction = correctionAt(value);
     value.h += correction[0] / 360;
     value.s = std::clamp(value.s * correction[1], 0.0, 1.0);
     value.v = std::min(1.0, value.v * correction[2]);
-    if (first.gammaEncodedValue)
+    if (gammaEncodedValue)
         value.v = decode(value.v);
     value.v *= headroom;
     return rgb(value);
+}
+
+std::array<float, 3> tableColor(const std::array<float, 3> &input, const DcpHueTable &first,
+                                const DcpHueTable *second = nullptr, double weight = 0) {
+    return tableColor(input, first.gammaEncodedValue, [&](Hsv value) {
+        auto correction = lookup(first, value);
+        if (second) {
+            const auto high = lookup(*second, value);
+            for (std::size_t i = 0; i < correction.size(); ++i)
+                correction[i] = std::lerp(correction[i], high[i], weight);
+        }
+        return correction;
+    });
+}
+
+struct DcpIlluminantTags {
+    std::uint16_t illuminant, color, forward, hueSaturation, custom;
+};
+constexpr DcpIlluminantTags tags[]{{50778, 50721, 50964, 50938, 52533},
+                                   {50779, 50722, 50965, 50939, 52534},
+                                   {52529, 52531, 52532, 52537, 52535}};
+
+void readTripleIlluminant(DngColorProfile &profile, const TiffDirectory &directory,
+                          const DcpIlluminantTags &set, unsigned code, bool littleEndian) {
+    require(directory.hasType(set.illuminant, 3) && directory.hasType(set.color, 10));
+    if (code == 255) {
+        require(directory.hasType(set.custom, 7));
+        profile.calibrationWhite =
+            dngCustomIlluminant(directory.text(set.custom, maximumDcpBytes), littleEndian);
+    } else {
+        profile.calibrationWhite = dngStandardIlluminant(code);
+    }
 }
 
 float toneValue(const std::vector<std::array<float, 2>> &curve, float value) {
@@ -173,25 +201,45 @@ std::shared_ptr<const DcpProfile> readDcpProfile(std::string source) {
     require(source.size() <= maximumDcpBytes);
     const TiffDirectory directory(
         {reinterpret_cast<const std::uint8_t *>(source.data()), source.size()}, 0x4352);
-    // Matrix/color signatures for three illuminants and arbitrary HDR gain maps
-    // require a different calibration model.
-    require(!directory.has(52529) && !directory.has(52531));
     auto result = std::make_shared<DcpProfile>();
     result->model = text(directory, 50708);
     result->name = text(directory, 50936);
-    result->illuminantCount = directory.has(50722) ? 2 : 1;
+    const auto &third = tags[2];
+    const bool triple = directory.has(third.illuminant) || directory.has(third.color) ||
+                        directory.has(third.forward) || directory.has(third.hueSaturation);
+    // DCPs here are RGB. A reduction matrix applies only to more than 3 planes.
+    if (triple)
+        require(!directory.has(52530) && !directory.has(52538));
+    result->illuminantCount = triple ? 3 : directory.has(50722) ? 2 : 1;
     for (unsigned i = 0; i < result->illuminantCount; ++i) {
         auto &profile = result->illuminants[i];
-        const auto illuminant = directory.integers(50778 + i, 1);
-        const auto temperature =
-            illuminant.size() == 1 ? dngIlluminantTemperature(illuminant[0]) : std::nullopt;
-        require(temperature.has_value());
-        profile.calibrationTemperature = *temperature;
-        readMatrix(directory, 50721 + i, profile.colorMatrix);
-        profile.hasForwardMatrix = directory.has(50964 + i);
+        const auto &set = tags[i];
+        const auto illuminant = directory.integers(set.illuminant, 1);
+        require(illuminant.size() == 1);
+        if (triple) {
+            readTripleIlluminant(profile, directory, set, illuminant[0], source.front() == 'I');
+        } else {
+            const auto temperature = dngIlluminantTemperature(illuminant[0]);
+            require(temperature.has_value());
+            profile.calibrationTemperature = *temperature;
+        }
+        readMatrix(directory, set.color, profile.colorMatrix);
+        profile.hasForwardMatrix = directory.has(set.forward);
         if (profile.hasForwardMatrix)
-            readMatrix(directory, 50964 + i, profile.forwardMatrix);
-        result->hueSaturation[i] = readTable(directory, 50937, 50938 + i, 51107);
+            readMatrix(directory, set.forward, profile.forwardMatrix);
+        result->hueSaturation[i] = readTable(directory, 50937, set.hueSaturation, 51107);
+        if (triple) {
+            const auto &table = result->hueSaturation[i];
+            require(profile.hasForwardMatrix == result->illuminants[0].hasForwardMatrix &&
+                    (!profile.hasForwardMatrix || directory.hasType(set.forward, 10)) &&
+                    table.samples.empty() == result->hueSaturation[0].samples.empty() &&
+                    (table.samples.empty() ||
+                     (directory.hasType(set.hueSaturation, 11) && directory.hasType(50937, 4))));
+            for (std::size_t j = 2; j < table.samples.size(); j += table.divisions[1] * 3)
+                require(table.samples[j] == 1);
+            for (unsigned j = 0; j < i; ++j)
+                require(profile.calibrationWhite != result->illuminants[j].calibrationWhite);
+        }
     }
     if (result->illuminantCount == 2)
         require(result->illuminants[0].calibrationTemperature !=
@@ -215,6 +263,13 @@ std::shared_ptr<const DcpProfile> readDcpProfile(std::string source) {
 
 RawColorCalibration applyDcpCalibration(RawColorCalibration calibration,
                                         const DcpProfile &profile) {
+    if (profile.illuminantCount == 3) {
+        constexpr DngColorProfile identity{};
+        for (std::size_t i = 0; i < calibration.dngProfileCount; ++i)
+            if (calibration.dngProfiles[i].cameraCalibration != identity.cameraCalibration)
+                throw std::runtime_error(
+                    "Triple-illuminant DCP requires an uncalibrated camera reference space.");
+    }
     if (calibration.dngProfileCount == 0)
         for (std::size_t i = 0; i < calibration.asShotNeutral.size(); ++i)
             calibration.asShotNeutral[i] = 1 / calibration.asShotGains[i];
@@ -225,12 +280,26 @@ RawColorCalibration applyDcpCalibration(RawColorCalibration calibration,
 }
 
 std::array<float, 3> applyDcpHueSaturation(const DcpProfile &profile, std::array<float, 3> input,
-                                           double temperature) {
+                                           double temperature,
+                                           const std::array<double, 3> &profileWeights) {
     const auto &first = profile.hueSaturation[0];
     const auto &second = profile.hueSaturation[1];
     if (first.samples.empty() && second.samples.empty())
         return input;
     const auto linear = color(srgbToProPhoto(), input);
+    if (profile.illuminantCount == 3) {
+        return color(proPhotoToSrgb(), tableColor(linear, first.gammaEncodedValue, [&](Hsv value) {
+                         std::array<double, 3> correction{};
+                         for (std::size_t i = 0; i < profileWeights.size(); ++i) {
+                             if (profileWeights[i] == 0)
+                                 continue;
+                             const auto sample = lookup(profile.hueSaturation[i], value);
+                             for (std::size_t channel = 0; channel < correction.size(); ++channel)
+                                 correction[channel] += profileWeights[i] * sample[channel];
+                         }
+                         return correction;
+                     }));
+    }
     if (first.samples.empty() || second.samples.empty())
         return color(proPhotoToSrgb(), tableColor(linear, first.samples.empty() ? second : first));
     const auto a = 1 / profile.illuminants[0].calibrationTemperature;

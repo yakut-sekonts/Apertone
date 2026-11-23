@@ -7,6 +7,7 @@ namespace luma {
 struct ResolvedRawColorCalibration {
     std::array<float, 9> cameraToSRGB{1, 0, 0, 0, 1, 0, 0, 0, 1};
     std::array<float, 3> gains{1, 1, 1};
+    std::array<double, 3> profileWeights{};
 };
 
 // DNG CalibrationIlluminant values with a defined correlated color temperature.

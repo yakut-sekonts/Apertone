@@ -1,4 +1,6 @@
 #include "core/catalog/Identity.h"
+#include "platform/macos/PhotoMetadataIO.h"
+#include "platform/windows/MetadataPacket.h"
 #include "platform/windows/UltraHdr.h"
 #include <QCoreApplication>
 #include <QFile>
@@ -21,7 +23,7 @@ void requireSuccess(uhdr_error_info_t status, const char *operation) {
             std::string(operation) + ": " +
             (status.has_detail ? status.detail : std::to_string(status.error_code)));
 }
-void verify(int width, int height) {
+void verify(int width, int height, luma::MetadataPolicy policy) {
     luma::LinearOutput image(width, height);
     for (int y = 0; y < height; ++y)
         for (int x = 0; x < width; ++x) {
@@ -38,7 +40,20 @@ void verify(int width, int height) {
             std::filesystem::remove(path, ec);
         }
     } cleanup{path};
-    luma::windows::writeUltraHdrJpeg(image, path, 95);
+    luma::PhotoMetadata photo;
+    photo.camera = "Fixture Camera";
+    photo.lens = "Fixture 35mm Lens";
+    photo.latitude = 43.11555;
+    photo.longitude = 131.88549;
+    luma::MetadataOverlay overlay;
+    overlay.includeText = true;
+    overlay.values.caption = QStringLiteral("Авторская подпись").toStdString();
+    overlay.values.creators = {"Fixture Photographer"};
+    overlay.values.copyright = "Fixture Copyright";
+    overlay.values.keywords = {"Fixture Keyword"};
+    overlay.values.location = "Fixture Location";
+    const auto packet = luma::windows::exportXmp({}, photo, policy, overlay);
+    luma::windows::writeUltraHdrJpeg(image, path, 95, {}, packet);
     QImageReader reader(QString::fromStdWString(path.native()), "jpeg");
     const auto base = reader.read();
     require(base.width() == width && base.height() == height, "SDR JPEG dimensions changed");
@@ -52,6 +67,24 @@ void verify(int width, int height) {
     require(bytes.contains("urn:iso:std:iso:ts:21496:-1") &&
                 bytes.contains("http://ns.adobe.com/hdr-gain-map/1.0/"),
             "Missing ISO or XMP gain map metadata");
+    const auto xmp = luma::windows::readEmbeddedXmp(path);
+    const auto description = luma::macos::readDescriptiveMetadata(path, {});
+    const bool full =
+        policy == luma::MetadataPolicy::all || policy == luma::MetadataPolicy::removeLocation;
+    const bool shareLocation = policy == luma::MetadataPolicy::all;
+    const bool credit = policy != luma::MetadataPolicy::none;
+    require(xmp.contains("GainMap"), "Primary XMP lost the gain map directory");
+    require(xmp.contains("Fixture Camera") == full && xmp.contains("Fixture 35mm Lens") == full &&
+                (description.caption == overlay.values.caption) == full &&
+                (description.keywords == overlay.values.keywords) == full,
+            "Source metadata or lens does not match the privacy policy");
+    require(xmp.contains("GPSLatitude") == shareLocation &&
+                xmp.contains("GPSLongitude") == shareLocation &&
+                (description.location == overlay.values.location) == shareLocation,
+            "Location does not match the privacy policy");
+    require((description.copyright == overlay.values.copyright) == credit &&
+                (description.creators == overlay.values.creators) == credit,
+            "Author and copyright do not match the privacy policy");
     uhdr_compressed_image_t input{};
     input.data = bytes.data();
     input.data_sz = input.capacity = static_cast<std::size_t>(bytes.size());
@@ -90,8 +123,10 @@ void verify(int width, int height) {
 int main(int argc, char **argv) {
     QCoreApplication app(argc, argv);
     try {
-        verify(96, 64);
-        verify(97, 63);
+        verify(96, 64, luma::MetadataPolicy::none);
+        verify(97, 63, luma::MetadataPolicy::all);
+        verify(96, 64, luma::MetadataPolicy::copyrightOnly);
+        verify(97, 63, luma::MetadataPolicy::removeLocation);
         return 0;
     } catch (const std::exception &error) {
         std::cerr << error.what() << '\n';

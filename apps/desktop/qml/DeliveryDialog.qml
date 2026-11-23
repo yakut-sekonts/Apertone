@@ -16,18 +16,23 @@ Dialog {
     property bool pdf: format.currentIndex < 2
     property bool webdav: format.currentIndex === 4
     property bool published: false
+    property bool printed: false
     readonly property bool validFolderName: {
         const name = folderName.text.trim()
         return name.length > 0 && !name.startsWith(".") && !name.endsWith(".") &&
                 !name.split("").some(ch => ch.charCodeAt(0) < 32 || '\\/:*?"<>|'.includes(ch))
     }
-    onAboutToShow: { completedFile = ""; published = false }
+    onAboutToShow: { completedFile = ""; published = false; printed = false; updateGallery.checked = false }
     onClosed: password.clear()
     Connections {
         target: library
         function onDeliveryReady(url) {
             dialog.completedFile = url
             dialog.published = !url.toString()
+        }
+        function onPrintReady(url) {
+            dialog.completedFile = url
+            dialog.printed = true
         }
     }
     FileDialog {
@@ -76,7 +81,8 @@ Dialog {
             Layout.fillWidth: true
             text: "Apertone-gallery"
             maximumLength: 80
-            Accessible.name: qsTranslate("Apertone", "New folder name")
+            Accessible.name: dialog.webdav && updateGallery.checked ? qsTranslate("Apertone", "Published gallery folder")
+                                                                     : qsTranslate("Apertone", "New folder name")
         }
         RowLayout {
             visible: dialog.pdf
@@ -112,10 +118,23 @@ Dialog {
                 Accessible.name: placeholderText
             }
         }
+        ApertoneCheckBox {
+            id: updateGallery
+            objectName: "delivery.webDavUpdate"
+            visible: dialog.webdav
+            enabled: !library.preparingDelivery
+            text: qsTranslate("Apertone", "Update a gallery published by this catalog")
+        }
         ProgressBar { visible: library.preparingDelivery; value: library.progress; Layout.fillWidth: true }
         Label {
             visible: dialog.webdav && dialog.published && !library.preparingDelivery
             text: qsTranslate("Apertone", "Gallery published.")
+            Layout.fillWidth: true
+        }
+        Label {
+            visible: dialog.pdf && dialog.printed && !library.preparingDelivery
+            text: dialog.completedFile.toString() ? qsTranslate("Apertone", "PDF saved.")
+                                                  : qsTranslate("Apertone", "Print job submitted.")
             Layout.fillWidth: true
         }
         Label {
@@ -138,15 +157,30 @@ Dialog {
             onClicked: Qt.openUrlExternally(dialog.completedFile)
         }
         ApertoneButton {
+            objectName: "delivery.print"
+            visible: dialog.pdf
+            enabled: !library.working && !!heading.text.trim()
+            text: qsTranslate("Apertone", "Print…")
+            onClicked: {
+                dialog.completedFile = ""
+                dialog.printed = false
+                library.printSelection(format.currentIndex, heading.text, dialog.profile)
+            }
+        }
+        ApertoneButton {
             objectName: "delivery.create"
-            text: dialog.webdav ? qsTranslate("Apertone", "Publish gallery") : qsTranslate("Apertone", "Create")
+            text: dialog.webdav ? (updateGallery.checked ? qsTranslate("Apertone", "Update gallery")
+                                                         : qsTranslate("Apertone", "Publish gallery"))
+                                : qsTranslate("Apertone", "Create")
             enabled: !library.working && !!heading.text.trim() && (dialog.pdf || dialog.validFolderName)
                      && (!dialog.webdav || !!endpoint.text.trim())
             onClicked: {
+                dialog.printed = false
                 if (dialog.webdav) {
                     dialog.completedFile = ""
                     dialog.published = false
-                    library.publishWebDav(heading.text, endpoint.text, folderName.text, username.text, password.text)
+                    library.publishWebDav(heading.text, endpoint.text, folderName.text, username.text,
+                                          password.text, updateGallery.checked)
                     password.clear()
                 } else if (dialog.pdf) {
                     pdfChooser.open()

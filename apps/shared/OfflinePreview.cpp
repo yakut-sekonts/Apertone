@@ -17,6 +17,8 @@ constexpr int maxEdge = 1600;
 constexpr std::uintmax_t diskBudget = 1ULL << 30;
 static_assert(std::endian::native == std::endian::little && sizeof(float) == 4 &&
               sizeof(double) == 8);
+// V1 stores only base decoder calibration, before applying any external DCP.
+constexpr std::size_t storedIlluminants = 2;
 
 bool validDigest(std::string_view value) {
     return value.size() == 64 && value.find_first_not_of("0123456789abcdef") == value.npos;
@@ -48,7 +50,8 @@ void matrices(Calibration &calibration, const Transfer &transfer) {
     transfer(calibration.asShotGains);
     transfer(calibration.analogBalance);
     transfer(calibration.asShotNeutral);
-    for (auto &profile : calibration.dngProfiles) {
+    for (std::size_t i = 0; i < storedIlluminants; ++i) {
+        auto &profile = calibration.dngProfiles[i];
         transfer(profile.colorMatrix);
         transfer(profile.cameraCalibration);
         transfer(profile.forwardMatrix);
@@ -56,9 +59,13 @@ void matrices(Calibration &calibration, const Transfer &transfer) {
 }
 
 void writeCalibration(std::ostream &out, const RawColorCalibration &value) {
+    if (value.dngProfileCount > storedIlluminants)
+        throw std::runtime_error(
+            "Cannot store applied external color calibration in an offline preview.");
     matrices(value, [&](const auto &numbers) { write(out, std::span<const float>(numbers)); });
     write(out, std::span(&value.dngProfileCount, 1));
-    for (const auto &profile : value.dngProfiles) {
+    for (std::size_t i = 0; i < storedIlluminants; ++i) {
+        const auto &profile = value.dngProfiles[i];
         write(out, std::span(&profile.calibrationTemperature, 1));
         const std::uint8_t forward = profile.hasForwardMatrix;
         write(out, std::span(&forward, 1));
@@ -73,9 +80,10 @@ RawColorCalibration readCalibration(std::istream &in) {
             throw std::runtime_error("Invalid offline preview color calibration.");
     });
     read(in, std::span(&value.dngProfileCount, 1));
-    if (value.dngProfileCount > value.dngProfiles.size())
+    if (value.dngProfileCount > storedIlluminants)
         throw std::runtime_error("Invalid offline preview profile count.");
-    for (auto &profile : value.dngProfiles) {
+    for (std::size_t i = 0; i < storedIlluminants; ++i) {
+        auto &profile = value.dngProfiles[i];
         read(in, std::span(&profile.calibrationTemperature, 1));
         std::uint8_t forward = 0;
         read(in, std::span(&forward, 1));

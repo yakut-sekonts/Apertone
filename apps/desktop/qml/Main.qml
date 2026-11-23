@@ -31,6 +31,46 @@ ApplicationWindow {
     Binding { target: Theme; property: "dark"; value: appearance.dark }
     onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
+    property bool workspaceHeaderVisible: true
+    property bool workspaceLeftVisible: true
+    property bool developRightVisible: true
+    property bool filmstripVisible: true
+    property bool workspaceToolsVisible: true
+    readonly property bool workspaceKeysReady: active && !updates.restartPending && !batch.working &&
+        !(activeFocusItem instanceof TextInput) && !(activeFocusItem instanceof TextEdit)
+    readonly property bool workspacePopupOpen: !!Overlay.overlay && Overlay.overlay.visible
+    readonly property bool workspaceKeysAvailable: workspaceKeysReady && !workspacePopupOpen
+    readonly property bool libraryKeysAvailable: workspaceKeysReady &&
+        (!workspacePopupOpen || (libraryMode && libraryPane.reviewDialogVisible))
+    readonly property bool developToolReady: workspaceKeysAvailable && !libraryMode &&
+        editor.hasPhoto && !editor.busy && !editor.original
+    readonly property bool hasFilmstrip: libraryMode
+        ? libraryPane.viewMode === "loupe" && library.count > 0
+        : library.count > 0 || (library.loading && editor.hasPhoto)
+
+    function showLibraryView(view) {
+        if (!libraryMode && editor.hasPhoto && library.selectedCount === 0) {
+            const row = library.reviewPhotoRow(editor.photoID)
+            if (row >= 0)
+                library.select(row)
+        }
+        libraryMode = true
+        libraryPane.requestView(view)
+    }
+
+    function showDevelop() {
+        if (!libraryMode)
+            return
+        if (libraryPane.canOpenInDevelop)
+            libraryPane.openSelectedInDevelop()
+        else
+            libraryMode = false
+    }
+
+    function showBeforeAfter() {
+        editor.prepareBeforeAfter()
+        developCompareDialog.open()
+    }
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
     CompareDialog { id: developCompareDialog }
@@ -154,6 +194,26 @@ ApplicationWindow {
     Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing || editor.whiteBalanceBusy || editor.whiteBalancePicking || editor.creativeBusy || editor.pointColorPicking; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch(); editor.cancelWhiteBalance(); editor.cancelCreative() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
+    Shortcut { sequences: ["G", "Ctrl+Alt+1"]; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable; autoRepeat: false; onActivated: root.showLibraryView("grid") }
+    Shortcut { sequence: "E"; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable && libraryPane.canRequestView("loupe"); autoRepeat: false; onActivated: root.showLibraryView("loupe") }
+    Shortcut { sequence: "C"; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable && libraryPane.canRequestView("compare"); autoRepeat: false; onActivated: root.showLibraryView("compare") }
+    Shortcut { sequence: "N"; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable && libraryPane.canRequestView("survey"); autoRepeat: false; onActivated: root.showLibraryView("survey") }
+    Shortcut { sequences: ["D", "Ctrl+Alt+2"]; enabled: root.workspaceKeysAvailable && !editor.busy && !library.selecting; autoRepeat: false; onActivated: root.showDevelop() }
+    Shortcut {
+        sequence: "Ctrl+Shift+I"; enabled: root.workspaceKeysAvailable && !library.working
+        autoRepeat: false
+        onActivated: { root.showLibraryView("grid"); libraryPane.requestImport() }
+    }
+    Shortcut { sequence: "Ctrl+Shift+E"; enabled: root.workspaceKeysAvailable && exportButton.enabled; autoRepeat: false; onActivated: exportSettings.open() }
+    Shortcut { sequence: "F5"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceHeaderVisible = !root.workspaceHeaderVisible }
+    Shortcut { sequence: "F6"; enabled: root.workspaceKeysAvailable && root.hasFilmstrip; autoRepeat: false; onActivated: root.filmstripVisible = !root.filmstripVisible }
+    Shortcut { sequence: "F7"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceLeftVisible = !root.workspaceLeftVisible }
+    Shortcut { sequence: "F8"; enabled: root.workspaceKeysAvailable && !root.libraryMode; autoRepeat: false; onActivated: root.developRightVisible = !root.developRightVisible }
+    Shortcut { sequence: "T"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceToolsVisible = !root.workspaceToolsVisible }
+    Shortcut { sequence: "Y"; enabled: root.workspaceKeysAvailable && !root.libraryMode && editor.hasPhoto && !editor.busy && !editor.saving; autoRepeat: false; onActivated: root.showBeforeAfter() }
+    Shortcut { sequence: "R"; enabled: root.developToolReady; autoRepeat: false; onActivated: editor.cropMode = !editor.cropMode }
+    Shortcut { sequence: "W"; enabled: root.developToolReady && !editor.whiteBalanceBusy; autoRepeat: false; onActivated: editor.whiteBalancePicking = !editor.whiteBalancePicking }
+    Shortcut { sequence: "Z"; enabled: root.workspaceKeysAvailable && !root.libraryMode && editor.zoomAvailable; autoRepeat: false; onActivated: editor.oneToOne = !editor.oneToOne }
     Shortcut {
         sequences: ["Return", "Enter"]
         context: Qt.ApplicationShortcut
@@ -183,6 +243,7 @@ ApplicationWindow {
         spacing: 0
         Rectangle {
             objectName: "main.toolbar"
+            visible: root.workspaceHeaderVisible
             Layout.fillWidth: true; Layout.preferredHeight: Theme.toolbarHeight; color: Theme.panel
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: root.width < 1200 ? 5 : 8
@@ -192,14 +253,14 @@ ApplicationWindow {
                     Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
                 }
                 Label { text: "Apertone"; color: Theme.text; font.pixelSize: 15; font.weight: Font.DemiBold }
-                ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.libraryMode = true }
-                ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.libraryMode = false }
+                ApertoneButton { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.showLibraryView("grid") }
+                ApertoneButton { objectName: "main.developButton"; text: qsTranslate("Apertone", "Develop"); highlighted: !root.libraryMode; onClicked: root.showDevelop() }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: editor.filename; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideMiddle; horizontalAlignment: Text.AlignHCenter }
                 ApertoneButton { objectName: "settingsButton"; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
                 UpdateBell {}
                 ApertoneButton { objectName: "main.undoButton"; text: qsTranslate("Apertone", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
                 ApertoneButton { objectName: "main.redoButton"; text: qsTranslate("Apertone", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
-                ApertoneButton { objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
+                ApertoneButton { id: exportButton; objectName: "exportButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 140; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Export"); enabled: (editor.hasPhoto || library.selectedCount > 0) && !editor.busy && !editor.exporting; onClicked: exportSettings.open() }
                 ApertoneButton { objectName: "openPhotoButton"; Layout.minimumWidth: 0; Layout.maximumWidth: 180; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "+  Open photo"); highlighted: true; enabled: !editor.busy; onClicked: fileDialog.open() }
             }
         }
@@ -250,7 +311,15 @@ ApplicationWindow {
             }
             ApertoneButton { objectName: "export.retrySave"; visible: exporter.waitingForSave && editor.saving && !editor.busy; text: qsTranslate("Apertone", "Retry save"); onClicked: editor.retrySave() }
         }
-        LibraryPane { objectName: "library.pane"; visible: root.libraryMode; Layout.fillWidth: true; Layout.fillHeight: true }
+        LibraryPane {
+            id: libraryPane
+            objectName: "library.pane"
+            visible: root.libraryMode
+            leftPanelVisible: root.workspaceLeftVisible
+            viewToolbarVisible: root.workspaceToolsVisible
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+        }
         SplitView {
             visible: !root.libraryMode
             id: panels
@@ -260,6 +329,7 @@ ApplicationWindow {
             handle: Rectangle { implicitWidth: 1; color: Theme.divider }
             Rectangle {
                 objectName: "develop.presetsPane"
+                visible: root.workspaceLeftVisible
                 SplitView.preferredWidth: Theme.sidebarWidth; SplitView.minimumWidth: 170; SplitView.maximumWidth: 320; color: Theme.panel
                 ScrollView {
                     id: presetsScroll
@@ -274,11 +344,6 @@ ApplicationWindow {
                         width: presetsScroll.availableWidth
                         height: Math.max(implicitHeight, presetsScroll.availableHeight)
                         spacing: 9
-                        Label { text: qsTranslate("Apertone", "WORKSPACE"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
-                        Rectangle {
-                            Layout.fillWidth: true; implicitHeight: Theme.controlHeight; radius: Theme.radius; color: Theme.accentSoft
-                            Label { anchors.centerIn: parent; text: qsTranslate("Apertone", "Photo development"); color: Theme.accent; font.pixelSize: 12 }
-                        }
                         Label { text: qsTranslate("Apertone", "SOURCE PHOTO"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1; Layout.topMargin: 10 }
                         Label { objectName: "develop.sourceFilename"; text: editor.hasPhoto ? editor.filename : qsTranslate("Apertone", "No photo selected"); color: Theme.text; font.pixelSize: 12; wrapMode: Text.Wrap; Layout.fillWidth: true }
                         Label { text: editor.dimensions; color: Theme.faint; font.pixelSize: 11 }
@@ -301,7 +366,6 @@ ApplicationWindow {
                         PresetPanel { id: presetSettings; libraryModel: library; Layout.fillWidth: true; Layout.fillHeight: true }
                         Label { text: qsTranslate("Apertone", "CATALOG"); color: Theme.faint; font.pixelSize: 9; font.letterSpacing: 1 }
                         Label { text: editor.catalogPath; color: Theme.faint; font.pixelSize: 10; wrapMode: Text.WrapAnywhere; Layout.fillWidth: true }
-                        Label { text: "APERTONE / DEVELOP CORE"; color: Theme.accent; font.pixelSize: 9; font.letterSpacing: 2 }
                     }
                 }
             }
@@ -311,6 +375,8 @@ ApplicationWindow {
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 8; spacing: Theme.panelSpacing
                     RowLayout {
+                        objectName: "develop.zoomToolbar"
+                        visible: root.workspaceToolsVisible
                         Layout.fillWidth: true
                         Label { Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Apertone", editor.detailDiagnostic) : editor.original ? qsTranslate("Apertone", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Apertone", "PRESET PREVIEW") : qsTranslate("Apertone", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
                         ApertoneButton {
@@ -505,6 +571,8 @@ ApplicationWindow {
                     }
                     }
                     Flow {
+                        objectName: "develop.viewToolbar"
+                        visible: root.workspaceToolsVisible
                         Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: Theme.panelSpacing
                         ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
                         ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
@@ -512,7 +580,7 @@ ApplicationWindow {
                             objectName: "develop.beforeAfterButton"
                             text: qsTranslate("Apertone", "Before / After")
                             enabled: editor.hasPhoto && !editor.busy && !editor.saving
-                            onClicked: { editor.prepareBeforeAfter(); developCompareDialog.open() }
+                            onClicked: root.showBeforeAfter()
                         }
                         ApertoneButton {
                             objectName: "develop.referenceButton"
@@ -535,10 +603,25 @@ ApplicationWindow {
             }
             Rectangle {
                 objectName: "develop.adjustmentsPane"
+                visible: root.developRightVisible
                 SplitView.preferredWidth: Theme.inspectorWidth; SplitView.minimumWidth: 250; SplitView.maximumWidth: 380; color: Theme.panel
                 ScrollView {
                     id: adjustmentsScroll
                     objectName: "develop.adjustmentsScroll"
+                    readonly property var sections: [basicSection, curveSection, colorSection,
+                        pointColorSection, gradingSection, blackWhiteSection, detailSection,
+                        opticsSection, geometrySection, effectsSection, calibrationSection, retouchSection]
+                    function revealSection(section) {
+                        section.expanded = true
+                        section.focusHeader()
+                        Qt.callLater(function() {
+                            const view = adjustmentsScroll.contentItem
+                            const target = section.mapToItem(view.contentItem, 0, 0).y
+                            const maximum = view.originY + Math.max(0, view.contentHeight - view.height)
+                            view.cancelFlick()
+                            view.contentY = Math.max(view.originY, Math.min(maximum, target))
+                        })
+                    }
                     Component.onCompleted: ScrollBar.vertical.objectName = "develop.adjustmentsBar"
                     anchors.fill: parent
                     anchors.margins: Theme.panelPadding
@@ -550,85 +633,194 @@ ApplicationWindow {
                         spacing: Theme.panelSpacing
                         HistogramPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         LocalPanel { Layout.fillWidth: true }
-                        CreativePanel { Layout.fillWidth: true }
-                        Label { text: qsTranslate("Apertone", "Adjustments"); font.pixelSize: 17; font.weight: Font.DemiBold; color: Theme.text }
-                        RowLayout {
-                            ApertoneCheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Apertone", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
-                            Label { text: qsTranslate("Apertone", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
-                        }
                         ApertoneComboBox {
-                            objectName: "develop.whiteBalance.preset"
+                            objectName: "develop.sectionPicker"
                             Layout.fillWidth: true
-                            textRole: "label"
-                            model: [{ value: "As Shot", label: qsTranslate("Apertone", "As Shot") },{ value: "Daylight", label: qsTranslate("Apertone", "Daylight") },{ value: "Cloudy", label: qsTranslate("Apertone", "Cloudy") },{ value: "Shade", label: qsTranslate("Apertone", "Shade") },{ value: "Tungsten", label: qsTranslate("Apertone", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Apertone", "Fluorescent") },{ value: "Custom", label: qsTranslate("Apertone", "Custom") }]
-                            currentIndex: editor.customWhiteBalance ? 6 : 0
-                            enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
-                            onActivated: editor.setWhiteBalancePreset(model[currentIndex].value)
+                            displayText: qsTranslate("Apertone", "Adjustments")
+                            Accessible.name: displayText
+                            model: adjustmentsScroll.sections.map(section => section.title)
+                            onActivated: function(index) { adjustmentsScroll.revealSection(adjustmentsScroll.sections[index]) }
                         }
-                        RowLayout {
-                            Layout.fillWidth: true
-                            ApertoneButton {
-                                objectName: "develop.whiteBalance.auto"
-                                text: qsTranslate("Apertone", "Auto")
-                                Accessible.name: qsTranslate("Apertone", "Auto white balance")
-                                Layout.fillWidth: true
-                                enabled: editor.hasPhoto && !editor.busy && !editor.original &&
-                                         !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
-                                onClicked: editor.autoWhiteBalance()
-                                ToolTip.visible: hovered
-                                ToolTip.text: qsTranslate("Apertone", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
+                        DevelopSection {
+                            id: basicSection
+                            objectName: "develop.section.basic"
+                            title: qsTranslate("Apertone", "Basic")
+                            FileDialog {
+                                id: cameraProfileFile
+                                title: qsTranslate("Apertone", "Choose a DNG camera profile")
+                                nameFilters: ["DNG camera profiles (*.dcp *.DCP)"]
+                                onAccepted: editor.setCameraProfile(selectedFile)
                             }
-                            ApertoneButton {
-                                objectName: "develop.whiteBalance.eyedropper"
-                                text: qsTranslate("Apertone", "Eyedropper")
-                                Accessible.name: qsTranslate("Apertone", "White balance eyedropper")
-                                Layout.fillWidth: true
-                                checkable: true; checked: editor.whiteBalancePicking
-                                enabled: editor.hasPhoto && !editor.busy && !editor.original &&
-                                         !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
-                                onClicked: editor.whiteBalancePicking = !editor.whiteBalancePicking
-                            }
-                        }
-                        RowLayout {
-                            visible: editor.whiteBalanceBusy || editor.whiteBalancePicking
-                            Layout.fillWidth: true
-                            BusyIndicator { running: editor.whiteBalanceBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
                             Label {
-                                text: editor.whiteBalanceBusy ? qsTranslate("Apertone", "Estimating white balance…") : qsTranslate("Apertone", "Select a neutral area")
-                                Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
+                                visible: editor.cameraProfileAvailable && editor.cameraProfileName.length > 0
+                                text: editor.cameraProfileName
+                                textFormat: Text.PlainText
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
                             }
-                            ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelWhiteBalance() }
+                            RowLayout {
+                                visible: editor.cameraProfileAvailable
+                                Layout.fillWidth: true
+                                ApertoneButton {
+                                    objectName: "develop.cameraProfile"
+                                    text: qsTranslate("Apertone", "Load camera profile")
+                                    enabled: !editor.busy && !editor.editingLocked
+                                    Layout.fillWidth: true
+                                    onClicked: cameraProfileFile.open()
+                                }
+                                ApertoneButton {
+                                    objectName: "develop.clearCameraProfile"
+                                    visible: editor.cameraProfileName.length > 0
+                                    text: qsTranslate("Apertone", "Clear")
+                                    enabled: !editor.busy && !editor.editingLocked
+                                    onClicked: editor.setCameraProfile("")
+                                }
+                            }
+                            ApertoneButton {
+                                objectName: "develop.autoAdjust"
+                                text: qsTranslate("Apertone", "Auto Adjust"); Layout.fillWidth: true
+                                enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.creativeBusy
+                                onClicked: editor.autoAdjust()
+                            }
+                            RowLayout {
+                                ApertoneCheckBox { objectName: "develop.whiteBalance.enabled"; Accessible.name: qsTranslate("Apertone", "Enable white balance"); checked: editor.correctionStates.whiteBalance; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("whiteBalance",checked); padding: 0 }
+                                Label { text: qsTranslate("Apertone", "WHITE BALANCE"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1 }
+                            }
+                            ApertoneComboBox {
+                                objectName: "develop.whiteBalance.preset"
+                                Layout.fillWidth: true
+                                textRole: "label"
+                                model: [{ value: "As Shot", label: qsTranslate("Apertone", "As Shot") },{ value: "Daylight", label: qsTranslate("Apertone", "Daylight") },{ value: "Cloudy", label: qsTranslate("Apertone", "Cloudy") },{ value: "Shade", label: qsTranslate("Apertone", "Shade") },{ value: "Tungsten", label: qsTranslate("Apertone", "Tungsten") },{ value: "Fluorescent", label: qsTranslate("Apertone", "Fluorescent") },{ value: "Custom", label: qsTranslate("Apertone", "Custom") }]
+                                currentIndex: editor.customWhiteBalance ? 6 : 0
+                                enabled: editor.hasPhoto && !editor.busy && editor.correctionStates.whiteBalance
+                                onActivated: editor.setWhiteBalancePreset(model[currentIndex].value)
+                            }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                ApertoneButton {
+                                    objectName: "develop.whiteBalance.auto"
+                                    text: qsTranslate("Apertone", "Auto")
+                                    Accessible.name: qsTranslate("Apertone", "Auto white balance")
+                                    Layout.fillWidth: true
+                                    enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                                             !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
+                                    onClicked: editor.autoWhiteBalance()
+                                    ToolTip.visible: hovered
+                                    ToolTip.text: qsTranslate("Apertone", "Estimates white balance from the visible crop. Strongly colored scenes may need manual adjustment.")
+                                }
+                                ApertoneButton {
+                                    objectName: "develop.whiteBalance.eyedropper"
+                                    text: qsTranslate("Apertone", "Eyedropper")
+                                    Accessible.name: qsTranslate("Apertone", "White balance eyedropper")
+                                    Layout.fillWidth: true
+                                    checkable: true; checked: editor.whiteBalancePicking
+                                    enabled: editor.hasPhoto && !editor.busy && !editor.original &&
+                                             !editor.exporting && !editor.whiteBalanceBusy && editor.correctionStates.whiteBalance
+                                    onClicked: editor.whiteBalancePicking = !editor.whiteBalancePicking
+                                }
+                            }
+                            RowLayout {
+                                visible: editor.whiteBalanceBusy || editor.whiteBalancePicking
+                                Layout.fillWidth: true
+                                BusyIndicator { running: editor.whiteBalanceBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
+                                Label {
+                                    text: editor.whiteBalanceBusy ? qsTranslate("Apertone", "Estimating white balance…") : qsTranslate("Apertone", "Select a neutral area")
+                                    Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.muted
+                                }
+                                ApertoneButton { text: qsTranslate("Apertone", "Cancel"); onClicked: editor.cancelWhiteBalance() }
+                            }
+                            Label {
+                                objectName: "develop.whiteBalance.message"
+                                visible: text.length > 0; text: editor.whiteBalanceMessage
+                                Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.accent
+                            }
+                            DevelopSlider { parameter: "temperature"; label: qsTranslate("Apertone", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                            DevelopSlider { parameter: "tint"; label: qsTranslate("Apertone", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
+                            Label { visible: !editor.customWhiteBalance; text: qsTranslate("Apertone", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
+                            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                            Label { text: qsTranslate("Apertone", "LIGHT"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
+                            DevelopSlider { parameter: "exposure"; label: qsTranslate("Apertone", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
+                            DevelopSlider { parameter: "contrast"; label: qsTranslate("Apertone", "Contrast"); Layout.fillWidth: true }
+                            DevelopSlider { parameter: "highlights"; label: qsTranslate("Apertone", "Highlights"); Layout.fillWidth: true }
+                            DevelopSlider { parameter: "shadows"; label: qsTranslate("Apertone", "Shadows"); Layout.fillWidth: true }
+                            DevelopSlider { parameter: "whites"; label: qsTranslate("Apertone", "Whites"); Layout.fillWidth: true }
+                            DevelopSlider { parameter: "blacks"; label: qsTranslate("Apertone", "Blacks"); Layout.fillWidth: true }
+                            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                            Label { text: qsTranslate("Apertone", "COLOR"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
+                            DevelopSlider { parameter: "vibrance"; label: qsTranslate("Apertone", "Vibrance"); Layout.fillWidth: true }
+                            DevelopSlider { parameter: "saturation"; label: qsTranslate("Apertone", "Saturation"); Layout.fillWidth: true }
+                            Label { text: qsTranslate("Apertone", "Presence"); color: Theme.muted; font.pixelSize: 10 }
+                            CreativePanel { section: 256; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
-                        Label {
-                            objectName: "develop.whiteBalance.message"
-                            visible: text.length > 0; text: editor.whiteBalanceMessage
-                            Layout.fillWidth: true; wrapMode: Text.Wrap; font.pixelSize: 11; color: Theme.accent
+                        DevelopSection {
+                            id: curveSection
+                            objectName: "develop.section.curve"
+                            title: qsTranslate("Apertone", "Curve")
+                            CurvesPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
                         }
-                        DevelopSlider { parameter: "temperature"; label: qsTranslate("Apertone", "Temperature"); minimum: 2000; maximum: 25000; step: 50; defaultValue: 6500; suffix: " K"; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "tint"; label: qsTranslate("Apertone", "Tint"); minimum: -150; maximum: 150; correction: "whiteBalance"; allowDisable: false; Layout.fillWidth: true }
-                        Label { visible: !editor.customWhiteBalance; text: qsTranslate("Apertone", "As Shot keeps the source white balance. Kelvin is available in Custom."); font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                        Label { text: qsTranslate("Apertone", "LIGHT"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "exposure"; label: qsTranslate("Apertone", "Exposure"); minimum: -5; maximum: 5; step: 0.01; suffix: " EV"; Layout.fillWidth: true }
-                        DevelopSlider { parameter: "contrast"; label: qsTranslate("Apertone", "Contrast"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "highlights"; label: qsTranslate("Apertone", "Highlights"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "shadows"; label: qsTranslate("Apertone", "Shadows"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "whites"; label: qsTranslate("Apertone", "Whites"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "blacks"; label: qsTranslate("Apertone", "Blacks"); Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                        Label { text: qsTranslate("Apertone", "COLOR"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 2 }
-                        DevelopSlider { parameter: "vibrance"; label: qsTranslate("Apertone", "Vibrance"); Layout.fillWidth: true }
-                        DevelopSlider { parameter: "saturation"; label: qsTranslate("Apertone", "Saturation"); Layout.fillWidth: true }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
-                        CurvesPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
-                        HSLPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        Rectangle { Layout.fillWidth:true;implicitHeight:1;color:Theme.divider }
-                        CropPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        TransformPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        LensPanel { Layout.fillWidth: true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        DetailPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
-                        RetouchPanel { Layout.fillWidth:true; Layout.minimumWidth:0; Layout.maximumWidth:adjustmentsScroll.availableWidth }
+                        DevelopSection {
+                            id: colorSection
+                            objectName: "develop.section.colorMix"
+                            title: qsTranslate("Apertone", "Color Mixer")
+                            HSLPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                        }
+                        DevelopSection {
+                            id: pointColorSection
+                            objectName: "develop.section.pointColor"
+                            title: qsTranslate("Apertone", "Point Color")
+                            CreativePanel { section: 512; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: gradingSection
+                            objectName: "develop.section.grading"
+                            title: qsTranslate("Apertone", "Color Grading")
+                            CreativePanel { section: 1024; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: blackWhiteSection
+                            objectName: "develop.section.blackWhite"
+                            title: qsTranslate("Apertone", "Black and White")
+                            CreativePanel { section: 4096; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: detailSection
+                            objectName: "develop.section.detail"
+                            title: qsTranslate("Apertone", "Detail")
+                            DetailPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                        }
+                        DevelopSection {
+                            id: opticsSection
+                            objectName: "develop.section.optics"
+                            title: qsTranslate("Apertone", "Optics")
+                            LensPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                            Label { text: qsTranslate("Apertone", "Defringe"); color: Theme.muted; font.pixelSize: 10 }
+                            CreativePanel { section: 8192; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: geometrySection
+                            objectName: "develop.section.geometry"
+                            title: qsTranslate("Apertone", "Geometry")
+                            CropPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                            TransformPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                        }
+                        DevelopSection {
+                            id: effectsSection
+                            objectName: "develop.section.effects"
+                            title: qsTranslate("Apertone", "Effects")
+                            CreativePanel { section: 2048; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: calibrationSection
+                            objectName: "develop.section.calibration"
+                            title: qsTranslate("Apertone", "Calibration")
+                            CreativePanel { section: 16384; Layout.fillWidth: true; Layout.minimumWidth: 0 }
+                        }
+                        DevelopSection {
+                            id: retouchSection
+                            objectName: "develop.section.retouch"
+                            title: qsTranslate("Apertone", "Retouch")
+                            RetouchPanel { Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: adjustmentsScroll.availableWidth }
+                        }
                         ApertoneButton { objectName: "develop.resetButton"; text: qsTranslate("Apertone", "Reset all edits"); enabled: editor.hasPhoto && !editor.busy; onClicked: editor.resetEdits(); Layout.fillWidth: true }
                         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
                         Label { text: qsTranslate("Apertone", "CAPTURE DATA"); color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 1.5 }
@@ -645,12 +837,23 @@ ApplicationWindow {
         }
         ListView {
             id: filmstrip
-            objectName: "develop.filmstrip"
-            visible: !root.libraryMode && (library.count > 0 || (library.loading && editor.hasPhoto))
+            objectName: root.libraryMode ? "library.filmstrip" : "develop.filmstrip"
+            visible: root.filmstripVisible && root.hasFilmstrip
             Layout.fillWidth: true; Layout.preferredHeight: visible ? Theme.filmstripHeight : 0
             orientation: ListView.Horizontal; clip: true; spacing: 6; model: library; cacheBuffer: 300
+            function revealLoupePhoto() {
+                if (root.libraryMode && visible && libraryPane.loupeRow >= 0) {
+                    currentIndex = libraryPane.loupeRow
+                    positionViewAtIndex(currentIndex, ListView.Contain)
+                }
+            }
+            onVisibleChanged: Qt.callLater(revealLoupePhoto)
+            Connections {
+                target: libraryPane
+                function onLoupeRowChanged() { Qt.callLater(filmstrip.revealLoupePhoto) }
+            }
             function moveCurrentPhoto(direction, event) {
-                event.accepted = event.modifiers === Qt.NoModifier
+                event.accepted = !root.libraryMode && event.modifiers === Qt.NoModifier
                 if (!event.accepted) return
                 if (direction > 0) incrementCurrentIndex()
                 else decrementCurrentIndex()
@@ -660,8 +863,11 @@ ApplicationWindow {
             }
             Keys.onRightPressed: function(event) { moveCurrentPhoto(1, event) }
             Keys.onLeftPressed: function(event) { moveCurrentPhoto(-1, event) }
-            delegate: PhotoCard { width: 128; height: Theme.filmstripHeight; compact: true }
-            ScrollBar.horizontal: ScrollBar { objectName: "develop.filmstripBar" }
+            delegate: PhotoCard {
+                width: 128; height: Theme.filmstripHeight; compact: true
+                reviewPhoto: root.libraryMode ? libraryPane.showLoupe : null
+            }
+            ScrollBar.horizontal: ScrollBar { objectName: root.libraryMode ? "library.filmstripBar" : "develop.filmstripBar" }
         }
         Rectangle {
             objectName: "main.footer"
@@ -671,7 +877,21 @@ ApplicationWindow {
                 Label { objectName: "applicationVersion"; text: "Apertone " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? Theme.accent : Theme.positive }
                 Label { objectName: "main.editorStatus"; text: qsTranslate("Apertone", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { text: qsTranslate("Apertone", "Edits do not change the original image"); color: Theme.faint; font.pixelSize: 10 }
+                ToolButton {
+                    objectName: "main.workspaceView"
+                    text: qsTranslate("Apertone", "View")
+                    Layout.preferredHeight: Theme.footerHeight
+                    onClicked: workspaceMenu.open()
+                    Menu {
+                        id: workspaceMenu
+                        y: -height
+                        MenuItem { text: qsTranslate("Apertone", "Workspace header") + "  F5"; checkable: true; checked: root.workspaceHeaderVisible; onTriggered: root.workspaceHeaderVisible = checked }
+                        MenuItem { text: qsTranslate("Apertone", "Filmstrip") + "  F6"; checkable: true; checked: root.filmstripVisible; enabled: root.hasFilmstrip; onTriggered: root.filmstripVisible = checked }
+                        MenuItem { text: qsTranslate("Apertone", "Left panel") + "  F7"; checkable: true; checked: root.workspaceLeftVisible; onTriggered: root.workspaceLeftVisible = checked }
+                        MenuItem { text: qsTranslate("Apertone", "Right panel") + "  F8"; checkable: true; checked: root.developRightVisible; enabled: !root.libraryMode; onTriggered: root.developRightVisible = checked }
+                        MenuItem { text: qsTranslate("Apertone", "View tools") + "  T"; checkable: true; checked: root.workspaceToolsVisible; onTriggered: root.workspaceToolsVisible = checked }
+                    }
+                }
             }
         }
     }

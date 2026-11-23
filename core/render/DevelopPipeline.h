@@ -26,6 +26,7 @@ class DevelopPipeline {
     RawColorCalibration calibration_;
     std::array<float, 3> gains_;
     double profileTemperature_ = 6500;
+    std::array<double, 3> profileWeights_{};
     float exposureGain_ = 1;
     std::array<ToneCurve, 4> curves_;
     bool curvesActive_ = false;

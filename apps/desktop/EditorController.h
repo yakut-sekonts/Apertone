@@ -587,6 +587,7 @@ class EditorController final : public QObject {
     void setPointColorPicking(bool value);
     void setPointColorRange(bool value);
     QVariantMap comparison() const;
+    Q_INVOKABLE void prepareLoupe(const QString &id, bool fullResolution = false);
     Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
     Q_INVOKABLE void prepareSurvey(const QStringList &ids);
     Q_INVOKABLE void prepareBeforeAfter(bool fullResolution = false);

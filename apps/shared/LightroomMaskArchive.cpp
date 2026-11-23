@@ -12,6 +12,7 @@
 #include <cmath>
 #include <jxl/decode.h>
 #include <memory>
+#include <numeric>
 
 namespace luma {
 namespace {
@@ -447,6 +448,29 @@ convertLightroomMask(const LightroomMaskGroup &group, const LightroomMaskArchive
             component.geometry.y1 = scalar(input, "FullY", 0);
             component.geometry.x2 = scalar(input, "ZeroX", 0);
             component.geometry.y2 = scalar(input, "ZeroY", 0);
+        } else if (type == "Mask/CircularGradient") {
+            for (const auto name : {"Left", "Top", "Right", "Bottom"})
+                require(!get(input, name).isEmpty());
+            const auto version = scalar(input, "Version", 0);
+            const bool current = version == 2;
+            require(current || get(input, "Version").isEmpty());
+            require(scalar(input, "Roundness", 0) == 0 && scalar(input, "Midpoint", 50) == 50);
+            // Lightroom rotates in pixel space, while Apertone rotates in normalized space.
+            require(std::remainder(scalar(input, "Angle", 0), 180) == 0);
+            const auto left = scalar(input, "Left", 0), top = scalar(input, "Top", 0),
+                       right = scalar(input, "Right", 0), bottom = scalar(input, "Bottom", 0);
+            auto &geometry = component.geometry;
+            geometry.shape = MaskShape::radial;
+            geometry.x1 = std::midpoint(left, right);
+            geometry.y1 = std::midpoint(top, bottom);
+            geometry.x2 = (right - left) / 2;
+            geometry.y2 = (bottom - top) / 2;
+            // An unversioned group always starts inside and uses twice the feather scale.
+            const auto feather = scalar(input, "Feather", 50);
+            require(feather >= 0 && feather <= 100);
+            geometry.feather = current ? feather : feather / 2;
+            const bool outside = current && !truth(input, "Flipped", true);
+            component.inverted = component.inverted != outside;
         } else {
             throw std::runtime_error("This Lightroom mask type has no compatible geometry.");
         }

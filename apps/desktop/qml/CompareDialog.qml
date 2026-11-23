@@ -14,8 +14,41 @@ Dialog {
     property real centerX: 0.5
     property real centerY: 0.5
     property bool swapped: false
+    property string selectID: ""
+    property var candidateIDs: []
+    property int candidateIndex: 0
+    function showCandidates(select, candidates) {
+        selectID = select
+        candidateIDs = candidates
+        candidateIndex = 0
+        editor.prepareCompare([selectID, candidateIDs[candidateIndex]])
+        open()
+    }
+    function moveCandidate(direction) {
+        const target = candidateIndex + direction
+        if (target < 0 || target >= candidateIDs.length)
+            return
+        candidateIndex = target
+        swapped = false
+        editor.prepareCompare([selectID, candidateIDs[target]], editor.comparison.fullResolution)
+    }
     onOpened: { centerX = 0.5; centerY = 0.5; swapped = false; zoomControl.value = 1 }
     onClosed: editor.closeCompare()
+    Shortcut {
+        sequence: "Down"
+        enabled: dialog.visible && !editor.comparison.beforeAfter && editor.comparison.ready
+        onActivated: dialog.swapped = !dialog.swapped
+    }
+    Shortcut {
+        sequence: "Left"
+        enabled: dialog.visible && dialog.candidateIndex > 0
+        onActivated: dialog.moveCandidate(-1)
+    }
+    Shortcut {
+        sequence: "Right"
+        enabled: dialog.visible && dialog.candidateIndex + 1 < dialog.candidateIDs.length
+        onActivated: dialog.moveCandidate(1)
+    }
     ColumnLayout {
         anchors.fill: parent
         RowLayout {
@@ -53,6 +86,22 @@ Dialog {
                 text: qsTranslate("Apertone", "Swap")
                 enabled: editor.comparison.ready
                 onClicked: dialog.swapped = !dialog.swapped
+            }
+            ApertoneButton {
+                objectName: "library.compare.previous"
+                visible: dialog.candidateIDs.length > 1
+                enabled: dialog.candidateIndex > 0
+                text: "‹"
+                Accessible.name: qsTranslate("Apertone", "Previous")
+                onClicked: dialog.moveCandidate(-1)
+            }
+            ApertoneButton {
+                objectName: "library.compare.next"
+                visible: dialog.candidateIDs.length > 1
+                enabled: dialog.candidateIndex + 1 < dialog.candidateIDs.length
+                text: "›"
+                Accessible.name: qsTranslate("Apertone", "Next")
+                onClicked: dialog.moveCandidate(1)
             }
             ApertoneButton { text: qsTranslate("Apertone", "Close"); onClicked: dialog.close() }
         }

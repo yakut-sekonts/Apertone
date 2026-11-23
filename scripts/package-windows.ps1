@@ -28,7 +28,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Qt deployment failed ($LASTEXITCODE)."
 }
 foreach ($required in @("Apertone.exe", "ApertoneUpdate.exe", "apertone-cli.exe", "libluma_raw.dll",
-                         "Qt6Network.dll", "tls/qschannelbackend.dll",
+                         "Qt6Network.dll", "Qt6PrintSupport.dll", "Qt6Widgets.dll", "tls/qschannelbackend.dll",
                          "platforms/qwindows.dll", "platforms/qoffscreen.dll", "imageformats/qtiff.dll",
                          "imageformats/qwebp.dll", "onnxruntime.dll",
                          "Models/u2netp.onnx", "Models/skyseg.onnx", "Models/pphumanseg.onnx",
@@ -46,8 +46,9 @@ $tree = git -C $source rev-parse 'HEAD^{tree}'
 if ($LASTEXITCODE -ne 0) {
     throw "Cannot identify the source tree."
 }
+$version = (Get-Item -LiteralPath $desktop).VersionInfo.ProductVersion
 @("Repository: https://github.com/yakut-sekonts/Apertone", "Commit: $commit",
-  "Tree: $tree", "Platform: Windows x64") |
+  "Tree: $tree", "Platform: Windows x64", "Version: $version") |
     Set-Content -LiteralPath (Join-Path $output "BUILD-ORIGIN.txt") -Encoding utf8
 Get-ChildItem -LiteralPath $output -File -Recurse -Force |
     ForEach-Object { [IO.Path]::GetRelativePath($output, $_.FullName).Replace('\', '/') } |

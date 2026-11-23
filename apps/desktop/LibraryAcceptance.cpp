@@ -16,6 +16,9 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
         qint64 captureAfter = 0;
         QString thumbnailBeforeEdit;
         QString originalID;
+        int reviewPhase = 0;
+        int sortPhase = 0;
+        QStringList reviewIDs;
         QObject *survey = nullptr;
         QStringList surveyIDs;
         bool surveyChecked = false;
@@ -55,8 +58,102 @@ void startLibraryAcceptance(QGuiApplication &app, QQuickWindow *window, EditorCo
                 library.selectAll();
                 break;
             case 2:
+                if (state->surveyChecked && state->sortPhase < 4) {
+                    const auto first = library.reviewPhotoAt(0);
+                    if (first.isEmpty() || library.reviewPhotoAt(1).isEmpty())
+                        return;
+                    if (state->sortPhase == 0) {
+                        library.select(1);
+                        library.rate(5);
+                    } else if (state->sortPhase == 1) {
+                        library.setSortOrder(static_cast<int>(luma::LibraryOrder::highestRating));
+                    } else if (state->sortPhase == 2) {
+                        if (first != state->reviewIDs.last() || library.selectedCount() != 1) {
+                            std::cerr << "Sorting did not keep the rated photo and selection\n";
+                            app.exit(1);
+                            return;
+                        }
+                        library.setSortOrder(static_cast<int>(luma::LibraryOrder::filename));
+                    } else {
+                        library.selectAll();
+                    }
+                    ++state->sortPhase;
+                    return;
+                }
                 if (library.selectedCount() != 2)
                     return;
+                {
+                    auto *pane = window->findChild<QObject *>(QStringLiteral("library.pane"));
+                    const auto requestView = [pane](const QString &view) {
+                        QVariant accepted;
+                        return pane &&
+                               QMetaObject::invokeMethod(pane, "requestView",
+                                                         Q_RETURN_ARG(QVariant, accepted),
+                                                         Q_ARG(QVariant, QVariant(view))) &&
+                               accepted.toBool();
+                    };
+                    const auto require = [&](bool valid, const char *message) {
+                        if (!valid) {
+                            std::cerr << message << '\n';
+                            app.exit(1);
+                        }
+                        return valid;
+                    };
+                    const auto comparison = editor.comparison();
+                    if (comparison.value("busy").toBool())
+                        return;
+                    const auto mode = pane ? pane->property("viewMode").toString() : QString{};
+                    const auto rendered = comparison.value("ids").toStringList();
+                    switch (state->reviewPhase) {
+                    case 0: {
+                        const auto first = library.reviewPhotoAt(0),
+                                   second = library.reviewPhotoAt(1);
+                        if (!first.isEmpty() && !second.isEmpty() &&
+                            require(requestView(QStringLiteral("loupe")),
+                                    "Cannot open Library Loupe")) {
+                            state->reviewIDs = {first, second};
+                            ++state->reviewPhase;
+                        }
+                        return;
+                    }
+                    case 1:
+                        if (require(mode == "loupe" && comparison.value("ready").toBool() &&
+                                        rendered == QStringList{state->reviewIDs.first()} &&
+                                        !editor.hasPhoto(),
+                                    "Loupe opened the wrong photo or entered Develop") &&
+                            require(QMetaObject::invokeMethod(pane, "moveLoupe",
+                                                              Q_ARG(QVariant, QVariant(1))),
+                                    "Cannot navigate to the next photo in Loupe"))
+                            ++state->reviewPhase;
+                        return;
+                    case 2:
+                        if (require(mode == "loupe" && comparison.value("ready").toBool() &&
+                                        rendered == QStringList{state->reviewIDs.last()} &&
+                                        library.selectedCount() == 2,
+                                    "Loupe navigation changed the multi-photo selection") &&
+                            require(requestView(QStringLiteral("compare")),
+                                    "Cannot open Library Compare"))
+                            ++state->reviewPhase;
+                        return;
+                    case 3:
+                        if (require(mode == "compare" && comparison.value("ready").toBool() &&
+                                        rendered == QStringList{state->reviewIDs.last(),
+                                                                state->reviewIDs.first()} &&
+                                        !editor.hasPhoto(),
+                                    "Compare did not keep the active selection first") &&
+                            require(requestView(QStringLiteral("grid")),
+                                    "Cannot return from Compare to Grid"))
+                            ++state->reviewPhase;
+                        return;
+                    case 4:
+                        if (mode != "grid" || !rendered.isEmpty())
+                            return;
+                        ++state->reviewPhase;
+                        break;
+                    default:
+                        break;
+                    }
+                }
                 if (!state->surveyChecked) {
                     if (!state->survey) {
                         state->survey =

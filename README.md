@@ -10,8 +10,9 @@ and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 ## Releases
 
 [Download for Windows x64 or macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[2.0.0 release notes](docs/releases/v2.0.0.md) ·
-[2.5.0 release notes](docs/releases/v2.5.0.md)
+[3.0.0 release notes](docs/releases/v3.0.0.md) ·
+[2.5.0 release notes](docs/releases/v2.5.0.md) ·
+[2.0.0 release notes](docs/releases/v2.0.0.md)
 
 On Windows, extract the ZIP and launch `Apertone.exe`. The local AI models use
 the Microsoft Visual C++ x64 Redistributable. The macOS DMG and ZIP contain a
@@ -30,6 +31,13 @@ standalone DMG/ZIP, ad-hoc signing, explicit absence of Apple notarization and
 Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
+
+For 3.0, both platform packages share one release tag and source commit.
+Use **G** for Grid, **E** for Loupe, **C** for Compare, **N** for Survey and
+**D** for Develop. The View menu exposes workspace visibility controls.
+Use the system print dialog for contact sheets and photo books. See the
+[3.0.0 release notes](docs/releases/v3.0.0.md) for platform capabilities and
+limitations.
 
 ## Included in source: phases 0.4–2.0
 
@@ -121,6 +129,10 @@ open build/Apertone.app
 ```
 
 See [BUILDING.md](BUILDING.md) for dependency setup, packaging and private RAW tests.
+On Apple Silicon, run `bash scripts/qualify-macos-3.sh <full-commit-sha>`
+for a local 3.0 qualification. Pass absolute paths to one NEF and one JPEG
+after the commit to add a read-only test of your own photos. The script
+creates a separate test catalog and prints the path to its evidence.
 M0 is in [PR #2](https://github.com/yakut-sekonts/Apertone/pull/2), Develop Core in
 [PR #4](https://github.com/yakut-sekonts/Apertone/pull/4), Library in
 [PR #6](https://github.com/yakut-sekonts/Apertone/pull/6). the first release includes all three stages.

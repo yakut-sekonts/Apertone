@@ -6,6 +6,7 @@
 #include <limits>
 #include <memory>
 #include <set>
+#include <string_view>
 
 namespace luma {
 namespace {
@@ -40,7 +41,20 @@ constexpr auto where =
     "b.is_best=1))"
     " AND (?12='' OR EXISTS(SELECT 1 FROM photo_stack_members ps "
     "WHERE ps.asset_id=a.id AND ps.stack_id=?12))";
-constexpr auto order = " ORDER BY a.filename COLLATE NOCASE,a.id";
+std::string_view orderClause(LibraryOrder order) {
+    switch (order) {
+    case LibraryOrder::captureNewest:
+        return " ORDER BY a.capture_date IS NULL,a.capture_date DESC,a.filename COLLATE "
+               "NOCASE,a.id";
+    case LibraryOrder::captureOldest:
+        return " ORDER BY a.capture_date IS NULL,a.capture_date ASC,a.filename COLLATE NOCASE,a.id";
+    case LibraryOrder::highestRating:
+        return " ORDER BY a.rating DESC,a.filename COLLATE NOCASE,a.id";
+    case LibraryOrder::filename:
+        return " ORDER BY a.filename COLLATE NOCASE,a.id";
+    }
+    throw std::runtime_error("Unknown library sort order.");
+}
 struct QueryFilter {
     std::string where;
     SmartSQL smart;
@@ -127,8 +141,8 @@ std::optional<std::int64_t> Catalog::libraryIndex(const LibraryFilter &filter,
         return std::nullopt;
     Statement query(db_,
                     (resolved.prefix + "SELECT position FROM (SELECT a.id,ROW_NUMBER() OVER (" +
-                     std::string(order) + ")-1 AS position FROM assets a" + resolved.where +
-                     ") WHERE id=?10")
+                     std::string(orderClause(filter.order)) + ")-1 AS position FROM assets a" +
+                     resolved.where + ") WHERE id=?10")
                         .c_str());
     bindFilter(query, filter, resolved);
     query.text(10, assetID);
@@ -158,7 +172,7 @@ std::vector<LibraryItem> Catalog::libraryPage(const LibraryFilter &filter, int o
          "culling_analysis q ON q.asset_id=a.id AND q.checksum=a.checksum LEFT JOIN "
          "burst_members b ON b.asset_id=a.id AND q.asset_id IS NOT NULL LEFT JOIN "
          "photo_stack_members s ON s.asset_id=a.id" +
-         resolved.where + order + " LIMIT ?10 OFFSET ?11")
+         resolved.where + std::string(orderClause(filter.order)) + " LIMIT ?10 OFFSET ?11")
             .c_str());
     bindFilter(query, filter, resolved);
     query.integer(10, limit);
@@ -206,7 +220,7 @@ std::vector<std::string> Catalog::libraryIDs(const LibraryFilter &filter, int of
     if (offset < 0 || limit < 0)
         throw std::runtime_error("Invalid selection bounds.");
     Statement query(db_, (resolved.prefix + "SELECT a.id FROM assets a" + resolved.where +
-                          std::string(order) + " LIMIT ?10 OFFSET ?11")
+                          std::string(orderClause(filter.order)) + " LIMIT ?10 OFFSET ?11")
                              .c_str());
     bindFilter(query, filter, resolved);
     query.integer(10, limit);

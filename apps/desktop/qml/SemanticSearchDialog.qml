@@ -5,7 +5,8 @@ import QtQuick.Layouts
 Dialog {
     id: dialog
     objectName: "semantic.dialog"
-    title: qsTranslate("Apertone", "Search by description")
+    readonly property bool categorySearch: Qt.platform.os === "windows"
+    title: categorySearch ? qsTranslate("Apertone", "Search by category") : qsTranslate("Apertone", "Search by description")
     modal: true
     anchors.centerIn: parent
     width: Math.min(parent.width - 40, 900)
@@ -15,6 +16,7 @@ Dialog {
         anchors.fill: parent
         spacing: 10
         Label {
+            visible: !dialog.categorySearch
             text: qsTranslate("Apertone", "Local search uses recognized objects and scenes. Enter a description in English.")
             wrapMode: Text.Wrap; Layout.fillWidth: true
         }
@@ -39,6 +41,23 @@ Dialog {
             }
         }
         RowLayout {
+            visible: dialog.categorySearch
+            Layout.fillWidth: true
+            ApertoneButton {
+                objectName: "semantic.people"
+                text: qsTranslate("Apertone", "People")
+                enabled: library.semanticEnabled && !library.semanticBusy && !library.working
+                onClicked: library.searchSemantic("people")
+            }
+            ApertoneButton {
+                objectName: "semantic.sky"
+                text: qsTranslate("Apertone", "Sky")
+                enabled: library.semanticEnabled && !library.semanticBusy && !library.working
+                onClicked: library.searchSemantic("sky")
+            }
+        }
+        RowLayout {
+            visible: !dialog.categorySearch
             Layout.fillWidth: true
             ApertoneTextField {
                 id: query

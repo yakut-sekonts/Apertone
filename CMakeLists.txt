@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Apertone VERSION 2.5.0 LANGUAGES C CXX)
+project(Apertone VERSION 3.0.0 LANGUAGES C CXX)
 
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     enable_language(OBJCXX)
@@ -39,7 +39,7 @@ add_library(luma_core STATIC
     core/library/ImportOptions.cpp core/catalog/ImportPlans.cpp core/library/SmartCollection.cpp core/catalog/SmartCollections.cpp
     core/render/CreativeColor.cpp core/render/Presence.cpp core/render/AutoAdjust.cpp core/render/Enhance.cpp core/quick/QuickLooks.cpp core/quick/MatchLook.cpp
     core/edits/CreativeSettings.cpp core/catalog/CreativeStorage.cpp
-    core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/color/DngColorCalibration.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
+    core/edits/EditSnapshot.cpp core/edits/EditHistory.cpp core/render/ImageHistogram.cpp core/color/WhiteBalance.cpp core/color/DngColorCalibration.cpp core/color/DngIlluminant.cpp core/render/WhiteBalanceSampler.cpp core/catalog/EditVersions.cpp
     core/merge/HdrMerge.cpp core/merge/PanoramaMerge.cpp core/merge/MergeAlignment.cpp
     core/catalog/SemanticCatalog.cpp
     core/catalog/CatalogBackup.cpp core/catalog/DerivedCatalog.cpp core/catalog/MetadataCatalog.cpp core/catalog/RelinkCatalog.cpp core/metadata/DescriptiveMetadata.cpp
@@ -121,12 +121,16 @@ endif()
 find_package(ZLIB REQUIRED)
 target_link_libraries(luma_services PRIVATE ZLIB::ZLIB jxl_dec)
 target_include_directories(luma_services PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets PRIVATE Qt6::Gui Qt6::Network)
+target_link_libraries(luma_services PUBLIC luma_core ${apertone_platform} luma_presets Qt6::PrintSupport PRIVATE Qt6::Gui Qt6::Network)
 if(WIN32)
     target_sources(luma_services PRIVATE platform/windows/TetherCapture.cpp
         platform/windows/CameraPtpData.cpp)
     target_include_directories(luma_services SYSTEM PRIVATE "${apertone_wpd_include}")
     target_link_libraries(luma_services PRIVATE ole32 portabledeviceguids uuid)
+elseif(APPLE)
+    target_sources(luma_services PRIVATE platform/macos/MacTetherCapture.mm)
+    set_source_files_properties(platform/macos/MacTetherCapture.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_link_libraries(luma_services PRIVATE "-framework ImageCaptureCore" "-framework Security")
 endif()
 target_compile_options(luma_services PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
@@ -153,7 +157,8 @@ set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLET
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 qt_target_qml_sources(Apertone QML_FILES apps/desktop/qml/DeliveryDialog.qml apps/desktop/qml/PhotoMapDialog.qml
-    apps/desktop/qml/CollectionSetDialog.qml apps/desktop/qml/KeywordDialog.qml)
+    apps/desktop/qml/CollectionSetDialog.qml apps/desktop/qml/KeywordDialog.qml
+    apps/desktop/qml/DevelopSection.qml)
 qt_add_resources(Apertone aperture_map PREFIX "/map" BASE "resources/maps" FILES resources/maps/world-land.png)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
@@ -247,7 +252,25 @@ endif()
 
 include(CTest)
 option(LUMA_ENABLE_SCALE_CONTRACT_TESTS "Enable deferred application scale contracts for pre-1.0 qualification" OFF)
+if(BUILD_TESTING)
+    add_executable(luma_dcp_tests tests/unit/DcpTests.cpp)
+    target_link_libraries(luma_dcp_tests PRIVATE luma_core)
+    target_compile_options(luma_dcp_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME triple-illuminant-dcp COMMAND luma_dcp_tests)
+    set_tests_properties(triple-illuminant-dcp PROPERTIES TIMEOUT 30 LABELS "unit;color")
+    add_executable(luma_photo_delivery_tests tests/unit/PhotoDeliveryTests.cpp)
+    target_link_libraries(luma_photo_delivery_tests PRIVATE luma_services Qt6::Gui)
+    target_compile_options(luma_photo_delivery_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME photo-delivery-print-layout COMMAND luma_photo_delivery_tests)
+    set_tests_properties(photo-delivery-print-layout PROPERTIES TIMEOUT 60 LABELS "unit;print"
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endif()
 if(BUILD_TESTING AND APPLE)
+    add_executable(luma_mac_tether_tests tests/unit/MacTetherCaptureTests.cpp)
+    target_link_libraries(luma_mac_tether_tests PRIVATE luma_services Qt6::Core)
+    target_compile_options(luma_mac_tether_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME mac-tether-discovery COMMAND luma_mac_tether_tests)
+    set_tests_properties(mac-tether-discovery PROPERTIES TIMEOUT 15)
     add_executable(luma_culling_tests tests/unit/CullingTests.cpp)
     target_link_libraries(luma_culling_tests PRIVATE luma_macos)
     target_compile_options(luma_culling_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -680,6 +703,11 @@ elseif(BUILD_TESTING AND WIN32)
     target_include_directories(luma_camera_ptp_tests PRIVATE "${CMAKE_SOURCE_DIR}")
     target_compile_options(luma_camera_ptp_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME windows-camera-ptp-descriptors COMMAND luma_camera_ptp_tests)
+    add_executable(luma_windows_category_tests tests/unit/WindowsCategorySearchTests.cpp)
+    target_link_libraries(luma_windows_category_tests PRIVATE luma_windows Qt6::Gui)
+    target_compile_options(luma_windows_category_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME windows-local-category-search COMMAND luma_windows_category_tests
+        "${CMAKE_SOURCE_DIR}/tests/assets/filters")
     add_executable(luma_quick_look_tests tests/unit/QuickLookTests.cpp)
     target_link_libraries(luma_quick_look_tests PRIVATE luma_core)
     add_test(NAME quick-look-stack-and-blur COMMAND luma_quick_look_tests)

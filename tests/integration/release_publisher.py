@@ -17,7 +17,8 @@ from model_assets import SOURCES, describe_models, digest, recipe_digest
 
 
 class ReleasePublisherTests(unittest.TestCase):
-    def run_case(self, mode, version="0.3.0", info_override=None, archive_mode=None):
+    def run_case(self, mode, version="0.3.0", info_override=None, archive_mode=None,
+                 windows_mode=None, create_tag=False):
         with tempfile.TemporaryDirectory(prefix="luma-publisher-") as temporary:
             root = Path(temporary)
             assets = root / "dist/release"
@@ -74,6 +75,29 @@ class ReleasePublisherTests(unittest.TestCase):
             for path in sorted(assets.iterdir()):
                 entries.append(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}")
             (assets / "SHA256SUMS").write_text("\n".join(entries) + "\n")
+            arguments = []
+            if windows_mode is not None:
+                windows = root / "dist/release-windows"
+                windows.mkdir()
+                package = windows / f"Apertone-{version}-windows-x64.zip"
+                commit = ("b" if windows_mode == "stale-source" else "a") * 40
+                win_version = "2.5.0" if windows_mode == "stale-version" else version
+                origin = (
+                    "Repository: https://github.com/yakut-sekonts/Apertone\n"
+                    f"Commit: {commit}\nTree: {'c' * 40}\nPlatform: Windows x64\nVersion: {win_version}\n"
+                )
+                with zipfile.ZipFile(package, "w") as archive:
+                    prefix = "Apertone-windows-x64/"
+                    archive.writestr(prefix + "BUILD-ORIGIN.txt", origin)
+                    archive.writestr(prefix + "Apertone.exe", b"synthetic desktop")
+                    if windows_mode != "missing-updater":
+                        archive.writestr(prefix + "ApertoneUpdate.exe", b"synthetic updater")
+                    archive.writestr(prefix + "UPDATE-FILES.txt", b"fixture inventory")
+                checksum = "0" * 64 if windows_mode == "bad-checksum" else hashlib.sha256(package.read_bytes()).hexdigest()
+                (windows / "SHA256SUMS-windows.txt").write_text(f"{checksum}  {package.name}\n")
+                arguments = ["--windows-folder", "dist/release-windows"]
+            if create_tag:
+                arguments.append("--create-tag")
             fake = root / "gh"
             fake.write_text("#!/usr/bin/env python3\n" + '''
 import hashlib, json, os, pathlib, sys
@@ -88,11 +112,23 @@ if args[:2] == ["release", "view"]:
     sys.exit(1)
 if args[:2] == ["release", "create"]:
     pathlib.Path("created").touch()
+if args[:2] == ["release", "upload"]:
+    pathlib.Path("uploaded.json").write_text(json.dumps(args[3:args.index("--clobber")]))
 if args[0] == "api":
+    if args[1] == "repos/yakut-sekonts/Apertone/git/ref/tags/v" + version:
+        if mode == "tag-conflict":
+            print(json.dumps({"object": {"type": "commit", "sha": "b"*40}})); sys.exit(0)
+        if not pathlib.Path("tagged").exists(): sys.exit(1)
+        print(json.dumps({"object": {"type": "commit", "sha": "a"*40}})); sys.exit(0)
+    if args[1] == "repos/yakut-sekonts/Apertone/git/refs":
+        if args[2:] != ["--method", "POST", "-f", "ref=refs/tags/v" + version, "-f", "sha=" + "a"*40]:
+            sys.exit(1)
+        pathlib.Path("tagged").touch()
+        sys.exit(0)
     # The production bug: a draft is unavailable through releases/tags/<tag>.
     if args[1] != "repos/yakut-sekonts/Apertone/releases/123": sys.exit(1)
     assets = []
-    for path in pathlib.Path("dist/release").iterdir():
+    for path in map(pathlib.Path, json.loads(pathlib.Path("uploaded.json").read_text())):
         assets.append({"name":path.name,"state":"uploaded","size":path.stat().st_size,
             "digest":"sha256:"+hashlib.sha256(path.read_bytes()).hexdigest()})
     if mode == "bad-digest": assets[0]["digest"] = "sha256:wrong"
@@ -100,10 +136,13 @@ if args[0] == "api":
     print(json.dumps({"html_url":"https://github.com/yakut-sekonts/Apertone/releases/tag/v" + version,"assets":assets}))
 ''')
             fake.chmod(0o755)
+            if os.name == "nt":
+                fake.with_suffix(".cmd").write_text(f'@"{sys.executable}" "%~dp0gh" %*\n')
             env = {**os.environ, "PATH":str(root)+os.pathsep+str(Path(sys.executable).parent)+os.pathsep+os.environ["PATH"], "GITHUB_REPOSITORY":"yakut-sekonts/Apertone", "GITHUB_REF_NAME":"v"+version, "GITHUB_SHA":"a"*40, "MOCK_MODE":mode, "MOCK_VERSION":version}
             if mode == "wrong-commit": env["GITHUB_SHA"] = "b"*40
             if mode == "wrong-repo": env["GITHUB_REPOSITORY"] = "other/repo"
-            result = subprocess.run([sys.executable,str(publisher)],cwd=root,env=env,capture_output=True,text=True,timeout=20)
+            result = subprocess.run([sys.executable, str(publisher), *arguments], cwd=root, env=env,
+                                    capture_output=True, text=True, timeout=20)
             log = root / "calls.jsonl"
             calls = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
             return result, calls
@@ -116,6 +155,37 @@ if args[0] == "api":
         self.assertEqual(calls[1][calls[1].index("--title") + 1], "Apertone 0.3.0")
         self.assertIn("--draft=false",calls[-1])
 
+    def test_version_three_publishes_both_platforms_together(self):
+        result, calls = self.run_case("valid", "3.0.0", windows_mode="valid")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        upload = next(call for call in calls if call[:2] == ["release", "upload"])
+        names = {Path(argument).name for argument in upload}
+        self.assertIn("Apertone-3.0.0-windows-x64.zip", names)
+        self.assertIn("Apertone-3.0.0-macos-arm64.zip", names)
+        self.assertIn("SHA256SUMS-windows.txt", names)
+        self.assertEqual(calls[-1][:2], ["release", "edit"])
+
+    def test_version_three_refuses_unqualified_windows_archive(self):
+        for windows_mode in (None, "stale-source", "stale-version", "bad-checksum", "missing-updater"):
+            with self.subTest(windows_mode=windows_mode):
+                result, calls = self.run_case("valid", "3.0.0", windows_mode=windows_mode)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(calls, [])
+
+    def test_dispatch_creates_exact_tag_after_local_artifact_checks(self):
+        result, calls = self.run_case("valid", "3.0.0", windows_mode="valid", create_tag=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        create_tag_call = next(i for i, call in enumerate(calls)
+                               if call[:2] == ["api", "repos/yakut-sekonts/Apertone/git/refs"])
+        draft_call = next(i for i, call in enumerate(calls) if call[:2] == ["release", "create"])
+        self.assertLess(create_tag_call, draft_call)
+        self.assertEqual(calls[-1][:2], ["release", "edit"])
+
+    def test_dispatch_does_not_retarget_existing_tag(self):
+        result, calls = self.run_case("tag-conflict", "3.0.0", windows_mode="valid", create_tag=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(len(calls), 2)
+
     def test_existing_draft_resumes_without_creating_another_release(self):
         result, calls = self.run_case("resume")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -126,15 +196,16 @@ if args[0] == "api":
         result, calls = self.run_case("signed-valid")
         self.assertEqual(result.returncode, 0, result.stderr)
         upload = next(call for call in calls if call[:2] == ["release", "upload"])
-        self.assertIn("dist/release/appcast.xml", upload)
+        self.assertIn(Path("dist/release/appcast.xml"), list(map(Path, upload)))
 
     def test_open_source_1_0_publishes_verified_assets_and_signed_update_last(self):
         result, calls = self.run_case("valid", "1.0.0")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(calls[-1][:2], ["release", "edit"])
         upload = next(call for call in calls if call[:2] == ["release", "upload"])
-        self.assertIn("dist/release/appcast.xml", upload)
-        self.assertIn("dist/release/Apertone-1.0.0-macos-arm64.dmg", upload)
+        uploaded = list(map(Path, upload))
+        self.assertIn(Path("dist/release/appcast.xml"), uploaded)
+        self.assertIn(Path("dist/release/Apertone-1.0.0-macos-arm64.dmg"), uploaded)
 
     def test_1_0_refuses_false_signing_claims_and_missing_distribution(self):
         overrides = [

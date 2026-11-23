@@ -30,6 +30,12 @@ Apertone's original source is Apache-2.0. Dependencies retain their own licenses
   amalgamation; no dependency on the host SQLite library.
 - **LittleCMS 2.17** — https://github.com/mm2/Little-CMS/tree/lcms2.17
   ICC conversion. **MIT**. Statically compiled, with the upstream LICENSE notice.
+- **CIE 1931 colour-matching functions (2019)** — https://doi.org/10.25039/CIE.DS.xvudnb9b
+  International Commission on Illumination (CIE), Vienna, AT. **CC BY-SA 4.0**
+  (https://creativecommons.org/licenses/by-sa/4.0/). The 2-degree observer data
+  in `core/color/Cie1931Observer.inc` are reformatted from the published CSV at
+  1 nm intervals and retain the same license. Apertone uses this data for
+  DNG profile spectral illuminants.
 - **libjxl 0.13.0** — https://github.com/libjxl/libjxl/releases/tag/v0.13.0
   Grayscale JPEG XL decoding for Lightroom mask tiles. **BSD-3-Clause** with
   the upstream patent grant. The decoder links **Brotli** (MIT), **Highway**

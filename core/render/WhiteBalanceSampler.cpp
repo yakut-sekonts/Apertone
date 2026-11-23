@@ -121,6 +121,9 @@ WhiteBalanceEstimate sampleWhiteBalance(const FloatImage &source, const EditDocu
         throw std::runtime_error("Not enough usable pixels to estimate white balance.");
     for (auto &channel : sum)
         channel /= weight;
+    const auto &profile = edits.creative.cameraProfile.profile;
+    if (profile && profile->illuminantCount == 3)
+        return estimateWhiteBalance(sum, applyDcpCalibration(calibration, *profile), stop);
     return estimateWhiteBalance(sum, calibration, stop);
 }
 } // namespace luma

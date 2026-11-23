@@ -23,8 +23,11 @@ Dialog {
         })).filter(tile => !excluded.includes(tile.id))
     }
     function showSelection() {
+        showOrderedSelection(library.selectedAssetIDs())
+    }
+    function showOrderedSelection(ids) {
         excluded = []
-        editor.prepareSurvey(library.selectedAssetIDs())
+        editor.prepareSurvey(ids)
         open()
     }
     onClosed: editor.closeCompare()

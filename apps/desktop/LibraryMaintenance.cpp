@@ -12,9 +12,13 @@
 #include "core/io/Path.h"
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QPointer>
+#include <QPrintDialog>
+#include <QPrinter>
 #include <QProcess>
 #include <QSettings>
+#include <QWindow>
 #include <algorithm>
 #include <fcntl.h>
 #include <unistd.h>
@@ -153,11 +157,63 @@ void LibraryModel::deliver(int format, const QString &title, const QUrl &destina
                       luma::deliverPhotos(path, ids, target, mode, title, profile, stop, progress);
                   });
 }
+
+void LibraryModel::printSelection(int format, const QString &title, const QUrl &proof) {
+    if (working() || selecting_ || (!proof.isEmpty() && !proof.isLocalFile()))
+        return;
+    const auto mode = static_cast<luma::DeliveryFormat>(format);
+    const auto count = luma::photoDeliveryPageCount(mode, selectedCount());
+    const auto heading = title.trimmed();
+    if (!count || heading.isEmpty() || heading.toUtf8().size() > 1024) {
+        error_ = QStringLiteral("Choose a delivery title and 1 to 1,000 photos.");
+        emit stateChanged();
+        return;
+    }
+    auto printer = std::make_shared<QPrinter>(QPrinter::HighResolution);
+    if (!printer->isValid() || printer->outputFormat() != QPrinter::NativeFormat) {
+        error_ = QStringLiteral("No printer is available.");
+        emit stateChanged();
+        return;
+    }
+    auto jobName = heading.left(64);
+    for (auto &character : jobName) {
+        if (character == '/' || character == '\\' || character.unicode() < 32)
+            character = QLatin1Char(' ');
+    }
+    printer->setDocName(jobName);
+    {
+        QPrintDialog nativeDialog(printer.get());
+        nativeDialog.setWindowModality(Qt::ApplicationModal);
+        nativeDialog.setOptions(QAbstractPrintDialog::PrintPageRange |
+                                QAbstractPrintDialog::PrintCollateCopies);
+        nativeDialog.setMinMax(1, count);
+        if (auto *owner = QGuiApplication::focusWindow()) {
+            nativeDialog.winId();
+            nativeDialog.windowHandle()->setTransientParent(owner);
+        }
+        if (nativeDialog.exec() != QDialog::Accepted)
+            return;
+    }
+    const auto output = printer->outputFormat() == QPrinter::PdfFormat
+                            ? QUrl::fromLocalFile(printer->outputFileName())
+                            : QUrl{};
+    const auto profile = luma::pathFromUtf8(proof.toLocalFile().toStdString());
+    startDelivery(
+        output,
+        [printer = std::move(printer), mode, title = heading.toStdString(),
+         profile](const auto &path, const auto &ids, auto stop, const auto &progress) {
+            luma::printPhotos(*printer, path, ids, mode, title, profile, stop, progress);
+        },
+        true);
+}
+
 void LibraryModel::publishWebDav(const QString &title, const QString &parent, const QString &folder,
-                                 const QString &user, const QString &password) {
+                                 const QString &user, const QString &password, bool update) {
     startDelivery({}, [title = title.trimmed().toStdString(),
                        upload = luma::WebDavGallery{QUrl(parent.trimmed(), QUrl::StrictMode),
-                                                    folder.trimmed(), user, password}](
+                                                    folder.trimmed(), user, password,
+                                                    update ? luma::WebDavPublication::updateGallery
+                                                           : luma::WebDavPublication::newGallery}](
                           const auto &path, const auto &ids, auto stop, const auto &progress) {
         luma::publishWebDavGallery(path, ids, title, upload, stop, progress);
     });
@@ -166,7 +222,8 @@ void LibraryModel::startDelivery(
     const QUrl &output,
     std::function<void(const std::filesystem::path &, const std::vector<std::string> &,
                        luma::CancellationToken, const std::function<void(double)> &)>
-        publish) {
+        publish,
+    bool printing) {
     if (working() || selecting_)
         return;
     const auto ids = selectionIDs();
@@ -179,10 +236,11 @@ void LibraryModel::startDelivery(
     error_.clear();
     progress_ = 0;
     preparingDelivery_ = writing_ = true;
-    status_ = QStringLiteral("Preparing photo delivery…");
+    status_ = printing ? QStringLiteral("Preparing print job…")
+                       : QStringLiteral("Preparing photo delivery…");
     emit stateChanged();
     try {
-        writes_.submit(luma::JobPriority::background, [self, ids, path, output, stop,
+        writes_.submit(luma::JobPriority::background, [self, ids, path, output, stop, printing,
                                                        publish = std::move(publish)](const auto &) {
             QString error;
             bool completed = false;
@@ -207,18 +265,29 @@ void LibraryModel::startDelivery(
             if (self)
                 QMetaObject::invokeMethod(
                     self,
-                    [self, completed, error, output] {
+                    [self, completed, error, output, printing] {
                         if (!self)
                             return;
                         self->preparingDelivery_ = self->writing_ = false;
                         self->error_ = error;
-                        self->status_ = completed ? QStringLiteral("Photo delivery complete.")
-                                        : error.isEmpty()
-                                            ? QStringLiteral("Photo delivery canceled.")
-                                            : QStringLiteral("Photo delivery failed.");
+                        if (printing) {
+                            self->status_ = completed ? QStringLiteral("Print job submitted.")
+                                            : error.isEmpty()
+                                                ? QStringLiteral("Print job canceled.")
+                                                : QStringLiteral("Print job failed.");
+                        } else {
+                            self->status_ = completed ? QStringLiteral("Photo delivery complete.")
+                                            : error.isEmpty()
+                                                ? QStringLiteral("Photo delivery canceled.")
+                                                : QStringLiteral("Photo delivery failed.");
+                        }
                         emit self->stateChanged();
-                        if (completed)
-                            emit self->deliveryReady(output);
+                        if (completed) {
+                            if (printing)
+                                emit self->printReady(output);
+                            else
+                                emit self->deliveryReady(output);
+                        }
                         self->checkClose();
                     },
                     Qt::QueuedConnection);

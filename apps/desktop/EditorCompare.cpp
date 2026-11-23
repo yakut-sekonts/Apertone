@@ -153,8 +153,13 @@ void EditorController::closeCompare() {
     provider_->updateCompare({});
     emit stateChanged();
 }
+void EditorController::prepareLoupe(const QString &id, bool fullResolution) {
+    if (!id.isEmpty())
+        prepareCompareImpl({id}, fullResolution, false);
+}
 void EditorController::prepareCompare(const QStringList &ids, bool fullResolution) {
-    prepareCompareImpl(ids, fullResolution, false);
+    if (ids.size() == 2)
+        prepareCompareImpl(ids, fullResolution, false);
 }
 void EditorController::prepareSurvey(const QStringList &ids) {
     if (ids.size() >= 2 && ids.size() <= 12)
@@ -170,7 +175,7 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                                           bool beforeAfter, bool survey) {
     auto unique = ids;
     unique.removeDuplicates();
-    if (closing_ || (!survey && ids.size() != 2) || (!beforeAfter && ids.size() != unique.size()))
+    if (closing_ || (!beforeAfter && ids.size() != unique.size()))
         return;
     finishHistoryTools();
     compareJob_.cancel();
@@ -214,7 +219,10 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                             asset.edits = i == 0 ? luma::EditDocument{} : activeEdits;
                         else if (asset.id == active)
                             asset.edits = activeEdits;
-                        names.append(QString::fromStdString(luma::pathUtf8(asset.path.filename())));
+                        auto name = QString::fromStdString(luma::pathUtf8(asset.path.filename()));
+                        if (!asset.copyName.empty())
+                            name += QStringLiteral(" · ") + QString::fromStdString(asset.copyName);
+                        names.append(name);
                     }
                     const int maxEdge = fullResolution ? 0 : survey ? 1200 : 2560;
                     for (std::size_t i = 0; i < assets.size(); ++i) {

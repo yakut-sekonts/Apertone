@@ -1,5 +1,6 @@
 #include "platform/windows/UltraHdr.h"
 #include "core/image/Bayer.h"
+#include "platform/windows/MetadataPacket.h"
 #include <QtCore/qfloat16.h>
 #include <algorithm>
 #include <fstream>
@@ -19,7 +20,7 @@ void requireSuccess(uhdr_error_info_t status) {
 } // namespace
 
 void writeUltraHdrJpeg(const LinearOutput &image, const std::filesystem::path &path, int quality,
-                       CancellationToken stop) {
+                       CancellationToken stop, const QByteArray &metadata) {
     image.validate();
     checkCancellation(stop);
     static_assert(sizeof(qfloat16) == 2);
@@ -72,8 +73,11 @@ void writeUltraHdrJpeg(const LinearOutput &image, const std::filesystem::path &p
     if (!output || !output->data || output->data_sz == 0)
         throw std::runtime_error("Ultra HDR encoder returned an empty image.");
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
-    out.write(static_cast<const char *>(output->data),
-              static_cast<std::streamsize>(output->data_sz));
+    const QByteArrayView jpeg(static_cast<const char *>(output->data), output->data_sz);
+    if (metadata.isEmpty())
+        out.write(jpeg.data(), jpeg.size());
+    else
+        writeUltraHdrWithXmp(out, jpeg, metadata);
     out.close();
     if (!out)
         throw std::runtime_error("Cannot write the Ultra HDR JPEG.");

@@ -33,6 +33,11 @@ publishing modules.
 
 ## Daily editing and organization
 
+The [3.0.0 release notes](releases/v3.0.0.md) describe the unified Windows and
+macOS source, Library review controls, grouped Develop adjustments, supported
+radial migration, native printing and conditional WebDAV updates. The 2.5
+verification table records the baseline and hardware qualification still needed.
+
 | Lightroom workflow | Apertone 2.5 and Windows scope | Next acceptance check |
 | --- | --- | --- |
 | Import from cards and folders, Add/Copy/Move, duplicate detection, renaming, destination folders, second copy, presets and metadata | Shared import journal, hashes, naming and metadata presets, source refresh and relinking. Windows uses wide paths and same-volume publication. A DCIM picker opens mounted cards and the capture watcher monitors a local folder. Windows can trigger and import a still photo on supported cameras. The PTP/MTP interface reads valid exposure settings and can preview Live View on compatible Nikon cameras. | Qualify exposure changes, Live View, direct capture and device-disconnect behavior on supported hardware. The Windows workflow exercises native exFAT using an ephemeral VHD. [Windows MTP extensions](https://learn.microsoft.com/en-us/windows/win32/wpd_sdk/supporting-mtp-extensions) |

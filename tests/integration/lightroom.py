@@ -4,6 +4,7 @@ from contextlib import closing
 import hashlib
 import json
 from pathlib import Path
+import shlex
 import shutil
 import sqlite3
 import struct
@@ -160,6 +161,60 @@ def verify_extras(binary, folder):
         assert (digest(source), digest(raw), digest(profile)) == before
     finally:
         db.close()
+
+
+def verify_radial_masks(binary, folder):
+    folder.mkdir()
+    raw = folder / "Кадр.DNG"
+    shutil.copyfile(Path(__file__).resolve().parents[1] / "assets/migration-051/01-complete.DNG", raw)
+    source, target = folder / "Source.lrcat", folder / "Apertone.sqlite"
+
+    def radial(name, fields):
+        return (f'{{CorrectionName="{name}",LocalExposure2012=0.25,CorrectionMasks={{'
+                '{What="Mask/CircularGradient",Top=0.25,Left=0.375,Bottom=0.75,Right=0.625,'
+                'Feather=50,' + fields + '}}}')
+
+    settings = 's={MaskGroupBasedCorrections={' + ','.join([
+        radial("Radial inside", "Version=2,Flipped=true,MaskInverted=false"),
+        radial("Radial outside", "Version=2,Flipped=false"),
+        radial("Radial inverted", "Version=2,Flipped=true,MaskInverted=true"),
+        radial("Radial double inverse", "Version=2,Flipped=false,MaskInverted=true"),
+        radial("Radial unversioned", "Flipped=false"),
+        radial("Unsupported rotation", "Version=2,Angle=18"),
+        radial("Unsupported roundness", "Version=2,Roundness=15"),
+        radial("Unsupported midpoint", "Version=2,Midpoint=25"),
+        radial("Unsupported version", "Version=3"),
+        radial("Invalid flag", 'Version=2,Flipped="invalid"'),
+    ]) + '}}'
+
+    with closing(create_lightroom(source, folder)) as db:
+        db.execute("UPDATE Adobe_imageDevelopSettings SET text=?,historySettingsID=NULL WHERE image=1",
+                   (settings,))
+        db.commit()
+        before = digest(source), digest(raw)
+        report = run(binary, "lightroom", "import", source, "--catalog", target)
+        assert (report["masksMapped"], report["masksSkipped"]) == (5, 5), report
+        with closing(sqlite3.connect(target)) as catalog:
+            document, = catalog.execute('SELECT document FROM edit_local_masks WHERE document LIKE ?',
+                                        ('%"Radial inside"%',)).fetchone()
+        header, *rows = document.splitlines()
+        assert header.split()[-1] == "5"
+        actual = {}
+        for layer, geometry in zip(rows[::2], rows[1::2]):
+            _, name, enabled, inverted, *_ = shlex.split(layer)
+            kind, shape, center_x, center_y, radius_x, radius_y, angle, feather, *_ = geometry.split()
+            assert (enabled, kind, shape) == ("1", "G", "1")
+            assert list(map(float, (center_x, center_y, radius_x, radius_y, angle))) == [
+                0.5, 0.5, 0.125, 0.25, 0]
+            actual[name] = (inverted, float(feather))
+        assert actual == {
+            "Radial inside": ("0", 50),
+            "Radial outside": ("1", 50),
+            "Radial inverted": ("1", 50),
+            "Radial double inverse": ("0", 50),
+            "Radial unversioned": ("0", 25),
+        }
+        assert (digest(source), digest(raw)) == before
 
 
 def create_lightroom(file, originals):
@@ -357,3 +412,4 @@ if __name__ == "__main__":
     with tempfile.TemporaryDirectory(prefix="apertone-lrcat-", dir=Path.cwd()) as folder:
         verify(cli, Path(folder))
         verify_extras(cli, Path(folder) / "Extras")
+        verify_radial_masks(cli, Path(folder) / "Radial")

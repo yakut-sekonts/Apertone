@@ -23,6 +23,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QVariantList importMetadataPresets READ importMetadataPresets NOTIFY stateChanged)
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
+    Q_PROPERTY(int sortOrder READ sortOrder WRITE setSortOrder NOTIFY stateChanged)
     Q_PROPERTY(QString selectedCopyName READ selectedCopyName NOTIFY stateChanged)
     Q_PROPERTY(QString selectedStackID READ selectedStackID NOTIFY stateChanged)
     Q_PROPERTY(bool viewingStack READ viewingStack NOTIFY stateChanged)
@@ -38,6 +39,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(bool preparingDelivery READ preparingDelivery NOTIFY stateChanged)
     Q_PROPERTY(QString captureFolder READ captureFolder NOTIFY stateChanged)
     Q_PROPERTY(bool tetherAvailable READ tetherAvailable CONSTANT)
+    Q_PROPERTY(bool cameraControlsAvailable READ cameraControlsAvailable CONSTANT)
     Q_PROPERTY(bool cameraBusy READ cameraBusy NOTIFY stateChanged)
     Q_PROPERTY(QVariantList tetherCameras READ tetherCameras NOTIFY stateChanged)
     Q_PROPERTY(bool cameraConnected READ cameraConnected NOTIFY stateChanged)
@@ -152,9 +154,10 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void cancelOfflinePreviews();
     Q_INVOKABLE void deliver(int format, const QString &title, const QUrl &destination,
                              const QUrl &proof);
+    Q_INVOKABLE void printSelection(int format, const QString &title, const QUrl &proof);
     Q_INVOKABLE void publishWebDav(const QString &title, const QString &parent,
                                    const QString &folder, const QString &user,
-                                   const QString &password);
+                                   const QString &password, bool update);
     Q_INVOKABLE void cancelDelivery();
     Q_INVOKABLE void loadPhotoLocations();
     Q_INVOKABLE void openMapPhoto(const QString &id);
@@ -169,6 +172,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void setCameraExposure(int property, qint64 value);
     Q_INVOKABLE void cancelCamera();
     bool tetherAvailable() const;
+    bool cameraControlsAvailable() const;
     bool cameraBusy() const {
         return cameraBusy_;
     }
@@ -338,10 +342,17 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void filter(const QString &search, int rating, int flag, const QString &label,
                             const QString &collection);
+    int sortOrder() const {
+        return static_cast<int>(filter_.order);
+    }
+    void setSortOrder(int order);
     Q_INVOKABLE void select(int row, bool toggle = false, bool range = false);
     Q_INVOKABLE void selectAll();
     Q_INVOKABLE void clearSelection();
     Q_INVOKABLE void activate(int row);
+    Q_INVOKABLE QString reviewPhotoAt(int row) const;
+    Q_INVOKABLE QStringList reviewSelection(int preferredRow) const;
+    Q_INVOKABLE int reviewPhotoRow(const QString &id) const;
     Q_INVOKABLE void rate(int value);
     Q_INVOKABLE void flag(int value);
     Q_INVOKABLE void label(const QString &value);
@@ -392,6 +403,7 @@ class LibraryModel final : public QAbstractListModel {
     void metadataChanged();
     void catalogKeywordsChanged();
     void deliveryReady(const QUrl &url);
+    void printReady(const QUrl &url);
     void photoLocationsReady(const QVariantList &locations, const QString &error);
     void smartCollectionReady(const QString &id, const QString &name, const QString &revision,
                               const QVariantMap &rule);
@@ -504,5 +516,6 @@ class LibraryModel final : public QAbstractListModel {
         const QUrl &output,
         std::function<void(const std::filesystem::path &, const std::vector<std::string> &,
                            luma::CancellationToken, const std::function<void(double)> &)>
-            publish);
+            publish,
+        bool printing = false);
 };

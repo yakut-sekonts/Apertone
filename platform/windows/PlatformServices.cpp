@@ -167,7 +167,7 @@ std::shared_ptr<ai::ICullingProvider> makePhotoCulling() {
     return std::make_shared<PreviewCulling>();
 }
 std::shared_ptr<ai::IEmbeddingProvider> makeSemanticEmbedding() {
-    return {};
+    return windows::makeOnnxCategoryEmbedding();
 }
 
 Homography alignImages(ai::RgbaImage reference, ai::RgbaImage floating, CancellationToken stop,

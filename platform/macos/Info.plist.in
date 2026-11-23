@@ -14,6 +14,7 @@
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
+  <key>NSPhotoLibraryUsageDescription</key><string>Apertone uses macOS Image Capture to save photos from your selected camera.</string>
   <key>SUFeedURL</key><string>https://github.com/yakut-sekonts/Apertone/releases/latest/download/appcast.xml</string>
   <key>SUPublicEDKey</key><string>yyXDZkahzYddht4vWZjFW5oRBLFs4yCdkK7CZZk+SYI=</string>
   <key>SUEnableAutomaticChecks</key><true/>

@@ -597,6 +597,20 @@ class OnnxSegmentation final : public ai::ISegmentationProvider {
         return BitmapMask(model.edge, model.edge, std::move(result));
     }
 
+    std::array<float, 2> categoryScores(ai::RgbaImage image, CancellationToken stop) {
+        const auto score = [&](ai::Selection category) {
+            const auto mask = getModel(*modelIndex(category)).infer(image, stop);
+            const auto confidentPixels =
+                std::ranges::count_if(mask, [](std::uint8_t value) { return value >= 192; });
+            const auto coverage =
+                static_cast<float>(confidentPixels) / static_cast<float>(mask.size());
+            // Favor a confident region over isolated predictions while letting
+            // small regions compete with those which fill most of the frame.
+            return .7F * coverage / (coverage + .04F);
+        };
+        return {score(ai::Selection::people), score(ai::Selection::sky)};
+    }
+
   private:
     static std::optional<std::size_t> modelIndex(ai::Selection selection) {
         switch (selection) {
@@ -640,11 +654,53 @@ class OnnxSegmentation final : public ai::ISegmentationProvider {
     std::unique_ptr<FaceModel> face_;
     std::unique_ptr<DepthModel> depth_;
 };
+
+class OnnxCategoryEmbedding final : public ai::IEmbeddingProvider {
+  public:
+    explicit OnnxCategoryEmbedding(const std::filesystem::path &home) : segmentation_(home) {}
+    std::string identifier() const override {
+        return "apertone.semantic-windows-v1.pphumanseg.skyseg";
+    }
+    ai::ExecutionLocation location() const override {
+        return ai::ExecutionLocation::local;
+    }
+    bool available() const {
+        return segmentation_.supports(ai::Selection::people) &&
+               segmentation_.supports(ai::Selection::sky);
+    }
+    std::vector<float> imageEmbedding(ai::RgbaImage image, CancellationToken stop) override {
+        image.validate();
+        checkCancellation(stop);
+        const auto [people, sky] = segmentation_.categoryScores(image, stop);
+        checkCancellation(stop);
+        // Keep the vector unit length so a second recognized category does not
+        // change the cosine score of the first category.
+        return {people, sky, std::sqrt(1.F - people * people - sky * sky)};
+    }
+    std::vector<float> textEmbedding(const std::string &query, CancellationToken stop) override {
+        checkCancellation(stop);
+        if (query == "people")
+            return {1, 0, 0};
+        if (query == "sky")
+            return {0, 1, 0};
+        throw std::runtime_error("Choose a supported search category.");
+    }
+
+  private:
+    OnnxSegmentation segmentation_;
+};
 } // namespace
 
 std::shared_ptr<ai::ISegmentationProvider> makeOnnxSegmentation() {
     const auto home = modelHome();
     return home.empty() ? nullptr : std::make_shared<OnnxSegmentation>(home);
+}
+std::shared_ptr<ai::IEmbeddingProvider> makeOnnxCategoryEmbedding() {
+    const auto home = modelHome();
+    if (home.empty())
+        return {};
+    const auto provider = std::make_shared<OnnxCategoryEmbedding>(home);
+    return provider->available() ? provider : nullptr;
 }
 std::shared_ptr<ai::IDenoiseProvider> makeOnnxDenoise(const std::filesystem::path &model) {
     const auto home = modelHome();

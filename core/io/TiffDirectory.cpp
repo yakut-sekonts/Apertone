@@ -66,6 +66,11 @@ bool TiffDirectory::has(std::uint16_t tag) const {
     return find(tag) != nullptr;
 }
 
+bool TiffDirectory::hasType(std::uint16_t tag, std::uint16_t type) const {
+    const auto *field = find(tag);
+    return field && field->type == type;
+}
+
 std::vector<std::uint32_t> TiffDirectory::integers(std::uint16_t tag, std::size_t limit) const {
     const auto *entry = find(tag);
     if (!entry)

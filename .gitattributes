@@ -1,0 +1,7 @@
+resources/models/licenses/* text eol=lf
+resources/models/sources.json text eol=lf
+resources/models/NOTICE.md text eol=lf
+scripts/convert-models.py text eol=lf
+scripts/models/drunet.py text eol=lf
+scripts/model_assets.py text eol=lf
+scripts/model-requirements.txt text eol=lf

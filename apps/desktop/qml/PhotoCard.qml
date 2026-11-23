@@ -32,6 +32,7 @@ Rectangle {
         return reasons.join(" · ")
     }
     property bool compact: false
+    property var reviewPhoto: null
     property int retryCount: 0
     readonly property var keyboardView: compact ? card.ListView.view : card.GridView.view
     readonly property bool keyboardFocusEligible: assetID.length > 0 &&
@@ -52,7 +53,10 @@ Rectangle {
             return
         const row = card.index
         library.select(row, false, false)
-        library.activate(row)
+        if (card.reviewPhoto)
+            card.reviewPhoto(card.assetID)
+        else
+            library.activate(row)
     }
     Keys.onReturnPressed: function(event) {
         card.openFromKeyboard(event)
@@ -141,7 +145,12 @@ Rectangle {
                 else view.contentY = previousY
             }
             library.select(card.index, (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier)) !== 0, (mouse.modifiers & Qt.ShiftModifier) !== 0)
-            if (card.compact && mouse.modifiers === Qt.NoModifier && !editor.busy) library.activate(card.index)
+            if (card.compact && mouse.modifiers === Qt.NoModifier && !editor.busy) {
+                if (card.reviewPhoto)
+                    card.reviewPhoto(card.assetID)
+                else
+                    library.activate(card.index)
+            }
         }
         onDoubleClicked: { if (!editor.busy) library.activate(card.index) }
     }

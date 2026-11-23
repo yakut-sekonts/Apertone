@@ -1,59 +1,13 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Dialogs
 import QtQuick.Layouts
 ColumnLayout {
     id: panel
-    property int section: sectionPicker.currentValue ?? 256
+    required property int section
     property string gradingChannel: wheelPicker.currentValue ?? "shadows"
     spacing: Theme.panelSpacing
-    FileDialog {
-        id: cameraProfileFile
-        title: qsTranslate("Apertone", "Choose a DNG camera profile")
-        nameFilters: ["DNG camera profiles (*.dcp *.DCP)"]
-        onAccepted: editor.setCameraProfile(selectedFile)
-    }
-    Label {
-        visible: editor.cameraProfileAvailable && editor.cameraProfileName.length > 0
-        text: editor.cameraProfileName
-        textFormat: Text.PlainText
-        elide: Text.ElideRight
-        Layout.fillWidth: true
-    }
-    RowLayout {
-        visible: editor.cameraProfileAvailable
-        Layout.fillWidth: true
-        ApertoneButton {
-            objectName: "develop.cameraProfile"
-            text: qsTranslate("Apertone", "Load camera profile")
-            enabled: !editor.busy && !editor.editingLocked
-            Layout.fillWidth: true
-            onClicked: cameraProfileFile.open()
-        }
-        ApertoneButton {
-            objectName: "develop.clearCameraProfile"
-            visible: editor.cameraProfileName.length > 0
-            text: qsTranslate("Apertone", "Clear")
-            enabled: !editor.busy && !editor.editingLocked
-            onClicked: editor.setCameraProfile("")
-        }
-    }
-    ApertoneButton {
-        objectName: "develop.autoAdjust"
-        text: qsTranslate("Apertone", "Auto Adjust"); Layout.fillWidth: true
-        enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.creativeBusy
-        onClicked: editor.autoAdjust()
-    }
-    ApertoneComboBox {
-        id: sectionPicker; Layout.fillWidth: true; textRole: "label"; valueRole: "value"
-        model: [{value:256,label:qsTranslate("Apertone","Presence")},{value:512,label:qsTranslate("Apertone","Point Color")},
-                {value:1024,label:qsTranslate("Apertone","Color Grading")},{value:2048,label:qsTranslate("Apertone","Effects")},
-                {value:4096,label:qsTranslate("Apertone","Black and White")},
-                {value:8192,label:qsTranslate("Apertone","Defringe")},
-                {value:16384,label:qsTranslate("Apertone","Calibration")}]
-    }
     ApertoneCheckBox {
-        objectName: "develop.blackWhite"
+        objectName: panel.section === 4096 ? "develop.blackWhite" : ""
         visible: panel.section === 4096
         text: qsTranslate("Apertone", "Black and white")
         enabled: editor.hasPhoto && !editor.busy && !editor.original
@@ -70,9 +24,10 @@ ColumnLayout {
         ApertoneCheckBox { text: qsTranslate("Apertone","Visualize range"); checked:editor.pointColorRange; onToggled:editor.pointColorRange=checked }
     }
     RowLayout {
-        visible: editor.creativeBusy || editor.pointColorPicking; Layout.fillWidth: true
-        BusyIndicator { running:editor.creativeBusy; visible:running; implicitWidth:22; implicitHeight:22 }
-        Label { text:qsTranslate("Apertone","Select a color in the photo"); visible:editor.pointColorPicking; wrapMode:Text.Wrap; Layout.fillWidth:true }
+        visible: panel.section === 512 ? editor.pointColorPicking : panel.section === 256 && editor.creativeBusy
+        Layout.fillWidth: true
+        BusyIndicator { running: panel.section === 256 && editor.creativeBusy; visible: running; implicitWidth: 22; implicitHeight: 22 }
+        Label { text:qsTranslate("Apertone","Select a color in the photo"); visible: panel.section === 512; wrapMode:Text.Wrap; Layout.fillWidth:true }
         ApertoneButton { text:qsTranslate("Apertone","Cancel");onClicked:editor.cancelCreative() }
     }
     ApertoneComboBox {
@@ -82,12 +37,11 @@ ColumnLayout {
     }
     ColorWheel { visible:panel.section===1024; channel:panel.gradingChannel; Layout.alignment:Qt.AlignHCenter }
     Repeater {
-        model:editor.creativeParameters
+        model: editor.creativeParameters.filter(parameter => parameter.group === panel.section && parameter.name !== "bw.active")
         delegate:ColumnLayout {
             required property var modelData
-            visible:modelData.name !== "bw.active" && modelData.group===panel.section &&
-                (!modelData.name.startsWith("grading.") || modelData.name==="grading.balance" || modelData.name==="grading.blending" ||
-                 modelData.name.startsWith("grading."+panel.gradingChannel+"."))
+            visible: panel.section !== 1024 || modelData.name === "grading.balance" ||
+                     modelData.name === "grading.blending" || modelData.name.startsWith("grading." + panel.gradingChannel + ".")
             Layout.fillWidth:true
             Label {
                 visible:modelData.name==="vignette.amount" || modelData.name==="grain.amount"

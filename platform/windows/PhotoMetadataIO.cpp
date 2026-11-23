@@ -380,4 +380,15 @@ QByteArray exportXmp(const std::filesystem::path &source, const PhotoMetadata &p
     }
     return doc.toByteArray(0);
 }
+
+QByteArray mergeUltraHdrXmp(const QByteArray &gainMap, const QByteArray &packet) {
+    auto document = macos::parse(gainMap);
+    auto destination = macos::descriptions(document).front();
+    for (const auto &description : macos::descriptions(macos::parse(packet))) {
+        for (auto property = description.firstChildElement(); !property.isNull();
+             property = property.nextSiblingElement())
+            destination.appendChild(document.importNode(property, true));
+    }
+    return document.toByteArray(0);
+}
 } // namespace luma::windows

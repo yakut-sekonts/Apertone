@@ -4,6 +4,7 @@
 #include <QtEndian>
 #include <algorithm>
 #include <limits>
+#include <ostream>
 
 namespace luma::windows {
 namespace {
@@ -89,6 +90,59 @@ QByteArray jpegPacket(QFile &file) {
     }
     throw std::runtime_error("Too many JPEG metadata segments.");
 }
+QByteArray jpegXmpSegment(const QByteArray &packet) {
+    require(jpegXmp.size() + packet.size() + 2 <= std::numeric_limits<quint16>::max(),
+            "Export metadata does not fit a JPEG XMP segment.");
+    QByteArray segment("\xff\xe1\0\0", 4);
+    qToBigEndian<quint16>(static_cast<quint16>(jpegXmp.size() + packet.size() + 2),
+                          segment.data() + 2);
+    return segment.append(jpegXmp).append(packet);
+}
+
+struct JpegSegment {
+    qsizetype start = 0;
+    qsizetype end = 0;
+};
+
+JpegSegment mpfPrimarySize(QByteArrayView jpeg, JpegSegment mpf) {
+    // MP entries hold the image size and an offset relative to the TIFF header.
+    constexpr quint16 mpEntries = 0xb002, undefined = 7;
+    constexpr qsizetype entrySize = 16;
+    const auto tiffOffset = mpf.start + 8;
+    const auto tiff = jpeg.sliced(tiffOffset, mpf.end - tiffOffset);
+    TiffDirectory endian;
+    endian.littleEndian = tiff.startsWith("II");
+    require(tiff.size() >= 8 && (endian.littleEndian || tiff.startsWith("MM")) &&
+                endian.u16(tiff.data() + 2) == 42,
+            "Invalid Ultra HDR image index.");
+    const qsizetype directoryOffset = endian.u32(tiff.data() + 4);
+    require(directoryOffset >= 8 && directoryOffset <= tiff.size() - 2,
+            "Invalid Ultra HDR image directory.");
+    const auto count = endian.u16(tiff.data() + directoryOffset);
+    require(count * 12 <= tiff.size() - directoryOffset - 2,
+            "Invalid Ultra HDR image directory size.");
+    for (int index = 0; index < count; ++index) {
+        const auto *entry = tiff.data() + directoryOffset + 2 + 12 * index;
+        if (endian.u16(entry) != mpEntries)
+            continue;
+        const qsizetype offset = endian.u32(entry + 8);
+        require(endian.u16(entry + 2) == undefined && endian.u32(entry + 4) == 2 * entrySize &&
+                    offset <= tiff.size() - 2 * entrySize,
+                "Invalid Ultra HDR image entries.");
+        const auto *primary = tiff.data() + offset;
+        const auto *secondary = primary + entrySize;
+        const qsizetype gainMapOffset = tiffOffset + endian.u32(secondary + 8);
+        require(endian.u32(primary + 8) == 0 && gainMapOffset == endian.u32(primary + 4) &&
+                    gainMapOffset >= mpf.end && gainMapOffset <= jpeg.size() - 2 &&
+                    endian.u32(secondary + 4) == jpeg.size() - gainMapOffset &&
+                    jpeg.sliced(gainMapOffset, 2) == QByteArrayView("\xff\xd8", 2),
+                "Invalid Ultra HDR gain map index.");
+        const auto size = tiffOffset + offset + 4;
+        return {size, size + 4};
+    }
+    throw std::runtime_error("Missing Ultra HDR image entries.");
+}
+
 QByteArray pngTextChunk(const QByteArray &packet) {
     const QByteArray data = "iTXt" + pngXmp + packet;
     quint32 crc = 0xffffffffU;
@@ -184,12 +238,7 @@ void embedXmp(const std::filesystem::path &encoded, const std::filesystem::path 
         prefix = head.sliced(2, 2) == QByteArrayView("\xff\xe0", 2)
                      ? 4 + qFromBigEndian<quint16>(head.constData() + 4)
                      : 2;
-        require(jpegXmp.size() + packet.size() + 2 <= std::numeric_limits<quint16>::max(),
-                "Export metadata does not fit a JPEG XMP segment.");
-        data = QByteArray("\xff\xe1\0\0", 4);
-        qToBigEndian<quint16>(static_cast<quint16>(jpegXmp.size() + packet.size() + 2),
-                              data.data() + 2);
-        data.append(jpegXmp).append(packet);
+        data = jpegXmpSegment(packet);
     } else if (format == ExportFormat::png) {
         const auto head = read(input, 33);
         require(head.startsWith(QByteArrayView("\x89PNG\r\n\x1a\n", 8)) &&
@@ -213,5 +262,52 @@ void embedXmp(const std::filesystem::path &encoded, const std::filesystem::path 
         write(output, block);
     }
     require(output.flush(), "Cannot flush image metadata.");
+}
+
+void writeUltraHdrWithXmp(std::ostream &output, QByteArrayView jpeg, const QByteArray &packet) {
+    constexpr QByteArrayView mpfSignature("MPF\0", 4);
+    require(jpeg.startsWith(QByteArrayView("\xff\xd8", 2)), "Invalid Ultra HDR JPEG header.");
+    JpegSegment xmp, mpf;
+    for (qsizetype pos = 2; pos + 4 <= jpeg.size();) {
+        require(quint8(jpeg[pos]) == 0xff, "Invalid Ultra HDR JPEG marker.");
+        const auto marker = quint8(jpeg[pos + 1]);
+        if (marker == 0xda)
+            break;
+        const auto size = qFromBigEndian<quint16>(jpeg.data() + pos + 2);
+        require(size >= 2 && pos + 2 + size <= jpeg.size(), "Invalid Ultra HDR JPEG segment.");
+        const auto payload = jpeg.sliced(pos + 4, size - 2);
+        if (marker == 0xe1 && payload.startsWith(jpegXmp)) {
+            require(xmp.start == 0, "Duplicate Ultra HDR XMP packet.");
+            xmp = {pos, pos + size + 2};
+        } else if (marker == 0xe2 && payload.startsWith(mpfSignature)) {
+            require(mpf.start == 0, "Duplicate Ultra HDR image index.");
+            mpf = {pos, pos + size + 2};
+        }
+        pos += 2 + size;
+    }
+    require(xmp.start > 0 && xmp.end <= mpf.start,
+            "Missing or misplaced Ultra HDR XMP or image index.");
+    const auto offset = xmp.start + 4 + jpegXmp.size();
+    const auto replacement = jpegXmpSegment(
+        mergeUltraHdrXmp(jpeg.sliced(offset, xmp.end - offset).toByteArray(), packet));
+    const auto sizeField = mpfPrimarySize(jpeg, mpf);
+    const bool littleEndian = jpeg.sliced(mpf.start + 8, 2) == "II";
+    TiffDirectory endian;
+    endian.littleEndian = littleEndian;
+    const auto newSize = qsizetype(endian.u32(jpeg.data() + sizeField.start)) + replacement.size() -
+                         (xmp.end - xmp.start);
+    require(newSize >= 0 && newSize <= std::numeric_limits<quint32>::max(),
+            "Ultra HDR image exceeds its index size limit.");
+    char size[4];
+    endian.put(static_cast<quint32>(newSize), size);
+
+    // Only the primary JPEG size changes. The MPF header and the gain map both
+    // shift by the same amount, keeping their relative offset and size intact.
+    const auto writeBytes = [&](QByteArrayView bytes) { output.write(bytes.data(), bytes.size()); };
+    writeBytes(jpeg.first(xmp.start));
+    writeBytes(replacement);
+    writeBytes(jpeg.sliced(xmp.end, sizeField.start - xmp.end));
+    writeBytes(QByteArrayView(size, sizeof size));
+    writeBytes(jpeg.sliced(sizeField.end));
 }
 } // namespace luma::windows

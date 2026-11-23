@@ -24,6 +24,7 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
         calibration_ = applyDcpCalibration(calibration_, *profile);
         gains_ = calibration_.asShotGains;
         profileTemperature_ = calibration_.asShotTemperature;
+        profileWeights_ = calibration_.asShotProfileWeights;
     }
     if (edits.customWhiteBalance && edits.enabled(Correction::whiteBalance)) {
         const auto resolved =
@@ -31,6 +32,7 @@ DevelopPipeline::DevelopPipeline(EditDocument edits, RawColorCalibration calibra
         calibration_.cameraToSRGB = resolved.cameraToSRGB;
         gains_ = resolved.gains;
         profileTemperature_ = edits.temperature;
+        profileWeights_ = resolved.profileWeights;
     }
     for (auto value : calibration_.cameraToSRGB)
         if (!std::isfinite(value))
@@ -95,7 +97,7 @@ std::array<float, 3> DevelopPipeline::pixel(std::array<float, 3> camera) const {
         rgb[c] = m[c * 3] * camera[0] + m[c * 3 + 1] * camera[1] + m[c * 3 + 2] * camera[2];
     const auto &profile = edits_.creative.cameraProfile.profile;
     if (profile)
-        rgb = applyDcpHueSaturation(*profile, rgb, profileTemperature_);
+        rgb = applyDcpHueSaturation(*profile, rgb, profileTemperature_, profileWeights_);
     for (auto &channel : rgb)
         channel *= exposureGain_;
     if (profile)

@@ -13,6 +13,7 @@
 #include "apps/desktop/ThumbnailProvider.h"
 #include "apps/desktop/UpdateController.h"
 #include "core/io/Path.h"
+#include <QApplication>
 #include <QCommandLineParser>
 #include <QElapsedTimer>
 #include <QFileInfo>
@@ -133,7 +134,7 @@ void testDenoise(QGuiApplication &app, QQuickWindow &window, EditorController &e
 } // namespace
 
 int main(int argc, char **argv) {
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     app.setOrganizationName(QStringLiteral("Luma"));
     app.setApplicationName(QStringLiteral("Apertone"));
     app.setApplicationDisplayName(QStringLiteral("Apertone"));

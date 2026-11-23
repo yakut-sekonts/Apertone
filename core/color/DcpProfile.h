@@ -13,9 +13,9 @@ struct DcpHueTable {
 };
 struct DcpProfile {
     std::string source, model, name;
-    std::array<DngColorProfile, 2> illuminants;
+    std::array<DngColorProfile, 3> illuminants;
     unsigned illuminantCount = 0;
-    std::array<DcpHueTable, 2> hueSaturation;
+    std::array<DcpHueTable, 3> hueSaturation;
     DcpHueTable look;
     std::vector<std::array<float, 2>> tone;
     double baselineExposure = 0;
@@ -32,6 +32,7 @@ inline constexpr std::size_t maximumDcpBytes = 4 * 1024 * 1024;
 std::shared_ptr<const DcpProfile> readDcpProfile(std::string source);
 RawColorCalibration applyDcpCalibration(RawColorCalibration calibration, const DcpProfile &profile);
 std::array<float, 3> applyDcpHueSaturation(const DcpProfile &profile, std::array<float, 3> rgb,
-                                           double temperature);
+                                           double temperature,
+                                           const std::array<double, 3> &profileWeights);
 std::array<float, 3> applyDcpLook(const DcpProfile &profile, std::array<float, 3> rgb);
 } // namespace luma

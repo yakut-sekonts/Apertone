@@ -155,8 +155,6 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
     checkCancellation(stop);
     if (options.format == ExportFormat::heicHDR)
         throw std::runtime_error("Adaptive HDR HEIC is unavailable on Windows.");
-    if (options.format == ExportFormat::jpegHDR && options.metadata != MetadataPolicy::none)
-        throw std::runtime_error("Source metadata is unavailable for Ultra HDR JPEG export.");
     const auto target = std::filesystem::absolute(destination);
     if (!options.overwrite && std::filesystem::exists(target))
         throw std::runtime_error("Destination already exists.");
@@ -193,7 +191,7 @@ void writeImage(const DecodedRaw &decoded, EditDocument edits,
              static_cast<std::size_t>(packet.size())},
             stop);
     } else if (options.format == ExportFormat::jpegHDR) {
-        windows::writeUltraHdrJpeg(image, staging, options.quality, stop);
+        windows::writeUltraHdrJpeg(image, staging, options.quality, stop, packet);
     } else {
         std::optional<StagingFile> raster;
         if (!packet.isEmpty() &&

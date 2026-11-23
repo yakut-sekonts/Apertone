@@ -8,6 +8,8 @@
 #include <vector>
 
 namespace luma {
+enum class LibraryOrder { filename, captureNewest, captureOldest, highestRating };
+
 struct LibraryFilter {
     int minimumRating = 0;
     int flag = -2; // -2: any, -1: Reject, 0: Unflagged, 1: Pick.
@@ -19,6 +21,7 @@ struct LibraryFilter {
     bool bestOfBurstOnly = false;
     std::string stackID{};
     bool collapseStacks = false;
+    LibraryOrder order = LibraryOrder::filename;
     void validate() const;
 };
 struct LibraryItem {

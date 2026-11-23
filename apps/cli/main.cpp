@@ -178,6 +178,8 @@ int main(int argc, char **argv) {
                 << "       apertone recover --catalog FILE\n"
                 << "       apertone publish-webdav HTTPS_FOLDER NEW_FOLDER TITLE IDS... --catalog "
                    "FILE\n"
+                << "       apertone update-webdav HTTPS_FOLDER PUBLISHED_FOLDER TITLE IDS... "
+                   "--catalog FILE\n"
                 << "       apertone lightroom inspect SOURCE.lrcat\n"
                 << "       apertone lightroom import SOURCE.lrcat [--profiles FOLDER] "
                    "[--rebuild-masks] --catalog "
@@ -211,7 +213,8 @@ int main(int argc, char **argv) {
             luma::deliverPhotos(catalog, {arguments.begin() + 4, lastID},
                                 luma::pathFromUtf8(arguments[2]), mode, arguments[3], proof);
             std::cout << "{\"delivered\":true}\n";
-        } else if (arguments[0] == "publish-webdav" && arguments.size() >= 5) {
+        } else if ((arguments[0] == "publish-webdav" || arguments[0] == "update-webdav") &&
+                   arguments.size() >= 5) {
 #ifndef _WIN32
             int qtArgc = 1;
             QGuiApplication application(qtArgc, argv);
@@ -219,7 +222,9 @@ int main(int argc, char **argv) {
             const luma::WebDavGallery upload{
                 QUrl(QString::fromStdString(arguments[1]), QUrl::StrictMode),
                 QString::fromStdString(arguments[2]), qEnvironmentVariable("APERTONE_WEBDAV_USER"),
-                qEnvironmentVariable("APERTONE_WEBDAV_PASSWORD")};
+                qEnvironmentVariable("APERTONE_WEBDAV_PASSWORD"),
+                arguments[0] == "update-webdav" ? luma::WebDavPublication::updateGallery
+                                                : luma::WebDavPublication::newGallery};
             luma::publishWebDavGallery(catalog, {arguments.begin() + 4, arguments.end()},
                                        arguments[3], upload);
             std::cout << "{\"published\":true}\n";

@@ -10,14 +10,22 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QGuiApplication>
+#include <QPageRanges>
 #include <QPainter>
 #include <QPdfWriter>
+#include <QPrinter>
+#include <QScopeGuard>
 #include <QStandardPaths>
 #include <QTemporaryDir>
 #include <algorithm>
+#include <cmath>
 
 namespace luma {
 namespace {
+constexpr int contactColumns = 3;
+constexpr int contactRows = 4;
+constexpr int layoutDpi = 300;
+
 QString asQString(const std::filesystem::path &path) {
     return QString::fromStdString(pathUtf8(path));
 }
@@ -58,7 +66,7 @@ QImage proofPreview(const SessionService &session, const AssetRecord &asset, int
     proofed.convertToColorSpace(QColorSpace::SRgb, QImage::Format_RGBA8888);
     return proofed;
 }
-QFont pdfFont(QFont font) {
+QFont captionFont(QFont font) {
 #ifdef _WIN32
     if (QGuiApplication::platformName() == QStringLiteral("offscreen")) {
         // The Windows offscreen plugin uses FreeType with Qt's fonts directory.
@@ -83,10 +91,113 @@ QFont pdfFont(QFont font) {
 #endif
     return font;
 }
+void paintPhotoPages(QPagedPaintDevice &device, QPrinter *printer, const SessionService &session,
+                     const std::vector<AssetRecord> &assets, const QString &title,
+                     DeliveryFormat format, const QColorSpace &proof, CancellationToken stop,
+                     const std::function<void(double)> &progress) {
+    const bool book = format == DeliveryFormat::photoBook;
+    const int columns = book ? 1 : contactColumns, rows = book ? 1 : contactRows;
+    const int perPage = columns * rows;
+    const auto range = printer ? printer->pageRanges() : QPageRanges{};
+    std::vector<int> pages;
+    std::size_t photos = 0;
+    const int pageCount = photoDeliveryPageCount(format, assets.size());
+    for (int page = 1; page <= pageCount; ++page) {
+        if (range.isEmpty() || range.contains(page)) {
+            pages.push_back(page);
+            photos += std::min<std::size_t>(perPage, assets.size() - (page - 1) * perPage);
+        }
+    }
+    if (pages.empty())
+        throw std::runtime_error("Choose a page range within the document.");
+    if (printer && printer->pageOrder() == QPrinter::LastPageFirst)
+        std::ranges::reverse(pages);
+    checkCancellation(stop);
+    QPainter painter(&device);
+    if (!painter.isActive())
+        throw std::runtime_error(printer ? "Cannot start printing."
+                                         : "Cannot start the PDF layout.");
+    try {
+        const auto scaleX = [&](int pixels) {
+            return static_cast<int>(std::lround(pixels * device.logicalDpiX() / double(layoutDpi)));
+        };
+        const auto scaleY = [&](int pixels) {
+            return static_cast<int>(std::lround(pixels * device.logicalDpiY() / double(layoutDpi)));
+        };
+        const int width = device.width(), height = device.height();
+        const int gapX = scaleX(36), gapY = scaleY(36), header = scaleY(86), footer = scaleY(60);
+        const int cellWidth = (width - (columns - 1) * gapX) / columns;
+        const int cellHeight = (height - header - footer - (rows - 1) * gapY) / rows;
+        painter.setRenderHint(QPainter::SmoothPixmapTransform);
+        painter.setPen(Qt::black);
+        auto font = captionFont(painter.font());
+        std::size_t current = 0;
+        for (int page : pages) {
+            checkCancellation(stop);
+            if (current != 0 && !device.newPage())
+                throw std::runtime_error(printer ? "Cannot add a printed page."
+                                                 : "Cannot add a PDF page.");
+            font.setPointSize(15);
+            painter.setFont(font);
+            painter.drawText(QRect(0, 0, width, header), Qt::AlignTop | Qt::AlignLeft,
+                             painter.fontMetrics().elidedText(title, Qt::ElideRight, width));
+            font.setPointSize(8);
+            painter.setFont(font);
+            painter.drawText(QRect(0, height - footer, width, footer),
+                             Qt::AlignBottom | Qt::AlignRight, QString::number(page));
+            font.setPointSize(9);
+            painter.setFont(font);
+            const auto metrics = painter.fontMetrics();
+            const int caption = metrics.height() + scaleY(15);
+            if (cellWidth <= 0 || cellHeight <= caption)
+                throw std::runtime_error("The paper is too small for this photo layout.");
+            const auto first = static_cast<std::size_t>((page - 1) * perPage);
+            const auto end = std::min(first + perPage, assets.size());
+            for (auto index = first; index < end; ++index) {
+                checkCancellation(stop);
+                const int slot = static_cast<int>(index - first);
+                const QRect cell((slot % columns) * (cellWidth + gapX),
+                                 header + (slot / columns) * (cellHeight + gapY), cellWidth,
+                                 cellHeight);
+                const QRect space = cell.adjusted(0, 0, 0, -caption);
+                const auto &asset = assets[index];
+                const auto image = proofPreview(session, asset, book ? 3200 : 960, proof, stop);
+                QRect rectangle(QPoint{}, image.size().scaled(space.size(), Qt::KeepAspectRatio));
+                rectangle.moveCenter(space.center());
+                painter.drawImage(rectangle, image);
+                painter.drawText(cell.adjusted(0, cellHeight - caption, 0, 0), Qt::AlignCenter,
+                                 metrics.elidedText(photoName(asset), Qt::ElideMiddle, cellWidth));
+                ++current;
+                if (progress)
+                    progress(static_cast<double>(current) / photos);
+            }
+        }
+        checkCancellation(stop);
+        if (!painter.end() || (printer && printer->printerState() == QPrinter::Error))
+            throw std::runtime_error(printer ? "Cannot finish printing."
+                                             : "Cannot finish the PDF layout.");
+    } catch (...) {
+        if (printer && painter.isActive())
+            printer->abort();
+        throw;
+    }
+}
+
+void installPdf(const std::filesystem::path &catalog, const std::filesystem::path &staged,
+                const std::filesystem::path &destination, CancellationToken stop) {
+    if (files::syncFile(staged) != 0)
+        throw std::runtime_error("Cannot sync the PDF file.");
+    Catalog(catalog, CatalogOpenMode::existingOnly).installExport(destination, stop, [&] {
+        checkCancellation(stop);
+        if (files::move(staged, destination, false) != 0)
+            throw std::runtime_error("Cannot install the PDF at the selected path.");
+    });
+}
+
 void writePdf(const SessionService &session, const std::vector<AssetRecord> &assets,
               const std::filesystem::path &catalog, const std::filesystem::path &destination,
-              const QString &title, bool book, const QColorSpace &proof, CancellationToken stop,
-              const std::function<void(double)> &progress) {
+              const QString &title, DeliveryFormat format, const QColorSpace &proof,
+              CancellationToken stop, const std::function<void(double)> &progress) {
     StagingFile temporary(destination.parent_path(), ".luma-export-");
     QFile file(asQString(temporary.path()));
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
@@ -95,66 +206,14 @@ void writePdf(const SessionService &session, const std::vector<AssetRecord> &ass
         QPdfWriter pdf(&file);
         pdf.setPageSize(QPageSize(QPageSize::A4));
         pdf.setPageMargins({10, 10, 10, 10}, QPageLayout::Millimeter);
-        pdf.setResolution(300);
+        pdf.setResolution(layoutDpi);
         pdf.setTitle(title);
-        QPainter painter(&pdf);
-        if (!painter.isActive())
-            throw std::runtime_error("Cannot start the PDF layout.");
-        const int columns = book ? 1 : 3, rows = book ? 1 : 4;
-        const int perPage = columns * rows;
-        const int gap = 36, header = 86, footer = 60;
-        const int cellWidth = (pdf.width() - (columns - 1) * gap) / columns;
-        const int cellHeight = (pdf.height() - header - footer - (rows - 1) * gap) / rows;
-        painter.setRenderHint(QPainter::SmoothPixmapTransform);
-        auto font = pdfFont(painter.font());
-        for (std::size_t i = 0; i < assets.size(); ++i) {
-            checkCancellation(stop);
-            const int slot = static_cast<int>(i % perPage);
-            if (slot == 0) {
-                if (i != 0 && !pdf.newPage())
-                    throw std::runtime_error("Cannot add a PDF page.");
-                font.setPointSize(15);
-                painter.setFont(font);
-                painter.setPen(Qt::black);
-                painter.drawText(
-                    QRect(0, 0, pdf.width(), header), Qt::AlignTop | Qt::AlignLeft,
-                    painter.fontMetrics().elidedText(title, Qt::ElideRight, pdf.width()));
-                font.setPointSize(8);
-                painter.setFont(font);
-                painter.drawText(QRect(0, pdf.height() - footer, pdf.width(), footer),
-                                 Qt::AlignBottom | Qt::AlignRight,
-                                 QString::number(i / perPage + 1));
-            }
-            font.setPointSize(9);
-            painter.setFont(font);
-            const QRect cell((slot % columns) * (cellWidth + gap),
-                             header + (slot / columns) * (cellHeight + gap), cellWidth, cellHeight);
-            const int caption = painter.fontMetrics().height() + 15;
-            const QRect space = cell.adjusted(0, 0, 0, -caption);
-            const auto image = proofPreview(session, assets[i], book ? 3200 : 960, proof, stop);
-            const auto fitted = image.size().scaled(space.size(), Qt::KeepAspectRatio);
-            QRect rectangle(QPoint{}, fitted);
-            rectangle.moveCenter(space.center());
-            painter.drawImage(rectangle, image);
-            painter.drawText(
-                cell.adjusted(0, cellHeight - caption, 0, 0), Qt::AlignCenter,
-                painter.fontMetrics().elidedText(photoName(assets[i]), Qt::ElideMiddle, cellWidth));
-            if (progress)
-                progress(static_cast<double>(i + 1) / assets.size());
-        }
-        if (!painter.end())
-            throw std::runtime_error("Cannot finish the PDF layout.");
+        paintPhotoPages(pdf, nullptr, session, assets, title, format, proof, stop, progress);
     }
     if (!file.flush())
         throw std::runtime_error("Cannot write the PDF file.");
     file.close();
-    if (files::syncFile(temporary.path()) != 0)
-        throw std::runtime_error("Cannot sync the PDF file.");
-    Catalog(catalog, CatalogOpenMode::existingOnly).installExport(destination, stop, [&] {
-        checkCancellation(stop);
-        if (files::publish(temporary.path(), destination) != 0)
-            throw std::runtime_error("Cannot install the PDF at the selected path.");
-    });
+    installPdf(catalog, temporary.path(), destination, stop);
 }
 
 void writeGallery(const SessionService &session, const std::vector<AssetRecord> &assets,
@@ -231,20 +290,24 @@ if (document.body.classList.contains('slideshow')) {
         throw std::runtime_error("Cannot publish the gallery folder. Choose a new folder name.");
     staging.setAutoRemove(false);
 }
-} // namespace
-
-void deliverPhotos(const std::filesystem::path &catalog, const std::vector<std::string> &ids,
-                   const std::filesystem::path &destination, DeliveryFormat format,
-                   const std::string &title, const std::filesystem::path &proofProfile,
-                   CancellationToken stop, const std::function<void(double)> &progress) {
+void validateDelivery(const std::vector<std::string> &ids, DeliveryFormat format,
+                      const std::string &title) {
     if (ids.empty() || ids.size() > 1000 || title.empty() || title.size() > 1024 ||
         format < DeliveryFormat::contactSheet || format > DeliveryFormat::slideshow)
         throw std::runtime_error("Choose a delivery title and 1 to 1,000 photos.");
+}
+
+std::filesystem::path newDestination(const std::filesystem::path &destination) {
     const auto target = std::filesystem::absolute(destination).lexically_normal();
     if (std::filesystem::exists(target) || !std::filesystem::is_directory(target.parent_path()))
         throw std::runtime_error("Choose a new output path in an existing folder.");
+    return target;
+}
+
+std::vector<AssetRecord> deliveryPhotos(const std::filesystem::path &catalog,
+                                        const std::vector<std::string> &ids,
+                                        CancellationToken stop) {
     const Catalog db(catalog, CatalogOpenMode::existingOnly);
-    const SessionService session(catalog);
     std::vector<AssetRecord> assets;
     assets.reserve(ids.size());
     for (const auto &id : ids) {
@@ -257,12 +320,66 @@ void deliverPhotos(const std::filesystem::path &catalog, const std::vector<std::
     std::ranges::stable_sort(assets, [](const auto &left, const auto &right) {
         return photoName(left).compare(photoName(right), Qt::CaseInsensitive) < 0;
     });
+    return assets;
+}
+} // namespace
+
+int photoDeliveryPageCount(DeliveryFormat format, std::size_t photoCount) {
+    if (photoCount == 0 || photoCount > 1000)
+        return 0;
+    if (format == DeliveryFormat::photoBook)
+        return static_cast<int>(photoCount);
+    if (format == DeliveryFormat::contactSheet) {
+        const int perPage = contactColumns * contactRows;
+        return static_cast<int>((photoCount + perPage - 1) / perPage);
+    }
+    return 0;
+}
+
+void printPhotos(QPrinter &printer, const std::filesystem::path &catalog,
+                 const std::vector<std::string> &ids, DeliveryFormat format,
+                 const std::string &title, const std::filesystem::path &proofProfile,
+                 CancellationToken stop, const std::function<void(double)> &progress) {
+    validateDelivery(ids, format, title);
+    if (!photoDeliveryPageCount(format, ids.size()))
+        throw std::runtime_error("Choose a contact sheet or photo book to print.");
+    if (!printer.isValid())
+        throw std::runtime_error("No printer is available.");
+    const auto assets = deliveryPhotos(catalog, ids, stop);
+    const SessionService session(catalog);
+    const auto displayTitle = QString::fromStdString(title);
+    const auto proof = readProof(proofProfile);
+    if (printer.outputFormat() == QPrinter::PdfFormat) {
+        const auto output = printer.outputFileName();
+        if (output.isEmpty())
+            throw std::runtime_error("Choose a PDF filename.");
+        const auto target = newDestination(pathFromUtf8(output.toStdString()));
+        StagingFile temporary(target.parent_path(), ".luma-export-");
+        printer.setOutputFileName(asQString(temporary.path()));
+        const auto resetOutput = qScopeGuard([&] { printer.setOutputFileName(output); });
+        paintPhotoPages(printer, &printer, session, assets, displayTitle, format, proof, stop,
+                        progress);
+        installPdf(catalog, temporary.path(), target, stop);
+    } else {
+        paintPhotoPages(printer, &printer, session, assets, displayTitle, format, proof, stop,
+                        progress);
+    }
+}
+
+void deliverPhotos(const std::filesystem::path &catalog, const std::vector<std::string> &ids,
+                   const std::filesystem::path &destination, DeliveryFormat format,
+                   const std::string &title, const std::filesystem::path &proofProfile,
+                   CancellationToken stop, const std::function<void(double)> &progress) {
+    validateDelivery(ids, format, title);
+    const auto target = newDestination(destination);
+    const auto assets = deliveryPhotos(catalog, ids, stop);
+    const SessionService session(catalog);
     const auto displayTitle = QString::fromStdString(title);
     if (format == DeliveryFormat::contactSheet || format == DeliveryFormat::photoBook) {
         if (asQString(target.extension()).compare(QStringLiteral(".pdf"), Qt::CaseInsensitive) != 0)
             throw std::runtime_error("Choose a PDF filename.");
-        writePdf(session, assets, catalog, target, displayTitle,
-                 format == DeliveryFormat::photoBook, readProof(proofProfile), stop, progress);
+        writePdf(session, assets, catalog, target, displayTitle, format, readProof(proofProfile),
+                 stop, progress);
     } else {
         if (!proofProfile.empty())
             throw std::runtime_error("ICC proofing is available for PDF output.");

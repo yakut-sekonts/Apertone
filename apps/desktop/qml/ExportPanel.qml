@@ -25,14 +25,12 @@ Dialog {
     function update(key, value) {
         const copy = Object.assign({}, form)
         copy[key] = value
-        if (windowsBuild && copy.format === 6) copy.metadata = 0
         form = copy
     }
     function loadForm() {
         const copy = Object.assign({}, exporter.settings)
         if (windowsBuild) {
             if (copy.format === 5) copy.format = 0
-            if (copy.format === 6) copy.metadata = 0
         } else if (copy.format === 6) {
             copy.format = 0
         }
@@ -110,9 +108,9 @@ Dialog {
                 ApertoneComboBox { objectName: "export.outputMedium"; model: [qsTranslate("Apertone", "Off"), qsTranslate("Apertone", "Screen"), qsTranslate("Apertone", "Matte paper"), qsTranslate("Apertone", "Glossy paper")]; currentIndex: panel.form.outputMedium; onActivated: panel.update("outputMedium", currentIndex); Layout.fillWidth: true }
                 ApertoneComboBox { objectName: "export.outputAmount"; enabled: panel.form.outputMedium !== 0; model: [qsTranslate("Apertone", "Low"), qsTranslate("Apertone", "Standard"), qsTranslate("Apertone", "High")]; currentIndex: panel.form.outputAmount; onActivated: panel.update("outputAmount", currentIndex) }
             }
-            Label { visible: !panel.windowsBuild; text: qsTranslate("Apertone", "Metadata") }
-            ApertoneComboBox { objectName: "export.metadata"; visible: !panel.windowsBuild || panel.form.format !== 6; model: [qsTranslate("Apertone", "Do not copy"), qsTranslate("Apertone", "All available photo metadata"), qsTranslate("Apertone", "Author / copyright only"), qsTranslate("Apertone", "Remove location")]; currentIndex: panel.form.metadata; onActivated: panel.update("metadata", currentIndex); Layout.fillWidth: true }
-            Label { visible: !panel.windowsBuild; text: qsTranslate("Apertone", "MakerNotes, embedded previews and camera processing instructions are not copied."); font.pixelSize: 11; wrapMode: Text.Wrap; Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", "Metadata") }
+            ApertoneComboBox { objectName: "export.metadata"; model: [qsTranslate("Apertone", "Do not copy"), qsTranslate("Apertone", "All available photo metadata"), qsTranslate("Apertone", "Author / copyright only"), qsTranslate("Apertone", "Remove location")]; currentIndex: panel.form.metadata; onActivated: panel.update("metadata", currentIndex); Layout.fillWidth: true }
+            Label { text: qsTranslate("Apertone", "MakerNotes, embedded previews and camera processing instructions are not copied."); font.pixelSize: 11; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", "Watermark") }
             ApertoneComboBox { objectName: "export.watermarkKind"; model: [qsTranslate("Apertone", "None"), qsTranslate("Apertone", "Text"), qsTranslate("Apertone", "Image")]; currentIndex: panel.form.watermarkKind; onActivated: panel.update("watermarkKind", currentIndex); Layout.fillWidth: true }
             ApertoneTextField { visible: panel.form.watermarkKind === 1; text: panel.form.watermarkText; placeholderText: qsTranslate("Apertone", "© Author"); maximumLength: 1024; onEditingFinished: panel.update("watermarkText", text); Layout.fillWidth: true }

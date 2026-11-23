@@ -531,6 +531,7 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
     next.bestOfBurstOnly = filter_.bestOfBurstOnly;
     next.stackID = filter_.stackID;
     next.collapseStacks = filter_.collapseStacks;
+    next.order = filter_.order;
     try {
         next.validate();
     } catch (const std::exception &e) {
@@ -540,6 +541,16 @@ void LibraryModel::filter(const QString &search, int rating, int flag, const QSt
     }
     filter_ = std::move(next);
     filterTimer_.start();
+}
+void LibraryModel::setSortOrder(int order) {
+    if (working() || order < static_cast<int>(luma::LibraryOrder::filename) ||
+        order > static_cast<int>(luma::LibraryOrder::highestRating) || order == sortOrder())
+        return;
+    filter_.order = static_cast<luma::LibraryOrder>(order);
+    anchor_ = -1;
+    const bool filterChanged = filterTimer_.isActive();
+    filterTimer_.stop();
+    reload(filterChanged);
 }
 void LibraryModel::photoOpened(const QString &id) {
     activeID_ = id;
@@ -647,6 +658,39 @@ void LibraryModel::activate(int row) {
                          : QUrl(QStringLiteral("apertone-asset:") + data(item, AssetID).toString());
     if (!url.isEmpty())
         emit openRequested(url);
+}
+QString LibraryModel::reviewPhotoAt(int row) const {
+    return data(index(row), AssetID).toString();
+}
+QStringList LibraryModel::reviewSelection(int preferredRow) const {
+    auto remaining = selected_;
+    const auto preferred = reviewPhotoAt(preferredRow);
+    QStringList ids;
+    if (remaining.remove(preferred))
+        ids.append(preferred);
+    for (const auto &[page, rows] : pages_) {
+        (void)page;
+        for (const auto &photo : rows) {
+            const auto id = QString::fromStdString(photo.id);
+            if (remaining.remove(id))
+                ids.append(id);
+        }
+    }
+    auto uncached = remaining.values();
+    uncached.sort();
+    ids.append(uncached);
+    return ids;
+}
+int LibraryModel::reviewPhotoRow(const QString &id) const {
+    if (id.isEmpty())
+        return -1;
+    const auto value = id.toStdString();
+    for (const auto &[page, rows] : pages_) {
+        const auto found = std::ranges::find(rows, value, &luma::LibraryItem::id);
+        if (found != rows.end())
+            return page * pageSize + static_cast<int>(found - rows.begin());
+    }
+    return -1;
 }
 QString LibraryModel::selectedCopyName() const {
     if (selected_.size() != 1)

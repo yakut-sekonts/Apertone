@@ -95,7 +95,8 @@ PYTHON
 if [[ -n "${LUMA_SIGNING_IDENTITY:-}" ]]; then
     .tools/venv/bin/python scripts/sign-app.py app "$output/Apertone.app"
 else
-    codesign --force --deep --sign - "$output/Apertone.app"
+    # Keep helper entitlements. Hardened Runtime needs a Developer ID Team ID for bundled Qt libraries.
+    codesign --force --deep --sign - --preserve-metadata=entitlements "$output/Apertone.app"
 fi
 codesign --verify --deep --strict "$output/Apertone.app"
 ditto -c -k --sequesterRsrc --keepParent "$output/Apertone.app" "$output/Apertone-macos-arm64.zip"
