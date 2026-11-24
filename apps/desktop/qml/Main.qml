@@ -74,7 +74,21 @@ ApplicationWindow {
     property bool workspaceToolsVisible: true
     readonly property bool workspaceKeysReady: active && !updates.restartPending && !batch.working &&
         !(activeFocusItem instanceof TextInput) && !(activeFocusItem instanceof TextEdit)
-    readonly property bool workspacePopupOpen: !!Overlay.overlay && Overlay.overlay.visible
+    function overlayItemFor(popup, overlay) {
+        let item = popup && popup.visible ? popup.contentItem : null
+        while (item && item.parent !== overlay)
+            item = item.parent
+        return item
+    }
+    readonly property bool workspacePopupOpen: {
+        const overlay = Overlay.overlay
+        if (!overlay || !overlay.visible)
+            return false
+        // Hover and keyboard-focus hints share the overlay with menus and modal dialogs.
+        const hint = overlayItemFor(updateBell.ToolTip.toolTip, overlay)
+        const filenameHint = overlayItemFor(sourceFilenameTip, overlay)
+        return overlay.children.some(item => item.visible && item !== hint && item !== filenameHint)
+    }
     readonly property bool workspaceKeysAvailable: workspaceKeysReady && !workspacePopupOpen
     readonly property bool libraryKeysAvailable: workspaceKeysReady &&
         (!workspacePopupOpen || (libraryMode && libraryPane.reviewDialogVisible))
@@ -379,7 +393,7 @@ ApplicationWindow {
                 Label { visible: !root.compactFooter; text: "Apertone"; color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
                 Item { Layout.fillWidth: true }
                 ApertoneButton { objectName: "settingsButton"; flat: true; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
-                UpdateBell { flat: true }
+                UpdateBell { id: updateBell; flat: true }
                 Rectangle { implicitWidth: 1; implicitHeight: 20; color: Theme.divider }
                 ModuleTab { objectName: "main.libraryButton"; text: qsTranslate("Apertone", "Library"); highlighted: root.libraryMode; onClicked: root.showLibraryView("grid", false) }
                 ModuleTab {
@@ -636,6 +650,7 @@ ApplicationWindow {
                         Accessible.name: text
                         onActiveFocusChanged: if (!activeFocus) cursorPosition = 0
                         ToolTip {
+                            id: sourceFilenameTip
                             visible: sourceName.contentWidth > sourceName.width - sourceName.leftPadding - sourceName.rightPadding &&
                                      (sourceName.hovered || sourceName.activeFocus)
                             width: Math.min(root.width - 24, Math.max(180, sourceName.width * 1.5))

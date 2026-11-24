@@ -4,6 +4,8 @@
 #include <QDropEvent>
 #include <QFile>
 #include <QMimeData>
+#include <QQmlContext>
+#include <QQmlProperty>
 #include <QSet>
 #include <QSignalSpy>
 #include <QTest>
@@ -115,9 +117,33 @@ bool navigationScenario(Context &c, const QString &id) {
                        d.item("library.grid")->width() > gridWidth;
             },
             "Hiding the Library inspector widens the grid");
+        auto *bell = d.item("updates.bell");
+        // The offscreen platform reports no hover-capable pointer by default.
+        if (QGuiApplication::platformName() == QStringLiteral("offscreen"))
+            bell->setProperty("hoverEnabled", true);
+        const QQmlProperty hint(bell, "ToolTip.toolTip", qmlContext(bell));
+        auto *tooltip = qvariant_cast<QObject *>(hint.read());
+        require(tooltip, "Update bell must expose its shared tooltip");
+        d.move("updates.bell", {.5, .5});
+        d.wait(
+            [&] {
+                return bell->property("hovered").toBool() && tooltip->property("visible").toBool();
+            },
+            "Hover hint visible");
+        require(!c.window->property("workspacePopupOpen").toBool(),
+                "A passive tooltip blocks workspace shortcuts");
         d.key(Qt::Key_F8);
         d.wait([&] { return d.item("library.rightPanel")->isVisible(); },
-               "Library inspector restored");
+               "Library inspector restored through its visible hint");
+        d.click("updates.bell");
+        d.wait([&] { return c.window->property("workspacePopupOpen").toBool(); },
+               "Interactive update popup guards workspace shortcuts");
+        d.key(Qt::Key_F8);
+        require(d.item("library.rightPanel")->isVisible(),
+                "F8 changed the workspace behind an interactive popup");
+        d.key(Qt::Key_Escape);
+        d.wait([&] { return !c.window->property("workspacePopupOpen").toBool(); },
+               "Workspace shortcuts restored after closing the popup");
         d.click("main.toggleLeftPanel");
         d.wait([&] { return !d.item("library.leftPanel")->isVisible(); },
                "Library catalog panel hidden");
