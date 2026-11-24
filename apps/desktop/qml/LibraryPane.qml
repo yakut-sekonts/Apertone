@@ -795,7 +795,7 @@ Rectangle {
                                     objectName: "library.navigatorPreview"
                                     anchors.fill: parent
                                     source: visible ? pane.activePreviewSource : ""
-                                    sourceSize: Qt.size(240, 180)
+                                    sourceSize: Theme.libraryThumbnailSize
                                     fillMode: Image.PreserveAspectFit
                                     asynchronous: true
                                 }

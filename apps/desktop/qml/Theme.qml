@@ -43,5 +43,6 @@ QtObject {
     readonly property int panelPadding: 9
     readonly property int sidebarWidth: dark ? 196 : 210
     readonly property int inspectorWidth: dark ? 276 : 286
+    readonly property size libraryThumbnailSize: Qt.size(384, 384)
     readonly property int filmstripHeight: 96
 }

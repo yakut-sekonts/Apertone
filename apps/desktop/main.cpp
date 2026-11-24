@@ -39,7 +39,8 @@ namespace {
 // to lay out the frame, then fit it to the work area of this particular monitor.
 class WindowWorkArea : public QObject {
     bool eventFilter(QObject *watched, QEvent *event) override {
-        if (event->type() != QEvent::Show && event->type() != QEvent::ScreenChangeInternal)
+        if (event->type() != QEvent::Show && event->type() != QEvent::ScreenChangeInternal &&
+            event->type() != QEvent::DevicePixelRatioChange)
             return false;
         auto *window = qobject_cast<QQuickWindow *>(watched);
         if (!window || (window->objectName() != QStringLiteral("main.window") &&

@@ -405,8 +405,15 @@ def execute(row, directory, arguments, fixture_folder):
         environment.pop('QT_QUICK_BACKEND', None)
     else:
         environment['QT_QUICK_BACKEND'] = 'software'
-    if os.environ.get('GITHUB_ACTIONS'):
         environment['QT_QPA_PLATFORM'] = 'offscreen'
+        if row['id'] in THUMBNAIL_PROFILE_IDS or row['id'] == PARTIAL_RENDER_CASE:
+            # These profiles require multiple full cards in view and others outside the cache.
+            # Keep the actual display input alongside the observed geometry in the case report.
+            screen = directory / 'thumbnail-desktop.json'
+            atomic_json(screen, {'screens': [{'name': 'thumbnail-desktop', 'width': 1440,
+                                               'height': 900, 'logicalDpi': 96,
+                                               'logicalBaseDpi': 96, 'dpr': 1}]})
+            environment['QT_QPA_PLATFORM'] = f'offscreen:configfile={screen.resolve()}'
     if row['id'] == WATERMARK_CASE:
         environment = watermark_child_environment(environment, directory, fixture_folder, case_id=row['id'])
     command = [str(launch_executable(arguments.build)), '--case', row['id'], '--root', str(directory),

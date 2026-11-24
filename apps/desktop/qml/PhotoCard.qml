@@ -74,7 +74,7 @@ Rectangle {
         objectName: "photoThumbnail"
         anchors { left: parent.left; right: parent.right; top: parent.top; bottom: caption.top; margins: card.compact ? 4 : 9 }
         source: card.thumbnailURL + (card.retryCount ? (card.thumbnailURL.indexOf("?") >= 0 ? "&" : "?") + "retry=" + card.retryCount : "")
-        sourceSize: Qt.size(384,384)
+        sourceSize: Theme.libraryThumbnailSize
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         cache: true

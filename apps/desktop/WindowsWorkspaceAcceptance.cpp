@@ -94,7 +94,9 @@ void startWindowsWorkspaceAcceptance(QGuiApplication &app, QQuickWindow &window,
             waitFor(
                 [&] {
                     return window.isExposed() && window.isActive() && library.count() == 1 &&
-                           !library.loading() && window.visibility() == QWindow::Windowed;
+                           !library.loading() && !library.working() && !library.selecting() &&
+                           !library.reviewPhotoAt(0).isEmpty() &&
+                           window.visibility() == QWindow::Windowed;
                 },
                 "Native window or isolated one-photo catalog did not become ready");
             const auto initial = window.frameGeometry();
