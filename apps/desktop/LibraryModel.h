@@ -203,7 +203,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void openCatalog(const QUrl &file, bool create = false);
     Q_INVOKABLE void locateOriginal(const QUrl &file);
     Q_INVOKABLE void locateFolder(const QUrl &folder, bool nearby);
-    std::vector<std::string> selectionIDs() const;
+    std::vector<std::string> selectionIDs(const QString &onlyID = {}) const;
     Q_INVOKABLE QStringList selectedAssetIDs() const {
         QStringList result;
         for (const auto &id : selectionIDs())
@@ -356,8 +356,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE QString reviewPhotoAt(int row) const;
     Q_INVOKABLE QStringList reviewSelection(int preferredRow) const;
     Q_INVOKABLE int reviewPhotoRow(const QString &id) const;
-    Q_INVOKABLE void rate(int value);
-    Q_INVOKABLE void flag(int value);
+    Q_INVOKABLE void rate(int value, const QString &onlyID = {});
+    Q_INVOKABLE void flag(int value, const QString &onlyID = {});
     Q_INVOKABLE void label(const QString &value);
     Q_INVOKABLE void editSmartCollection(const QString &id, const QString &name);
     Q_INVOKABLE void saveSmartCollection(const QString &id, const QString &name,
@@ -400,6 +400,7 @@ class LibraryModel final : public QAbstractListModel {
     void cameraFrameChanged();
     void stateChanged();
     void selectedPhotoSummaryChanged();
+    void thumbnailsRefreshed(const QString &id);
     void reloadStarted(bool preserveViewport);
     void viewportRestored(int row);
     void openRequested(const QUrl &url);

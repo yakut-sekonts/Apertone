@@ -14,6 +14,7 @@ ColumnLayout {
     property var folderPath: []
     property var folderChildren: []
     property var visiblePresets: []
+    readonly property bool showStarterPresets: presetsTab.checked && presets.items.length === 0
     property bool preserveFolderSelection: false
     readonly property Item editorScrollView: editScroll
     function refreshFolders() {
@@ -64,7 +65,7 @@ ColumnLayout {
         if (imported) {
             selectedId = presets.importedId
             if (selected) folderPath = JSON.parse(selected.folderKey)
-            presetTabs.currentIndex = 2
+            presetTabs.setCurrentIndex(presetsTab.TabBar.index)
         }
         preserveFolderSelection = false
         refreshFolders()
@@ -111,20 +112,35 @@ ColumnLayout {
         id: presetTabs
         objectName: "presetTabs"
         Layout.fillWidth: true
+        Layout.minimumWidth: 0
+        implicitWidth: naturalWidth
+        readonly property real naturalWidth: quickTab.implicitWidth + filtersTab.implicitWidth + presetsTab.implicitWidth
         onCurrentIndexChanged: panel.clearHoveredPreview()
         component PresetTab: TabButton {
+            id: tab
             leftPadding: 1; rightPadding: 1
             font.pixelSize: 11
             palette.brightText: Theme.text
+            implicitWidth: metrics.advanceWidth + leftPadding + rightPadding
+            width: Math.floor((presetTabs.availableWidth - 2 * presetTabs.spacing) * implicitWidth / Math.max(1, presetTabs.naturalWidth))
+            implicitHeight: Math.max(40, caption.implicitHeight + topPadding + bottomPadding)
+            TextMetrics { id: metrics; text: tab.text; font: tab.font }
+            contentItem: Text {
+                id: caption
+                text: tab.text; font: tab.font; color: Theme.text
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                wrapMode: Text.Wrap
+            }
             ToolTip.visible: hovered || visualFocus
             ToolTip.text: text
         }
-        PresetTab { objectName: "preset.tabs.quick"; text: qsTranslate("Apertone", "Quick") }
-        PresetTab { objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters") }
-        PresetTab { objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets") }
+        PresetTab { id: presetsTab; objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets") }
+        PresetTab { id: filtersTab; objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters") }
+        PresetTab { id: quickTab; objectName: "preset.tabs.quick"; text: qsTranslate("Apertone", "Quick") }
     }
     ColumnLayout {
-        visible: presetTabs.currentIndex === 0
+        visible: quickTab.checked
         Layout.fillWidth: true; Layout.fillHeight: true; spacing: 6
         ComboBox {
             id: quickCategory
@@ -135,7 +151,7 @@ ColumnLayout {
         GridLayout {
             Layout.fillWidth: true; columnSpacing: 3; rowSpacing: 2
             columns: width >= enhance.implicitWidth + mono.implicitWidth + straighten.implicitWidth + 2 * columnSpacing ? 3 : 2
-            ApertoneButton {
+            PanelAction {
                 id: enhance
                 objectName: "quick.enhance"; text: qsTranslate("Apertone", "Enhance")
                 enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.creativeBusy
@@ -144,14 +160,14 @@ ColumnLayout {
                 ToolTip.visible: hovered
                 ToolTip.text: qsTranslate("Apertone", "Editable local enhancement with explicit processing provenance")
             }
-            ApertoneButton {
+            PanelAction {
                 id: mono
                 objectName: "quick.mono"; text: qsTranslate("Apertone", "B&W")
                 enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
                 leftPadding: 3; rightPadding: 3
                 onClicked: presets.applyQuickLook("pure-mono")
             }
-            ApertoneButton {
+            PanelAction {
                 id: straighten
                 objectName: "quick.straighten"; text: qsTranslate("Apertone", "Straighten")
                 enabled: editor.hasPhoto && !editor.busy && !editor.transformAutoBusy; Layout.fillWidth: true
@@ -220,21 +236,31 @@ ColumnLayout {
                 id: layerRow
                 required property var modelData
                 required property int index
-                width: quickStack.width; height: layerRow.modelData.provenance.length ? 80 : 66; radius: 4
+                width: quickStack.width; height: layerBody.implicitHeight + 10; radius: 4
                 color: Theme.panelRaised; border.color: Theme.divider; border.width: 1
                 ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 5; spacing: 2
-                    RowLayout {
-                        Layout.fillWidth: true; spacing: 3
-                        ApertoneCheckBox {
-                            objectName: "quick.enabled." + layerRow.modelData.id
-                            checked: layerRow.modelData.enabled; implicitWidth: 22; implicitHeight: 22
-                            onClicked: presets.setQuickLookEnabled(layerRow.modelData.id, checked)
+                    id: layerBody
+                    anchors { top: parent.top; left: parent.left; right: parent.right; margins: 5 }
+                    spacing: 2
+                    GridLayout {
+                        Layout.fillWidth: true
+                        columns: layerRow.width >= 220 ? 2 : 1
+                        columnSpacing: 3; rowSpacing: 0
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 3
+                            ApertoneCheckBox {
+                                objectName: "quick.enabled." + layerRow.modelData.id
+                                checked: layerRow.modelData.enabled; implicitWidth: 22; implicitHeight: 22
+                                onClicked: presets.setQuickLookEnabled(layerRow.modelData.id, checked)
+                            }
+                            Label { Layout.fillWidth: true; Layout.minimumWidth: 0; text: layerRow.modelData.name; wrapMode: Text.Wrap; font.pixelSize: 10; color: Theme.text }
                         }
-                        Label { Layout.fillWidth: true; text: layerRow.modelData.name; elide: Text.ElideRight; font.pixelSize: 10; color: Theme.text }
-                        ToolButton { text: "↑"; enabled: layerRow.index > 0; onClicked: presets.moveQuickLook(layerRow.modelData.id, -1); implicitWidth: 24; implicitHeight: 22 }
-                        ToolButton { text: "↓"; enabled: layerRow.index + 1 < quickStack.count; onClicked: presets.moveQuickLook(layerRow.modelData.id, 1); implicitWidth: 24; implicitHeight: 22 }
-                        ToolButton { text: "×"; onClicked: presets.removeQuickLook(layerRow.modelData.id); implicitWidth: 24; implicitHeight: 22 }
+                        RowLayout {
+                            Layout.alignment: Qt.AlignRight; spacing: 3
+                            ToolButton { text: "↑"; enabled: layerRow.index > 0; onClicked: presets.moveQuickLook(layerRow.modelData.id, -1); implicitWidth: 24; implicitHeight: 22; padding: 0 }
+                            ToolButton { text: "↓"; enabled: layerRow.index + 1 < quickStack.count; onClicked: presets.moveQuickLook(layerRow.modelData.id, 1); implicitWidth: 24; implicitHeight: 22; padding: 0 }
+                            ToolButton { text: "×"; onClicked: presets.removeQuickLook(layerRow.modelData.id); implicitWidth: 24; implicitHeight: 22; padding: 0 }
+                        }
                     }
                     RowLayout {
                         Layout.fillWidth: true; spacing: 5
@@ -249,7 +275,7 @@ ColumnLayout {
                     Label {
                         visible: layerRow.modelData.provenance.length > 0
                         Layout.fillWidth: true; text: layerRow.modelData.provenance
-                        color: Theme.muted; font.pixelSize: 8; elide: Text.ElideMiddle
+                        Layout.minimumWidth: 0; color: Theme.muted; font.pixelSize: 8; wrapMode: Text.Wrap
                         textFormat: Text.PlainText
                     }
                 }
@@ -325,7 +351,7 @@ ColumnLayout {
     ListView {
         id: builtinList
         objectName: "builtinFilterList"
-        visible: presetTabs.currentIndex === 1
+        visible: filtersTab.checked || panel.showStarterPresets
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
         clip: true; model: presets.builtinItems
         delegate: ItemDelegate {
@@ -333,6 +359,7 @@ ColumnLayout {
             required property var modelData
             objectName: "filter_" + modelData.id.substring(8)
             width: builtinList.width; height: 30; text: modelData.name; hoverEnabled: true
+            topPadding: 3; bottomPadding: 3
             enabled: editor.hasPhoto && !editor.busy
             onHoveredChanged: {
                 if (hovered && enabled) panel.previewHoveredPreset(modelData.id)
@@ -345,10 +372,10 @@ ColumnLayout {
         ScrollBar.vertical: ScrollBar {}
     }
     RowLayout {
-        visible: presetTabs.currentIndex === 2
+        visible: presetsTab.checked
         Layout.fillWidth: true; spacing: 4
         ApertoneButton { objectName: "presetCreate"; Accessible.name: qsTranslate("Apertone", "Save current settings"); implicitWidth: 36; text: "+"; enabled: editor.hasPhoto && !editor.busy; onClicked: panel.openEditor(true); ToolTip.visible: hovered; ToolTip.text: qsTranslate("Apertone", "Save current settings") }
-        ApertoneButton { objectName: "presetImport"; text: qsTranslate("Apertone", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
+        PanelAction { objectName: "presetImport"; text: qsTranslate("Apertone", "Import"); onClicked: importDialog.open(); Layout.fillWidth: true }
         ApertoneButton { objectName: "preset.actions"; Accessible.name: qsTranslate("Apertone", "Preset actions"); implicitWidth: 36; text: "⋯"; onClicked: actions.open()
             Menu {
                 id: actions
@@ -371,7 +398,7 @@ ColumnLayout {
         }
     }
     RowLayout {
-        visible: presetTabs.currentIndex === 2
+        visible: presetsTab.checked && !panel.showStarterPresets
         Layout.fillWidth: true
         ApertoneButton { objectName: "presetFolderUp"; text: "↑"; enabled: panel.folderPath.length > 0; onClicked: panel.goToParentFolder() }
         ApertoneComboBox {
@@ -386,7 +413,7 @@ ColumnLayout {
     }
     Label {
         objectName: "presetFolderPath"
-        visible: presetTabs.currentIndex === 2
+        visible: presetsTab.checked && !panel.showStarterPresets
         Layout.fillWidth: true; elide: Text.ElideMiddle; textFormat: Text.PlainText
         text: panel.folderPath.length ? panel.folderPath.map(part => JSON.stringify(part)).join("  ›  ") : qsTranslate("Apertone", "Presets")
         color: Theme.muted; font.pixelSize: 10
@@ -394,7 +421,7 @@ ColumnLayout {
     ListView {
         id: list
         objectName: "presetList"
-        visible: presetTabs.currentIndex === 2
+        visible: presetsTab.checked && !panel.showStarterPresets
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
         clip: true; model: panel.visiblePresets
         section.property: "folderKey"; section.criteria: ViewSection.FullString
@@ -437,10 +464,10 @@ ColumnLayout {
     GridLayout {
         Layout.fillWidth: true; columnSpacing: 4; rowSpacing: 2
         columns: width >= copy.implicitWidth + paste.implicitWidth + columnSpacing ? 2 : 1
-        ApertoneButton { id: copy; objectName: "preset.copy"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+        PanelAction { id: copy; objectName: "preset.copy"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
             onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = presets.lastCopyGroups; editDialog.open() }
         }
-        ApertoneButton { id: paste; objectName: "preset.paste"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
+        PanelAction { id: paste; objectName: "preset.paste"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
     }
     Dialog {
         id: folderDialog

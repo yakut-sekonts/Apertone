@@ -482,8 +482,8 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
             throw std::runtime_error(std::string("Preset control was not found: ") + name);
         return value;
     };
-    child("presetTabs")->setProperty("currentIndex", 2);
-    QCoreApplication::processEvents();
+    require(child("preset.tabs.presets")->property("checked").toBool(),
+            "Develop must open with the Presets tab active.");
     auto *panel = child("presetPanel");
     require(QMetaObject::invokeMethod(child("presetCreate"), "clicked"),
             "Cannot open create dialog.");
@@ -595,7 +595,7 @@ void qmlTests(EditorController &editor, PresetController &presets, const QString
         (QStringLiteral("import QtQuick; import QtQuick.Controls; import \"") +
          QUrl::fromLocalFile(qmlPath).toString() +
          QStringLiteral("\"; ApplicationWindow { width: 720; height: 600; visible: true; "
-                        "BatchSettings { width: parent.width } ImportDialog {} }"))
+                        "LibraryPresetPicker { width: parent.width } ImportDialog {} }"))
             .toUtf8(),
         QUrl());
     waitUntil([&] { return choices.status() != QQmlComponent::Loading; });
@@ -970,6 +970,58 @@ void detailEditorTests(const QString &source, const QString &root, const QString
     if (!warnings.isEmpty())
         throw std::runtime_error(warnings.join('\n').toStdString());
 }
+void beforeAfterRefresh(const QString &source, const QString &root) {
+    PreviewProvider provider;
+    EditorController editor((root + "/compare.sqlite").toStdString(), &provider);
+    editor.openFile(QUrl::fromLocalFile(source));
+    waitUntil(
+        [&] { return editor.hasPhoto() && !editor.busy() && !editor.previewUrl().isEmpty(); });
+    editor.prepareBeforeAfter(true);
+    waitUntil([&] { return editor.comparison()["ready"].toBool(); });
+    const auto original = editor.currentSettings();
+    const auto pair = editor.comparison();
+    const auto before = provider.requestImage("compare-0", nullptr, {});
+    const auto after = provider.requestImage("compare-1", nullptr, {});
+    require(!before.isNull() && before == after && pair["fullResolution"].toBool(),
+            "Unedited before/after must start with identical full-resolution frames.");
+    bool previousFrameVisible = false, unrelatedSaveIgnored = true;
+    QObject::connect(&editor, &EditorController::editsSaved, &editor, [&](const QString &id) {
+        editor.refreshBeforeAfter("different-asset");
+        unrelatedSaveIgnored &= !editor.comparison()["busy"].toBool();
+        editor.refreshBeforeAfter(id);
+        previousFrameVisible = editor.comparison()["ready"].toBool();
+    });
+    editor.beginEdit();
+    editor.setParameter("exposure", -1);
+    waitUntil([&] { return editor.comparison()["right"] != pair["right"]; });
+    const auto firstEdit = provider.requestImage("compare-1", nullptr, {});
+    require(unrelatedSaveIgnored && previousFrameVisible && firstEdit != after &&
+                firstEdit.size() == after.size() && editor.comparison()["left"] == pair["left"] &&
+                provider.requestImage("compare-0", nullptr, {}) == before,
+            "Saving a 100% adjustment must refresh only After while preserving Before.");
+    const auto revision = editor.comparison()["right"];
+    editor.setParameter("exposure", -2);
+    editor.endEdit();
+    waitUntil([&] { return editor.comparison()["right"] != revision; });
+    require(provider.requestImage("compare-1", nullptr, {}) != firstEdit,
+            "Later saved adjustments must replace the preceding After frame.");
+    editor.undo();
+    require(editor.currentSettings() == original,
+            "A saved full-resolution refresh must not split the active gesture's Undo history.");
+    waitUntil([&] { return !editor.saving() && !editor.comparison()["busy"].toBool(); });
+    editor.prepareBeforeAfter(false);
+    waitUntil([&] { return editor.comparison()["ready"].toBool(); });
+    const auto fit = editor.comparison()["right"];
+    editor.setParameter("exposure", -.5);
+    waitUntil([&] { return !editor.saving(); });
+    require(!editor.comparison()["busy"].toBool() && editor.comparison()["right"] == fit,
+            "Fit uses the editor preview and must not schedule a full-resolution refresh.");
+    editor.closeCompare();
+    editor.refreshBeforeAfter(editor.photoID());
+    require(editor.comparison()["ids"].toStringList().isEmpty() &&
+                provider.requestImage("compare-1", nullptr, {}).isNull(),
+            "A saved callback must not reopen a closed comparison.");
+}
 } // namespace
 void localEditorTests(const QString &, const QString &, const QString &);
 void completeLocalEditorTests(const QString &, const QString &, const QString &);
@@ -982,6 +1034,7 @@ int main(int argc, char **argv) {
         require(temporary.isValid(), "Cannot create preset test directory.");
         documentTests();
         storeTests(temporary.path());
+        beforeAfterRefresh(QString::fromUtf8(argv[1]), temporary.path());
         xmpPresetTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         editorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));
         filterEditorTests(QString::fromUtf8(argv[1]), temporary.path(), QString::fromUtf8(argv[2]));

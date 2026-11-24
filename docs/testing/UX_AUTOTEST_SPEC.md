@@ -601,6 +601,7 @@ Private Nikon D7500 acceptance использовать только при на
 - `UX-PRV-013 [P0][ALL][BLOCKING]` — preview asset A + metadata asset B никогда не допускается.
 - `UX-PRV-014 [P2][ALL][REGRESSION]` — no white flash during dark-theme rerender.
 - `UX-PRV-015 [P1][ALL][STRESS]` — 30 min photo switching+edits → no stale render backlog.
+- `UX-PRV-016 [P1][CURRENT][REGRESSION]` — Inline Before/After keeps Develop panels available, shows live edits at Fit and 100%, supports a draggable wipe and closes on Escape or Library.
 
 ---
 

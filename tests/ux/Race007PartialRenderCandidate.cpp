@@ -3,6 +3,7 @@
 #include "apps/shared/PresetStore.h"
 #include "core/catalog/Catalog.h"
 #include "core/render/CpuRenderer.h"
+#include "tests/ux/LibraryInspector.h"
 #include "tests/ux/ThumbnailResponseTrace.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
@@ -1373,6 +1374,8 @@ bool race007PartialRenderCandidate(Context &c, const QString &identifier) {
         phase = "one-actual-batch-paste";
         require(d.item("batchPaste")->isVisible() && d.item("batchPaste")->isEnabled(),
                 "RACE007 actual batch Paste unavailable");
+        revealLibraryControl(d, "batchPaste");
+        d.frame();
         pointer.last = d.point("batchPaste");
         d.press("batchPaste");
         pointer.down = true;
@@ -1573,7 +1576,7 @@ bool race007PartialRenderCandidate(Context &c, const QString &identifier) {
                    {"batch", batchAudit->json()},
                    {"invalidations", invalidations->json()}});
         phase = "single-real-batch-undo";
-        d.click("batchUndo");
+        clickLibraryControl(d, "batchUndo");
         batchIdle(c);
         batchAudit->requireOperations(2);
         activeAudit->requireUnchanged();
@@ -1597,7 +1600,7 @@ bool race007PartialRenderCandidate(Context &c, const QString &identifier) {
                    {"expected_documents", docsJSON(undo)},
                    {"pixels", historyPixels}});
         phase = "single-real-batch-redo";
-        d.click("batchRedo");
+        clickLibraryControl(d, "batchRedo");
         batchIdle(c);
         batchAudit->requireOperations(3);
         activeAudit->requireUnchanged();

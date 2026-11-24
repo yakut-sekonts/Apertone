@@ -219,6 +219,7 @@ void LibraryModel::refreshThumbnails(const QString &id) {
                 const int row = number * pageSize + static_cast<int>(offset);
                 emit dataChanged(index(row), index(row), {Thumbnail});
             }
+    emit thumbnailsRefreshed(id);
 }
 void LibraryModel::page(int number) {
     if (closing_ || loading_ || pageJobs_.contains(number) || pageJobs_.size() >= maximumPages)
@@ -780,7 +781,12 @@ void LibraryModel::renameVirtualCopy(const QString &id, const QString &name) {
 void LibraryModel::deleteVirtualCopy(const QString &id) {
     mutate([id](auto &db) { db.deleteVirtualCopy(id.toStdString()); });
 }
-std::vector<std::string> LibraryModel::selectionIDs() const {
+std::vector<std::string> LibraryModel::selectionIDs(const QString &onlyID) const {
+    if (!onlyID.isEmpty()) {
+        if (selected_.contains(onlyID))
+            return {onlyID.toStdString()};
+        return {};
+    }
     std::vector<std::string> ids;
     ids.reserve(selected_.size());
     for (const auto &id : selected_)
@@ -880,14 +886,14 @@ bool LibraryModel::refreshMetadata(const std::vector<std::string> &ids, int role
         page(number);
     return true;
 }
-void LibraryModel::rate(int value) {
-    const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs());
+void LibraryModel::rate(int value, const QString &onlyID) {
+    const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs(onlyID));
     if (!ids->empty())
         mutate([ids, value](auto &db) { db.setRating(*ids, value); },
                [this, ids, value] { return refreshMetadata(*ids, Rating, value); }, true);
 }
-void LibraryModel::flag(int value) {
-    const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs());
+void LibraryModel::flag(int value, const QString &onlyID) {
+    const auto ids = std::make_shared<const std::vector<std::string>>(selectionIDs(onlyID));
     if (!ids->empty())
         mutate([ids, value](auto &db) { db.setFlag(*ids, value); },
                [this, ids, value] { return refreshMetadata(*ids, Flag, value); });

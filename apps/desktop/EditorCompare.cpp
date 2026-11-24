@@ -125,7 +125,8 @@ void EditorController::pinReference(const QString &id) {
 QVariantMap EditorController::comparison() const {
     QStringList sources;
     for (qsizetype i = 0; i < compareIDs_.size(); ++i)
-        sources.append(comparisonURL(i, compareImageRevision_));
+        sources.append(
+            comparisonURL(i, i == 0 ? compareLeftImageRevision_ : compareImageRevision_));
     return {{"busy", compareBusy_},
             {"ready", compareReady_},
             {"error", compareError_},
@@ -135,7 +136,7 @@ QVariantMap EditorController::comparison() const {
             {"names", compareNames_},
             {"sources", sources},
             {"errors", compareErrors_},
-            {"left", comparisonURL(0, compareImageRevision_)},
+            {"left", comparisonURL(0, compareLeftImageRevision_)},
             {"right", comparisonURL(1, compareImageRevision_)}};
 }
 void EditorController::closeCompare() {
@@ -171,24 +172,36 @@ void EditorController::prepareBeforeAfter(bool fullResolution) {
     const auto id = QString::fromStdString(session_->asset.id);
     prepareCompareImpl({id, id}, fullResolution, true);
 }
+void EditorController::refreshBeforeAfter(const QString &savedID) {
+    if (!session_ || closing_ || saving() || !compareBeforeAfter_ || !compareFull_ ||
+        savedID != photoID() || compareIDs_.value(0) != savedID ||
+        (compareEditRevision_ == editRevision_ && compareError_.isEmpty()))
+        return;
+    prepareCompareImpl(compareIDs_, true, true, false, true);
+}
 void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResolution,
-                                          bool beforeAfter, bool survey) {
+                                          bool beforeAfter, bool survey, bool refresh) {
     auto unique = ids;
     unique.removeDuplicates();
     if (closing_ || (!beforeAfter && ids.size() != unique.size()))
         return;
-    finishHistoryTools();
+    if (!refresh)
+        finishHistoryTools();
     compareJob_.cancel();
     const auto revision = ++compareRevision_;
+    const bool replaceAfter = refresh && compareReady_;
     compareBusy_ = true;
-    compareReady_ = false;
     compareError_.clear();
     compareFull_ = fullResolution;
     compareBeforeAfter_ = beforeAfter;
     compareIDs_ = ids;
-    compareNames_.clear();
-    compareErrors_.clear();
-    provider_->updateCompare({});
+    compareEditRevision_ = editRevision_;
+    if (!replaceAfter) {
+        compareReady_ = false;
+        compareNames_.clear();
+        compareErrors_.clear();
+        provider_->updateCompare({});
+    }
     const auto active = session_ ? session_->asset.id : std::string{};
     const auto activeEdits = history_.current();
     const auto catalogPath = catalog_;
@@ -199,8 +212,9 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
     try {
         compareJob_ = compareJobs_.submit(
             luma::JobPriority::interactive,
-            [self, revision, ids, fullResolution, beforeAfter, survey, active, activeEdits,
-             catalogPath, service, profile, hdrToneMapping](const luma::JobContext &context) {
+            [self, revision, ids, fullResolution, beforeAfter, survey, replaceAfter, active,
+             activeEdits, catalogPath, service, profile,
+             hdrToneMapping](const luma::JobContext &context) {
                 std::vector<QImage> images(static_cast<std::size_t>(ids.size()));
                 QStringList names, errors;
                 QString error;
@@ -227,6 +241,10 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                     const int maxEdge = fullResolution ? 0 : survey ? 1200 : 2560;
                     for (std::size_t i = 0; i < assets.size(); ++i) {
                         luma::checkCancellation(context.stopToken());
+                        if (replaceAfter && i == 0) {
+                            errors.append(QString());
+                            continue;
+                        }
                         try {
                             images[i] =
                                 renderComparison(service, assets[i], catalogPath, maxEdge, profile,
@@ -245,17 +263,23 @@ void EditorController::prepareCompareImpl(const QStringList &ids, bool fullResol
                     return;
                 QMetaObject::invokeMethod(
                     self,
-                    [self, revision, images = std::move(images), names, errors, error]() mutable {
+                    [self, revision, replaceAfter, images = std::move(images), names, errors,
+                     error]() mutable {
                         if (!self || self->compareRevision_ != revision)
                             return;
                         self->compareBusy_ = false;
                         self->compareError_ = error;
-                        self->compareReady_ = error.isEmpty();
+                        self->compareReady_ = replaceAfter || error.isEmpty();
                         if (error.isEmpty()) {
-                            self->provider_->updateCompare(std::move(images));
+                            ++self->compareImageRevision_;
+                            if (replaceAfter) {
+                                self->provider_->updateCompareAfter(std::move(images[1]));
+                            } else {
+                                self->provider_->updateCompare(std::move(images));
+                                self->compareLeftImageRevision_ = self->compareImageRevision_;
+                            }
                             self->compareNames_ = names;
                             self->compareErrors_ = errors;
-                            ++self->compareImageRevision_;
                         }
                         emit self->stateChanged();
                     },

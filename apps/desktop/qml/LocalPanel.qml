@@ -164,8 +164,12 @@ ColumnLayout {
                 Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.maximumWidth: panel.width
                 ApertoneButton {objectName:"localMaskUp";text: "↑";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask up");onClicked:editor.moveLocalMask(-1)}
                 ApertoneButton {objectName:"localMaskDown";text: "↓";implicitWidth:36;Layout.maximumWidth:36;Accessible.name:qsTranslate("Apertone", "Move mask down");onClicked:editor.moveLocalMask(1)}
-                ApertoneButton {objectName:"localMaskDuplicate";text:qsTranslate("Apertone", "Duplicate");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.duplicateLocalMask()}
-                ApertoneButton {objectName:"localMaskDelete";text:qsTranslate("Apertone", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
+                Item { Layout.fillWidth: true }
+            }
+            RowLayout {
+                Layout.fillWidth: true
+                PanelAction {objectName:"localMaskDuplicate";text:qsTranslate("Apertone", "Duplicate");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.duplicateLocalMask()}
+                PanelAction {objectName:"localMaskDelete";text:qsTranslate("Apertone", "Delete mask");Layout.fillWidth:true;Layout.minimumWidth:0;onClicked:editor.removeLocalMask()}
             }
             ApertoneComboBox {
                 objectName: "localComponentChoice"
@@ -209,7 +213,7 @@ ColumnLayout {
                 ApertoneComboBox {id:componentOperation;objectName:"localNewOperation";model:panel.operationNames;Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;Accessible.name:qsTranslate("Apertone", "Component operation")}
                 ApertoneButton {objectName:"localAddComponent";text:qsTranslate("Apertone", "Add component");Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width;onClicked:editor.addLocalComponent(panel.kinds[componentKind.currentIndex],panel.operations[componentOperation.currentIndex])}
             }
-            ApertoneButton {
+            PanelAction {
                 objectName:"localEditOnPhoto"
                 text:qsTranslate("Apertone", "Edit mask on photo")
                 checkable:true;checked:editor.localMode
@@ -248,7 +252,7 @@ ColumnLayout {
             LocalCheckBox {objectName:"localOverlayToggle";text:qsTranslate("Apertone", "Show mask overlay");checked:editor.localOverlay;onToggled:editor.localOverlay=checked}
             RowLayout {
                 Layout.fillWidth:true;Layout.minimumWidth:0;Layout.maximumWidth:panel.width
-                Label {text:qsTranslate("Apertone", "Overlay color");Layout.fillWidth:true;Layout.minimumWidth:0;font.pixelSize:11}
+                Label {text:qsTranslate("Apertone", "Overlay color");Layout.fillWidth:true;Layout.minimumWidth:0;font.pixelSize:11;wrapMode:Text.Wrap}
                 Repeater {
                     model:["#ff2666","#00cbea","#67e26a"]
                     ApertoneButton {

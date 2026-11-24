@@ -2,6 +2,9 @@
   "schema": 1,
   "locale": "de",
   "messages": {
+    "White balance": "Weißabgleich",
+    "Quick Develop": "Schnellentwicklung",
+    "Open in Develop": "In Entwickeln öffnen",
     "Navigator": "Navigator",
     "Histogram options": "Histogrammoptionen",
     "Sort photos": "Fotos sortieren",
@@ -753,6 +756,7 @@
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "Beim Wechseln im Verlauf bleiben spätere Schritte über Wiederholen verfügbar. Eine neue Bearbeitung ersetzt diese Schritte.",
     "HISTOGRAM": "HISTOGRAMM",
     "Histogram": "Histogramm",
+    "RGB histogram sampled from the selected photo preview.": "RGB-Histogramm aus Pixelstichproben der Vorschau des ausgewählten Fotos.",
     "Histogram channels": "Histogrammkanäle",
     "Histogram help": "Histogrammhilfe",
     "Log scale": "Log. Skala",

@@ -10,8 +10,16 @@ ColumnLayout {
     required property real centerX
     required property real centerY
     property bool pixelScale: false
+    property bool onCanvas: false
     property real divider: 0.5
     property bool syncing: false
+    readonly property real viewWidth: canvas.width
+    readonly property real viewHeight: canvas.height
+    readonly property rect visibleSourceRect: Qt.rect(
+        Math.max(0, (canvas.contentX - afterImage.x) / Math.max(1, afterImage.width)),
+        Math.max(0, (canvas.contentY - afterImage.y) / Math.max(1, afterImage.height)),
+        Math.min(1, canvas.width / Math.max(1, afterImage.width)),
+        Math.min(1, canvas.height / Math.max(1, afterImage.height)))
     signal panned(real x, real y)
 
     function position() {
@@ -35,8 +43,8 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        Label { text: qsTranslate("Apertone", "Before"); Layout.fillWidth: true }
-        Label { text: qsTranslate("Apertone", "After"); Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
+        Label { text: qsTranslate("Apertone", "Before"); color: root.onCanvas ? Theme.canvasText : Theme.text; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "After"); color: root.onCanvas ? Theme.canvasText : Theme.text; Layout.fillWidth: true; horizontalAlignment: Text.AlignRight }
     }
     Item {
         id: viewport
@@ -59,6 +67,7 @@ ColumnLayout {
             onContentYChanged: root.publish()
             Image {
                 id: afterImage
+                objectName: root.objectName + ".afterImage"
                 source: root.afterSource
                 cache: false
                 asynchronous: true
@@ -66,24 +75,24 @@ ColumnLayout {
                 height: implicitHeight * canvas.imageScale
                 x: Math.max(0, (canvas.width - width) / 2)
                 y: Math.max(0, (canvas.height - height) / 2)
-                smooth: !root.pixelScale || root.zoom !== 1
+                smooth: !root.pixelScale || Math.abs(root.zoom * Screen.devicePixelRatio - 1) > 0.001
             }
         }
-        Item {
+        Rectangle {
             id: beforeClip
             width: Math.max(0, Math.min(viewport.width, root.divider * viewport.width))
             height: viewport.height
             clip: true
             z: 2
-            Image {
+            color: root.onCanvas ? Theme.canvas : Theme.window
+            ComparePane {
+                objectName: root.objectName + ".beforePane"
+                width: viewport.width; height: viewport.height
+                title: ""
                 source: root.beforeSource
-                cache: false
-                asynchronous: true
-                width: afterImage.width
-                height: afterImage.height
-                x: afterImage.x - canvas.contentX
-                y: afterImage.y - canvas.contentY
-                smooth: afterImage.smooth
+                zoom: root.zoom; pixelScale: root.pixelScale
+                centerX: root.centerX; centerY: root.centerY
+                enabled: false
             }
         }
         Rectangle {

@@ -65,10 +65,10 @@ Rectangle {
         card.openFromKeyboard(event)
     }
     onThumbnailURLChanged: retryCount = 0
-    color: selected ? Theme.selectedMat : Theme.thumbnailMat
-    radius: compact ? 0 : 2
+    color: selected ? Theme.accentSoft : Theme.panelRaised
+    radius: 6
     border.width: selected || activePhoto || activeFocus ? 2 : 1
-    border.color: activeFocus ? Theme.accent : selected || activePhoto ? Theme.text : Theme.dividerSoft
+    border.color: selected || activeFocus ? Theme.accent : activePhoto ? Theme.muted : Theme.divider
     Image {
         id: thumbnail
         objectName: "photoThumbnail"

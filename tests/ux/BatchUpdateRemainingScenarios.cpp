@@ -1,4 +1,5 @@
 #include "core/render/DevelopPipeline.h"
+#include "tests/ux/LibraryInspector.h"
 #include "tests/ux/QueuedCallGate.h"
 #include "tests/ux/UpdaterProbe.h"
 #include "tests/ux/UxContext.h"
@@ -223,7 +224,7 @@ void repeatedBatchCancel(Context &c) {
     const auto selection = c.library.selectionIDs();
     const ReleaseWrites release{c.storageFault};
     c.storageFault.holdWrites(true);
-    c.driver->click("batchApplyPreset");
+    clickLibraryControl(*c.driver, "batchApplyPreset");
     c.driver->wait(
         [&] {
             return c.storageFault.writeBlocked() && c.batch.working() && c.batch.progress() > 0 &&
@@ -268,16 +269,16 @@ void repeatedBatchCancel(Context &c) {
                    {"cancel_inputs", 25},
                    {"idle_transitions", idleTransitions}});
     if (committed) {
-        c.driver->click("batchUndo");
+        clickLibraryControl(*c.driver, "batchUndo");
         batchIdle(c);
         require(documents(c) == before && !c.batch.canUndo() && c.batch.canRedo(),
                 "Fully committed late-cancel winner did not retain exactly one safe Undo");
     }
     // Recovery positive control: normal full transaction and its one Undo still work.
-    c.driver->click("batchApplyPreset");
+    clickLibraryControl(*c.driver, "batchApplyPreset");
     batchIdle(c);
     require(documents(c) == expected && c.batch.canUndo(), "Cancel left batch unable to commit");
-    c.driver->click("batchUndo");
+    clickLibraryControl(*c.driver, "batchUndo");
     batchIdle(c);
     require(documents(c) == before && c.batch.canRedo(), "Cancel recovery Undo lost baseline");
     c.checkData();
@@ -290,7 +291,7 @@ void batchArbitration(Context &c) {
     selected(c, 10);
     const auto baseline = documents(c);
     const auto batchDocs = expectedPreset(c, baseline);
-    c.driver->click("batchApplyPreset");
+    clickLibraryControl(*c.driver, "batchApplyPreset");
     batchIdle(c);
     require(documents(c) == batchDocs && c.editor.currentSettings() == batchDocs.at(photo) &&
                 c.editor.canUndo() && !c.editor.canRedo() && c.batch.canUndo(),
@@ -421,11 +422,11 @@ void batchGrowth(Context &c) {
     const auto before = footprint(c);
     std::optional<Footprint> warmed;
     for (int cycle = 0; cycle < 100; ++cycle) {
-        c.driver->click("batchApplyPreset");
+        clickLibraryControl(*c.driver, "batchApplyPreset");
         batchIdle(c);
         require(c.batch.error().isEmpty() && c.batch.canUndo() && documents(c) == expected,
                 "Stress apply did not commit every exact expected document");
-        c.driver->click("batchUndo");
+        clickLibraryControl(*c.driver, "batchUndo");
         batchIdle(c);
         require(c.batch.error().isEmpty() && c.batch.canRedo() && !c.batch.canUndo() &&
                     documents(c) == baseline && c.library.selectionIDs() == selection,

@@ -17,7 +17,7 @@ Dialog {
     property bool saving: false
     readonly property var choices: [{path: "", label: qsTranslate("Apertone", "New keyword"), aliases: []}]
                                    .concat(library.catalogKeywords.map(row => ({path: row.path,
-                                      label: row.path.replaceAll("|", " › ") + " · " + row.count,
+                                      label: row.path.split("|").join(" › ") + " · " + row.count,
                                       aliases: row.aliases})))
 
     function select(path) {

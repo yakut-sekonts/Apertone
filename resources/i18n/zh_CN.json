@@ -2,6 +2,9 @@
   "schema": 1,
   "locale": "zh_CN",
   "messages": {
+    "White balance": "白平衡",
+    "Quick Develop": "快速调整",
+    "Open in Develop": "在显影中打开",
     "Navigator": "导航器",
     "Histogram options": "直方图选项",
     "Sort photos": "照片排序",
@@ -753,6 +756,7 @@
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "浏览历史记录时，后续步骤仍可通过重做恢复。新的编辑会替换这些后续步骤。",
     "HISTOGRAM": "直方图",
     "Histogram": "直方图",
+    "RGB histogram sampled from the selected photo preview.": "对所选照片的预览图进行像素采样后计算的 RGB 直方图。",
     "Histogram channels": "直方图通道",
     "Histogram help": "直方图帮助",
     "Log scale": "对数刻度",

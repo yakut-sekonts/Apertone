@@ -2,6 +2,9 @@
   "schema": 1,
   "locale": "ru",
   "messages": {
+    "White balance": "Баланс белого",
+    "Quick Develop": "Быстрая обработка",
+    "Open in Develop": "Открыть в обработке",
     "Navigator": "Навигатор",
     "Histogram options": "Параметры гистограммы",
     "Sort photos": "Сортировка снимков",
@@ -875,6 +878,7 @@
     "Moving through history keeps later steps available through Redo. A new edit replaces those later steps.": "При переходе по истории последующие шаги доступны через повтор действия. Новое изменение заменяет эти шаги.",
     "HISTOGRAM": "ГИСТОГРАММА",
     "Histogram": "Гистограмма",
+    "RGB histogram sampled from the selected photo preview.": "Гистограмма RGB по выборке пикселей предпросмотра выбранного снимка.",
     "Histogram channels": "Каналы гистограммы",
     "Histogram help": "Справка по гистограмме",
     "Log scale": "Лог. шкала",

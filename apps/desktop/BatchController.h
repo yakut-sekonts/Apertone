@@ -44,6 +44,8 @@ class BatchController final : public QObject {
         return error_;
     }
     Q_INVOKABLE void applyPreset(const QString &id);
+    Q_INVOKABLE void adjustExposure(bool increase);
+    Q_INVOKABLE void asShotWhiteBalance();
     Q_INVOKABLE void paste();
     Q_INVOKABLE void sync(int groups);
     Q_INVOKABLE void undo();
@@ -64,6 +66,7 @@ class BatchController final : public QObject {
         std::uint32_t groups = 0;
         QString label;
         std::vector<std::string> parameters{};
+        luma::Catalog::BatchTransform transform{};
     };
     std::filesystem::path path_;
     EditorController &editor_;
@@ -81,6 +84,7 @@ class BatchController final : public QObject {
     LocalizedText status_;
     QString error_;
     void apply(const luma::DevelopPreset &preset);
+    void adjust(const QString &label, luma::Catalog::BatchTransform transform);
     void start(Request request);
     void run();
     void finish(QString error, LocalizedText status, bool undo, bool redo,

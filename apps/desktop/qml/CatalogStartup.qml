@@ -7,8 +7,12 @@ ApplicationWindow {
     id: window
     title: qsTranslate("Apertone", "Open Apertone catalog")
     visible: true
-    width: 620; height: 570
-    minimumWidth: 540; minimumHeight: 420
+    readonly property int availableWidth: Screen.desktopAvailableWidth || 620
+    readonly property int availableHeight: Math.max(1, (Screen.desktopAvailableHeight || 602) - 32)
+    width: Math.min(620, availableWidth)
+    height: Math.min(570, availableHeight)
+    minimumWidth: Math.min(540, availableWidth)
+    minimumHeight: Math.min(420, availableHeight)
     color: Theme.window
     Binding { target: Theme; property: "dark"; value: appearance.dark }
     palette.windowText: Theme.text

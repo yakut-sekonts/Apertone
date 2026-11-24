@@ -7,10 +7,15 @@ ApplicationWindow {
     id: root
     objectName: "main.window"
     visible: true
-    width: 1320
-    height: 840
-    minimumWidth: 1000
-    minimumHeight: 640
+    // Screen geometry is in logical pixels, including when display scaling changes.
+    readonly property int availableWidth: Screen.desktopAvailableWidth || 1320
+    readonly property int availableHeight: Math.max(1, (Screen.desktopAvailableHeight || 872) - 32)
+    minimumWidth: Math.min(1000, Screen.width || 1000)
+    minimumHeight: Math.min(640, Math.floor((Screen.height || 800) * 0.8))
+    Component.onCompleted: {
+        width = Math.min(1320, availableWidth)
+        height = Math.min(840, availableHeight)
+    }
     title: "Apertone " + Qt.application.version + (editor.hasPhoto ? " — " + editor.filename : "")
     color: Theme.window
     palette.window: Theme.window
@@ -31,6 +36,12 @@ ApplicationWindow {
     Binding { target: Theme; property: "dark"; value: appearance.dark }
     onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
     property bool libraryMode: true
+    property string beforeAfterPhoto: ""
+    readonly property bool beforeAfterActive: beforeAfterPhoto !== ""
+    readonly property bool comparisonAvailable: !libraryMode && editor.hasPhoto && !editor.busy &&
+        !editor.original && !previewViewport.toolActive && editor.retouchMode === "off" &&
+        !editor.whiteBalancePicking && !editor.pointColorPicking && !editor.aiObjectPicking
+    onComparisonAvailableChanged: { if (!comparisonAvailable) closeBeforeAfter() }
     property bool workspaceHeaderVisible: true
     property bool workspaceLeftVisible: true
     property bool developRightVisible: true
@@ -45,6 +56,7 @@ ApplicationWindow {
     readonly property bool developToolReady: workspaceKeysAvailable && !libraryMode &&
         editor.hasPhoto && !editor.busy && !editor.original
     readonly property bool hasFilmstrip: library.count > 0 || (!libraryMode && library.loading && editor.hasPhoto)
+    readonly property int stripHeight: Math.min(Theme.filmstripHeight, Math.floor(height * 0.15))
 
     component ModuleTab: ApertoneButton {
         id: moduleTab
@@ -116,17 +128,28 @@ ApplicationWindow {
     }
 
     function showBeforeAfter() {
+        if (beforeAfterActive) {
+            closeBeforeAfter()
+            return
+        }
+        if (!comparisonAvailable || editor.saving) return
+        beforeAfterPhoto = editor.photoID
         editor.prepareBeforeAfter()
-        developCompareDialog.open()
+    }
+    function closeBeforeAfter() {
+        if (!beforeAfterActive) return
+        beforeAfterPhoto = ""
+        if (editor.comparison.beforeAfter) editor.closeCompare()
     }
     VersionsDialog { id: processingVersions }
     HistoryDialog { id: processingHistory }
-    CompareDialog { id: developCompareDialog }
     Window {
         id: reviewDisplay
         objectName: "develop.reviewDisplay"
         title: qsTranslate("Apertone", "Apertone review")
-        width: 900; height: 650; minimumWidth: 420; minimumHeight: 300
+        width: Math.min(900, Screen.desktopAvailableWidth || 900)
+        height: Math.min(650, Math.max(1, (Screen.desktopAvailableHeight || 682) - 32))
+        minimumWidth: 420; minimumHeight: 300
         color: Theme.canvas
         property real centerX: 0.5
         property real centerY: 0.5
@@ -186,11 +209,12 @@ ApplicationWindow {
         view.contentY = Math.max(minimum, Math.min(maximum, target))
     }
     function revealActiveFocus() {
-        ensureActiveFocusVisible(presetsScroll)
-        ensureActiveFocusVisible(adjustmentsScroll)
-        ensureActiveFocusVisible(exportSettings.contentItem)
-        ensureActiveFocusVisible(presetSettings.editorScrollView)
-        ensureActiveFocusVisible(processingHistory.editorScrollView)
+        let ancestor = root.activeFocusItem
+        while (ancestor) {
+            if (ancestor instanceof ScrollView)
+                ensureActiveFocusVisible(ancestor)
+            ancestor = ancestor.parent
+        }
     }
     onActiveFocusItemChanged: Qt.callLater(root.revealActiveFocus)
     Connections {
@@ -233,7 +257,17 @@ ApplicationWindow {
     Connections { target: exporter; function onCloseReady() { root.close() } }
     Connections { target: batch; function onCloseReady() { root.close() } }
     Connections { target: library; function onCloseReady() { root.close() } }
-    Connections { target: editor; function onPhotoLoaded(id) { root.libraryMode = false } }
+    Connections {
+        target: editor
+        function onPhotoLoaded(id) {
+            if (root.beforeAfterPhoto !== id) root.closeBeforeAfter()
+            root.libraryMode = false
+        }
+        function onEditsSaved(id) {
+            if (root.beforeAfterPhoto === id && editor.comparison.fullResolution)
+                editor.refreshBeforeAfter(id)
+        }
+    }
     Connections { target: editor; function onCloseReady() { root.close() } }
     Shortcut { enabled: !updates.restartPending && !batch.working; sequences: [StandardKey.Open]; onActivated: fileDialog.open() }
     Shortcut { sequences: [StandardKey.Undo]; enabled: !editor.busy && !updates.restartPending && !batch.working && (processingHistory.visible ? editor.canUndo : root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onActivated: !processingHistory.visible && (root.libraryMode || !editor.canUndo) ? batch.undo() : editor.undo() }
@@ -258,10 +292,18 @@ ApplicationWindow {
     Shortcut { sequence: "F7"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceLeftVisible = !root.workspaceLeftVisible }
     Shortcut { sequence: "F8"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.developRightVisible = !root.developRightVisible }
     Shortcut { sequence: "T"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceToolsVisible = !root.workspaceToolsVisible }
-    Shortcut { sequence: "Y"; enabled: root.workspaceKeysAvailable && !root.libraryMode && editor.hasPhoto && !editor.busy && !editor.saving; autoRepeat: false; onActivated: root.showBeforeAfter() }
+    Shortcut { sequence: "Y"; enabled: root.workspaceKeysAvailable && (root.beforeAfterActive || root.comparisonAvailable && !editor.saving); autoRepeat: false; onActivated: root.showBeforeAfter() }
+    Shortcut { sequence: "Escape"; enabled: root.workspaceKeysAvailable && root.beforeAfterActive; autoRepeat: false; onActivated: root.closeBeforeAfter() }
     Shortcut { sequence: "R"; enabled: root.developToolReady; autoRepeat: false; onActivated: editor.cropMode = !editor.cropMode }
     Shortcut { sequence: "W"; enabled: root.developToolReady && !editor.whiteBalanceBusy; autoRepeat: false; onActivated: editor.whiteBalancePicking = !editor.whiteBalancePicking }
-    Shortcut { sequence: "Z"; enabled: root.workspaceKeysAvailable && !root.libraryMode && editor.zoomAvailable; autoRepeat: false; onActivated: editor.oneToOne = !editor.oneToOne }
+    Shortcut {
+        sequence: "Z"; enabled: root.workspaceKeysAvailable && !root.libraryMode && editor.zoomAvailable
+        autoRepeat: false
+        onActivated: {
+            if (root.beforeAfterActive) comparisonView.setZoom(comparisonView.mode === "fit" ? "manual" : "fit", 1)
+            else editor.oneToOne = !editor.oneToOne
+        }
+    }
     Shortcut {
         sequences: ["Return", "Enter"]
         context: Qt.ApplicationShortcut
@@ -420,11 +462,14 @@ ApplicationWindow {
                             validator: DoubleValidator { bottom: editor.minimumZoomFactor * 100; top: editor.maximumZoomFactor * 100; decimals: 2; notation: DoubleValidator.StandardNotation; locale: "C" }
                             Binding {
                                 target: zoomPercent; property: "text"
-                                value: Number((previewViewport.effectiveZoom * 100).toFixed(2)).toString()
+                                value: Number(((root.beforeAfterActive ? comparisonView.effectiveZoom : previewViewport.effectiveZoom) * 100).toFixed(2)).toString()
                                 when: !zoomPercent.activeFocus
                             }
                             function commitZoom() {
-                                if (modified && acceptableInput) previewViewport.requestScale(Number(text) / 100)
+                                if (modified && acceptableInput) {
+                                    if (root.beforeAfterActive) comparisonView.setZoom("manual", Number(text) / 100)
+                                    else previewViewport.requestScale(Number(text) / 100)
+                                }
                                 modified = false
                             }
                             onTextEdited: modified = true
@@ -451,11 +496,14 @@ ApplicationWindow {
                             width: navImage.paintedWidth; height: navImage.paintedHeight
                             anchors.centerIn: navImage
                             visible: navImage.status === Image.Ready
-                            readonly property point topLeft: previewViewport.sourceAt(Qt.point(0, 0))
-                            readonly property point bottomRight: previewViewport.sourceAt(Qt.point(previewViewport.width, previewViewport.height))
+                            readonly property point topLeft: root.beforeAfterActive
+                                ? Qt.point(comparisonView.visibleRect.x, comparisonView.visibleRect.y) : previewViewport.sourceAt(Qt.point(0, 0))
+                            readonly property point bottomRight: root.beforeAfterActive
+                                ? Qt.point(comparisonView.visibleRect.x + comparisonView.visibleRect.width, comparisonView.visibleRect.y + comparisonView.visibleRect.height)
+                                : previewViewport.sourceAt(Qt.point(previewViewport.width, previewViewport.height))
                             Rectangle {
                                 objectName: "develop.navigatorBounds"
-                                visible: previewViewport.pixelMode
+                                visible: root.beforeAfterActive ? comparisonView.mode !== "fit" : previewViewport.pixelMode
                                 x: parent.topLeft.x * parent.width; y: parent.topLeft.y * parent.height
                                 width: (parent.bottomRight.x - parent.topLeft.x) * parent.width
                                 height: (parent.bottomRight.y - parent.topLeft.y) * parent.height
@@ -471,6 +519,12 @@ ApplicationWindow {
                                 Accessible.name: qsTranslate("Apertone", "Navigator")
                                 cursorShape: Qt.CrossCursor
                                 function moveViewport(dx, dy) {
+                                    if (root.beforeAfterActive) {
+                                        if (comparisonView.mode === "fit") comparisonView.setZoom("manual", 1)
+                                        comparisonView.panTo(comparisonView.centerX + dx * comparisonView.visibleRect.width / 4,
+                                                            comparisonView.centerY + dy * comparisonView.visibleRect.height / 4)
+                                        return
+                                    }
                                     if (!previewViewport.pixelMode) previewViewport.requestScale(1)
                                     previewViewport.panBy(dx * previewViewport.width / 4, dy * previewViewport.height / 4)
                                 }
@@ -480,6 +534,11 @@ ApplicationWindow {
                                 Keys.onDownPressed: moveViewport(0, 1)
                                 function navigate(mouse) {
                                     if (width <= 0 || height <= 0) return
+                                    if (root.beforeAfterActive) {
+                                        if (comparisonView.mode === "fit") comparisonView.setZoom("manual", 1)
+                                        comparisonView.panTo(mouse.x / width, mouse.y / height)
+                                        return
+                                    }
                                     if (!previewViewport.pixelMode) previewViewport.requestScale(1)
                                     previewViewport.pendingSource = Qt.point(Math.max(0, Math.min(1, mouse.x / width)),
                                                                             Math.max(0, Math.min(1, mouse.y / height)))
@@ -507,18 +566,18 @@ ApplicationWindow {
                             objectName: "develop.fit"
                             text: qsTranslate("Apertone", "Fit")
                             Layout.fillWidth: true; leftPadding: 3; rightPadding: 3
-                            checkable: true; checked: editor.zoomMode === "fit"
+                            checked: root.beforeAfterActive ? comparisonView.mode === "fit" : editor.zoomMode === "fit"
                             enabled: editor.hasPhoto && !editor.busy
-                            onClicked: editor.zoomMode = "fit"
+                            onClicked: { if (root.beforeAfterActive) comparisonView.setZoom("fit"); else editor.zoomMode = "fit" }
                         }
                         ApertoneButton {
                             id: zoomFill
                             objectName: "develop.fill"
                             text: qsTranslate("Apertone", "FILL")
                             Layout.fillWidth: true; leftPadding: 3; rightPadding: 3
-                            checkable: true; checked: editor.zoomMode === "fill"
+                            checked: root.beforeAfterActive ? comparisonView.mode === "fill" : editor.zoomMode === "fill"
                             enabled: editor.zoomAvailable
-                            onClicked: editor.zoomMode = "fill"
+                            onClicked: { if (root.beforeAfterActive) comparisonView.setZoom("fill"); else editor.zoomMode = "fill" }
                         }
                         ApertoneButton {
                             id: zoomActual
@@ -526,9 +585,9 @@ ApplicationWindow {
                             text: "100%"
                             Accessible.name: qsTranslate("Apertone", "Zoom") + " 100%"
                             Layout.fillWidth: true; Layout.columnSpan: parent.columns === 2 ? 2 : 1; leftPadding: 3; rightPadding: 3
-                            checkable: true; checked: editor.oneToOne
+                            checked: root.beforeAfterActive ? comparisonView.mode === "manual" && comparisonView.manualZoom === 1 : editor.oneToOne
                             enabled: editor.zoomAvailable
-                            onClicked: editor.oneToOne = true
+                            onClicked: { if (root.beforeAfterActive) comparisonView.setZoom("manual", 1); else editor.oneToOne = true }
                         }
                     }
                     ApertoneTextField {
@@ -568,7 +627,7 @@ ApplicationWindow {
                         height: Math.max(implicitHeight, presetsScroll.availableHeight)
                         spacing: 9
                         PresetPanel { id: presetSettings; libraryModel: library; Layout.fillWidth: true; Layout.fillHeight: true }
-                        ApertoneButton {
+                        PanelAction {
                             objectName: "develop.versions"
                             text: qsTranslate("Apertone", "Processing versions")
                             enabled: editor.hasPhoto && !editor.busy && !batch.working && !exporter.working && !updates.restartPending
@@ -597,9 +656,11 @@ ApplicationWindow {
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 8; spacing: Theme.panelSpacing
                     RowLayout {
+                        visible: !root.beforeAfterActive
                         Layout.fillWidth: true; Layout.fillHeight: true
                         ComparePane {
                             id: referencePane
+                            onCanvas: true
                             objectName: "develop.referencePane"
                             visible: !!editor.referencePhoto.source
                             Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
@@ -740,25 +801,39 @@ ApplicationWindow {
                         }
                     }
                     }
+                    DevelopComparison {
+                        id: comparisonView
+                        objectName: "develop.comparison"
+                        visible: root.beforeAfterActive
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                    }
                     Rectangle { visible: root.workspaceToolsVisible; Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
                     Label { visible: editor.detailDiagnostic.length || editor.original || editor.presetPreview; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight; text: editor.detailDiagnostic.length ? qsTranslate("Apertone", editor.detailDiagnostic) : editor.original ? qsTranslate("Apertone", "ORIGINAL PHOTO") : editor.presetPreview ? qsTranslate("Apertone", "PRESET PREVIEW") : qsTranslate("Apertone", "PREVIEW"); color: Theme.canvasMuted; font.pixelSize: 9; font.letterSpacing: 2 }
                     Flow {
                         objectName: "develop.viewToolbar"
                         visible: root.workspaceToolsVisible
                         Layout.fillWidth: true; Layout.minimumWidth: 0; spacing: Theme.panelSpacing
-                        ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checkable: true; checked: !editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = false }
+                        ApertoneButton { objectName: "develop.processedButton"; text: qsTranslate("Apertone", "Develop"); checked: !editor.original && !root.beforeAfterActive; enabled: editor.hasPhoto && !editor.busy; onClicked: { root.closeBeforeAfter(); editor.original = false } }
                         ApertoneButton { objectName: "develop.originalButton"; text: qsTranslate("Apertone", "Original"); checkable: true; checked: editor.original; enabled: editor.hasPhoto && !editor.busy; onClicked: editor.original = true }
                         ApertoneButton {
                             objectName: "develop.beforeAfterButton"
                             text: qsTranslate("Apertone", "Before / After")
-                            enabled: editor.hasPhoto && !editor.busy && !editor.saving
+                            checked: root.beforeAfterActive
+                            enabled: root.beforeAfterActive || root.comparisonAvailable && !editor.saving
                             onClicked: root.showBeforeAfter()
+                        }
+                        ApertoneButton {
+                            objectName: "develop.splitComparison"
+                            visible: root.beforeAfterActive
+                            text: qsTranslate("Apertone", "Split comparison")
+                            checked: comparisonView.split
+                            onClicked: comparisonView.split = !comparisonView.split
                         }
                         ApertoneButton {
                             objectName: "develop.referenceButton"
                             text: editor.referencePhoto.source ? qsTranslate("Apertone", "Clear reference") : qsTranslate("Apertone", "Pin reference")
                             enabled: !!editor.referencePhoto.source || editor.hasPhoto && !editor.busy && !editor.referencePhoto.busy
-                            onClicked: editor.referencePhoto.source ? editor.clearReference() : editor.pinReference(editor.photoID)
+                            onClicked: { root.closeBeforeAfter(); editor.referencePhoto.source ? editor.clearReference() : editor.pinReference(editor.photoID) }
                         }
                         ApertoneButton { objectName: "develop.secondDisplay"; text: qsTranslate("Apertone", "Review window"); enabled: editor.hasPhoto; onClicked: reviewDisplay.openReview(false) }
                     }
@@ -800,6 +875,7 @@ ApplicationWindow {
                         enabled: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original
                         ApertoneButton {
                             objectName: "develop.tool.crop"; text: qsTranslate("Apertone", "Crop")
+                            leftPadding: 3; rightPadding: 3
                             Layout.fillWidth: true; Layout.minimumWidth: 0
                             highlighted: editor.cropMode
                             onClicked: {
@@ -809,6 +885,7 @@ ApplicationWindow {
                         }
                         ApertoneButton {
                             objectName: "develop.tool.retouch"; text: qsTranslate("Apertone", "Retouch")
+                            leftPadding: 3; rightPadding: 3
                             Layout.fillWidth: true; Layout.minimumWidth: 0
                             highlighted: editor.retouchMode !== "off"
                             onClicked: {
@@ -818,15 +895,13 @@ ApplicationWindow {
                         }
                         ApertoneButton {
                             objectName: "develop.tool.masking"; text: qsTranslate("Apertone", "Masking")
+                            leftPadding: 3; rightPadding: 3
                             Layout.fillWidth: true; Layout.minimumWidth: 0
                             highlighted: editor.localMode
                             onClicked: {
                                 editor.localMode = !editor.localMode
                                 maskPanel.controlsOpen = editor.localMode
-                                if (editor.localMode) {
-                                    adjustmentsScroll.contentItem.cancelFlick()
-                                    adjustmentsScroll.contentItem.contentY = adjustmentsScroll.contentItem.originY
-                                }
+                                if (editor.localMode) adjustmentsScroll.scrollToControl(maskPanel)
                             }
                         }
                     }
@@ -847,9 +922,12 @@ ApplicationWindow {
                     function revealSection(section) {
                         section.expanded = true
                         section.focusHeader()
+                        scrollToControl(section)
+                    }
+                    function scrollToControl(control) {
                         Qt.callLater(function() {
                             const view = adjustmentsScroll.contentItem
-                            const target = section.mapToItem(view.contentItem, 0, 0).y
+                            const target = control.mapToItem(view.contentItem, 0, 0).y
                             const maximum = view.originY + Math.max(0, view.contentHeight - view.height)
                             view.cancelFlick()
                             view.contentY = Math.max(view.originY, Math.min(maximum, target))
@@ -863,15 +941,6 @@ ApplicationWindow {
                     ColumnLayout {
                         width: adjustmentsScroll.availableWidth
                         spacing: Theme.panelSpacing
-                        LocalPanel { id: maskPanel; Layout.fillWidth: true }
-                        ApertoneComboBox {
-                            objectName: "develop.sectionPicker"
-                            Layout.fillWidth: true
-                            displayText: qsTranslate("Apertone", "Adjustments")
-                            Accessible.name: displayText
-                            model: adjustmentsScroll.sections.map(section => section.title)
-                            onActivated: function(index) { adjustmentsScroll.revealSection(adjustmentsScroll.sections[index]) }
-                        }
                         DevelopSection {
                             id: basicSection
                             objectName: "develop.section.basic"
@@ -983,6 +1052,15 @@ ApplicationWindow {
                             Label { text: qsTranslate("Apertone", "Presence"); color: Theme.muted; font.pixelSize: 10 }
                             CreativePanel { section: 256; Layout.fillWidth: true; Layout.minimumWidth: 0 }
                         }
+                        ApertoneComboBox {
+                            objectName: "develop.sectionPicker"
+                            Layout.fillWidth: true
+                            displayText: qsTranslate("Apertone", "Adjustments")
+                            Accessible.name: displayText
+                            model: adjustmentsScroll.sections.map(section => section.title)
+                            onActivated: function(index) { adjustmentsScroll.revealSection(adjustmentsScroll.sections[index]) }
+                        }
+                        LocalPanel { id: maskPanel; Layout.fillWidth: true }
                         DevelopSection {
                             id: curveSection
                             objectName: "develop.section.curve"
@@ -1070,51 +1148,6 @@ ApplicationWindow {
                 }
             }
         }
-        ListView {
-            id: filmstrip
-            objectName: root.libraryMode ? "library.filmstrip" : "develop.filmstrip"
-            visible: root.filmstripVisible && root.hasFilmstrip
-            Layout.fillWidth: true; Layout.preferredHeight: visible ? Theme.filmstripHeight : 0
-            orientation: ListView.Horizontal; clip: true; spacing: 1; model: library; cacheBuffer: 300
-            function revealCurrentPhoto() {
-                if (!visible) return
-                const row = !root.libraryMode ? library.reviewPhotoRow(editor.photoID) :
-                            libraryPane.viewMode === "loupe" ? libraryPane.loupeRow : libraryPane.currentGridRow
-                if (row < 0 || row >= count || row === currentIndex) return
-                currentIndex = row
-                positionViewAtIndex(row, ListView.Contain)
-            }
-            onVisibleChanged: if (visible) Qt.callLater(revealCurrentPhoto)
-            Connections {
-                target: libraryPane
-                function onLoupeRowChanged() { if (root.libraryMode) Qt.callLater(filmstrip.revealCurrentPhoto) }
-                function onCurrentGridRowChanged() { if (root.libraryMode) Qt.callLater(filmstrip.revealCurrentPhoto) }
-            }
-            Connections {
-                target: root
-                function onLibraryModeChanged() { Qt.callLater(filmstrip.revealCurrentPhoto) }
-            }
-            function moveCurrentPhoto(direction, event) {
-                event.accepted = !root.libraryMode && event.modifiers === Qt.NoModifier
-                if (!event.accepted) return
-                if (direction > 0) incrementCurrentIndex()
-                else decrementCurrentIndex()
-                // Mouse clicks retain their viewport. Keyboard navigation must
-                // explicitly reveal its item even after that positioning.
-                if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
-            }
-            Keys.onRightPressed: function(event) { moveCurrentPhoto(1, event) }
-            Keys.onLeftPressed: function(event) { moveCurrentPhoto(-1, event) }
-            delegate: PhotoCard {
-                id: stripCard
-                width: 112; height: Theme.filmstripHeight; compact: true
-                reviewPhoto: !root.libraryMode ? null : function(assetID) {
-                    if (libraryPane.viewMode === "loupe") libraryPane.showLoupe(assetID)
-                    else libraryPane.revealGridRow(stripCard.index)
-                }
-            }
-            ScrollBar.horizontal: ScrollBar { objectName: root.libraryMode ? "library.filmstripBar" : "develop.filmstripBar" }
-        }
         Rectangle {
             objectName: "main.footer"
             Layout.fillWidth: true; implicitHeight: Theme.footerHeight; color: Theme.panel
@@ -1149,6 +1182,51 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+        ListView {
+            id: filmstrip
+            objectName: root.libraryMode ? "library.filmstrip" : "develop.filmstrip"
+            visible: root.filmstripVisible && root.hasFilmstrip
+            Layout.fillWidth: true; Layout.preferredHeight: visible ? root.stripHeight : 0
+            orientation: ListView.Horizontal; clip: true; spacing: 1; model: library; cacheBuffer: 300
+            function revealCurrentPhoto() {
+                if (!visible) return
+                const row = !root.libraryMode ? library.reviewPhotoRow(editor.photoID) :
+                            libraryPane.viewMode === "loupe" ? libraryPane.loupeRow : libraryPane.currentGridRow
+                if (row < 0 || row >= count || row === currentIndex) return
+                currentIndex = row
+                positionViewAtIndex(row, ListView.Contain)
+            }
+            onVisibleChanged: if (visible) Qt.callLater(revealCurrentPhoto)
+            Connections {
+                target: libraryPane
+                function onLoupeRowChanged() { if (root.libraryMode) Qt.callLater(filmstrip.revealCurrentPhoto) }
+                function onCurrentGridRowChanged() { if (root.libraryMode) Qt.callLater(filmstrip.revealCurrentPhoto) }
+            }
+            Connections {
+                target: root
+                function onLibraryModeChanged() { Qt.callLater(filmstrip.revealCurrentPhoto) }
+            }
+            function moveCurrentPhoto(direction, event) {
+                event.accepted = !root.libraryMode && event.modifiers === Qt.NoModifier
+                if (!event.accepted) return
+                if (direction > 0) incrementCurrentIndex()
+                else decrementCurrentIndex()
+                // Mouse clicks retain their viewport. Keyboard navigation must
+                // explicitly reveal its item even after that positioning.
+                if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+            }
+            Keys.onRightPressed: function(event) { moveCurrentPhoto(1, event) }
+            Keys.onLeftPressed: function(event) { moveCurrentPhoto(-1, event) }
+            delegate: PhotoCard {
+                id: stripCard
+                width: Math.round(root.stripHeight * 112 / Theme.filmstripHeight); height: root.stripHeight; compact: true
+                reviewPhoto: !root.libraryMode ? null : function(assetID) {
+                    if (libraryPane.viewMode === "loupe") libraryPane.showLoupe(assetID)
+                    else libraryPane.revealGridRow(stripCard.index)
+                }
+            }
+            ScrollBar.horizontal: ScrollBar { objectName: root.libraryMode ? "library.filmstripBar" : "develop.filmstripBar" }
         }
     }
     ApertoneButton {

@@ -41,6 +41,7 @@ ColumnLayout {
             objectName: "histogram.help"
             text: panel.compact ? "⋯" : "?"; checkable: true
             implicitWidth: 30; implicitHeight: Theme.compactControlHeight
+            topPadding: 1; bottomPadding: 1
             Accessible.name: panel.compact ? qsTranslate("Apertone", "Histogram options") : qsTranslate("Apertone", "Histogram help")
             ToolTip.visible: hovered
             ToolTip.text: Accessible.name

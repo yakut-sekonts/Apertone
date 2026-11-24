@@ -4,47 +4,18 @@ import QtQuick.Layouts
 
 GridLayout {
     id: row
-    property bool inspectorLayout: false
-    columns: inspectorLayout ? 2 : width < 900 ? 3 : 6
-    uniformCellWidths: inspectorLayout
+    columns: 2
+    uniformCellWidths: true
     columnSpacing: 6
     rowSpacing: 6
     objectName: "batchSettings"
     Layout.minimumWidth: 0
     Layout.fillWidth: true
     property bool ready: library.selectedCount > 0 && !library.working && !library.selecting && !editor.busy && !editor.exporting
-    property var availablePresets: presets.builtinItems.map(item => ({ id: item.id, displayName: "◆ " + qsTranslate("Apertone", "Built-in") + " · " + item.displayName }))
-                                  .concat(presets.items.map(item => ({ id: item.id, displayName: "● " + qsTranslate("Apertone", "User") + " · " + item.displayName })))
-    ApertoneComboBox {
-        Layout.minimumWidth: 0;
-        id: presetChoice; objectName: "batchPresetChoice"
-        model: row.availablePresets; textRole: "displayName"
-        Layout.preferredWidth: 190; Layout.maximumWidth: row.inspectorLayout ? Infinity : 230
-        Layout.columnSpan: row.inspectorLayout ? 2 : 1
-        Layout.fillWidth: row.inspectorLayout
-        enabled: row.ready && row.availablePresets.length > 0
-        delegate: ItemDelegate {
-            required property var modelData
-            width: presetChoice.width
-            contentItem: Label { text: modelData.displayName; textFormat: Text.PlainText; elide: Text.ElideRight }
-            ToolTip.visible: hovered; ToolTip.text: modelData.displayName
-        }
-        contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
-        ToolTip.visible: hovered && currentText.length > 0; ToolTip.text: currentText
-    }
-    ApertoneButton {
-        objectName: "batchApplyPreset"
-        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
-        Layout.maximumWidth: row.inspectorLayout ? Infinity : 110
-        ToolTip.visible: hovered; ToolTip.text: text
-        text: qsTranslate("Apertone", "Apply")
-        enabled: row.ready && presetChoice.currentIndex >= 0
-        onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id)
-    }
     ApertoneButton {
         objectName: "batchPaste"
-        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
-        Layout.maximumWidth: row.inspectorLayout ? Infinity : 110
+        Layout.minimumWidth: 0; Layout.fillWidth: true
+        Layout.columnSpan: 2
         ToolTip.visible: hovered; ToolTip.text: text
         text: qsTranslate("Apertone", "Paste")
         enabled: row.ready && presets.hasCopiedSettings
@@ -52,9 +23,8 @@ GridLayout {
     }
     ApertoneButton {
         objectName: "batchSync"
-        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
-        Layout.columnSpan: row.inspectorLayout ? 2 : 1
-        Layout.maximumWidth: row.inspectorLayout ? Infinity : 200
+        Layout.minimumWidth: 0; Layout.fillWidth: true
+        Layout.columnSpan: 2
         ToolTip.visible: hovered; ToolTip.text: text
         text: qsTranslate("Apertone", "Sync Settings…")
         enabled: row.ready && editor.hasPhoto
@@ -62,9 +32,8 @@ GridLayout {
     }
     ApertoneButton {
         objectName: "batchUndo"
-        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
-        Layout.maximumWidth: row.inspectorLayout ? Infinity : 160
-        text: row.inspectorLayout ? qsTranslate("Apertone", "Undo") : qsTranslate("Apertone", "Undo batch")
+        Layout.minimumWidth: 0; Layout.fillWidth: true
+        text: qsTranslate("Apertone", "Undo")
         Accessible.name: qsTranslate("Apertone", "Undo batch")
         ToolTip.visible: hovered; ToolTip.text: Accessible.name
         enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting
@@ -72,9 +41,8 @@ GridLayout {
     }
     ApertoneButton {
         objectName: "batchRedo"
-        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
-        Layout.maximumWidth: row.inspectorLayout ? Infinity : 160
-        text: row.inspectorLayout ? qsTranslate("Apertone", "Redo") : qsTranslate("Apertone", "Redo batch")
+        Layout.minimumWidth: 0; Layout.fillWidth: true
+        text: qsTranslate("Apertone", "Redo")
         Accessible.name: qsTranslate("Apertone", "Redo batch")
         ToolTip.visible: hovered; ToolTip.text: Accessible.name
         enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting
@@ -86,17 +54,33 @@ GridLayout {
         width: 430; implicitWidth: 430; modal: true
         title: qsTranslate("Apertone", "Sync Settings")
         property int groups: 32767
-        ColumnLayout {
-            width: parent.width
+        contentItem: ColumnLayout {
             Label { text: qsTranslate("Apertone", "Source: ") + editor.filename; textFormat: Text.PlainText; wrapMode: Text.Wrap; Layout.fillWidth: true }
             Label { text: qsTranslate("Apertone", "Selected photos: ") + library.selectedCount + qsTranslate("Apertone", ". Only the selected groups will change."); wrapMode: Text.Wrap; Layout.fillWidth: true }
-            Repeater {
-                model: [qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"), qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"), qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"), qsTranslate("Apertone", "Geometry"),qsTranslate("Apertone","Presence"),qsTranslate("Apertone","Point Color"),qsTranslate("Apertone","Color Grading"),qsTranslate("Apertone","Effects"),qsTranslate("Apertone","Black and White")]
-                ApertoneCheckBox {
-                    required property string modelData
-                    required property int index
-                    text: modelData; checked: (syncDialog.groups & (1 << index)) !== 0
-                    onClicked: syncDialog.groups = checked ? syncDialog.groups | (1 << index) : syncDialog.groups & ~(1 << index)
+            GridLayout {
+                Layout.fillWidth: true
+                columns: 2
+                uniformCellWidths: true
+                columnSpacing: Theme.panelSpacing
+                rowSpacing: Theme.panelSpacing
+                Repeater {
+                    model: [
+                        qsTranslate("Apertone", "Light"), qsTranslate("Apertone", "Color"),
+                        qsTranslate("Apertone", "Curve"), "HSL", qsTranslate("Apertone", "Detail"),
+                        qsTranslate("Apertone", "Crop"), qsTranslate("Apertone", "Optics"),
+                        qsTranslate("Apertone", "Geometry"), qsTranslate("Apertone", "Presence"),
+                        qsTranslate("Apertone", "Point Color"), qsTranslate("Apertone", "Color Grading"),
+                        qsTranslate("Apertone", "Effects"), qsTranslate("Apertone", "Black and White"),
+                        qsTranslate("Apertone", "Defringe"), qsTranslate("Apertone", "Calibration")
+                    ]
+                    ApertoneCheckBox {
+                        required property string modelData
+                        required property int index
+                        objectName: "batchSyncGroup" + index
+                        Layout.fillWidth: true; Layout.minimumWidth: 0
+                        text: modelData; checked: (syncDialog.groups & (1 << index)) !== 0
+                        onClicked: syncDialog.groups = checked ? syncDialog.groups | (1 << index) : syncDialog.groups & ~(1 << index)
+                    }
                 }
             }
         }

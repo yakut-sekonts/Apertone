@@ -9,6 +9,10 @@ void PreviewProvider::updateCompare(std::vector<QImage> images) {
     std::lock_guard lock(mutex_);
     comparison_ = std::move(images);
 }
+void PreviewProvider::updateCompareAfter(QImage image) {
+    std::lock_guard lock(mutex_);
+    comparison_.at(1) = std::move(image);
+}
 void PreviewProvider::updateReference(QImage image) {
     std::lock_guard lock(mutex_);
     reference_ = std::move(image);
@@ -31,7 +35,8 @@ QImage PreviewProvider::requestImage(const QString &id, QSize *size, const QSize
     if (size) {
         *size = result.size();
     }
-    if (key == QStringLiteral("current") && !requestedSize.isEmpty() &&
+    if ((key == QStringLiteral("current") || key.startsWith(QStringLiteral("compare-"))) &&
+        !requestedSize.isEmpty() &&
         (result.width() > requestedSize.width() || result.height() > requestedSize.height()))
         return result.scaled(requestedSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     return result;

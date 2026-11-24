@@ -38,14 +38,21 @@ Dialog {
         modal: true
         anchors.centerIn: parent
         width: Math.min(dialog.width - 30, 480)
+        implicitHeight: Math.min(dialog.height - 40, 260)
         standardButtons: Dialog.Yes | Dialog.Cancel
         property string versionID: ""
         property string revision: ""
         property string versionName: ""
-        contentItem: Label {
-            text: qsTranslate("Apertone", "Delete “%1”? The current edit and original photo will be kept.").arg(deletion.versionName)
-            textFormat: Text.PlainText
-            wrapMode: Text.WrapAnywhere
+        contentItem: ScrollView {
+            id: deletionMessage
+            clip: true
+            contentWidth: availableWidth
+            Label {
+                width: deletionMessage.availableWidth
+                text: qsTranslate("Apertone", "Delete “%1”? The current edit and original photo will be kept.").arg(deletion.versionName)
+                textFormat: Text.PlainText
+                wrapMode: Text.WrapAnywhere
+            }
         }
         onAccepted: editor.deleteVersion(versionID, revision)
     }

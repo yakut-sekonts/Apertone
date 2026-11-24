@@ -19,14 +19,16 @@ ColumnLayout {
         visible: editor.retouchMode !== "off"
         enabled: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original
         Layout.fillWidth: true
-        RowLayout {
+        GridLayout {
             Layout.fillWidth: true
+            columns: 2
+            uniformCellWidths: true
             Repeater {
                 model: [{key: "clone", title: qsTranslate("Apertone", "Clone")},
                         {key: "heal", title: qsTranslate("Apertone", "Heal")},
                         {key: "remove", title: qsTranslate("Apertone", "Remove")},
                         {key: "red-eye", title: qsTranslate("Apertone", "Red eye")}]
-                ApertoneButton {
+                PanelAction {
                     required property var modelData
                     objectName: "retouch.mode." + modelData.key
                     text: modelData.title

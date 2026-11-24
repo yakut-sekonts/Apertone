@@ -43,9 +43,18 @@ limitations.
 
 Switch between Library and Develop in the upper-right corner. In Library,
 select a collection on the left, browse photos in the center, and rate or
-inspect the selection on the right. Import and Export are at the bottom of
-the left panel. In Develop, the left panel contains the Navigator, presets,
-and history. The right panel starts with the histogram and editing tools.
+inspect the selection on the right. Use **Quick Develop** in the right panel
+to apply a preset, adjust each selected photo's exposure in one-third-stop
+steps, or restore its as-shot white balance. For individual adjustments,
+select a photo and click **Open in Develop**. Import and Export are at the bottom of
+the left panel. In Loupe, rate and flag the active photo below the image.
+The Navigator and histogram follow that photo as you move along the filmstrip.
+
+In Develop, browse presets below the Navigator on the left. The right panel
+starts with the histogram, editing tools and Basic adjustments. Press **Y**
+to see the original and edited photo side by side on the canvas. The Navigator
+controls zoom and pan for both views. **Split comparison** switches to a
+draggable divider. Press **Y** or **Escape** to return to the edited photo.
 The filmstrip runs across the bottom of both modules.
 
 Click the arrows at the outer edges to hide or show the side panels. Press

@@ -1,3 +1,5 @@
+#include "core/presets/SettingsSubset.h"
+#include "tests/ux/LibraryInspector.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxTestIds.h"
 #include <QSet>
@@ -67,6 +69,22 @@ bool batchScenario(Context &c, const QString &id) {
     d.click("library.selectAll");
     d.wait([&] { return !c.library.selecting() && c.library.selectedCount() == c.library.count(); },
            "batch selection ready");
+    if (id == "UX-BAT-009") {
+        clickLibraryControl(d, "batchSync");
+        auto *dialog = d.object("batchSyncDialog");
+        d.wait([&] { return dialog->property("opened").toBool(); }, "Sync Settings opened");
+        int remaining = luma::allSettingsGroups;
+        for (int index = 0; remaining; ++index) {
+            d.click("batchSyncGroup" + QString::number(index));
+            remaining &= ~(1 << index);
+            require(dialog->property("groups").toInt() == remaining,
+                    "Sync group hit target changed another setting");
+        }
+        require(!d.item("batchSyncConfirm")->isEnabled(), "Sync accepts an empty group selection");
+        d.key(Qt::Key_Escape);
+        d.wait([&] { return !dialog->property("visible").toBool(); }, "Sync Settings dismissed");
+        revealLibraryControl(d, "batchPresetChoice");
+    }
     const auto selected = c.library.selectionIDs();
     const auto before = documents(c);
     d.choose("batchPresetChoice", 1);
@@ -87,7 +105,7 @@ bool batchScenario(Context &c, const QString &id) {
         sqlite3_free(query);
         sql(c, copy.constData());
     }
-    d.click("batchApplyPreset");
+    clickLibraryControl(d, "batchApplyPreset");
     require(c.batch.working(), "Batch did not start: " + c.batch.error());
     if (id == "UX-BAT-003") {
         d.wait([&] { return d.object("batch.wait")->property("opened").toBool(); },
@@ -120,7 +138,7 @@ bool batchScenario(Context &c, const QString &id) {
                     !c.batch.canUndo(),
                 "Injected mid-batch failure did not roll back every asset");
         sql(c, "DROP TRIGGER ux_batch_fail");
-        d.click("batchApplyPreset");
+        clickLibraryControl(d, "batchApplyPreset");
         idle(c);
     }
     require(c.batch.error().isEmpty() && documents(c) == expected && c.batch.canUndo(),
@@ -140,22 +158,22 @@ bool batchScenario(Context &c, const QString &id) {
         c.saved();
         d.click(ids::library);
         const auto conflict = documents(c);
-        d.click("batchUndo");
+        clickLibraryControl(d, "batchUndo");
         idle(c);
         require(!c.batch.error().isEmpty() && documents(c) == conflict,
                 "Conflicting batch Undo overwrote later edits");
         return true;
     }
     if (id == "UX-BAT-015") {
-        d.click("batchApplyPreset");
+        clickLibraryControl(d, "batchApplyPreset");
         idle(c);
         require(documents(c) == expected, "No-op batch changed settings");
     }
-    d.click("batchUndo");
+    clickLibraryControl(d, "batchUndo");
     idle(c);
     require(documents(c) == before && !c.batch.canUndo() && c.batch.canRedo(),
             "Batch Undo did not restore all documents exactly once");
-    d.click("batchRedo");
+    clickLibraryControl(d, "batchRedo");
     idle(c);
     require(documents(c) == expected && c.batch.canUndo(),
             "Batch Redo did not restore complete applied documents");

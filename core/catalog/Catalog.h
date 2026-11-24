@@ -90,6 +90,12 @@ class Catalog {
                                     const std::function<void(double)> &progress = {},
                                     const std::string &activeID = {},
                                     std::span<const std::string> parameters = {});
+    using BatchTransform = std::function<EditDocument(const EditDocument &)>;
+    BatchEditResult transformBatchEdits(const std::vector<std::string> &ids,
+                                        const BatchTransform &transform,
+                                        const std::string &historyAction, CancellationToken stop,
+                                        const std::function<void(double)> &progress,
+                                        const std::string &activeID);
     BatchEditResult restoreBatchEdits(bool redo, CancellationToken stop = {},
                                       const std::string &activeID = {});
     bool canUndoBatch() const {

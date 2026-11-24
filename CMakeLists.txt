@@ -157,8 +157,11 @@ set_source_files_properties(apps/desktop/qml/Theme.qml PROPERTIES QT_QML_SINGLET
 qt_add_qml_module(Apertone URI Apertone.Desktop VERSION 1.0
     QML_FILES apps/desktop/qml/Theme.qml apps/desktop/qml/ApertoneButton.qml apps/desktop/qml/ApertoneCheckBox.qml apps/desktop/qml/ApertoneComboBox.qml apps/desktop/qml/ApertoneSlider.qml apps/desktop/qml/ApertoneTextField.qml apps/desktop/qml/ApertoneSpinBox.qml apps/desktop/qml/PhotoViewport.qml apps/desktop/qml/HistogramPanel.qml apps/desktop/qml/CreativePanel.qml apps/desktop/qml/ColorWheel.qml apps/desktop/qml/HistoryDialog.qml apps/desktop/qml/VersionsDialog.qml apps/desktop/qml/CatalogStartup.qml apps/desktop/qml/DiagnosticsDialog.qml apps/desktop/qml/LocalCheckBox.qml apps/desktop/qml/LocalPanel.qml apps/desktop/qml/RetouchPanel.qml apps/desktop/qml/RetouchOverlay.qml apps/desktop/qml/LocalSlider.qml apps/desktop/qml/LocalOverlay.qml apps/desktop/qml/PreferencesPanel.qml apps/desktop/qml/PhotoMetadataDialog.qml apps/desktop/qml/CatalogMaintenanceDialog.qml apps/desktop/qml/ExportPanel.qml apps/desktop/qml/TransformPanel.qml apps/desktop/qml/TransformOverlay.qml apps/desktop/qml/LensPanel.qml apps/desktop/qml/CropPanel.qml apps/desktop/qml/CropOverlay.qml apps/desktop/qml/DetailPanel.qml apps/desktop/qml/BatchSettings.qml apps/desktop/qml/PresetPanel.qml apps/desktop/qml/Main.qml apps/desktop/qml/UpdateBell.qml apps/desktop/qml/MetadataRow.qml apps/desktop/qml/DevelopSlider.qml apps/desktop/qml/CurvesPanel.qml apps/desktop/qml/HSLPanel.qml apps/desktop/qml/LibraryPane.qml apps/desktop/qml/FingerprintReviewDialog.qml apps/desktop/qml/ImportDialog.qml apps/desktop/qml/CompareDialog.qml apps/desktop/qml/SurveyDialog.qml apps/desktop/qml/ComparePane.qml apps/desktop/qml/SplitComparePane.qml apps/desktop/qml/SmartCollectionDialog.qml apps/desktop/qml/SmartRuleEditor.qml apps/desktop/qml/SemanticSearchDialog.qml apps/desktop/qml/PhotoCard.qml)
 qt_target_qml_sources(Apertone QML_FILES apps/desktop/qml/DeliveryDialog.qml apps/desktop/qml/PhotoMapDialog.qml
+    apps/desktop/qml/PanelAction.qml
+    apps/desktop/qml/DevelopComparison.qml
+    apps/desktop/qml/LibraryHistogram.qml
     apps/desktop/qml/CollectionSetDialog.qml apps/desktop/qml/KeywordDialog.qml
-    apps/desktop/qml/DevelopSection.qml)
+    apps/desktop/qml/DevelopSection.qml apps/desktop/qml/LibraryPresetPicker.qml)
 qt_add_resources(Apertone aperture_map PREFIX "/map" BASE "resources/maps" FILES resources/maps/world-land.png)
 target_link_libraries(Apertone PRIVATE luma_localization luma_services Qt6::Quick Qt6::QuickControls2)
 target_compile_definitions(Apertone PRIVATE APERTONE_VERSION="${PROJECT_VERSION}")
@@ -600,8 +603,11 @@ if(BUILD_TESTING AND APPLE)
     if(APERTONE_QMLTESTRUNNER)
         add_test(NAME library-fingerprint-dialog COMMAND "${APERTONE_QMLTESTRUNNER}"
             -input "${CMAKE_SOURCE_DIR}/tests/qml/tst_FingerprintReview.qml")
-        set_tests_properties(library-fingerprint-dialog PROPERTIES
+        add_test(NAME library-preview-histogram COMMAND "${APERTONE_QMLTESTRUNNER}"
+            -input "${CMAKE_SOURCE_DIR}/tests/qml/tst_LibraryHistogram.qml")
+        set_tests_properties(library-fingerprint-dialog library-preview-histogram PROPERTIES
             ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;QT_QUICK_CONTROLS_STYLE=Basic" TIMEOUT 30)
+        set_property(TEST library-preview-histogram APPEND PROPERTY ENVIRONMENT "QT_SCALE_FACTOR=2")
     endif()
     add_test(NAME qml-shell COMMAND Apertone --smoke-test --catalog "${CMAKE_BINARY_DIR}/smoke.sqlite")
     set_tests_properties(qml-shell PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)

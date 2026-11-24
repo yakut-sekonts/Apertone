@@ -13,8 +13,19 @@ Rectangle {
     property bool rightPanelVisible: true
     property alias exportSlot: exportSlotItem
     readonly property int currentGridRow: grid.currentIndex
-    readonly property var inspectedPhoto: visible && rightPanelVisible && library.selectedCount === 1 &&
+    readonly property var inspectedPhoto: visible && (leftPanelVisible || rightPanelVisible) && library.selectedCount === 1 &&
                                          !library.selecting && !library.loading ? library.selectedPhotoSummary : ({})
+
+    readonly property string activePreviewSource: {
+        if (!visible || (!leftPanelVisible && !rightPanelVisible) || reviewDialogVisible ||
+            !library.selectedCount || library.loading || library.selecting)
+            return ""
+        if (viewMode === "loupe") {
+            const review = editor.comparison
+            return review.ready && review.ids[0] === loupeID ? review.left : ""
+        }
+        return inspectedPhoto.thumbnail || ""
+    }
 
     function revealGridRow(row) {
         if (viewMode !== "grid" || row < 0 || row >= grid.count)
@@ -29,6 +40,7 @@ Rectangle {
     property string viewMode: "grid"
     property string queuedView: ""
     property string loupeID: ""
+    readonly property var loupeCard: grid.currentItem && grid.currentItem.assetID === loupeID ? grid.currentItem : null
     property int loupeRow: -1
     property int pendingLoupeRow: -1
     property real loupeCenterX: 0.5
@@ -170,6 +182,10 @@ Rectangle {
             if (pane.viewMode === "loupe" && !preserveViewport)
                 pane.requestView("grid")
         }
+        function onThumbnailsRefreshed(id) {
+            if (pane.visible && pane.viewMode === "loupe" && (!id || id === pane.loupeID))
+                editor.prepareLoupe(pane.loupeID, editor.comparison.fullResolution)
+        }
         function onViewportRestored(row) { grid.restoreViewport(row) }
         function onDataChanged() {
             if (pane.pendingLoupeRow >= 0)
@@ -180,6 +196,8 @@ Rectangle {
     function applyIntelligentFilter() {
         library.setIntelligentFilter([-2, 1, 0, -1][suggestionFilter.currentIndex], pane.intelligentFaceGroupID, bestOfBurst.checked)
     }
+    function ratePhoto(value) { library.rate(value, pane.viewMode === "loupe" ? pane.loupeID : "") }
+    function flagPhoto(value) { library.flag(value, pane.viewMode === "loupe" ? pane.loupeID : "") }
     function textInputFocused() {
         const item = Window.window ? Window.window.activeFocusItem : null
         return item && typeof item.cursorPosition === "number"
@@ -303,20 +321,20 @@ Rectangle {
     onVisibleChanged: if (!visible && viewMode === "loupe") requestView("grid")
     Shortcut {
         sequence: "Left"
-        enabled: pane.visible && pane.viewMode === "loupe" && !pane.textInputFocused() && !library.working
+        enabled: pane.visible && pane.viewMode === "loupe" && !navMap.activeFocus && !pane.textInputFocused() && !library.working
         onActivated: pane.moveLoupe(-1)
     }
     Shortcut {
         sequence: "Right"
-        enabled: pane.visible && pane.viewMode === "loupe" && !pane.textInputFocused() && !library.working
+        enabled: pane.visible && pane.viewMode === "loupe" && !navMap.activeFocus && !pane.textInputFocused() && !library.working
         onActivated: pane.moveLoupe(1)
     }
-    Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(1) }
-    Shortcut { sequence: "X"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(-1) }
-    Shortcut { sequence: "U"; enabled: pane.visible && pane.allowShortcut(); onActivated: library.flag(0) }
+    Shortcut { sequence: "P"; enabled: pane.visible && pane.allowShortcut(); onActivated: pane.flagPhoto(1) }
+    Shortcut { sequence: "X"; enabled: pane.visible && pane.allowShortcut(); onActivated: pane.flagPhoto(-1) }
+    Shortcut { sequence: "U"; enabled: pane.visible && pane.allowShortcut(); onActivated: pane.flagPhoto(0) }
     Repeater {
         model: 6
-        Item { required property int index; Shortcut { sequence: index.toString(); enabled: pane.visible && pane.allowShortcut(); onActivated: library.rate(index) } }
+        Item { required property int index; Shortcut { sequence: index.toString(); enabled: pane.visible && pane.allowShortcut(); onActivated: pane.ratePhoto(index) } }
     }
     Shortcut { sequences: [StandardKey.SelectAll]; enabled: pane.visible && !(search.activeFocus); onActivated: library.selectAll() }
     ImportDialog { id: importDialog }
@@ -750,110 +768,204 @@ Rectangle {
             color: Theme.panel; Layout.preferredWidth: Theme.sidebarWidth; Layout.fillHeight: true
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: Theme.panelSpacing
-                Label { text: qsTranslate("Apertone", "CATALOG"); font.pixelSize: 10; color: Theme.muted; font.letterSpacing: 1.2 }
-                ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
-                RowLayout {
-                    Layout.fillWidth: true; Layout.topMargin: 8
-                    Label { text: qsTranslate("Apertone", "COLLECTIONS"); font.pixelSize: 10; color: Theme.faint; Layout.fillWidth: true }
-                    ApertoneButton {
-                        objectName: "library.collectionSets"
-                        text: qsTranslate("Apertone", "Sets…")
-                        enabled: !library.working
-                        onClicked: collectionSets.edit(pane.currentSet)
-                    }
-                }
-                ApertoneComboBox {
-                    id: setFilter
-                    objectName: "library.collectionSetFilter"
-                    visible: pane.setChoices.length > 1
-                    Layout.fillWidth: true; Layout.minimumWidth: 0
-                    model: pane.setChoices; textRole: "path"; valueRole: "id"
-                    currentIndex: Math.max(0, indexOfValue(pane.currentSet))
-                    Accessible.name: qsTranslate("Apertone", "Collection set")
-                    onActivated: {
-                        pane.currentCollection = ""
-                        pane.currentSet = currentValue || ""
-                        pane.applyFilter()
-                    }
-                }
                 ScrollView {
-                    objectName: "library.collectionsScroll"
-                    Layout.fillWidth: true; Layout.fillHeight: true; clip: true; contentWidth: availableWidth
-                    Column {
-                        width: parent.width; spacing: 4
-                        Repeater {
-                            model: library.collections.filter(row => row.set === pane.currentSet)
-                            ApertoneButton { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
-                        }
-                    }
-                }
-                ApertoneButton {text:qsTranslate("Apertone","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create(pane.currentSet)}
-                ApertoneButton {
-                    text:qsTranslate("Apertone","Edit rules");Layout.fillWidth:true;enabled:!library.working
-                    visible:!!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&c.smart)
-                    onClicked:{const c=library.collections.find(c=>c.id===pane.currentCollection);if(c)library.editSmartCollection(c.id,c.name)}
-                }
-                ApertoneButton { objectName: "library.newCollection"; text: qsTranslate("Apertone", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
-                ApertoneButton { objectName: "library.renameCollection"; text: qsTranslate("Apertone", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
-                ApertoneButton { objectName: "library.deleteCollection"; text: qsTranslate("Apertone", "Delete collection"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: deleteDialog.open() }
-                Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
-                ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
-                ApertoneButton {
-                    objectName: "semantic.open"
-                    text: semanticSearch.categorySearch ? qsTranslate("Apertone", "Search by category") : qsTranslate("Apertone", "Search by description")
-                    Layout.fillWidth: true
-                    onClicked: semanticSearch.open()
-                }
-                ApertoneButton {
-                    objectName: "library.importOptions"
-                    text: qsTranslate("Apertone", "Import sources")
-                    Layout.fillWidth: true
-                    onClicked: importOptions.open()
-                    Menu {
-                        id: importOptions
-                        Menu {
-                            id: cards
-                            objectName: "library.cardImport"
-                            title: qsTranslate("Apertone", "Import from card")
-                            enabled: !library.working
-                            property var devices: []
-                            onAboutToShow: devices = library.cardSources()
-                            MenuItem {
-                                visible: !cards.devices.length
-                                height: visible ? implicitHeight : 0
-                                enabled: false
-                                text: qsTranslate("Apertone", "No mounted card with a DCIM folder")
-                            }
-                            Instantiator {
-                                model: cards.devices
-                                delegate: MenuItem {
-                                    required property var modelData
-                                    text: modelData.name
-                                    onTriggered: importDialog.openCard(modelData.url)
+                    id: catalogScroll
+                    objectName: "library.catalogScroll"
+                    Layout.minimumHeight: 0; Layout.minimumWidth: 0
+                    Layout.fillHeight: true; Layout.fillWidth: true
+                    clip: true; contentWidth: availableWidth
+                    rightPadding: ScrollBar.vertical.implicitWidth
+                    ColumnLayout {
+                        width: catalogScroll.availableWidth
+                        height: Math.max(implicitHeight, catalogScroll.availableHeight)
+                        spacing: Theme.panelSpacing
+                        DevelopSection {
+                            objectName: "library.navigator"
+                            title: qsTranslate("Apertone", "Navigator")
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: Math.min(145, width * 0.7, pane.height * 0.27)
+                                color: Theme.canvas
+                                Image {
+                                    id: navImage
+                                    objectName: "library.navigatorPreview"
+                                    anchors.fill: parent
+                                    source: visible ? pane.activePreviewSource : ""
+                                    sourceSize: Qt.size(240, 180)
+                                    fillMode: Image.PreserveAspectFit
+                                    asynchronous: true
                                 }
-                                onObjectAdded: (index, item) => cards.insertItem(index + 1, item)
-                                onObjectRemoved: (index, item) => cards.removeItem(item)
+                                Label {
+                                    anchors.centerIn: parent
+                                    width: parent.width - 8
+                                    visible: navImage.status !== Image.Ready
+                                    text: library.loading || library.selecting || navImage.status === Image.Loading ||
+                                          (pane.viewMode === "loupe" && editor.comparison.busy)
+                                          ? qsTranslate("Apertone", "Loading…")
+                                          : library.selectedCount === 0 ? qsTranslate("Apertone", "No photo selected")
+                                          : pane.viewMode === "grid" && library.selectedCount > 1
+                                            ? qsTranslate("Apertone", "Selected photos: ") + library.selectedCount
+                                            : qsTranslate("Apertone", "No preview")
+                                    wrapMode: Text.Wrap
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 11
+                                    color: Theme.canvasMuted
+                                }
+                                MouseArea {
+                                    id: navMap
+                                    objectName: "library.navigatorMap"
+                                    anchors.centerIn: navImage
+                                    width: navImage.paintedWidth; height: navImage.paintedHeight
+                                    visible: navImage.status === Image.Ready
+                                    enabled: pane.canRequestView("loupe")
+                                    activeFocusOnTab: true
+                                    Accessible.role: Accessible.Button
+                                    Accessible.name: qsTranslate("Apertone", "Navigator")
+                                    cursorShape: Qt.CrossCursor
+                                    function navigate(x, y) {
+                                        if (pane.viewMode !== "loupe" && !pane.requestView("loupe"))
+                                            return
+                                        if (!editor.comparison.fullResolution && loupeZoom.value === 1)
+                                            loupeZoom.value = 2
+                                        pane.loupeCenterX = Math.max(0, Math.min(1, x))
+                                        pane.loupeCenterY = Math.max(0, Math.min(1, y))
+                                    }
+                                    onPressed: function(mouse) { navigate(mouse.x / width, mouse.y / height) }
+                                    onPositionChanged: function(mouse) {
+                                        if (pressed) navigate(mouse.x / width, mouse.y / height)
+                                    }
+                                    Keys.onSpacePressed: navigate(0.5, 0.5)
+                                    Keys.onReturnPressed: navigate(0.5, 0.5)
+                                    Keys.onLeftPressed: navigate(pane.loupeCenterX - 0.1, pane.loupeCenterY)
+                                    Keys.onRightPressed: navigate(pane.loupeCenterX + 0.1, pane.loupeCenterY)
+                                    Keys.onUpPressed: navigate(pane.loupeCenterX, pane.loupeCenterY - 0.1)
+                                    Keys.onDownPressed: navigate(pane.loupeCenterX, pane.loupeCenterY + 0.1)
+                                    Accessible.onPressAction: navigate(0.5, 0.5)
+                                    Rectangle {
+                                        objectName: "library.navigatorBounds"
+                                        readonly property rect viewport: loupePreview.visibleSourceRect
+                                        visible: pane.viewMode === "loupe" && (viewport.width < 1 || viewport.height < 1)
+                                        x: viewport.x * parent.width; y: viewport.y * parent.height
+                                        width: viewport.width * parent.width; height: viewport.height * parent.height
+                                        color: "transparent"; border.width: 1; border.color: "white"
+                                    }
+                                    Rectangle {
+                                        anchors.fill: parent; visible: navMap.activeFocus
+                                        color: "transparent"; border.width: 2; border.color: Theme.accent
+                                    }
+                                }
                             }
                         }
-                        MenuItem {
-                            objectName: "library.captureFolder"
-                            text: library.captureFolder ? qsTranslate("Apertone", "Stop watching capture folder") : qsTranslate("Apertone", "Watch capture folder…")
-                            enabled: !!library.captureFolder || !library.working
-                            onTriggered: library.captureFolder ? library.stopCaptureFolder() : captureFolderPicker.open()
+                        Label { text: qsTranslate("Apertone", "CATALOG"); font.pixelSize: 10; color: Theme.muted; font.letterSpacing: 1.2 }
+                        ApertoneButton { text: qsTranslate("Apertone", "All photos"); Layout.fillWidth: true; highlighted: !pane.currentCollection; onClicked: { pane.currentCollection = ""; pane.applyFilter() } }
+                        RowLayout {
+                            Layout.fillWidth: true; Layout.topMargin: 8
+                            Label { text: qsTranslate("Apertone", "COLLECTIONS"); font.pixelSize: 10; color: Theme.faint; Layout.fillWidth: true }
+                            ApertoneButton {
+                                objectName: "library.collectionSets"
+                                text: qsTranslate("Apertone", "Sets…")
+                                enabled: !library.working
+                                onClicked: collectionSets.edit(pane.currentSet)
+                            }
                         }
-                        MenuItem {
-                            objectName: "library.tetherOpen"
-                            text: qsTranslate("Apertone", "Tethered camera…")
-                            visible: library.tetherAvailable
-                            height: visible ? implicitHeight : 0
-                            enabled: !library.working
-                            onTriggered: cameraDialog.open()
+                        ApertoneComboBox {
+                            id: setFilter
+                            objectName: "library.collectionSetFilter"
+                            visible: pane.setChoices.length > 1
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
+                            model: pane.setChoices; textRole: "path"; valueRole: "id"
+                            currentIndex: Math.max(0, indexOfValue(pane.currentSet))
+                            Accessible.name: qsTranslate("Apertone", "Collection set")
+                            onActivated: {
+                                pane.currentCollection = ""
+                                pane.currentSet = currentValue || ""
+                                pane.applyFilter()
+                            }
                         }
-                        MenuItem {
-                            objectName: "library.lightroomButton"
-                            text: qsTranslate("Apertone", "Import Lightroom catalog…")
-                            enabled: !library.working
-                            onTriggered: lightroomFile.open()
+                        ScrollView {
+                            objectName: "library.collectionsScroll"
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            Layout.minimumHeight: collectionRows.count ? Theme.controlHeight * 2 : 0
+                            Layout.preferredHeight: 0
+                            clip: true; contentWidth: availableWidth
+                            Column {
+                                width: parent.width; spacing: 4
+                                Repeater {
+                                    id: collectionRows
+                                    model: library.collections.filter(row => row.set === pane.currentSet)
+                                    ApertoneButton { required property var modelData; objectName: "library.collection." + modelData.id; width: parent.width; text: modelData.name + " · " + modelData.count; highlighted: pane.currentCollection === modelData.id; onClicked: { pane.currentCollection = modelData.id; pane.applyFilter() } }
+                                }
+                            }
+                        }
+                        ApertoneButton {text:qsTranslate("Apertone","+ Smart Collection");Layout.fillWidth:true;enabled:!library.working;onClicked:smartCollection.create(pane.currentSet)}
+                        ApertoneButton {
+                            text:qsTranslate("Apertone","Edit rules");Layout.fillWidth:true;enabled:!library.working
+                            visible:!!pane.currentCollection && library.collections.some(c=>c.id===pane.currentCollection&&c.smart)
+                            onClicked:{const c=library.collections.find(c=>c.id===pane.currentCollection);if(c)library.editSmartCollection(c.id,c.name)}
+                        }
+                        ApertoneButton { objectName: "library.newCollection"; text: qsTranslate("Apertone", "+ Collection"); Layout.fillWidth: true; enabled: !library.working; onClicked: { pane.editCollectionID = ""; collectionName.text = ""; collectionDialog.open() } }
+                        ApertoneButton { objectName: "library.renameCollection"; text: qsTranslate("Apertone", "Rename"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: { pane.editCollectionID = pane.currentCollection; const item = library.collections.find(c => c.id === pane.currentCollection); collectionName.text = item ? item.name : ""; collectionDialog.open() } }
+                        ApertoneButton { objectName: "library.deleteCollection"; text: qsTranslate("Apertone", "Delete collection"); visible: !!pane.currentCollection; enabled: !library.working; Layout.fillWidth: true; onClicked: deleteDialog.open() }
+                        Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+                        ApertoneButton { objectName: "library.fingerprintOpen"; text: qsTranslate("Apertone", "Catalog matches"); Layout.fillWidth: true; enabled: !library.working && !library.loading; onClicked: fingerprintDialog.open() }
+                        ApertoneButton {
+                            objectName: "semantic.open"
+                            text: semanticSearch.categorySearch ? qsTranslate("Apertone", "Search by category") : qsTranslate("Apertone", "Search by description")
+                            Layout.fillWidth: true
+                            onClicked: semanticSearch.open()
+                        }
+                        ApertoneButton {
+                            objectName: "library.importOptions"
+                            text: qsTranslate("Apertone", "Import sources")
+                            Layout.fillWidth: true
+                            onClicked: importOptions.open()
+                            Menu {
+                                id: importOptions
+                                Menu {
+                                    id: cards
+                                    objectName: "library.cardImport"
+                                    title: qsTranslate("Apertone", "Import from card")
+                                    enabled: !library.working
+                                    property var devices: []
+                                    onAboutToShow: devices = library.cardSources()
+                                    MenuItem {
+                                        visible: !cards.devices.length
+                                        height: visible ? implicitHeight : 0
+                                        enabled: false
+                                        text: qsTranslate("Apertone", "No mounted card with a DCIM folder")
+                                    }
+                                    Instantiator {
+                                        model: cards.devices
+                                        delegate: MenuItem {
+                                            required property var modelData
+                                            text: modelData.name
+                                            onTriggered: importDialog.openCard(modelData.url)
+                                        }
+                                        onObjectAdded: (index, item) => cards.insertItem(index + 1, item)
+                                        onObjectRemoved: (index, item) => cards.removeItem(item)
+                                    }
+                                }
+                                MenuItem {
+                                    objectName: "library.captureFolder"
+                                    text: library.captureFolder ? qsTranslate("Apertone", "Stop watching capture folder") : qsTranslate("Apertone", "Watch capture folder…")
+                                    enabled: !!library.captureFolder || !library.working
+                                    onTriggered: library.captureFolder ? library.stopCaptureFolder() : captureFolderPicker.open()
+                                }
+                                MenuItem {
+                                    objectName: "library.tetherOpen"
+                                    text: qsTranslate("Apertone", "Tethered camera…")
+                                    visible: library.tetherAvailable
+                                    height: visible ? implicitHeight : 0
+                                    enabled: !library.working
+                                    onTriggered: cameraDialog.open()
+                                }
+                                MenuItem {
+                                    objectName: "library.lightroomButton"
+                                    text: qsTranslate("Apertone", "Import Lightroom catalog…")
+                                    enabled: !library.working
+                                    onTriggered: lightroomFile.open()
+                                }
+                            }
                         }
                     }
                 }
@@ -884,6 +996,7 @@ Rectangle {
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: Theme.panelPadding; spacing: Theme.panelSpacing
             GridLayout {
                 id: filterBar
+                visible: pane.viewMode === "grid"
                 objectName: "library.filterBar"
                 Layout.minimumWidth: 0
                 Layout.fillWidth: true
@@ -918,6 +1031,7 @@ Rectangle {
                 Item { Layout.fillWidth: true }
             }
             RowLayout {
+                visible: pane.viewMode === "grid"
                 Layout.minimumWidth: 0; Layout.fillWidth: true
                 Label { text: library.loading ? qsTranslate("Apertone", "Loading…") : library.count + qsTranslate("Apertone", " photos · selected ") + library.selectedCount; elide: Text.ElideRight; Layout.minimumWidth: 0; color: Theme.muted; Layout.fillWidth: true }
                 ApertoneButton { visible: library.viewingStack; text: qsTranslate("Apertone", "Exit stack"); enabled: !library.working; onClicked: library.viewStack("") }
@@ -1063,12 +1177,39 @@ Rectangle {
                     objectName: "library.loupe"
                     anchors.fill: parent
                     visible: pane.viewMode === "loupe"
-                    color: Theme.panelRaised
-                    radius: Theme.radius
+                    color: Theme.canvas
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: Theme.panelPadding
+                        Item {
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            ComparePane {
+                                id: loupePreview
+                                objectName: "library.loupe.preview"
+                                anchors.fill: parent
+                                visible: pane.visible && pane.viewMode === "loupe" && editor.comparison.ready
+                                source: visible ? editor.comparison.left : ""
+                                title: ""
+                                zoom: editor.comparison.fullResolution ? loupeZoom.value / Screen.devicePixelRatio : loupeZoom.value
+                                pixelScale: editor.comparison.fullResolution
+                                centerX: pane.loupeCenterX; centerY: pane.loupeCenterY
+                                onPanned: function(x, y) { pane.loupeCenterX = x; pane.loupeCenterY = y }
+                            }
+                            BusyIndicator {
+                                anchors.centerIn: parent
+                                running: pane.visible && pane.viewMode === "loupe" && editor.comparison.busy
+                                visible: running
+                            }
+                            Label {
+                                anchors.centerIn: parent; width: parent.width
+                                visible: editor.comparison.error.length > 0
+                                color: Theme.canvasText
+                                text: qsTranslate("Apertone", editor.comparison.error)
+                                horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
+                            }
+                        }
                         RowLayout {
+                            visible: pane.viewToolbarVisible
                             Layout.fillWidth: true
                             ApertoneButton {
                                 text: qsTranslate("Apertone", "Fit")
@@ -1095,106 +1236,134 @@ Rectangle {
                                 from: 1; to: 4; value: 1
                                 enabled: editor.comparison.ready
                                 Accessible.name: qsTranslate("Apertone", "Zoom")
-                                Layout.maximumWidth: 180
+                                Layout.minimumWidth: 36; Layout.maximumWidth: 130
                                 Layout.fillWidth: true
                             }
-                            Item { Layout.fillWidth: true }
-                        }
-                        Item {
-                            Layout.fillWidth: true; Layout.fillHeight: true
-                            ComparePane {
-                                objectName: "library.loupe.preview"
-                                anchors.fill: parent
-                                visible: pane.visible && pane.viewMode === "loupe" && editor.comparison.ready
-                                source: visible ? editor.comparison.left : ""
-                                title: editor.comparison.names[0] ?? ""
-                                zoom: loupeZoom.value
-                                pixelScale: editor.comparison.fullResolution
-                                centerX: pane.loupeCenterX; centerY: pane.loupeCenterY
-                                onPanned: function(x, y) { pane.loupeCenterX = x; pane.loupeCenterY = y }
+                            RowLayout {
+                                objectName: "library.loupe.rating"
+                                spacing: 0
+                                enabled: !!pane.loupeCard && pane.loupeCard.selected && !library.working
+                                Repeater {
+                                    model: 5
+                                    ApertoneButton {
+                                        required property int index
+                                        objectName: "library.loupe.star." + (index + 1)
+                                        readonly property int currentRating: pane.loupeCard?.rating ?? 0
+                                        text: currentRating > index ? "★" : "☆"
+                                        font.pixelSize: 15
+                                        flat: true
+                                        contentItem: Text {
+                                            text: parent.text; font: parent.font
+                                            color: parent.hovered || parent.visualFocus ? "white" : Theme.canvasText
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                        }
+                                        background: Rectangle {
+                                            radius: Theme.radius
+                                            color: parent.hovered || parent.down ? Theme.canvasRaised : "transparent"
+                                            border.width: parent.visualFocus ? 1 : 0; border.color: Theme.accent
+                                        }
+                                        leftPadding: 0; rightPadding: 0
+                                        Layout.preferredWidth: 18
+                                        Accessible.name: qsTranslate("Apertone", "Rating") + " " + (index + 1)
+                                        ToolTip.visible: hovered || visualFocus
+                                        ToolTip.text: Accessible.name
+                                        onClicked: pane.ratePhoto(currentRating === index + 1 ? 0 : index + 1)
+                                    }
+                                }
                             }
-                            BusyIndicator {
-                                anchors.centerIn: parent
-                                running: pane.visible && pane.viewMode === "loupe" && editor.comparison.busy
-                                visible: running
+                            ApertoneComboBox {
+                                objectName: "library.loupe.flag"
+                                Layout.preferredWidth: 96; Layout.minimumWidth: 58
+                                enabled: !!pane.loupeCard && pane.loupeCard.selected && !library.working
+                                Accessible.name: qsTranslate("Apertone", "Flag…")
+                                model: [qsTranslate("Apertone", "Unflagged"), qsTranslate("Apertone", "Pick"), qsTranslate("Apertone", "Reject")]
+                                currentIndex: pane.loupeCard?.flagValue === 1 ? 1 : pane.loupeCard?.flagValue === -1 ? 2 : 0
+                                ToolTip.visible: hovered || visualFocus
+                                ToolTip.text: currentText
+                                onActivated: function(index) { pane.flagPhoto([0, 1, -1][index]) }
                             }
                             Label {
-                                anchors.centerIn: parent; width: parent.width
-                                visible: editor.comparison.error.length > 0
-                                text: qsTranslate("Apertone", editor.comparison.error)
-                                horizontalAlignment: Text.AlignHCenter; wrapMode: Text.Wrap
+                                visible: parent.width >= 520
+                                text: editor.comparison.names[0] ?? ""
+                                textFormat: Text.PlainText
+                                color: Theme.canvasMuted; font.pixelSize: 11; elide: Text.ElideMiddle
+                                horizontalAlignment: Text.AlignRight
+                                Layout.minimumWidth: 0; Layout.fillWidth: true
                             }
                         }
                     }
                 }
                 Label { anchors.centerIn: parent; visible: !library.loading && !library.count; text: qsTranslate("Apertone", "Import photos\nor change the filters"); horizontalAlignment: Text.AlignHCenter; color: Theme.faint; font.pixelSize: 18 }
             }
-            RowLayout {
+            GridLayout {
                 objectName: "library.viewToolbar"
                 visible: pane.viewToolbarVisible
-                Layout.fillWidth: true
-                Layout.minimumWidth: 0
-                Repeater {
-                    model: [
-                        {view: "grid", title: qsTranslate("Apertone", "Grid"), key: "G"},
-                        {view: "loupe", title: qsTranslate("Apertone", "Loupe"), key: "E"},
-                        {view: "compare", title: qsTranslate("Apertone", "Compare"), key: "C"},
-                        {view: "survey", title: qsTranslate("Apertone", "Survey"), key: "N"}
-                    ]
-                    ApertoneButton {
-                        required property var modelData
-                        objectName: "library.view." + modelData.view
-                        text: modelData.title
-                        highlighted: pane.viewMode === modelData.view
-                        enabled: pane.canRequestView(modelData.view)
+                Layout.fillWidth: true; Layout.minimumWidth: 0
+                columns: width >= viewButtons.implicitWidth + viewOptions.implicitWidth + columnSpacing ? 2 : 1
+                rowSpacing: 2; columnSpacing: Theme.panelSpacing
+                RowLayout {
+                    id: viewButtons
+                    Layout.alignment: Qt.AlignLeft
+                    Repeater {
+                        model: [
+                            {view: "grid", title: qsTranslate("Apertone", "Grid"), key: "G"},
+                            {view: "loupe", title: qsTranslate("Apertone", "Loupe"), key: "E"},
+                            {view: "compare", title: qsTranslate("Apertone", "Compare"), key: "C"},
+                            {view: "survey", title: qsTranslate("Apertone", "Survey"), key: "N"}
+                        ]
+                        ApertoneButton {
+                            required property var modelData
+                            objectName: "library.view." + modelData.view
+                            text: modelData.title
+                            highlighted: pane.viewMode === modelData.view
+                            enabled: pane.canRequestView(modelData.view)
+                            ToolTip.visible: hovered
+                            ToolTip.text: modelData.title + " (" + modelData.key + ")"
+                            onClicked: pane.requestView(modelData.view)
+                        }
+                    }
+                }
+                RowLayout {
+                    id: viewOptions
+                    Layout.fillWidth: true
+                    Item { Layout.fillWidth: true }
+                    ApertoneComboBox {
+                        objectName: "library.sortOrder"
+                        visible: pane.viewMode !== "loupe"
+                        Layout.preferredWidth: 140
+                        enabled: !library.working
+                        currentIndex: library.sortOrder
+                        Accessible.name: qsTranslate("Apertone", "Sort photos")
                         ToolTip.visible: hovered
-                        ToolTip.text: modelData.title + " (" + modelData.key + ")"
-                        onClicked: pane.requestView(modelData.view)
+                        ToolTip.text: currentText
+                        model: [
+                            qsTranslate("Apertone", "Filename"),
+                            qsTranslate("Apertone", "Capture time ↓"),
+                            qsTranslate("Apertone", "Capture time ↑"),
+                            qsTranslate("Apertone", "Highest rating")
+                        ]
+                        onActivated: function(index) {
+                            pane.requestView("grid")
+                            library.sortOrder = index
+                        }
                     }
-                }
-                Item { Layout.fillWidth: true }
-                ApertoneComboBox {
-                    objectName: "library.sortOrder"
-                    visible: pane.viewMode !== "loupe"
-                    Layout.minimumWidth: 0; Layout.preferredWidth: 140
-                    Layout.fillWidth: true; Layout.maximumWidth: 140
-                    enabled: !library.working
-                    currentIndex: library.sortOrder
-                    Accessible.name: qsTranslate("Apertone", "Sort photos")
-                    ToolTip.visible: hovered
-                    ToolTip.text: currentText
-                    model: [
-                        qsTranslate("Apertone", "Filename"),
-                        qsTranslate("Apertone", "Capture time ↓"),
-                        qsTranslate("Apertone", "Capture time ↑"),
-                        qsTranslate("Apertone", "Highest rating")
-                    ]
-                    onActivated: function(index) {
-                        pane.requestView("grid")
-                        library.sortOrder = index
+                    ApertoneButton {
+                        objectName: "library.loupe.previous"
+                        visible: pane.viewMode === "loupe"
+                        enabled: !library.working
+                        text: "‹"
+                        Accessible.name: qsTranslate("Apertone", "Previous")
+                        onClicked: pane.moveLoupe(-1)
                     }
-                }
-                ApertoneButton {
-                    objectName: "library.loupe.previous"
-                    visible: pane.viewMode === "loupe"
-                    enabled: !library.working
-                    text: "‹"
-                    Accessible.name: qsTranslate("Apertone", "Previous")
-                    onClicked: pane.moveLoupe(-1)
-                }
-                ApertoneButton {
-                    objectName: "library.loupe.next"
-                    visible: pane.viewMode === "loupe"
-                    enabled: !library.working
-                    text: "›"
-                    Accessible.name: qsTranslate("Apertone", "Next")
-                    onClicked: pane.moveLoupe(1)
-                }
-                ApertoneButton {
-                    visible: pane.viewMode === "loupe"
-                    text: qsTranslate("Apertone", "Develop")
-                    enabled: pane.canOpenInDevelop
-                    onClicked: pane.openSelectedInDevelop()
+                    ApertoneButton {
+                        objectName: "library.loupe.next"
+                        visible: pane.viewMode === "loupe"
+                        enabled: !library.working
+                        text: "›"
+                        Accessible.name: qsTranslate("Apertone", "Next")
+                        onClicked: pane.moveLoupe(1)
+                    }
                 }
             }
             Label { visible: text.length > 0; text: qsTranslate("Apertone", library.status); font.pixelSize: 10; color: Theme.faint; elide: Text.ElideRight; Layout.fillWidth: true }
@@ -1207,6 +1376,7 @@ Rectangle {
             Layout.fillHeight: true
             ScrollView {
                 id: inspectorScroll
+                objectName: "library.inspectorScroll"
                 anchors.fill: parent
                 anchors.margins: Theme.panelPadding
                 clip: true
@@ -1215,42 +1385,97 @@ Rectangle {
                     width: inspectorScroll.availableWidth
                     spacing: Theme.panelSpacing
                     DevelopSection {
+                        objectName: "library.histogramSection"
+                        title: qsTranslate("Apertone", "Histogram")
+                        LibraryHistogram {
+                            objectName: "library.histogram"
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Math.max(54, Math.min(implicitHeight, pane.height * 0.17))
+                            source: visible ? pane.activePreviewSource : ""
+                        }
+                    }
+                    DevelopSection {
+                        objectName: "library.quickDevelop"
+                        title: qsTranslate("Apertone", "Quick Develop")
+                        LibraryPresetPicker { id: quickPresets }
+                        GridLayout {
+                            Layout.fillWidth: true
+                            columns: 3
+                            columnSpacing: Theme.panelSpacing
+                            rowSpacing: Theme.panelSpacing
+                            enabled: quickPresets.enabled
+                            Label {
+                                visible: library.selectedCount > 1
+                                Layout.columnSpan: 3; Layout.fillWidth: true
+                                text: qsTranslate("Apertone", "Selected photos: ") + library.selectedCount
+                                color: Theme.muted; font.pixelSize: 11; wrapMode: Text.Wrap
+                            }
+                            Label {
+                                Layout.fillWidth: true; Layout.minimumWidth: 0
+                                text: qsTranslate("Apertone", "Exposure")
+                                color: Theme.text; wrapMode: Text.Wrap; font.pixelSize: 11
+                            }
+                            Repeater {
+                                model: ["−⅓", "+⅓"]
+                                ApertoneButton {
+                                    required property int index
+                                    required property string modelData
+                                    objectName: index ? "library.quickExposureUp" : "library.quickExposureDown"
+                                    text: modelData
+                                    Accessible.name: qsTranslate("Apertone", "Exposure") + " " + modelData + " EV"
+                                    ToolTip.visible: hovered || visualFocus
+                                    ToolTip.text: Accessible.name + " · " + qsTranslate("Apertone", "Apply to selection")
+                                    onClicked: batch.adjustExposure(index === 1)
+                                }
+                            }
+                            Label {
+                                Layout.fillWidth: true; Layout.minimumWidth: 0
+                                text: qsTranslate("Apertone", "White balance")
+                                color: Theme.text; wrapMode: Text.Wrap; font.pixelSize: 11
+                            }
+                            ApertoneButton {
+                                objectName: "library.quickAsShot"
+                                Layout.columnSpan: 2; Layout.fillWidth: true; Layout.minimumWidth: 0
+                                text: qsTranslate("Apertone", "As Shot")
+                                Accessible.name: qsTranslate("Apertone", "White balance") + " · " + text
+                                ToolTip.visible: hovered || visualFocus
+                                ToolTip.text: Accessible.name + " · " + qsTranslate("Apertone", "Apply to selection")
+                                onClicked: batch.asShotWhiteBalance()
+                            }
+                        }
+                        ApertoneButton {
+                            objectName: "library.openInDevelop"
+                            text: qsTranslate("Apertone", "Open in Develop")
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
+                            enabled: pane.canOpenInDevelop && (library.selectedCount === 1 || pane.viewMode === "loupe")
+                            onClicked: pane.openSelectedInDevelop()
+                        }
+                    }
+                    DevelopSection {
                         objectName: "library.metadataSection"
                         title: qsTranslate("Apertone", "Metadata")
-                        RowLayout {
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            Image {
-                                Layout.preferredWidth: 56
-                                Layout.preferredHeight: 48
-                                visible: source.toString().length > 0
-                                source: pane.inspectedPhoto.thumbnail || ""
-                                fillMode: Image.PreserveAspectFit
-                                sourceSize: Qt.size(112, 96)
-                                asynchronous: true
-                            }
-                            ColumnLayout {
+                            Layout.minimumWidth: 0
+                            Label {
+                                objectName: "library.inspectorFilename"
+                                text: pane.inspectedPhoto.filename || (library.selecting || library.loading ? qsTranslate("Apertone", "Loading…") :
+                                      library.selectedCount ? qsTranslate("Apertone", "Selected photos: ") + library.selectedCount :
+                                                              qsTranslate("Apertone", "No photo selected"))
+                                textFormat: Text.PlainText
+                                color: Theme.text
+                                elide: Text.ElideMiddle
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
-                                Label {
-                                    objectName: "library.inspectorFilename"
-                                    text: pane.inspectedPhoto.filename || (library.selecting || library.loading ? qsTranslate("Apertone", "Loading…") :
-                                          library.selectedCount ? qsTranslate("Apertone", "Selected photos: ") + library.selectedCount :
-                                                                  qsTranslate("Apertone", "No photo selected"))
-                                    textFormat: Text.PlainText
-                                    color: Theme.text
-                                    elide: Text.ElideMiddle
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                }
-                                Label {
-                                    visible: text.length > 0
-                                    text: pane.inspectedPhoto.camera || ""
-                                    textFormat: Text.PlainText
-                                    color: Theme.muted
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                    Layout.minimumWidth: 0
-                                }
+                            }
+                            Label {
+                                visible: text.length > 0
+                                text: pane.inspectedPhoto.camera || ""
+                                textFormat: Text.PlainText
+                                color: Theme.muted
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                             }
                         }
                         ColumnLayout {
@@ -1398,7 +1623,7 @@ Rectangle {
                     DevelopSection {
                         objectName: "library.batchSection"
                         title: qsTranslate("Apertone", "Batch processing")
-                        BatchSettings { inspectorLayout: true }
+                        BatchSettings {}
                     }
                     DevelopSection {
                         objectName: "intelligence.controls"
@@ -1423,17 +1648,21 @@ Rectangle {
                         }
                         ApertoneCheckBox {
                             id: bestOfBurst; objectName: "intelligence.bestOfBurst"
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
                             text: qsTranslate("Apertone", "Best of burst"); font.pixelSize: 11
                             onToggled: pane.applyIntelligentFilter()
                         }
                         ApertoneCheckBox {
                             objectName: "intelligence.autoAnalyze"
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
                             text: qsTranslate("Apertone", "Analyze new imports locally"); font.pixelSize: 11
                             checked: library.cullingAutoEnabled
                             onClicked: library.cullingAutoEnabled = checked
                         }
                         Label {
                             visible: library.cullingSummary.analyzed > 0
+                            Layout.fillWidth: true; Layout.minimumWidth: 0
+                            wrapMode: Text.Wrap
                             text: library.cullingSummary.picks + " " + qsTranslate("Apertone", "picks") + " · " +
                                   library.cullingSummary.faceGroups + " " + qsTranslate("Apertone", "face groups")
                             color: Theme.faint; font.pixelSize: 10
