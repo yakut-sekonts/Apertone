@@ -15,6 +15,7 @@ ColumnLayout {
     property var folderChildren: []
     property var visiblePresets: []
     readonly property bool showStarterPresets: presetsTab.checked && presets.items.length === 0
+    readonly property real listHeightLimit: Math.max(100, Math.min(240, (panel.Window.window?.height ?? 640) * 0.30))
     property bool preserveFolderSelection: false
     readonly property Item editorScrollView: editScroll
     function refreshFolders() {
@@ -353,6 +354,7 @@ ColumnLayout {
         objectName: "builtinFilterList"
         visible: filtersTab.checked || panel.showStarterPresets
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
+        Layout.preferredHeight: Math.min(count * 30, panel.listHeightLimit)
         clip: true; model: presets.builtinItems
         delegate: ItemDelegate {
             id: filterRow
@@ -423,6 +425,7 @@ ColumnLayout {
         objectName: "presetList"
         visible: presetsTab.checked && !panel.showStarterPresets
         Layout.fillWidth: true; Layout.fillHeight: true; Layout.minimumHeight: 100
+        Layout.preferredHeight: Math.min(count * 34 + 26, panel.listHeightLimit)
         clip: true; model: panel.visiblePresets
         section.property: "folderKey"; section.criteria: ViewSection.FullString
         section.delegate: Label {
