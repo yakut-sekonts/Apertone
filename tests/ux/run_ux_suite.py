@@ -91,7 +91,7 @@ NATIVE.update(('UX-APP-006', 'UX-APP-007', 'UX-NAV-008', 'UX-NAV-009', 'UX-NAV-0
                'UX-SLD-007', 'UX-SLD-008', 'UX-SLD-019', 'UX-UND-001', 'UX-UND-002', 'UX-UND-003', 'UX-UND-004', 'UX-UND-005', 'UX-UND-010'))
 NATIVE.update(('UX-PRV-012', 'UX-P06-ZOM-003', 'UX-P06-ZOM-004', 'UX-P06-ZOM-012'))
 NATIVE.update(f'UX-P06-ZOM-{i:03}' for i in (6,7,8,9))
-NATIVE.add('UX-PRV-013')
+NATIVE.update(('UX-PRV-013', 'UX-PRV-016'))
 NATIVE.add('UX-PRV-006')
 NATIVE.update(('UX-P06-GPU-001', 'UX-P06-GPU-002'))
 NATIVE.update(('UX-P06-MEM-001', 'UX-P06-MEM-002'))
@@ -405,8 +405,15 @@ def execute(row, directory, arguments, fixture_folder):
         environment.pop('QT_QUICK_BACKEND', None)
     else:
         environment['QT_QUICK_BACKEND'] = 'software'
-    if os.environ.get('GITHUB_ACTIONS'):
         environment['QT_QPA_PLATFORM'] = 'offscreen'
+        if row['id'] in THUMBNAIL_PROFILE_IDS or row['id'] == PARTIAL_RENDER_CASE:
+            # These profiles require multiple full cards in view and others outside the cache.
+            # Keep the actual display input alongside the observed geometry in the case report.
+            screen = directory / 'thumbnail-desktop.json'
+            atomic_json(screen, {'screens': [{'name': 'thumbnail-desktop', 'width': 1440,
+                                               'height': 900, 'logicalDpi': 96,
+                                               'logicalBaseDpi': 96, 'dpr': 1}]})
+            environment['QT_QPA_PLATFORM'] = f'offscreen:configfile={screen.resolve()}'
     if row['id'] == WATERMARK_CASE:
         environment = watermark_child_environment(environment, directory, fixture_folder, case_id=row['id'])
     command = [str(launch_executable(arguments.build)), '--case', row['id'], '--root', str(directory),

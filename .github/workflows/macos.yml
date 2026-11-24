@@ -173,7 +173,7 @@ jobs:
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-P06-PRG-004 --case UX-P06-PRG-007 --case UX-P06-PRG-008 --case UX-P06-PRG-009 --case UX-P06-ZOM-002 --case UX-P06-ZOM-005 --runs 3 --require-build-provenance --report build/ux-preview-ordering-report
       - name: Viewer scale and pointer input regression
         if: ${{ !cancelled() && steps.ux_build.outcome == 'success' }}
-        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-PRV-012 --case UX-P06-ZOM-003 --case UX-P06-ZOM-004 --case UX-P06-ZOM-012 --runs 3 --require-build-provenance --report build/ux-viewer-input-report
+        run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-PRV-012 --case UX-PRV-016 --case UX-P06-ZOM-003 --case UX-P06-ZOM-004 --case UX-P06-ZOM-012 --runs 3 --require-build-provenance --report build/ux-viewer-input-report
       - name: Auto Transform completion regression
         if: ${{ !cancelled() && steps.ux_build.outcome == 'success' }}
         run: .tools/venv/bin/python tests/ux/run_ux_suite.py --build build --quality-only --case UX-RACE-005 --runs 3 --require-build-provenance --report build/ux-auto-transform-report

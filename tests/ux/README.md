@@ -83,7 +83,7 @@ while investigating a reproducer:
 The partial selected-photo keyboard regressions (Return and keypad Enter) share
 one generated PNG and use separate fresh processes in their own report domain.
 Both run automatically in both workflows; their results never qualify
-KEY015 or alter the 770-ID specification inventory. Its wrapper defines the bounded
+KEY015 or alter the specification inventory. Its wrapper defines the bounded
 workload directly, so the official-inventory `--quality-only` flag is unnecessary.
 
 ```sh
@@ -145,7 +145,7 @@ from the requested intermediate functional-quality checkpoint.
 Full-matrix qualification repeats blocking scenarios three times and runs other scenarios
 once by default. An explicit --runs value applies to every selected scenario.
 
-The complete 770-ID specification inventory is separate from executable adapters.
+The [UX specification](../../docs/testing/UX_AUTOTEST_SPEC.md) lists every scenario ID.
 An implemented product capability without a verified adapter is explicitly SKIPPED;
 it cannot satisfy a blocking gate. Absent future/conditional capabilities are
 NOT_IMPLEMENTED. Selecting cases, a single phase, or only blocking mode never qualifies a full release.

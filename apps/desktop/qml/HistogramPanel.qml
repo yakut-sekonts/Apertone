@@ -7,6 +7,8 @@ ColumnLayout {
     objectName: "histogram.panel"
     spacing: Theme.panelSpacing
     Layout.minimumWidth: 0
+    property bool compact: false
+    readonly property bool controlsVisible: !compact || helpToggle.checked
     readonly property var histogramData: editor.histogram
     readonly property bool available: editor.hasPhoto && !editor.busy && !editor.editingLocked && !editor.original && !editor.exporting
     readonly property var parameters: ["blacks", "shadows", "exposure", "highlights", "whites"]
@@ -37,12 +39,17 @@ ColumnLayout {
         ToolButton {
             id: helpToggle
             objectName: "histogram.help"
-            text: "?"; checkable: true
-            Accessible.name: qsTranslate("Apertone", "Histogram help")
+            text: panel.compact ? "⋯" : "?"; checkable: true
+            implicitWidth: 30; implicitHeight: Theme.compactControlHeight
+            topPadding: 1; bottomPadding: 1
+            Accessible.name: panel.compact ? qsTranslate("Apertone", "Histogram options") : qsTranslate("Apertone", "Histogram help")
+            ToolTip.visible: hovered
+            ToolTip.text: Accessible.name
         }
     }
     RowLayout {
         Layout.fillWidth: true
+        visible: panel.controlsVisible
         ApertoneComboBox {
             id: mode
             objectName: "histogram.mode"
@@ -64,7 +71,7 @@ ColumnLayout {
         objectName: "histogram.graph"
         Layout.fillWidth: true
         Layout.minimumWidth: 0
-        Layout.preferredHeight: 110
+        Layout.preferredHeight: panel.compact ? 76 : 110
         activeFocusOnTab: true
         Accessible.name: qsTranslate("Apertone", "Histogram")
         Accessible.description: qsTranslate("Apertone", "Use the tone selector and minus/plus buttons, or Left/Right keys, to adjust tones.")
@@ -146,6 +153,7 @@ ColumnLayout {
     }
     Label {
         text: editor.histogramPending ? qsTranslate("Apertone", "Updating histogram…") : qsTranslate("Apertone", "Sampled preview · sRGB")
+        visible: panel.controlsVisible
         font.pixelSize: 10; color: Theme.muted; wrapMode: Text.Wrap; Layout.fillWidth: true
     }
     Label {
@@ -155,6 +163,7 @@ ColumnLayout {
     }
     RowLayout {
         Layout.fillWidth: true
+        visible: panel.controlsVisible
         ApertoneComboBox {
             objectName: "histogram.tone"
             Layout.fillWidth: true
@@ -185,6 +194,7 @@ ColumnLayout {
     }
     ColumnLayout {
         Layout.fillWidth: true
+        visible: panel.controlsVisible
         spacing: 0
         ApertoneCheckBox {
             objectName: "histogram.shadowClipping"

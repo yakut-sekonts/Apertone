@@ -1,3 +1,4 @@
+#include "tests/ux/NativeWindowLifecycle.h"
 #include "tests/ux/UxContext.h"
 #include "tests/ux/UxPixels.h"
 #include <QCoreApplication>
@@ -77,12 +78,14 @@ void edit(Context &c) {
             "Lifecycle fixture must change only Exposure and Contrast through UI input");
     c.saved();
 }
-QQuickItem *adjustmentFlickable(Context &c) {
-    auto *object = qvariant_cast<QObject *>(
-        c.driver->object("develop.adjustmentsScroll")->property("contentItem"));
+QQuickItem *scrollViewport(Context &c, const QString &selector) {
+    auto *object = qvariant_cast<QObject *>(c.driver->object(selector)->property("contentItem"));
     auto *result = qobject_cast<QQuickItem *>(object);
-    require(result, "Adjustment ScrollView lacks its actual Flickable");
+    require(result && result->inherits("QQuickFlickable"), "Missing scroll viewport: " + selector);
     return result;
+}
+QQuickItem *adjustmentFlickable(Context &c) {
+    return scrollViewport(c, "develop.adjustmentsScroll");
 }
 struct Scroll {
     double offset = 0;
@@ -139,9 +142,17 @@ void dragScrollbar(Context &c, const QString &selector, QQuickItem &viewport, bo
     d.frame();
     const auto observed = scroll(viewport, horizontal);
     const double range = observed.content - observed.viewport;
-    require(range > 0 && std::abs((observed.offset - observed.origin) / range - fraction) <=
-                             2 / travel + 1e-3,
-            "Lifecycle scrollbar did not acknowledge the requested nonzero offset");
+    require(
+        range > 0 &&
+            std::abs((observed.offset - observed.origin) / range - fraction) <= 2 / travel + 1e-3,
+        QString(
+            "Lifecycle scrollbar %1 did not reach %2 (offset %3, origin %4, range %5, travel %6)")
+            .arg(selector)
+            .arg(fraction)
+            .arg(observed.offset)
+            .arg(observed.origin)
+            .arg(range)
+            .arg(travel));
 }
 QRectF rectangle(Context &c, const QString &selector) {
     auto *item = c.driver->item(selector);
@@ -179,18 +190,45 @@ Layout layout(Context &c) {
     values.insert("main.footer", rectangle(c, "main.footer"));
     if (c.window->property("libraryMode").toBool()) {
         for (const auto *selector :
-             {"library.pane", "library.grid", "library.search", "library.ratingFilter",
+             {"library.pane", "library.leftPanel", "library.rightPanel", "library.viewToolbar",
+              "library.filmstrip", "library.grid", "library.search", "library.ratingFilter",
               "libraryFlagFilter", "libraryLabelFilter", "library.importButton",
-              "library.metadataActions", "library.labelChoice", "libraryAddToCollection",
-              "libraryRemoveFromCollection"}) {
+              "library.inspectorScroll"}) {
             contained(c, selector, window);
             values.insert(selector, rectangle(c, selector));
         }
+        const auto left = values["library.leftPanel"];
+        const auto right = values["library.rightPanel"];
+        const auto gridBox = values["library.grid"];
+        const auto viewTools = values["library.viewToolbar"];
+        const auto strip = values["library.filmstrip"];
+        contained(c, "library.importButton", left);
+        contained(c, "exportButton", left);
+        contained(c, "library.inspectorScroll", right);
+        auto *inspector = scrollViewport(c, "library.inspectorScroll");
+        const auto inspectorState = scroll(*inspector, false);
+        const QRectF content(
+            inspector->mapToScene({0, inspectorState.origin - inspectorState.offset}),
+            QSizeF(inspector->width(), inspectorState.content));
+        for (const auto *selector :
+             {"library.histogramSection", "library.quickDevelop", "library.metadataSection",
+              "library.metadataActions", "library.labelChoice", "libraryAddToCollection",
+              "libraryRemoveFromCollection", "library.photoActions",
+              "intelligence.controls.toggle"}) {
+            contained(c, selector, content);
+            values.insert(selector, rectangle(c, selector));
+        }
+        require(left.right() <= gridBox.left() + 1 && gridBox.right() <= right.left() + 1 &&
+                    values["library.search"].bottom() <= gridBox.top() + 1 &&
+                    gridBox.bottom() <= viewTools.top() + 1 &&
+                    viewTools.bottom() <= values["main.footer"].top() + 1 &&
+                    values["main.footer"].bottom() <= strip.top() + 1,
+                "Library panels overlap the grid, view controls or shared filmstrip");
         auto *grid = c.driver->item("library.grid");
         const double cellWidth = grid->property("cellWidth").toDouble();
         const double cellHeight = grid->property("cellHeight").toDouble();
         require(std::isfinite(cellWidth) && std::isfinite(cellHeight) && cellWidth > 0 &&
-                    cellWidth <= grid->width() + 1 && cellHeight == 210,
+                    cellWidth <= grid->width() + 1 && cellHeight > 0,
                 "Library resize produced invalid cell geometry");
         const auto actions = values["library.metadataActions"];
         std::function<void(QQuickItem *)> inspect = [&](QQuickItem *parent) {
@@ -201,7 +239,7 @@ Layout layout(Context &c) {
                                           QSizeF(child->width(), child->height()));
                     require(geometry.width() > 0 && geometry.height() > 0 &&
                                 actions.adjusted(-1, -1, 1, 1).contains(geometry),
-                            "Responsive metadata action is empty or overflows its GridLayout");
+                            "Responsive metadata action is empty or overflows the inspector");
                 }
                 inspect(child);
             }
@@ -222,8 +260,8 @@ Layout layout(Context &c) {
         require(left.width() >= 169 && left.width() <= 351 && center.width() >= 359 &&
                     right.width() >= 249 && right.width() <= 401 &&
                     left.right() <= center.left() + 1 && center.right() <= right.left() + 1 &&
-                    values["develop.panels"].bottom() <= values["develop.filmstrip"].top() + 1 &&
-                    values["develop.filmstrip"].bottom() <= values["main.footer"].top() + 1,
+                    values["develop.panels"].bottom() <= values["main.footer"].top() + 1 &&
+                    values["main.footer"].bottom() <= values["develop.filmstrip"].top() + 1,
                 "Develop panels overlap, violate split bounds or cover filmstrip/footer");
         auto *preview = c.driver->item("develop.preview");
         const double paintedWidth = preview->property("paintedWidth").toDouble();
@@ -237,6 +275,32 @@ Layout layout(Context &c) {
         scroll(*c.driver->item("develop.filmstrip"), true);
     }
     return values;
+}
+void checkInspectorScroll(Context &c) {
+    auto &d = *c.driver;
+    constexpr auto selector = "library.inspectorScroll";
+    auto *viewport = scrollViewport(c, selector);
+    const auto initial = scroll(*viewport, false);
+    auto *focus = c.window->activeFocusItem();
+    const auto bounds = viewport->mapRectToScene(viewport->boundingRect()).adjusted(-1, -1, 1, 1);
+    for (const auto *action : {"library.photoActions", "intelligence.controls.toggle"}) {
+        d.wait(
+            [&] {
+                if (bounds.contains(rectangle(c, action)))
+                    return true;
+                d.wheel(selector, -120);
+                return false;
+            },
+            QString("Library inspector scrolled to %1").arg(action));
+    }
+    d.wait([&] { return !viewport->property("moving").toBool(); }, "Inspector wheel input settled");
+    const auto bottom = scroll(*viewport, false);
+    require(bottom.offset > initial.offset + 1, "Library inspector did not exercise scrolling");
+    viewport->setProperty("contentY", initial.offset);
+    d.frame();
+    require(std::abs(scroll(*viewport, false).offset - initial.offset) <= 1 &&
+                c.window->activeFocusItem() == focus,
+            "Library inspector did not restore its offset and preserve keyboard focus");
 }
 bool equalLayout(const Layout &first, const Layout &second) {
     if (first.keys() != second.keys())
@@ -332,6 +396,20 @@ void toggleFullscreen(Context &c, bool fullscreen) {
     auto &d = *c.driver;
     require(c.window->windowStates().testFlag(Qt::WindowFullScreen) != fullscreen,
             "Fullscreen acceptance must start in the opposite native window state");
+    const auto ownsInput = [&] {
+        if (!c.window->isExposed() || QGuiApplication::focusWindow() != c.window)
+            return false;
+#ifdef Q_OS_MACOS
+        const auto native = nativeActivationSnapshot(*c.window);
+        return native["application_active"].toBool() && native["window_key"].toBool() &&
+               native["frontmost_pid"] == native["own_pid"];
+#else
+        return c.window->isActive();
+#endif
+    };
+    if (!ownsInput())
+        c.window->requestActivate();
+    d.wait(ownsInput, "owned Cocoa window has keyboard focus before fullscreen shortcut", 10000);
     d.key(Qt::Key_F, Qt::ControlModifier | Qt::ShiftModifier);
     d.wait(
         [&] {
@@ -414,6 +492,7 @@ bool appExtraScenario(Context &c, const QString &id) {
     d.wait([&] { return c.window->size() == windowed; }, "initial windowed lifecycle geometry");
     stable(c, 100);
     d.click("main.libraryButton");
+    checkInspectorScroll(c);
     dragScrollbar(c, "library.scrollBar", *d.item("library.grid"), false, .25);
     d.click("main.developButton");
     dragScrollbar(c, "develop.adjustmentsBar", *adjustmentFlickable(c), false, .25);

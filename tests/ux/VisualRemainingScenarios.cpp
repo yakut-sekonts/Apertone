@@ -395,31 +395,43 @@ bool visualRemainingScenario(Context &c, const QString &id) {
                     d.object("develop.sourceFilename")->property("text").toString() == name,
                 "Long visual source identity/text changed after Develop activation");
         toolbar(c);
-        onScreen(c, "develop.sourceFilename");
-        auto *label = d.item("develop.sourceFilename");
-        require(label->property("contentHeight").toDouble() <= label->height() + .5 &&
-                    !label->property("truncated").toBool(),
-                "Source filename label lost wrapped text");
-        if (longName)
-            require(d.object("main.filename")->property("truncated").toBool() &&
-                        label->property("lineCount").toInt() > 1,
-                    "255-character filename did not exercise toolbar elision/source wrapping");
+        auto *filename = d.item("develop.sourceFilename");
+        // TextInput's boundingRect can include the full horizontally scrollable text.
+        // The field and its clipped viewport must fit within the Navigator.
+        const auto fieldRect =
+            filename->mapRectToScene({0, 0, filename->width(), filename->height()});
+        require(filename->isVisible() && filename->isEnabled() && !fieldRect.isEmpty() &&
+                    box(d.item("develop.navigator")).contains(fieldRect),
+                "Source filename field is unavailable or outside the Navigator");
         if (longName) {
+            require(d.object("main.filename")->property("truncated").toBool() &&
+                        filename->property("readOnly").toBool() &&
+                        filename->property("contentWidth").toDouble() > filename->width(),
+                    "255-character filename did not exercise the read-only Navigator field");
+            focusByActualTab(c, "develop.sourceFilename");
+            d.key(Qt::Key_Home);
+            require(filename->property("cursorPosition").toInt() == 0,
+                    "Keyboard cannot reach the start of the source filename");
+            d.key(Qt::Key_End);
+            require(filename->property("cursorPosition").toInt() == name.size(),
+                    "Keyboard cannot reach the end of the source filename");
+            d.key(Qt::Key_A, Qt::ControlModifier);
+            require(filename->property("selectedText").toString() == name,
+                    "Select All did not expose the exact full source filename");
             auto *copy = d.item("preset.copy");
             auto *pane = d.item("develop.presetsPane");
             if (d.find("develop.presetsScroll")) {
                 auto *view = flickable(c, "develop.presetsScroll");
                 auto *bar = d.item("develop.presetsBar");
                 require(view->property("contentHeight").toDouble() > view->height(),
-                        "Long filename did not exercise the overflowing sidebar");
+                        "The compact viewport did not exercise the overflowing sidebar");
                 d.log({{"action", "long_filename_sidebar_gutter"},
                        {"viewport_right", box(view).right()},
-                       {"filename_right", box(label).right()},
+                       {"filename_bottom", fieldRect.bottom()},
                        {"scrollbar_left", box(bar).left()}});
                 require(box(view).right() <= box(bar).left() + .5 &&
-                            box(label).right() <= box(bar).left() + .5 &&
-                            !box(label).intersected(box(view)).intersects(box(bar)),
-                        "Sidebar scrollbar overlaps the full wrapped source filename");
+                            fieldRect.bottom() <= box(view).top() + .5,
+                        "Presets viewport or scrollbar overlaps the Navigator filename");
             }
             const auto inside = [&] {
                 QRectF viewport = box(pane);
@@ -437,7 +449,14 @@ bool visualRemainingScenario(Context &c, const QString &id) {
             if (!inside()) {
                 require(d.find("develop.presetsScroll"),
                         "Long filename pushes Copy outside the sidebar with no scrolling route");
-                wheelEnd(c, "develop.presetsScroll");
+                auto *view = flickable(c, "develop.presetsScroll");
+                for (int step = 0; step < 100 && !inside(); ++step) {
+                    const int direction = box(copy).center().y() > box(view).center().y() ? -1 : 1;
+                    d.wheel("develop.presetsScroll", direction * 64);
+                    d.wait([&] { return !view->property("moving").toBool(); },
+                           "Presets wheel input settled");
+                    d.frame();
+                }
             }
             require(inside(), "Actual sidebar scrolling did not expose the full Copy action");
             if (d.find("develop.presetsScroll"))

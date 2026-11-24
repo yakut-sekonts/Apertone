@@ -53,8 +53,8 @@ void groups(Context &c, std::uint32_t selected) {
 }
 void userTab(Context &c) {
     c.driver->click("preset.tabs.presets");
-    c.driver->wait([&] { return c.driver->item("presetList")->isVisible(); },
-                   "user preset list visible");
+    c.driver->wait([&] { return c.driver->item("presetCreate")->isVisible(); },
+                   "user preset actions visible");
 }
 void visibleRow(Context &c, const QString &listID, const QString &rowID) {
     auto &d = *c.driver;

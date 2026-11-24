@@ -38,6 +38,7 @@ class Driver {
     }
 
   private:
+    void revealLibraryCard(const QString &id);
     QQuickWindow &window_;
     Metrics &metrics_;
     QFile actions_;

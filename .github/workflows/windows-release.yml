@@ -1,6 +1,8 @@
 name: Apertone Windows distribution
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [codex/windows-lightroom]
   workflow_call:
@@ -29,6 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@v5.6.0
         with:
@@ -64,17 +67,25 @@ jobs:
           $qt = (Resolve-Path .tools/qt/6.10.3/mingw_64).Path
           .\scripts\package-windows.ps1 -BuildDirectory build-windows -QtBin "$qt/bin" `
             -Destination dist/Apertone-windows-x64
-          python scripts/verify-windows-package.py dist/Apertone-windows-x64
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $version = (Get-Item -LiteralPath dist/Apertone-windows-x64/Apertone.exe).VersionInfo.ProductVersion
           if ($version -cnotmatch '\A(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\z') {
             throw "Invalid Apertone ProductVersion: $version"
           }
           $archive = "dist/Apertone-$version-windows-x64.zip"
           Compress-Archive -Path dist/Apertone-windows-x64 -DestinationPath $archive -CompressionLevel Optimal
+          Expand-Archive -LiteralPath $archive -DestinationPath dist/extracted
+          python scripts/verify-windows-package.py dist/extracted/Apertone-windows-x64 --workspace-evidence dist/workspace-evidence
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $digest = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           "$digest  $(Split-Path -Leaf $archive)" | Set-Content -Encoding ascii dist/SHA256SUMS-windows.txt
           "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Save native Windows workspace evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-workspace-evidence
+          path: dist/workspace-evidence
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: aperture-windows-${{ steps.package.outputs.version }}

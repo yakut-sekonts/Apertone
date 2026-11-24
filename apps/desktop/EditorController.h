@@ -591,6 +591,7 @@ class EditorController final : public QObject {
     Q_INVOKABLE void prepareCompare(const QStringList &ids, bool fullResolution = false);
     Q_INVOKABLE void prepareSurvey(const QStringList &ids);
     Q_INVOKABLE void prepareBeforeAfter(bool fullResolution = false);
+    Q_INVOKABLE void refreshBeforeAfter(const QString &savedID);
     Q_INVOKABLE void closeCompare();
     Q_INVOKABLE void autoAdjust();
     Q_INVOKABLE void samplePointColor(double x, double y);
@@ -727,13 +728,14 @@ class EditorController final : public QObject {
     std::uint64_t referenceRevision_ = 0;
     QString referenceName_, referenceError_, referenceUrl_;
     bool referenceBusy_ = false;
-    std::uint64_t compareRevision_ = 0, compareImageRevision_ = 0;
+    std::uint64_t compareRevision_ = 0, compareImageRevision_ = 0, compareLeftImageRevision_ = 0;
+    std::uint64_t compareEditRevision_ = 0;
     bool compareBusy_ = false, compareReady_ = false, compareFull_ = false;
     bool compareBeforeAfter_ = false;
     QString compareError_;
     QStringList compareIDs_, compareNames_, compareErrors_;
     void prepareCompareImpl(const QStringList &ids, bool fullResolution, bool beforeAfter,
-                            bool survey = false);
+                            bool survey = false, bool refresh = false);
     luma::JobManager creativeJobs_;
     luma::JobHandle creativeJob_;
     std::uint64_t creativeRevision_ = 0;

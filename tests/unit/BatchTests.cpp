@@ -488,7 +488,9 @@ void qmlTests(EditorController &editor, LibraryModel &library, PresetController 
     component.setData(("import QtQuick\nimport QtQuick.Controls\nimport \"" +
                        QUrl::fromLocalFile(qmlPath).toString() +
                        "\"\nApplicationWindow { width: 1000; height: 500; visible: true; "
-                       "font.family: \"Helvetica Neue\"; BatchSettings { anchors.fill: parent } }")
+                       "font.family: \"Helvetica Neue\"; Column { width: parent.width; "
+                       "LibraryPresetPicker { width: parent.width } "
+                       "BatchSettings { width: parent.width } } }")
                           .toUtf8(),
                       QUrl());
     wait([&] { return component.status() != QQmlComponent::Loading; });
@@ -685,6 +687,54 @@ void controllerTests(const std::filesystem::path &source, const std::filesystem:
                         editor.currentSettings().enabled(luma::Correction::colorNoise) &&
                     synced[i].exposure == pasted[i].exposure,
                 "QML Sync missed Detail or changed excluded Light.");
+    // Quick Develop applies relative changes to each selected document, using the same
+    // persistent history and conflict-checked undo journal as presets.
+    const double originalExposure = editor.exposure();
+    for (const bool increase : {true, false}) {
+        editor.setExposure(increase ? 4.9 : -4.9);
+        wait([&] { return !editor.saving(); });
+        const auto baseline = documents(f);
+        auto expected = baseline;
+        for (auto &doc : expected) {
+            const auto current = doc.enabled(luma::Correction::exposure) ? doc.exposure : 0.0;
+            doc.exposure = std::clamp(current + (increase ? 1.0 : -1.0) / 3.0, -5.0, 5.0);
+            doc.setEnabled(luma::Correction::exposure, true);
+        }
+        batch.adjustExposure(increase);
+        wait([&] { return !batch.working(); });
+        require(batch.error().isEmpty() && documents(f) == expected &&
+                    editor.exposure() == (increase ? 5 : -5),
+                "Quick exposure lost per-photo offsets, limits or unrelated settings.");
+        batch.undo();
+        wait([&] { return !batch.working(); });
+        require(documents(f) == baseline, "Quick exposure Undo lost the original settings.");
+        batch.redo();
+        wait([&] { return !batch.working(); });
+        require(documents(f) == expected, "Quick exposure Redo failed.");
+    }
+    editor.setExposure(originalExposure);
+    wait([&] { return !editor.saving(); });
+    const auto beforeWhiteBalance = documents(f);
+    auto asShot = beforeWhiteBalance;
+    for (auto &doc : asShot) {
+        doc.customWhiteBalance = false;
+        doc.tint = 0;
+        doc.setEnabled(luma::Correction::whiteBalance, true);
+    }
+    batch.asShotWhiteBalance();
+    wait([&] { return !batch.working(); });
+    require(batch.error().isEmpty() && documents(f) == asShot &&
+                editor.processingHistory().back().toMap()["title"] == "As Shot",
+            "Quick white balance failed to restore the camera setting or update history.");
+    batch.undo();
+    wait([&] { return !batch.working(); });
+    require(documents(f) == beforeWhiteBalance, "Quick white balance Undo lost custom WB.");
+    library.clearSelection();
+    batch.adjustExposure(true);
+    require(!batch.working() && !batch.error().isEmpty() && documents(f) == beforeWhiteBalance,
+            "Empty selection started a Quick Develop transaction.");
+    library.selectAll();
+    wait([&] { return library.selectedCount() == 6 && !library.selecting(); });
     // A failed active-photo save cannot be overtaken by a batch write.
     sql(f.catalog, "CREATE TRIGGER fail_save BEFORE UPDATE ON edit_documents BEGIN SELECT "
                    "RAISE(ABORT,'save blocked'); END");

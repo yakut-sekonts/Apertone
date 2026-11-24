@@ -16,6 +16,7 @@ class PreviewProvider final : public QQuickImageProvider {
     PreviewProvider();
     void update(QImage image);
     void updateCompare(std::vector<QImage> images);
+    void updateCompareAfter(QImage image);
     void updateReference(QImage image);
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize) override;
 

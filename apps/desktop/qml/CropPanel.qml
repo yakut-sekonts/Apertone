@@ -9,7 +9,7 @@ ColumnLayout {
     property bool available: editor.hasPhoto && !editor.busy && editor.correctionStates.crop
     RowLayout {
         Layout.fillWidth: true
-        Label { text: qsTranslate("Apertone", "CROP / STRAIGHTEN"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
+        Label { text: qsTranslate("Apertone", "CROP / STRAIGHTEN"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true; Layout.minimumWidth: 0; wrapMode: Text.Wrap }
         ApertoneCheckBox { objectName: "cropEnabled"; checked: editor.correctionStates.crop; enabled: editor.hasPhoto && !editor.busy; onToggled: editor.setCorrectionEnabled("crop", checked); Accessible.name: qsTranslate("Apertone", "Enable Crop") }
     }
     ApertoneButton { objectName: "cropTool"; text: editor.cropMode ? qsTranslate("Apertone", "Done") : qsTranslate("Apertone", "Edit crop"); highlighted: editor.cropMode; enabled: panel.available && !editor.original; Layout.fillWidth: true; onClicked: editor.cropMode = !editor.cropMode }
@@ -54,9 +54,11 @@ ColumnLayout {
         ApertoneButton { objectName: "cropRotateLeft"; Accessible.name: qsTranslate("Apertone", "Rotate crop left 90°"); text: "↶ 90°"; enabled: panel.available; Layout.fillWidth: true; onClicked: editor.rotateCrop(-1) }
         ApertoneButton { objectName: "cropRotateRight"; Accessible.name: qsTranslate("Apertone", "Rotate crop right 90°"); text: "↷ 90°"; enabled: panel.available; Layout.fillWidth: true; onClicked: editor.rotateCrop(1) }
     }
-    RowLayout {
-        ApertoneCheckBox { objectName: "cropFlipHorizontal"; text: qsTranslate("Apertone", "Flip H"); checked: editor.cropState.flipHorizontal ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipHorizontal", checked ? 1 : 0) }
-        ApertoneCheckBox { objectName: "cropFlipVertical"; text: qsTranslate("Apertone", "Flip V"); checked: editor.cropState.flipVertical ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipVertical", checked ? 1 : 0) }
+    GridLayout {
+        Layout.fillWidth: true
+        columns: panel.width >= flipH.implicitWidth + flipV.implicitWidth + columnSpacing ? 2 : 1
+        ApertoneCheckBox { id: flipH; objectName: "cropFlipHorizontal"; text: qsTranslate("Apertone", "Flip H"); checked: editor.cropState.flipHorizontal ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipHorizontal", checked ? 1 : 0) }
+        ApertoneCheckBox { id: flipV; objectName: "cropFlipVertical"; text: qsTranslate("Apertone", "Flip V"); checked: editor.cropState.flipVertical ?? false; enabled: panel.available; onToggled: editor.setParameter("crop.flipVertical", checked ? 1 : 0) }
     }
     Label { text: qsTranslate("Apertone", "Straighten · ") + Number(editor.cropState.angle ?? 0).toFixed(2) + "°"; color: Theme.text }
     ApertoneSlider { objectName: "cropAngleSlider"; Layout.fillWidth: true; from: -45; to: 45; stepSize: 0.05; value: editor.cropState.angle ?? 0; enabled: panel.available; onPressedChanged: pressed ? editor.beginEdit() : editor.endEdit(); onMoved: editor.setParameter("crop.angle", value); Accessible.name: qsTranslate("Apertone", "Straighten angle") }

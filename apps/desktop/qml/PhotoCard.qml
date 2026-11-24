@@ -68,13 +68,13 @@ Rectangle {
     color: selected ? Theme.accentSoft : Theme.panelRaised
     radius: 6
     border.width: selected || activePhoto || activeFocus ? 2 : 1
-    border.color: selected ? Theme.accent : activePhoto || activeFocus ? Theme.muted : Theme.divider
+    border.color: selected || activeFocus ? Theme.accent : activePhoto ? Theme.muted : Theme.divider
     Image {
         id: thumbnail
         objectName: "photoThumbnail"
-        anchors { left: parent.left; right: parent.right; top: parent.top; bottom: caption.top; margins: 10 }
+        anchors { left: parent.left; right: parent.right; top: parent.top; bottom: caption.top; margins: card.compact ? 4 : 9 }
         source: card.thumbnailURL + (card.retryCount ? (card.thumbnailURL.indexOf("?") >= 0 ? "&" : "?") + "retry=" + card.retryCount : "")
-        sourceSize: Qt.size(384,384)
+        sourceSize: Theme.libraryThumbnailSize
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         cache: true
@@ -87,7 +87,7 @@ Rectangle {
     Label { objectName: (card.compact ? "filmstrip.availability." : "library.availability.") + card.assetID; anchors.centerIn: thumbnail; visible: card.sourceMissing || thumbnail.status !== Image.Ready; text: card.sourceMissing ? qsTranslate("Apertone", "Missing") : thumbnail.status === Image.Error ? qsTranslate("Apertone", "No preview") : "…"; color: Theme.faint; font.pixelSize: 11 }
     Column {
         id: caption
-        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 10 }
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: card.compact ? 4 : 9 }
         spacing: 3
         Label { objectName: (card.compact ? "filmstrip.filename." : "library.filename.") + card.assetID; width: parent.width; text: card.filename || "…"; color: Theme.text; elide: Text.ElideMiddle; font.pixelSize: card.compact ? 10 : 12 }
         Label { objectName: (card.compact ? "filmstrip.flagStatus." : "library.flagStatus.") + card.assetID; visible: !card.compact; text: (card.rating ? "★".repeat(card.rating) : "☆☆☆☆☆") + (card.flagValue === 1 ? "  " + qsTranslate("Apertone", "Pick") : card.flagValue === -1 ? "  " + qsTranslate("Apertone", "Reject") : ""); color: card.rating ? Theme.accent : Theme.faint; font.pixelSize: 12 }

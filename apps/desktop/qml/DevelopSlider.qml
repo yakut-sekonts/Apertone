@@ -30,7 +30,7 @@ ColumnLayout {
             onToggled: editor.setCorrectionEnabled(control.correction, checked)
             padding: 0
         }
-        Label { text: control.label; color: Theme.text; font.pixelSize: 12; Layout.fillWidth: true; Layout.minimumWidth: 0; elide: Text.ElideRight }
+        Label { text: control.label; color: Theme.text; font.pixelSize: 12; Layout.fillWidth: true; Layout.minimumWidth: 0; wrapMode: Text.Wrap }
         Label {
             objectName: "develop." + control.parameter + ".value"
             text: {

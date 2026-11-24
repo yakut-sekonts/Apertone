@@ -57,33 +57,30 @@ ColumnLayout {
         Layout.fillWidth: true
         Accessible.name: qsTranslate("Apertone", "Detail amount")
     }
-    RowLayout {
+    ColumnLayout {
         Layout.fillWidth: true
-        ApertoneButton {
+        PanelAction {
             objectName: "detailDerived.raw"
             text: qsTranslate("Apertone", "Create Raw Details DNG")
             enabled: editor.hasPhoto && editor.decoderDiagnostics.source === "Bayer RAW" && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
             onClicked: editor.createRawDetails(derivedDetailAmount.value)
             Layout.fillWidth: true
         }
-        ApertoneButton {
+        PanelAction {
             objectName: "detailDerived.2x"
             text: qsTranslate("Apertone", "Create 2× Detail DNG")
             enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
             onClicked: editor.createDetail2x(derivedDetailAmount.value)
             Layout.fillWidth: true
         }
-    }
-    RowLayout {
-        Layout.fillWidth: true
-        ApertoneButton {
+        PanelAction {
             objectName: "detailDerived.deblur"
             text: qsTranslate("Apertone", "Recover lens blur DNG")
             enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
             onClicked: editor.createLensBlurRecovery(derivedDetailAmount.value)
             Layout.fillWidth: true
         }
-        ApertoneButton {
+        PanelAction {
             objectName: "detailDerived.moire"
             text: qsTranslate("Apertone", "Correct color moiré DNG")
             enabled: editor.hasPhoto && !editor.busy && !editor.saving && !editor.aiBusy && !editor.editingLocked
@@ -108,7 +105,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Accessible.name: qsTranslate("Apertone", "AI Denoise amount")
     }
-    ApertoneButton {
+    PanelAction {
         objectName: "denoise.create"
         text: qsTranslate("Apertone", "Create denoised DNG") + " · " + Math.round(denoiseAmount.value) + "%"
         enabled: editor.denoiseModelConfigured && editor.hasPhoto && !editor.busy && !editor.aiBusy && !editor.editingLocked

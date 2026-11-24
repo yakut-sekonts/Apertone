@@ -49,7 +49,14 @@ require(decoder, 'model.starts_with("Luma Rendered Linear RGB")', "RawDecoder.cp
 qml = (ROOT / "apps/desktop/qml/Main.qml").read_text()
 require(qml, 'text: "Apertone"', "Main.qml")
 require(qml, 'title: "Apertone " + Qt.application.version', "Main.qml")
-require(qml, 'objectName: "applicationVersion"; text: "Apertone " + Qt.application.version', "Main.qml")
+version_label = re.search(
+    r'\bLabel\s*\{[^{}]*\bobjectName\s*:\s*"applicationVersion"[^{}]*\}', qml
+)
+assert version_label is not None, "Main.qml is missing the applicationVersion label"
+assert re.search(
+    r'\btext\s*:\s*"Apertone "\s*\+\s*Qt\.application\.version\s*(?:;|\n|\})',
+    version_label.group(),
+), "The applicationVersion label must display the Apertone name and current version"
 assert 'text: "luma"' not in qml
 assert 'text: "LUMA / DEVELOP CORE"' not in qml
 

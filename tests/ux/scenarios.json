@@ -1085,6 +1085,13 @@
     "scenario": "30 min photo switching+edits → no stale render backlog."
   },
   {
+    "id": "UX-PRV-016",
+    "severity": "P1",
+    "scope": "CURRENT",
+    "mode": "REGRESSION",
+    "scenario": "Inline Before/After keeps Develop panels available, shows live edits at Fit and 100%, supports a draggable wipe and closes on Escape or Library."
+  },
+  {
     "id": "UX-ADV-001",
     "severity": "P1",
     "scope": "CURRENT",

@@ -3,6 +3,7 @@
 #include "apps/desktop/LibraryModel.h"
 #include "apps/desktop/PresetController.h"
 #include <QPointer>
+#include <algorithm>
 #include <future>
 
 BatchController::BatchController(std::filesystem::path catalog, EditorController &editor,
@@ -46,6 +47,27 @@ void BatchController::applyPreset(const QString &id) {
     } catch (const std::exception &error) {
         failure(error);
     }
+}
+void BatchController::adjust(const QString &label, luma::Catalog::BatchTransform transform) {
+    start({Action::apply, library_.selectionIDs(), {}, 0, label, {}, std::move(transform)});
+}
+void BatchController::adjustExposure(bool increase) {
+    adjust(QStringLiteral("Exposure"), [increase](const luma::EditDocument &current) {
+        auto next = current;
+        const double applied = current.enabled(luma::Correction::exposure) ? current.exposure : 0.0;
+        next.exposure = std::clamp(applied + (increase ? 1.0 : -1.0) / 3.0, -5.0, 5.0);
+        next.setEnabled(luma::Correction::exposure, true);
+        return next;
+    });
+}
+void BatchController::asShotWhiteBalance() {
+    adjust(QStringLiteral("As Shot"), [](const luma::EditDocument &current) {
+        auto next = current;
+        next.customWhiteBalance = false;
+        next.tint = 0;
+        next.setEnabled(luma::Correction::whiteBalance, true);
+        return next;
+    });
 }
 void BatchController::paste() {
     try {
@@ -139,11 +161,16 @@ void BatchController::run() {
                         },
                         Qt::QueuedConnection);
             };
-            auto result =
-                request.action == Action::apply
-                    ? catalog_->applyBatchEdits(request.ids, request.source, request.groups, stop,
-                                                progress, active, request.parameters)
-                    : catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
+            luma::BatchEditResult result;
+            if (request.action != Action::apply)
+                result = catalog_->restoreBatchEdits(request.action == Action::redo, stop, active);
+            else if (request.transform)
+                result = catalog_->transformBatchEdits(request.ids, request.transform,
+                                                       request.label.toStdString(), stop, progress,
+                                                       active);
+            else
+                result = catalog_->applyBatchEdits(request.ids, request.source, request.groups,
+                                                   stop, progress, active, request.parameters);
             updated = std::move(result.active);
             history = std::move(result.activeHistory);
             committedChanges = result.changed > 0;

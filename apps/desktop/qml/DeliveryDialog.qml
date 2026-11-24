@@ -146,7 +146,9 @@ Dialog {
             Layout.fillWidth: true
         }
     }
-    footer: DialogButtonBox {
+    footer: RowLayout {
+        spacing: Theme.panelSpacing
+        Item { Layout.fillWidth: true; implicitHeight: Theme.controlHeight + 2 * Theme.panelPadding }
         ApertoneButton {
             text: library.preparingDelivery ? qsTranslate("Apertone", "Cancel") : qsTranslate("Apertone", "Close")
             onClicked: library.preparingDelivery ? library.cancelDelivery() : dialog.close()
@@ -169,6 +171,7 @@ Dialog {
         }
         ApertoneButton {
             objectName: "delivery.create"
+            Layout.rightMargin: Theme.panelPadding
             text: dialog.webdav ? (updateGallery.checked ? qsTranslate("Apertone", "Update gallery")
                                                          : qsTranslate("Apertone", "Publish gallery"))
                                 : qsTranslate("Apertone", "Create")

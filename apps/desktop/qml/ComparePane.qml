@@ -9,7 +9,15 @@ ColumnLayout {
     required property real centerX
     required property real centerY
     property bool pixelScale:false
+    property bool onCanvas: false
     property bool syncing:false
+    readonly property real viewWidth: canvas.width
+    readonly property real viewHeight: canvas.height
+    readonly property rect visibleSourceRect: Qt.rect(
+        Math.max(0, (canvas.contentX - photo.x) / Math.max(1, photo.width)),
+        Math.max(0, (canvas.contentY - photo.y) / Math.max(1, photo.height)),
+        Math.min(1, canvas.width / Math.max(1, photo.width)),
+        Math.min(1, canvas.height / Math.max(1, photo.height)))
     signal panned(real x,real y)
     function position() {
         if(!canvas)return
@@ -25,7 +33,7 @@ ColumnLayout {
     }
     onCenterXChanged:position()
     onCenterYChanged:position()
-    Label {text:root.title;textFormat:Text.PlainText;elide:Text.ElideMiddle;Layout.fillWidth:true}
+    Label {visible:root.title.length>0;text:root.title;color:root.onCanvas ? Theme.canvasText : Theme.text;textFormat:Text.PlainText;elide:Text.ElideMiddle;Layout.fillWidth:true}
     Flickable {
         id:canvas
         Layout.fillWidth:true;Layout.fillHeight:true;clip:true
@@ -38,10 +46,11 @@ ColumnLayout {
         onContentYChanged:root.publish()
         Image {
             id:photo
+            objectName: root.objectName + ".image"
             source:root.source;cache:false;asynchronous:true
             width:implicitWidth*canvas.imageScale;height:implicitHeight*canvas.imageScale
             x:Math.max(0,(canvas.width-width)/2);y:Math.max(0,(canvas.height-height)/2)
-            smooth:!root.pixelScale || root.zoom!==1
+            smooth: !root.pixelScale || Math.abs(root.zoom * Screen.devicePixelRatio - 1) > 0.001
         }
     }
 }

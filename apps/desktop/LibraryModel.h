@@ -23,6 +23,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QVariantList importMetadataPresets READ importMetadataPresets NOTIFY stateChanged)
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap selectedPhotoSummary READ selectedPhotoSummary NOTIFY
+                   selectedPhotoSummaryChanged)
     Q_PROPERTY(int sortOrder READ sortOrder WRITE setSortOrder NOTIFY stateChanged)
     Q_PROPERTY(QString selectedCopyName READ selectedCopyName NOTIFY stateChanged)
     Q_PROPERTY(QString selectedStackID READ selectedStackID NOTIFY stateChanged)
@@ -201,7 +203,7 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE void openCatalog(const QUrl &file, bool create = false);
     Q_INVOKABLE void locateOriginal(const QUrl &file);
     Q_INVOKABLE void locateFolder(const QUrl &folder, bool nearby);
-    std::vector<std::string> selectionIDs() const;
+    std::vector<std::string> selectionIDs(const QString &onlyID = {}) const;
     Q_INVOKABLE QStringList selectedAssetIDs() const {
         QStringList result;
         for (const auto &id : selectionIDs())
@@ -210,6 +212,7 @@ class LibraryModel final : public QAbstractListModel {
     }
     Q_INVOKABLE bool removeFromSelection(const QString &id);
     QString selectedCopyName() const;
+    QVariantMap selectedPhotoSummary() const;
     QString selectedStackID() const;
     bool viewingStack() const {
         return !filter_.stackID.empty();
@@ -353,8 +356,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_INVOKABLE QString reviewPhotoAt(int row) const;
     Q_INVOKABLE QStringList reviewSelection(int preferredRow) const;
     Q_INVOKABLE int reviewPhotoRow(const QString &id) const;
-    Q_INVOKABLE void rate(int value);
-    Q_INVOKABLE void flag(int value);
+    Q_INVOKABLE void rate(int value, const QString &onlyID = {});
+    Q_INVOKABLE void flag(int value, const QString &onlyID = {});
     Q_INVOKABLE void label(const QString &value);
     Q_INVOKABLE void editSmartCollection(const QString &id, const QString &name);
     Q_INVOKABLE void saveSmartCollection(const QString &id, const QString &name,
@@ -396,6 +399,8 @@ class LibraryModel final : public QAbstractListModel {
   signals:
     void cameraFrameChanged();
     void stateChanged();
+    void selectedPhotoSummaryChanged();
+    void thumbnailsRefreshed(const QString &id);
     void reloadStarted(bool preserveViewport);
     void viewportRestored(int row);
     void openRequested(const QUrl &url);

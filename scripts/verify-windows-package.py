@@ -1,12 +1,13 @@
 """Verify an extracted Windows package without the SDK on PATH."""
 
+import argparse
 import ctypes
 from ctypes import wintypes
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
-import sys
 import tempfile
 
 
@@ -32,7 +33,7 @@ def verify_icons(exe):
                 destroy(icon)
 
 
-def verify(package):
+def verify(package, workspace_evidence):
     source = Path(__file__).resolve().parents[1] / "tests/assets/migration-051/01-complete.DNG"
     desktop, cli = (package / name for name in ("Apertone.exe", "apertone-cli.exe"))
     inventory = package / "UPDATE-FILES.txt"
@@ -54,9 +55,10 @@ def verify(package):
         state = Path(folder)
         catalog = state / "catalog.sqlite"
 
-        def run(exe, *args, platform="windows"):
-            child = subprocess.run([exe, *args, "--catalog", catalog], cwd=package,
-                                   capture_output=True, timeout=90, env={**env, "QT_QPA_PLATFORM": platform},
+        def run(exe, *args, platform="windows", database=catalog, scale="1"):
+            child = subprocess.run([exe, *args, "--catalog", database], cwd=package,
+                                   capture_output=True, timeout=120, env={**env, "QT_QPA_PLATFORM": platform,
+                                                    "QT_SCALE_FACTOR": scale},
                                    encoding="utf-8", errors="replace",
                                    creationflags=subprocess.CREATE_NO_WINDOW)
             if child.returncode:
@@ -74,8 +76,28 @@ def verify(package):
         content = proof.read_bytes()
         assert b"/FontFile2" in content and b"/ToUnicode" in content, "PDF captions lack an embedded font."
         run(desktop, "--smoke-test")
+        baseline = None
+        for scale in ("1", "1.5", "2"):
+            evidence = (workspace_evidence or state / "workspace-evidence") / f"scale-{scale}"
+            evidence.mkdir(parents=True, exist_ok=True)
+            database = state / f"workspace-{scale}.sqlite"
+            fixture = state / f"workspace-{scale}.DNG"
+            shutil.copyfile(source, fixture)
+            run(cli, "import", "add", fixture, database=database)
+            run(desktop, "--test-windows-workspace", evidence, database=database, scale=scale)
+            report = json.loads((evidence / "geometry.json").read_text(encoding="utf-8"))
+            if baseline is None:
+                baseline = report["dpr"]
+            if report["platform"] != "windows" or abs(report["dpr"] / baseline - float(scale)) > .03:
+                raise RuntimeError(f"Expected native Windows at scale {scale}, got {report}")
+            print(f"Verified Windows workspace at {scale}x: {report}", flush=True)
     print("Native Windows desktop, icons, command-line DNG, Ultra HDR JPEG and offscreen PDF verified.")
 
 
 if __name__ == "__main__":
-    verify(Path(sys.argv[1]).resolve(strict=True))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("package", type=Path)
+    parser.add_argument("--workspace-evidence", type=Path)
+    args = parser.parse_args()
+    verify(args.package.resolve(strict=True),
+           args.workspace_evidence.resolve() if args.workspace_evidence else None)

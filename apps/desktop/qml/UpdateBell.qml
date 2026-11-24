@@ -18,10 +18,12 @@ ApertoneButton {
             anchors.centerIn: parent
             width: 18
             height: 20
+            readonly property color strokeColor: Theme.text
+            onStrokeColorChanged: requestPaint()
             onPaint: {
                 const c = getContext("2d");
                 c.clearRect(0, 0, width, height);
-                c.strokeStyle = Theme.text;
+                c.strokeStyle = strokeColor;
                 c.lineWidth = 1.6;
                 c.beginPath();
                 c.moveTo(2, 15);
@@ -54,7 +56,8 @@ ApertoneButton {
         focus: true
         x: bell.width - width
         y: bell.height + 8
-        width: 340
+        margins: 8
+        width: Math.min(340, Overlay.overlay ? Overlay.overlay.width - 2 * margins : 340)
         padding: 14
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         ColumnLayout {

@@ -301,8 +301,17 @@ bool libraryScrollCandidate(Context &c, const QString &id) {
     auto &d = *c.driver;
     QJsonArray checks;
     try {
-        if (filmstrip)
+        if (filmstrip) {
             filmstripScroll(c, checks);
+        } else {
+            auto *grid = d.item("library.grid");
+            if (grid->width() < 2 * grid->property("cellWidth").toDouble() - 1) {
+                d.click("main.toggleRightPanel");
+                d.wait(
+                    [&] { return grid->width() >= 2 * grid->property("cellWidth").toDouble() - 1; },
+                    "Show two Library columns for first and last pointer targets");
+            }
+        }
         for (int phase = 0; phase < (filmstrip ? 0 : 3); ++phase) {
             const QString search = phase == 1 ? "Photo-01" : "";
             if (phase > 0) {

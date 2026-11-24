@@ -10,7 +10,8 @@ and LittleCMS. It runs locally with an offline catalog and editing pipeline.
 ## Releases
 
 [Download for Windows x64 or macOS Apple Silicon](https://github.com/yakut-sekonts/Apertone/releases/latest) ·
-[3.0 release notes](docs/releases/v3.0.1.md) ·
+[3.1.0 release notes](docs/releases/v3.1.0.md) ·
+[3.0.1 release notes](docs/releases/v3.0.1.md) ·
 [2.5.0 release notes](docs/releases/v2.5.0.md) ·
 [2.0.0 release notes](docs/releases/v2.0.0.md)
 
@@ -32,20 +33,40 @@ Sparkle-signed updates. Apple Developer Program membership is not required.
 The release acceptance boundary is recorded in
 [release and first-launch policy](docs/OPEN_SOURCE_RELEASE.md).
 
-For 3.0, both platform packages share one release tag and source commit.
+Both platform packages share one release tag and source commit.
 Use **G** for Grid, **E** for Loupe, **C** for Compare, **N** for Survey and
 **D** for Develop. The View menu exposes workspace visibility controls.
-Use the system print dialog for contact sheets and photo books. See the
-[3.0 release notes](docs/releases/v3.0.1.md) for platform capabilities and
-limitations.
+Use the system print dialog for contact sheets and photo books.
 
-### Windows x64 in 2.5.0
+## Desktop workspace
+
+Switch between Library and Develop in the upper-right corner. In Library,
+select a collection on the left, browse photos in the center, and rate or
+inspect the selection on the right. Use **Quick Develop** in the right panel
+to apply a preset, adjust each selected photo's exposure in one-third-stop
+steps, or restore its as-shot white balance. For individual adjustments,
+select a photo and click **Open in Develop**. Import and Export are at the bottom of
+the left panel. In Loupe, rate and flag the active photo below the image.
+The Navigator and histogram follow that photo as you move along the filmstrip.
+
+In Develop, browse presets below the Navigator on the left. The right panel
+starts with the histogram, editing tools and Basic adjustments. Press **Y**
+to see the original and edited photo side by side on the canvas. The Navigator
+controls zoom and pan for both views. **Split comparison** switches to a
+draggable divider. Press **Y** or **Escape** to return to the edited photo.
+The filmstrip runs across the bottom of both modules.
+
+Click the arrows at the outer edges to hide or show the side panels. Press
+**F6** to toggle the filmstrip, **F7** for the left panel, or **F8** for the
+right panel. The **View** menu in the bottom bar offers the same controls.
+
+### Windows x64
 
 Extract the ZIP on Windows 10 or 11 x64 and launch `Apertone.exe`. Keep the
 extracted files together. The local AI models use the
 Microsoft Visual C++ x64 Redistributable.
-[Download the Windows ZIP](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/Apertone-2.5.0-windows-x64.zip) ·
-[SHA-256 manifest](https://github.com/yakut-sekonts/Apertone/releases/download/v2.5.0/SHA256SUMS-windows.txt) ·
+[Download the Windows ZIP](https://github.com/yakut-sekonts/Apertone/releases/download/v3.1.0/Apertone-3.1.0-windows-x64.zip) ·
+[SHA-256 manifest](https://github.com/yakut-sekonts/Apertone/releases/download/v3.1.0/SHA256SUMS-windows.txt) ·
 [Microsoft Redistributable](https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist)
 
 - Organize photos with independently editable virtual copies, Smart
@@ -64,7 +85,7 @@ Copy, interrupted import recovery and cross-volume Move passed on both a
 physical exFAT SD card and the Windows CI virtual disk. Camera and driver tests,
 card removal during import and paper print checks remain open.
 [Official 2.5.0 release notes](https://github.com/yakut-sekonts/Apertone/releases/tag/v2.5.0) ·
-[Windows source and build instructions](https://github.com/yakut-sekonts/Apertone/blob/912c3eac4a3de720080555bc05652a91d83aff03/BUILDING.md#windows-x64-development-build)
+[Windows source and build instructions](BUILDING.md#windows-x64-development-build)
 
 ## macOS source milestones through 2.0
 

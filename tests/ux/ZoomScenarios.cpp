@@ -14,6 +14,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QNativeGestureEvent>
@@ -1379,8 +1380,14 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
     } else if (id == "UX-P06-ZOM-003") {
         const auto beforeFit = normalizedSource(c, point);
         const auto fitScale = view->property("effectiveZoom").toDouble();
-        wheelAt(c, point, {}, {0, 360});
-        scaleIs(c, fitScale * 2);
+        // Anchor both axes away from pan limits, even in a tall, narrow workspace.
+        const double fillScale =
+            std::max(view->width() / full.width(), view->height() / full.height()) *
+            c.window->devicePixelRatio();
+        const int doublings =
+            std::max(1, static_cast<int>(std::ceil(std::log2(fillScale / fitScale))) + 1);
+        wheelAt(c, point, {}, {0, 360 * doublings});
+        scaleIs(c, std::ldexp(fitScale, doublings));
         ready(c, full);
         // The 2560 x 1707 Fit raster rounds the aspect ratio by less than
         // half a full-resolution pixel; full-to-full anchors below remain exact.
@@ -1435,17 +1442,29 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
             d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
                    "Zoom localization preferences closed");
             d.frame();
-            const auto *pane = d.item("develop.canvasPane");
-            QRectF previous;
+            if (!c.editor.zoomAvailable())
+                awaitZoomControls(c);
+            const auto *navigator = d.item("develop.navigator");
+            QList<QRectF> occupied;
             for (const auto *name :
                  {"develop.fit", "develop.fill", "develop.zoomPercent", "develop.actualPixels"}) {
                 const auto *control = d.item(QString::fromLatin1(name));
-                const auto rectangle = control->mapRectToItem(pane, control->boundingRect());
-                require(control->isVisible() && control->isEnabled() &&
-                            pane->boundingRect().contains(rectangle) &&
-                            (previous.isEmpty() || !previous.intersects(rectangle)),
-                        "Localized zoom controls overlap or leave minimum-width canvas");
-                previous = rectangle;
+                const auto rectangle =
+                    control->mapRectToItem(navigator, {0, 0, control->width(), control->height()});
+                require(control->isVisible() && control->isEnabled() && !rectangle.isEmpty() &&
+                            navigator->boundingRect().contains(rectangle),
+                        "Localized zoom control leaves the minimum-width Navigator: " +
+                            QString(name));
+                const auto textWidth = QFontMetricsF(control->property("font").value<QFont>())
+                                           .horizontalAdvance(control->property("text").toString());
+                const auto paddedWidth = control->width() -
+                                         control->property("leftPadding").toReal() -
+                                         control->property("rightPadding").toReal();
+                require(textWidth <= paddedWidth + 0.5,
+                        "Localized zoom text is clipped: " + QString(name));
+                for (const auto &other : occupied)
+                    require(!rectangle.intersects(other), "Localized zoom controls overlap");
+                occupied.append(rectangle);
             }
             d.log({{"action", "zoom_minimum_window_locale"},
                    {"locale", c.localization->language()},
@@ -1612,11 +1631,20 @@ bool zoomToolsScenario(Context &c, const QString &id) {
         auto *view = d.item("develop.viewport"), *image = d.item("develop.preview");
         const auto oldX = view->property("contentX").toDouble();
         const auto oldY = view->property("contentY").toDouble();
-        wheelAt(c, {view->width() / 2, view->height() / 2}, {-43, -31}, {}, Qt::ScrollUpdate);
+        // Pan the active gesture into view at the current zoom. The Navigator and
+        // inspector can leave a narrow canvas, so a fixed pan can clip the starting grip.
+        const QPointF center = view->boundingRect().center();
+        const QPointF target = crop || guided ? QPointF(.475, .465) : QPointF(.515, .49);
+        const QPointF current = normalizedSource(c, center);
+        const QPoint delta(
+            qRound((current.x() - target.x()) * image->property("paintedWidth").toDouble()),
+            qRound((current.y() - target.y()) * image->property("paintedHeight").toDouble()));
+        require(delta.x() != 0 && delta.y() != 0, "Zoom fixture requires a pan in both axes");
+        wheelAt(c, center, delta, {}, Qt::ScrollUpdate);
         d.frame();
-        require(view->property("contentX").toDouble() > oldX &&
-                    view->property("contentY").toDouble() > oldY,
-                "Editing tool cannot pan in both axes");
+        require(std::abs(view->property("contentX").toDouble() - oldX + delta.x()) < 1 &&
+                    std::abs(view->property("contentY").toDouble() - oldY + delta.y()) < 1,
+                "Editing tool did not follow the two-axis pan");
         const auto panX = view->property("contentX").toDouble(),
                    panY = view->property("contentY").toDouble();
         if (!targeted) {

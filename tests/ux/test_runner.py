@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import hashlib
+import re
 import run_keyboard_regression as keyboard_runner
 import run_mask_handle_regression as mask_runner
 from pathlib import Path
@@ -16,6 +17,8 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location('ux_runner', Path(__file__).with_name('run_ux_suite.py'))
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
+specification = Path(__file__).resolve().parents[2] / 'docs/testing/UX_AUTOTEST_SPEC.md'
+SPECIFICATION_IDS = re.findall(r'^- `(UX-[A-Z0-9-]+) \[', specification.read_text(), re.MULTILINE)
 
 
 class GateTests(unittest.TestCase):
@@ -47,7 +50,7 @@ class GateTests(unittest.TestCase):
     def test_inventory_has_unique_ids(self):
         identifiers = [row['id'] for row in runner.INVENTORY]
         self.assertEqual(len(identifiers), len(set(identifiers)))
-        self.assertEqual(len(identifiers), 770)
+        self.assertCountEqual(identifiers, SPECIFICATION_IDS)
 
     def test_ci_output_paths_follow_build_and_preserve_explicit_overrides(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -850,7 +853,7 @@ class SupplementalKeyboardTests(unittest.TestCase):
     def test_supplemental_pass_fail_and_source_change_never_qualify_official_inventory(self):
         subject = keyboard_runner.runner
         original_ids = [row['id'] for row in subject.INVENTORY]
-        self.assertEqual(len(original_ids), 770)
+        self.assertCountEqual(original_ids, SPECIFICATION_IDS)
         self.assertEqual(keyboard_runner.IDENTIFIERS,
                          {keyboard_runner.IDENTIFIER, keyboard_runner.KEYPAD_IDENTIFIER})
         self.assertEqual({row['id'] for row in keyboard_runner.INVENTORY},
@@ -868,7 +871,7 @@ class SupplementalKeyboardTests(unittest.TestCase):
                 self.assertEqual(result['code'], code)
                 self.assertEqual(result['children'], 6)
                 self.assertEqual(summary['inventory_domain'], 'supplemental')
-                self.assertEqual(summary['official_inventory_count'], 770)
+                self.assertEqual(summary['official_inventory_count'], len(original_ids))
                 self.assertEqual(summary['selected_inventory_count'], 2)
                 self.assertEqual(summary['release_gate'], 'NOT_QUALIFIED')
                 self.assertEqual(summary['execution_status'], execution)
@@ -929,7 +932,7 @@ class SupplementalMaskHandleTests(unittest.TestCase):
     def test_mask_variants_preserve_official_inventory_and_propagate_failure(self):
         subject = mask_runner.runner
         original = [row['id'] for row in subject.INVENTORY]
-        self.assertEqual(len(original), 770)
+        self.assertCountEqual(original, SPECIFICATION_IDS)
         for identifier in mask_runner.IDENTIFIERS:
             self.assertNotIn(identifier, original)
             self.assertNotIn(identifier, subject.NATIVE)
@@ -945,7 +948,7 @@ class SupplementalMaskHandleTests(unittest.TestCase):
                 self.assertEqual(result['children'], 6)
                 self.assertEqual(result['fixtures'], 1)
                 self.assertEqual(summary['inventory_domain'], 'supplemental')
-                self.assertEqual(summary['official_inventory_count'], 770)
+                self.assertEqual(summary['official_inventory_count'], len(original))
                 self.assertEqual(summary['selected_inventory_count'], 2)
                 self.assertEqual(summary['execution_status'], execution)
                 self.assertEqual(summary['release_gate'], 'NOT_QUALIFIED')

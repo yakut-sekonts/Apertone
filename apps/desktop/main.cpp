@@ -23,6 +23,10 @@
 #include <QQmlContext>
 #include <QQuickItem>
 #include <QQuickStyle>
+#ifdef _WIN32
+#include <QEvent>
+#include <QScreen>
+#endif
 #include <QStandardPaths>
 #include <QTimer>
 #include <algorithm>
@@ -30,6 +34,48 @@
 #include <iostream>
 
 namespace {
+#ifdef _WIN32
+// QML screen metrics omit the native title bar and resize borders. Wait for Windows
+// to lay out the frame, then fit it to the work area of this particular monitor.
+class WindowWorkArea : public QObject {
+    bool eventFilter(QObject *watched, QEvent *event) override {
+        if (event->type() != QEvent::Show && event->type() != QEvent::ScreenChangeInternal &&
+            event->type() != QEvent::DevicePixelRatioChange)
+            return false;
+        auto *window = qobject_cast<QQuickWindow *>(watched);
+        if (!window || (window->objectName() != QStringLiteral("main.window") &&
+                        window->objectName() != QStringLiteral("develop.reviewDisplay") &&
+                        window->objectName() != QStringLiteral("catalogStartup.window")))
+            return false;
+        QTimer::singleShot(0, window, [window] {
+            if (!window->isVisible() || window->windowState() != Qt::WindowNoState ||
+                !window->screen())
+                return;
+            const QRect workArea = window->screen()->availableGeometry();
+            if (workArea.isEmpty())
+                return;
+            const QMargins frame = window->frameMargins();
+            const QSize maxClientSize(
+                std::max(1, workArea.width() - frame.left() - frame.right()),
+                std::max(1, workArea.height() - frame.top() - frame.bottom()));
+            const QSize minimum = window->minimumSize().boundedTo(maxClientSize);
+            if (minimum != window->minimumSize())
+                window->setMinimumSize(minimum);
+            const QSize size = window->size().boundedTo(maxClientSize);
+            if (size != window->size())
+                window->resize(size);
+            const QPoint origin = window->framePosition();
+            const QPoint fitted(std::clamp(origin.x(), workArea.x(),
+                                           workArea.x() + maxClientSize.width() - size.width()),
+                                std::clamp(origin.y(), workArea.y(),
+                                           workArea.y() + maxClientSize.height() - size.height()));
+            if (origin != fitted)
+                window->setFramePosition(fitted);
+        });
+        return false;
+    }
+};
+#endif
 void testAutomaticMask(QGuiApplication &app, QQuickWindow &window, EditorController &editor,
                        const QString &source, const QString &kind, const QPointF &point,
                        const QString &output, const QString &screenshot) {
@@ -140,6 +186,8 @@ int main(int argc, char **argv) {
     app.setApplicationDisplayName(QStringLiteral("Apertone"));
     app.setApplicationVersion(QStringLiteral(APERTONE_VERSION));
 #ifdef _WIN32
+    WindowWorkArea windowWorkArea;
+    app.installEventFilter(&windowWorkArea);
     app.setWindowIcon(QIcon(QStringLiteral(":/branding/Apertone-1024.png")));
 #endif
     QQuickStyle::setStyle(QStringLiteral("Basic"));
@@ -206,6 +254,11 @@ int main(int argc, char **argv) {
                       QStringLiteral("folder")});
     parser.addOption({QStringLiteral("test-close-import"),
                       QStringLiteral("Integration test: close during import")});
+#ifdef _WIN32
+    parser.addOption({QStringLiteral("test-windows-workspace"),
+                      QStringLiteral("Verify native Windows workspace and save screenshots"),
+                      QStringLiteral("directory")});
+#endif
     parser.process(app);
     // Preserve the existing Luma application-data and QSettings locations so the
     // 1.1 rebrand upgrades catalogs and preferences in place. The display name
@@ -269,6 +322,9 @@ int main(int argc, char **argv) {
     const bool testing = parser.isSet(QStringLiteral("smoke-test")) ||
                          parser.isSet(QStringLiteral("test-edit")) ||
                          parser.isSet(QStringLiteral("test-restore")) ||
+#ifdef _WIN32
+                         parser.isSet(QStringLiteral("test-windows-workspace")) ||
+#endif
                          parser.isSet(QStringLiteral("test-library"));
     UpdateController updates(
         [&] {
@@ -427,6 +483,11 @@ int main(int argc, char **argv) {
                           parser.value(QStringLiteral("test-ai-mask")), point,
                           parser.value(QStringLiteral("test-export")),
                           parser.value(QStringLiteral("test-screenshot")));
+#ifdef _WIN32
+    } else if (parser.isSet(QStringLiteral("test-windows-workspace"))) {
+        startWindowsWorkspaceAcceptance(app, *window, editor, library, batch,
+                                        parser.value(QStringLiteral("test-windows-workspace")));
+#endif
     } else if (parser.isSet(QStringLiteral("test-library"))) {
         startLibraryAcceptance(app, window, editor, library,
                                parser.value(QStringLiteral("test-library")),

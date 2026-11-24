@@ -116,6 +116,19 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
     source.validate();
     if (!parameters.empty())
         parameterSelectionGroups(parameters);
+    return transformBatchEdits(
+        ids,
+        [&](const EditDocument &current) {
+            return mergeSettings(current, source, groups, parameters);
+        },
+        "Apply settings", stop, progress, activeID);
+}
+BatchEditResult Catalog::transformBatchEdits(const std::vector<std::string> &ids,
+                                             const BatchTransform &transform,
+                                             const std::string &historyAction,
+                                             CancellationToken stop,
+                                             const std::function<void(double)> &progress,
+                                             const std::string &activeID) {
     if (ids.empty())
         throw std::runtime_error("Select photographs before applying settings.");
     check(stop);
@@ -153,10 +166,10 @@ BatchEditResult Catalog::applyBatchEdits(const std::vector<std::string> &ids,
             const auto asset = assetByID(ids[index]);
             if (!asset)
                 throw std::runtime_error("Batch target is missing from the catalog.");
-            const auto next = mergeSettings(asset->edits, source, groups, parameters);
+            const auto next = transform(asset->edits);
             if (next != asset->edits) {
                 auto history = batchHistory(ids[index], asset->edits);
-                history.apply(next, "Apply settings");
+                history.apply(next, historyAction);
                 writeEdits(ids[index], next);
                 writeEditHistory(ids[index], history.persisted());
                 Statement changed(db_, "INSERT INTO temp.batch_changed VALUES(?1)");

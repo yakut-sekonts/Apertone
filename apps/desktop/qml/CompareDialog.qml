@@ -17,6 +17,8 @@ Dialog {
     property string selectID: ""
     property var candidateIDs: []
     property int candidateIndex: 0
+    readonly property real paneZoom: editor.comparison.fullResolution
+                                     ? zoomControl.value / Screen.devicePixelRatio : zoomControl.value
     function showCandidates(select, candidates) {
         selectID = select
         candidateIDs = candidates
@@ -108,29 +110,30 @@ Dialog {
         BusyIndicator { running: editor.comparison.busy; visible: running; Layout.alignment: Qt.AlignHCenter }
         Label { visible: editor.comparison.error.length > 0; text: qsTranslate("Apertone", editor.comparison.error); wrapMode: Text.Wrap; Layout.fillWidth: true }
         SplitComparePane {
-            visible: editor.comparison.ready && editor.comparison.beforeAfter
+            visible: dialog.visible && editor.comparison.ready && editor.comparison.beforeAfter
             Layout.fillWidth: true
             Layout.fillHeight: true
-            beforeSource: editor.comparison.ready ? editor.comparison.left : ""
-            afterSource: editor.comparison.ready ? editor.comparison.right : ""
-            zoom: zoomControl.value
+            beforeSource: visible ? editor.comparison.left : ""
+            afterSource: visible ? editor.comparison.right : ""
+            zoom: dialog.paneZoom
             centerX: dialog.centerX
             centerY: dialog.centerY
             pixelScale: editor.comparison.fullResolution
             onPanned: function(x, y) { dialog.centerX = x; dialog.centerY = y }
         }
         RowLayout {
+            id: candidates
             Layout.fillWidth: true; Layout.fillHeight: true
-            visible: editor.comparison.ready && !editor.comparison.beforeAfter
+            visible: dialog.visible && editor.comparison.ready && !editor.comparison.beforeAfter
             Repeater {
                 model: 2
                 delegate:ComparePane {
                     required property int index
                     property int side: dialog.swapped ? 1 - index : index
                     Layout.fillWidth: true; Layout.fillHeight: true; Layout.preferredWidth: 1
-                    source: editor.comparison.ready ? (side === 0 ? editor.comparison.left : editor.comparison.right) : ""
+                    source: candidates.visible ? (side === 0 ? editor.comparison.left : editor.comparison.right) : ""
                     title: (index === 0 ? qsTranslate("Apertone", "Select") : qsTranslate("Apertone", "Candidate")) + " · " + (editor.comparison.names[side] ?? "")
-                    zoom: zoomControl.value; centerX: dialog.centerX; centerY: dialog.centerY; pixelScale: editor.comparison.fullResolution
+                    zoom: dialog.paneZoom; centerX: dialog.centerX; centerY: dialog.centerY; pixelScale: editor.comparison.fullResolution
                     onPanned: function(x, y) { dialog.centerX = x; dialog.centerY = y }
                 }
             }
