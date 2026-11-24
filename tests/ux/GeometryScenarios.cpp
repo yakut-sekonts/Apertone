@@ -179,6 +179,19 @@ bool geometryScenario(Context &c, const QString &id) {
         const auto finish =
             move ? QPointF(.6, .6)
                  : start + QPointF((.5 - grips[i].x()) * .2, (.5 - grips[i].y()) * .2);
+        // The displayed frame is snapped to source pixels, and Qt delivers integer
+        // window coordinates even when the fitted photo spans fractional logical pixels.
+        const auto frame = c.editor.cropState();
+        auto expected = before.crop;
+        expected.x = frame["x"].toDouble();
+        expected.y = frame["y"].toDouble();
+        expected.width = frame["width"].toDouble();
+        expected.height = frame["height"].toDouble();
+        auto *area = d.item("cropDragArea");
+        const auto delta = area->mapFromScene(d.point("cropDragArea", finish)) -
+                           area->mapFromScene(d.point("cropDragArea", start));
+        const double dx = delta.x() / area->width();
+        const double dy = delta.y() / area->height();
         d.press("cropDragArea", start);
         for (int step = 1; step <= 12; ++step) {
             d.move("cropDragArea", start + (finish - start) * (static_cast<double>(step) / 12));
@@ -187,23 +200,19 @@ bool geometryScenario(Context &c, const QString &id) {
         d.release("cropDragArea", finish);
         d.wait([&] { return c.editor.cropCanvasReady(); }, "Crop drag final render");
         const auto after = c.editor.currentSettings();
-        auto expected = before.crop;
-        if (move) {
-            expected.x += .1;
-            expected.y += .1;
-        } else {
-            if (grips[i].x() == 0) {
-                expected.x += .1;
-                expected.width -= .1;
-            }
+        if (move || grips[i].x() == 0)
+            expected.x += dx;
+        if (move || grips[i].y() == 0)
+            expected.y += dy;
+        if (!move) {
+            if (grips[i].x() == 0)
+                expected.width -= dx;
             if (grips[i].x() == 1)
-                expected.width -= .1;
-            if (grips[i].y() == 0) {
-                expected.y += .1;
-                expected.height -= .1;
-            }
+                expected.width += dx;
+            if (grips[i].y() == 0)
+                expected.height -= dy;
             if (grips[i].y() == 1)
-                expected.height -= .1;
+                expected.height += dy;
         }
         d.log({{"action", "crop_drag_oracle"},
                {"grip", i},

@@ -245,7 +245,6 @@ bool lifecycleScenario(Context &c, const QString &id) {
         const auto final = documents.back();
         if (id == "UX-UND-010" || id == "UX-SLD-019") {
             const auto selection = c.library.selectionIDs();
-            c.reveal("develop.resetButton");
             d.click("develop.resetButton");
             require(c.editor.currentSettings() == luma::EditDocument{} &&
                         c.library.selectionIDs() == selection,

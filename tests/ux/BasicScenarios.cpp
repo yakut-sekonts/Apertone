@@ -385,10 +385,18 @@ void basicScenario(Context &c, const QString &id) {
         c.window->requestActivate();
         d.wait([&] { return c.window->isActive(); }, "main window reactivated");
         c.openFirst();
-        c.reveal("develop.resetButton");
-        require(d.item("develop.resetButton")->isEnabled(), "Bottom adjustment panel unreachable");
-        c.reveal("localPanelToggle");
-        require(d.item("localPanelToggle")->isVisible(), "Top adjustment panel unreachable");
+        const auto resetPosition = d.point("develop.resetButton");
+        c.reveal("develop.metadata.focalLength");
+        require(d.item("develop.metadata.focalLength")->isVisible(),
+                "Capture data at the bottom of the inspector is unreachable");
+        c.reveal("develop.section.basic.toggle");
+        require(d.item("develop.section.basic.toggle")->isVisible(),
+                "Basic adjustments at the top of the inspector are unreachable");
+        require(c.window->contentItem()->contains(resetPosition) &&
+                    d.item("develop.resetButton")->isVisible() &&
+                    d.item("develop.resetButton")->isEnabled() &&
+                    d.point("develop.resetButton") == resetPosition,
+                "Reset did not stay available at the foot of the inspector");
     } else {
         throw std::runtime_error("Scenario has no implementation: " + id.toStdString());
     }

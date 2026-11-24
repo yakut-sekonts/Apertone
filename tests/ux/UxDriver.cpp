@@ -74,8 +74,24 @@ void Driver::log(const QJsonObject &action) {
     require(actions_.write(bytes) == bytes.size(), "Cannot write UX action trace");
     actions_.flush();
 }
+void Driver::revealLibraryCard(const QString &id) {
+    if (!id.startsWith("library.card."))
+        return;
+    auto *grid = item("library.grid");
+    for (int attempt = 0; attempt < 24; ++attempt) {
+        auto *card = item(id);
+        const QPointF center = card->mapToItem(grid, card->boundingRect().center());
+        if (grid->contains(center))
+            return;
+        wheel("library.grid", center.y() < 0 ? 120 : -120);
+        frame();
+        wait([&] { return !grid->property("moving").toBool(); }, "Library grid scroll settled");
+    }
+    throw std::runtime_error(("Cannot reach Library card: " + id).toStdString());
+}
 void Driver::click(const QString &id, Qt::KeyboardModifiers modifiers) {
     frame();
+    revealLibraryCard(id);
     auto *target = item(id);
     require(target->isVisible() && target->isEnabled(), "Cannot click unavailable control: " + id);
     const auto p = point(id);
@@ -89,6 +105,7 @@ void Driver::click(const QString &id, Qt::KeyboardModifiers modifiers) {
 }
 void Driver::doubleClick(const QString &id) {
     frame();
+    revealLibraryCard(id);
     log({{"action", "double_click"}, {"id", id}});
     QTest::mouseDClick(&window_, Qt::LeftButton, Qt::NoModifier, point(id));
     QCoreApplication::processEvents();
