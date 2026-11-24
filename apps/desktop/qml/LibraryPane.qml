@@ -11,7 +11,10 @@ Rectangle {
     property string currentSet: ""
     property bool leftPanelVisible: true
     property bool rightPanelVisible: true
+    property bool panelOnly: false
     property alias exportSlot: exportSlotItem
+    property Item compactImportSlot
+    readonly property alias importButtonWidth: importButton.implicitWidth
     readonly property int currentGridRow: grid.currentIndex
     readonly property var inspectedPhoto: visible && (leftPanelVisible || rightPanelVisible) && library.selectedCount === 1 &&
                                          !library.selecting && !library.loading ? library.selectedPhotoSummary : ({})
@@ -765,6 +768,7 @@ Rectangle {
         Rectangle {
             objectName: "library.leftPanel"
             visible: pane.leftPanelVisible
+            Layout.fillWidth: pane.panelOnly
             color: Theme.panel; Layout.preferredWidth: Theme.sidebarWidth; Layout.fillHeight: true
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: Theme.panelPadding; spacing: Theme.panelSpacing
@@ -973,14 +977,21 @@ Rectangle {
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.panelSpacing
-                    ApertoneButton {
-                        id: importButton
-                        objectName: "library.importButton"
-                        text: qsTranslate("Apertone", "Import")
-                        enabled: !library.working
+                    Item {
+                        id: sidebarImportSlot
                         Layout.fillWidth: true
                         Layout.minimumWidth: 0
-                        onClicked: pane.requestImport()
+                        implicitWidth: importButton.implicitWidth
+                        implicitHeight: Theme.controlHeight
+                        ApertoneButton {
+                            id: importButton
+                            objectName: "library.importButton"
+                            parent: pane.compactImportSlot || sidebarImportSlot
+                            anchors.fill: parent
+                            text: qsTranslate("Apertone", "Import")
+                            enabled: !library.working
+                            onClicked: pane.requestImport()
+                        }
                     }
                     Item {
                         id: exportSlotItem
@@ -993,6 +1004,7 @@ Rectangle {
             }
         }
         ColumnLayout {
+            visible: !pane.panelOnly
             Layout.fillWidth: true; Layout.minimumWidth: 0; Layout.fillHeight: true; Layout.margins: Theme.panelPadding; spacing: Theme.panelSpacing
             GridLayout {
                 id: filterBar
@@ -1372,7 +1384,8 @@ Rectangle {
             objectName: "library.rightPanel"
             visible: pane.rightPanelVisible
             color: Theme.panel
-            Layout.preferredWidth: Math.min(Theme.inspectorWidth, pane.width * 0.27)
+            Layout.fillWidth: pane.panelOnly
+            Layout.preferredWidth: Math.min(Theme.inspectorWidth, pane.width * (pane.leftPanelVisible ? 0.27 : 0.4))
             Layout.fillHeight: true
             ScrollView {
                 id: inspectorScroll

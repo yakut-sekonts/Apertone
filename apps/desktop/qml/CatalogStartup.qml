@@ -5,6 +5,7 @@ import QtQuick.Layouts
 
 ApplicationWindow {
     id: window
+    objectName: "catalogStartup.window"
     title: qsTranslate("Apertone", "Open Apertone catalog")
     visible: true
     readonly property int availableWidth: Screen.desktopAvailableWidth || 620

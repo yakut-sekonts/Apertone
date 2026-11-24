@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 if(CMAKE_HOST_APPLE AND NOT CMAKE_OSX_DEPLOYMENT_TARGET)
     set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum supported macOS" FORCE)
 endif()
-project(Apertone VERSION 3.0.1 LANGUAGES C CXX)
+project(Apertone VERSION 3.1.0 LANGUAGES C CXX)
 
 if(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm64|aarch64)$")
     enable_language(OBJCXX)
@@ -219,7 +219,7 @@ elseif(PROJECT_VERSION VERSION_GREATER_EQUAL "1.0.0")
     message(FATAL_ERROR "Build the bundled models with scripts/build-bundled-models.sh before configuring Apertone 1.0.")
 endif()
 else()
-    target_sources(Apertone PRIVATE platform/windows/DesktopServices.cpp
+    target_sources(Apertone PRIVATE apps/desktop/WindowsWorkspaceAcceptance.cpp platform/windows/DesktopServices.cpp
         platform/windows/Updater.cpp platform/windows/UpdateRelease.cpp)
     target_link_libraries(Apertone PRIVATE Qt6::Network)
     add_executable(ApertoneUpdate WIN32 platform/windows/ApplyUpdate.cpp)

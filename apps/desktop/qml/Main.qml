@@ -10,8 +10,8 @@ ApplicationWindow {
     // Screen geometry is in logical pixels, including when display scaling changes.
     readonly property int availableWidth: Screen.desktopAvailableWidth || 1320
     readonly property int availableHeight: Math.max(1, (Screen.desktopAvailableHeight || 872) - 32)
-    minimumWidth: Math.min(1000, Screen.width || 1000)
-    minimumHeight: Math.min(640, Math.floor((Screen.height || 800) * 0.8))
+    minimumWidth: Math.min(Qt.platform.os === "windows" ? 480 : 1000, availableWidth)
+    minimumHeight: Math.min(Qt.platform.os === "windows" ? 300 : 640, Math.floor((Screen.height || 800) * 0.8), availableHeight)
     Component.onCompleted: {
         width = Math.min(1320, availableWidth)
         height = Math.min(840, availableHeight)
@@ -31,7 +31,7 @@ ApplicationWindow {
     palette.mid: Theme.divider
     palette.dark: Theme.divider
     palette.light: Theme.panelRaised
-    font.family: "Avenir Next"
+    font.family: Qt.platform.os === "windows" ? "Segoe UI" : "Avenir Next"
     font.pixelSize: 12
     Binding { target: Theme; property: "dark"; value: appearance.dark }
     onLibraryModeChanged: {if(libraryMode) { editor.cancelWhiteBalance(); editor.cancelCreative(); editor.cancelAI(); editor.retouchMode="off"; editor.localMode=false; editor.cropMode=false }}
@@ -43,8 +43,33 @@ ApplicationWindow {
         !editor.whiteBalancePicking && !editor.pointColorPicking && !editor.aiObjectPicking
     onComparisonAvailableChanged: { if (!comparisonAvailable) closeBeforeAfter() }
     property bool workspaceHeaderVisible: true
-    property bool workspaceLeftVisible: true
-    property bool developRightVisible: true
+    readonly property bool compactWorkspace: Qt.platform.os === "windows" && width < 820
+    property bool wideLeftVisible: true
+    property bool wideRightVisible: true
+    property string compactPanel: ""
+    readonly property bool workspaceLeftVisible: compactWorkspace ? compactPanel === "left" : wideLeftVisible
+    readonly property bool developRightVisible: compactWorkspace ? compactPanel === "right" : wideRightVisible
+    readonly property bool panelOnly: compactWorkspace && width < 680 && (workspaceLeftVisible || developRightVisible)
+    readonly property bool compactFooter: compactWorkspace && width < 600
+    property int previousVisibility: Window.Windowed
+
+    function setPanelVisible(left, show) {
+        if (compactWorkspace)
+            compactPanel = show ? (left ? "left" : "right") : ""
+        else if (left)
+            wideLeftVisible = show
+        else
+            wideRightVisible = show
+    }
+
+    function toggleFullscreen() {
+        if (visibility === Window.FullScreen) {
+            visibility = previousVisibility
+        } else {
+            previousVisibility = visibility === Window.Maximized ? Window.Maximized : Window.Windowed
+            visibility = Window.FullScreen
+        }
+    }
     property bool filmstripVisible: true
     property bool workspaceToolsVisible: true
     readonly property bool workspaceKeysReady: active && !updates.restartPending && !batch.working &&
@@ -84,6 +109,17 @@ ApplicationWindow {
         }
     }
 
+    component FooterCommand: ApertoneButton {
+        required property string label
+        required property string compactText
+        property string fullText: label
+        flat: true
+        text: root.compactFooter ? compactText : fullText
+        Accessible.name: label
+        ToolTip.visible: root.compactFooter && (hovered || visualFocus)
+        ToolTip.text: label
+    }
+
     component PanelToggle: ApertoneButton {
         id: panelToggle
         required property bool leftEdge
@@ -95,10 +131,7 @@ ApplicationWindow {
         Accessible.name: leftEdge ? qsTranslate("Apertone", "Left panel") : qsTranslate("Apertone", "Right panel")
         ToolTip.visible: hovered || visualFocus
         ToolTip.text: Accessible.name + (leftEdge ? "  F7" : "  F8")
-        onClicked: {
-            if (leftEdge) root.workspaceLeftVisible = !root.workspaceLeftVisible
-            else root.developRightVisible = !root.developRightVisible
-        }
+        onClicked: root.setPanelVisible(leftEdge, !(leftEdge ? root.workspaceLeftVisible : root.developRightVisible))
         background: Rectangle { color: panelToggle.hovered || panelToggle.visualFocus ? Theme.controlHover : Theme.panel }
         contentItem: Label {
             text: panelToggle.leftEdge === panelToggle.checked ? "◂" : "▸"
@@ -275,7 +308,7 @@ ApplicationWindow {
     Shortcut { enabled: !updates.restartPending; context: Qt.ApplicationShortcut; sequences: [StandardKey.Quit]; onActivated: root.close() }
     Shortcut { enabled: editor.aiBusy || editor.aiObjectPicking || editor.retouchBusy || editor.retouchState.drawing || editor.whiteBalanceBusy || editor.whiteBalancePicking || editor.creativeBusy || editor.pointColorPicking; sequence: "Escape"; onActivated: { editor.cancelAI(); editor.cancelRetouch(); editor.cancelWhiteBalance(); editor.cancelCreative() } }
     Shortcut { enabled: editor.hasPhoto && !editor.busy && !updates.restartPending && !batch.working; sequence: "\\"; onActivated: editor.original = !editor.original }
-    Shortcut { enabled: !updates.restartPending && !batch.working; sequence: "Ctrl+Shift+F"; onActivated: root.visibility = root.visibility === Window.FullScreen ? Window.Windowed : Window.FullScreen }
+    Shortcut { enabled: !updates.restartPending && !batch.working; sequences: Qt.platform.os === "windows" ? ["Ctrl+Shift+F", "F11"] : ["Ctrl+Shift+F"]; autoRepeat: false; onActivated: root.toggleFullscreen() }
     Shortcut { sequences: ["G", "Ctrl+Alt+1"]; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable; autoRepeat: false; onActivated: root.showLibraryView("grid") }
     Shortcut { sequence: "E"; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable && libraryPane.canRequestView("loupe"); autoRepeat: false; onActivated: root.showLibraryView("loupe") }
     Shortcut { sequence: "C"; context: Qt.ApplicationShortcut; enabled: root.libraryKeysAvailable && libraryPane.canRequestView("compare"); autoRepeat: false; onActivated: root.showLibraryView("compare") }
@@ -289,8 +322,8 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+Shift+E"; enabled: root.workspaceKeysAvailable && exportButton.enabled; autoRepeat: false; onActivated: exportSettings.open() }
     Shortcut { sequence: "F5"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceHeaderVisible = !root.workspaceHeaderVisible }
     Shortcut { sequence: "F6"; enabled: root.workspaceKeysAvailable && root.hasFilmstrip; autoRepeat: false; onActivated: root.filmstripVisible = !root.filmstripVisible }
-    Shortcut { sequence: "F7"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceLeftVisible = !root.workspaceLeftVisible }
-    Shortcut { sequence: "F8"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.developRightVisible = !root.developRightVisible }
+    Shortcut { sequence: "F7"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.setPanelVisible(true, !root.workspaceLeftVisible) }
+    Shortcut { sequence: "F8"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.setPanelVisible(false, !root.developRightVisible) }
     Shortcut { sequence: "T"; enabled: root.workspaceKeysAvailable; autoRepeat: false; onActivated: root.workspaceToolsVisible = !root.workspaceToolsVisible }
     Shortcut { sequence: "Y"; enabled: root.workspaceKeysAvailable && (root.beforeAfterActive || root.comparisonAvailable && !editor.saving); autoRepeat: false; onActivated: root.showBeforeAfter() }
     Shortcut { sequence: "Escape"; enabled: root.workspaceKeysAvailable && root.beforeAfterActive; autoRepeat: false; onActivated: root.closeBeforeAfter() }
@@ -343,7 +376,7 @@ ApplicationWindow {
                     Rectangle { anchors.fill: parent; radius: width / 2; color: "transparent"; border.width: 1; border.color: Theme.text }
                     Rectangle { width: 7; height: 13; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; radius: 4; color: Theme.accent }
                 }
-                Label { text: "Apertone"; color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
+                Label { visible: !root.compactFooter; text: "Apertone"; color: Theme.text; font.pixelSize: 17; font.weight: Font.DemiBold }
                 Item { Layout.fillWidth: true }
                 ApertoneButton { objectName: "settingsButton"; flat: true; text: qsTranslate("Apertone", "Settings"); Accessible.name: text; onClicked: preferences.open() }
                 UpdateBell { flat: true }
@@ -424,6 +457,8 @@ ApplicationWindow {
             visible: root.libraryMode
             leftPanelVisible: root.workspaceLeftVisible
             rightPanelVisible: root.developRightVisible
+            compactImportSlot: footerImportSlot.visible ? footerImportSlot : null
+            panelOnly: root.panelOnly
             viewToolbarVisible: root.workspaceToolsVisible
         }
         SplitView {
@@ -437,7 +472,7 @@ ApplicationWindow {
             Rectangle {
                 objectName: "develop.presetsPane"
                 visible: root.workspaceLeftVisible
-                SplitView.preferredWidth: Theme.sidebarWidth; SplitView.minimumWidth: 170; SplitView.maximumWidth: 320; color: Theme.panel
+                SplitView.preferredWidth: Theme.sidebarWidth; SplitView.minimumWidth: 170; SplitView.maximumWidth: root.panelOnly ? panels.width : 320; SplitView.fillWidth: root.panelOnly; color: Theme.panel
                 ColumnLayout {
                     id: navigator
                     objectName: "develop.navigator"
@@ -652,6 +687,7 @@ ApplicationWindow {
             }
             Rectangle {
                 objectName: "develop.canvasPane"
+                visible: !root.panelOnly
                 SplitView.fillWidth: true; SplitView.minimumWidth: 360; color: Theme.canvas
                 ColumnLayout {
                     anchors.fill: parent; anchors.margins: 8; spacing: Theme.panelSpacing
@@ -851,7 +887,7 @@ ApplicationWindow {
             Rectangle {
                 objectName: "develop.adjustmentsPane"
                 visible: root.developRightVisible
-                SplitView.preferredWidth: Theme.inspectorWidth; SplitView.minimumWidth: 250; SplitView.maximumWidth: 380; color: Theme.panel
+                SplitView.preferredWidth: Theme.inspectorWidth; SplitView.minimumWidth: 250; SplitView.maximumWidth: root.panelOnly ? panels.width : 380; SplitView.fillWidth: root.panelOnly; color: Theme.panel
                 ColumnLayout {
                     id: inspectorHeader
                     anchors { top: parent.top; left: parent.left; right: parent.right; margins: Theme.panelPadding }
@@ -1153,19 +1189,43 @@ ApplicationWindow {
             Layout.fillWidth: true; implicitHeight: Theme.footerHeight; color: Theme.panel
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8; spacing: 6
-                ApertoneButton { objectName: "openPhotoButton"; flat: true; text: qsTranslate("Apertone", "+  Open photo"); enabled: !editor.busy; onClicked: fileDialog.open() }
+                FooterCommand {
+                    objectName: "openPhotoButton"
+                    label: qsTranslate("Apertone", "Open photo")
+                    fullText: qsTranslate("Apertone", "+  Open photo")
+                    compactText: "+"
+                    enabled: !editor.busy
+                    onClicked: fileDialog.open()
+                }
+                Item {
+                    id: footerImportSlot
+                    visible: root.compactWorkspace && root.libraryMode && !root.workspaceLeftVisible
+                    implicitWidth: libraryPane.importButtonWidth; implicitHeight: Theme.controlHeight
+                }
                 Item {
                     id: footerExportSlot
                     visible: !root.libraryMode || !root.workspaceLeftVisible
                     implicitWidth: exportButton.implicitWidth; implicitHeight: Theme.controlHeight
                 }
                 Rectangle { implicitWidth: 1; implicitHeight: 16; color: Theme.divider }
-                ApertoneButton { objectName: "main.undoButton"; flat: true; text: qsTranslate("Apertone", "Undo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo); onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo(); Accessible.name: text }
-                ApertoneButton { objectName: "main.redoButton"; flat: true; text: qsTranslate("Apertone", "Redo"); enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo); onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo(); Accessible.name: text }
+                FooterCommand {
+                    objectName: "main.undoButton"
+                    label: qsTranslate("Apertone", "Undo")
+                    compactText: "↶"
+                    enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canUndo : editor.canUndo || batch.canUndo)
+                    onClicked: root.libraryMode || !editor.canUndo ? batch.undo() : editor.undo()
+                }
+                FooterCommand {
+                    objectName: "main.redoButton"
+                    label: qsTranslate("Apertone", "Redo")
+                    compactText: "↷"
+                    enabled: !editor.busy && !batch.working && (root.libraryMode ? batch.canRedo : editor.canRedo || batch.canRedo)
+                    onClicked: root.libraryMode || !editor.canRedo ? batch.redo() : editor.redo()
+                }
                 Label { objectName: "main.filename"; Layout.fillWidth: true; Layout.minimumWidth: 0; text: root.libraryMode ? (library.selectedPhotoSummary.filename || "") : editor.filename; textFormat: Text.PlainText; color: Theme.text; font.pixelSize: 11; elide: Text.ElideMiddle }
                 Rectangle { width: 5; height: 5; radius: 3; color: editor.busy || editor.saving ? Theme.accent : Theme.positive }
-                Label { objectName: "main.editorStatus"; text: qsTranslate("Apertone", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
-                Label { objectName: "applicationVersion"; text: "Apertone " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
+                Label { objectName: "main.editorStatus"; Layout.minimumWidth: 0; text: qsTranslate("Apertone", editor.status); font.pixelSize: 10; color: Theme.muted; Layout.fillWidth: true; elide: Text.ElideRight }
+                Label { objectName: "applicationVersion"; visible: !root.compactWorkspace || root.width >= 700; text: "Apertone " + Qt.application.version; font.pixelSize: 10; color: Theme.muted }
                 ToolButton {
                     objectName: "main.workspaceView"
                     text: qsTranslate("Apertone", "View")
@@ -1176,8 +1236,8 @@ ApplicationWindow {
                         y: -height
                         MenuItem { text: qsTranslate("Apertone", "Workspace header") + "  F5"; checkable: true; checked: root.workspaceHeaderVisible; onTriggered: root.workspaceHeaderVisible = checked }
                         MenuItem { text: qsTranslate("Apertone", "Filmstrip") + "  F6"; checkable: true; checked: root.filmstripVisible; enabled: root.hasFilmstrip; onTriggered: root.filmstripVisible = checked }
-                        MenuItem { text: qsTranslate("Apertone", "Left panel") + "  F7"; checkable: true; checked: root.workspaceLeftVisible; onTriggered: root.workspaceLeftVisible = checked }
-                        MenuItem { text: qsTranslate("Apertone", "Right panel") + "  F8"; checkable: true; checked: root.developRightVisible; onTriggered: root.developRightVisible = checked }
+                        MenuItem { text: qsTranslate("Apertone", "Left panel") + "  F7"; checkable: true; checked: root.workspaceLeftVisible; onTriggered: root.setPanelVisible(true, checked) }
+                        MenuItem { text: qsTranslate("Apertone", "Right panel") + "  F8"; checkable: true; checked: root.developRightVisible; onTriggered: root.setPanelVisible(false, checked) }
                         MenuItem { text: qsTranslate("Apertone", "View tools") + "  T"; checkable: true; checked: root.workspaceToolsVisible; onTriggered: root.workspaceToolsVisible = checked }
                     }
                 }

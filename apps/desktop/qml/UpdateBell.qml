@@ -56,7 +56,8 @@ ApertoneButton {
         focus: true
         x: bell.width - width
         y: bell.height + 8
-        width: 340
+        margins: 8
+        width: Math.min(340, Overlay.overlay ? Overlay.overlay.width - 2 * margins : 340)
         padding: 14
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         ColumnLayout {

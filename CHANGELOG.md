@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.1.0
+
+- Reorganized Library and Develop on macOS and Windows with a shared bottom
+  filmstrip and a Navigator for the active photo.
+- Added Quick Develop batch adjustments and active-photo rating and flagging
+  in Loupe. The Library histogram samples the selected photo’s preview.
+- Moved linked Before/After into the Develop canvas and improved access to
+  presets, controls and dialogs in compact and scaled windows.
+- On Windows, F11 restores the previous windowed or maximized state when
+  leaving full screen. In narrow windows, F7 and F8 switch side panels, and
+  Library keeps Import and Export together when the left panel is hidden.
+
 ## 2.0.0 / 2026-11-02
 
 - Added bounded camera-linear highlight recovery using validated per-channel
