@@ -228,9 +228,11 @@ bool localizationScenario(Context &c, const QString &id) {
         require(d.object("main.libraryButton")->property("text").toString() ==
                     translated(code, "Library"),
                 "Visible Library control was not retranslated");
-        require(d.object("settingsVersion")->property("text").toString() ==
-                    "Apertone " + QCoreApplication::applicationVersion(),
-                "Language switch changed displayed version");
+        const auto expectedVersion = "Apertone " + QCoreApplication::applicationVersion();
+        for (const auto *selector : {"settingsVersion", "applicationVersion"})
+            require(
+                d.object(selector)->property("text").toString() == expectedVersion,
+                QStringLiteral("Language switch changed displayed version in %1").arg(selector));
         QFile preferences(c.stateRoot + "/language.json");
         require(preferences.open(QIODevice::ReadOnly), "Language preference was not persisted");
         const auto persisted = QJsonDocument::fromJson(preferences.readAll()).object();
