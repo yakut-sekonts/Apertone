@@ -8,6 +8,7 @@ ColumnLayout {
     spacing: Theme.panelSpacing
     property var state: { const language = Qt.uiLanguage; return editor.lensState }
     property var options: editor.lensOptions.map(function(item) { return item.id ? item : Object.assign({}, item, {name: qsTranslate("Apertone", item.name)}) })
+    readonly property string searchTerm: search.text.trim().toLowerCase()
     RowLayout {
         Layout.fillWidth: true
         Label { text: qsTranslate("Apertone", "LENS CORRECTIONS"); color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5; Layout.fillWidth: true }
@@ -21,7 +22,9 @@ ColumnLayout {
         enabled: editor.hasPhoto && !editor.busy
         textRole: "name"
         valueRole: "id"
-        model: panel.options.filter(function(item) { return !item.id || item.id === panel.state.profile || item.name.toLowerCase().includes(search.text.toLowerCase()) })
+        model: panel.options.filter(function(item) {
+            return !item.id || item.id === panel.state.profile || (item.searchText || "").includes(panel.searchTerm)
+        })
         currentIndex: {
             for (let i = 0; i < model.length; ++i)
                 if (model[i].id === panel.state.profile) return i

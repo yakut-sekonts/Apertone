@@ -34,6 +34,13 @@ Catalog 7→8 / edit 6→7 migration is transactional; presets schema 5 reads
 No automatic download or opaque per-photo profile changes. The pinned database
 version determines automatic resolution; an explicit manual selection persists.
 
+The manual-prime extension includes the measured Industar-61 L/Z MC supplement
+documented in [the database notice](../LENS_DATABASE_NOTICE.md). It also enables
+the Zenitar 16/2.8 native radial correction on compatible crop sensors. The
+fisheye projection is preserved. A manually selected prime with a known nominal
+focal length can resolve geometry and lateral CA when focal length is missing
+from EXIF. Vignetting still requires a supplied aperture within calibration.
+
 Tests cover equations and channels, real profile selection and ambiguity,
 sensor/resolution normalization, boundaries/cancellation and exact neutral
 pixels, persistence/migration/rollback, QML gesture/history, preset subsets,

@@ -384,6 +384,13 @@ compatible mounts; ambiguous or unknown lenses require manual selection.
 A searchable lens list shows profiles compatible with the detected camera.
 Unknown cameras cannot provide a sensor scale; no profile is invented.
 
+Search by the markings on a Russian or Soviet lens in Cyrillic or Latin, for
+example `Гелиос-44М-4`, `Индустар-61 Л/З МС` or `Zenitar`. Select the matching
+model and crop entry for an adapted lens. With no focal length in EXIF, manual
+selection uses the documented focal length of these primes. Vignetting needs
+an aperture reading. The MC Zenitar 16mm f/2.8 profile retains the fisheye
+projection and covers crop 1.529 and compatible smaller sensors.
+
 Enable the profile in Develop, then use Distortion and Vignetting (0–200,
 100 is calibrated strength), plus a lateral Chromatic Aberration switch.
 Each calibration's availability is visible. Distortion/CA interpolate linearly

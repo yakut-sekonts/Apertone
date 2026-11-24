@@ -8,17 +8,28 @@ namespace luma {
 namespace {
 #include "LensDatabase.h"
 std::string normalized(std::string_view value) {
+    constexpr std::string_view upper = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+    constexpr std::string_view lower = "абвгдеёжзийклмнопрстуфхцчшщъыьэюя";
     std::string result;
-    for (char c : value) {
-        if (c >= 'A' && c <= 'Z')
+    result.reserve(value.size());
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        const char c = value[i];
+        // Russian letters occupy two UTF-8 bytes, starting with D0 or D1.
+        if (static_cast<unsigned char>(c) == 0xD0 || static_cast<unsigned char>(c) == 0xD1) {
+            if (i + 1 >= value.size() || (static_cast<unsigned char>(value[i + 1]) & 0xC0) != 0x80)
+                return {};
+            const auto letter = value.substr(i, 2);
+            const auto offset = upper.find(letter);
+            result.append(offset == std::string_view::npos ? letter : lower.substr(offset, 2));
+            ++i;
+        } else if (c >= 'A' && c <= 'Z')
             result += static_cast<char>(c - 'A' + 'a');
         else if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
             result += c;
     }
     return result;
 }
-bool matches(std::string_view value, std::span<const std::string_view> aliases) {
-    const auto key = normalized(value);
+bool matches(std::string_view key, std::span<const std::string_view> aliases) {
     return !key.empty() && std::any_of(aliases.begin(), aliases.end(),
                                        [&](auto alias) { return key == normalized(alias); });
 }
@@ -101,8 +112,9 @@ bool compatibleLens(const LensCamera &camera, const LensProfile &profile) {
 ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &settings) {
     settings.validate();
     ResolvedLens result;
+    const auto cameraKey = normalized(metadata.camera);
     for (const auto &camera : cameras)
-        if (matches(metadata.camera, camera.aliases)) {
+        if (matches(cameraKey, camera.aliases)) {
             if (result.camera && (camera.mount != result.camera->mount ||
                                   camera.cropFactor != result.camera->cropFactor)) {
                 result.camera = nullptr;
@@ -123,9 +135,9 @@ ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &sett
             return result;
         }
     } else {
+        const auto lensKey = normalized(metadata.lens);
         for (const auto &profile : profiles)
-            if (matches(metadata.lens, profile.aliases) &&
-                compatibleLens(*result.camera, profile)) {
+            if (matches(lensKey, profile.aliases) && compatibleLens(*result.camera, profile)) {
                 if (result.profile) {
                     result.profile = nullptr;
                     result.status = "Ambiguous lens; choose a profile manually";
@@ -138,18 +150,19 @@ ResolvedLens resolveLens(const PhotoMetadata &metadata, const LensSettings &sett
         result.status = "Lens not identified; choose a profile manually";
         return result;
     }
-    const double focal = metadata.focalLength.value_or(0);
+    const auto &profile = *result.profile;
+    const double focal =
+        metadata.focalLength.value_or(settings.profile.empty() ? 0 : profile.fixedFocal);
     const double aperture = metadata.aperture.value_or(0);
     if (!std::isfinite(focal) || focal <= 0) {
         result.status = "No focal length; no profile applied";
         return result;
     }
-    const auto &profile = *result.profile;
     result.distortion = interpolate({profile.distortion.begin(), profile.distortion.end()}, focal);
     result.tca = interpolate({profile.tca.begin(), profile.tca.end()}, focal);
     if (std::isfinite(aperture) && aperture > 0)
         result.vignetting = vignette(profile, focal, aperture);
-    result.status = "Lensfun 0.3.4 · ";
+    result.status = "Lensfun · ";
     result.status += result.distortion ? "Distortion ✓" : "Distortion: no calibration";
     result.status += result.tca ? " · CA ✓" : " · CA: no calibration";
     result.status += result.vignetting ? " · Vignetting ✓ (distant focus)"

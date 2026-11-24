@@ -99,4 +99,5 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/compile-lens-database.py"
         "${lens_database_SOURCE_DIR}/data/db" "${CMAKE_BINARY_DIR}/generated/LensDatabase.h"
     DEPENDS "${CMAKE_SOURCE_DIR}/scripts/compile-lens-database.py"
+        "${CMAKE_SOURCE_DIR}/resources/lens/industar-61.xml"
     VERBATIM)
