@@ -10,6 +10,7 @@ ColumnLayout {
     Layout.minimumWidth: 0
     Layout.maximumWidth: parent.width
     property bool selected: !!editor.localState.id
+    property alias controlsOpen: expanded.checked
     readonly property var kinds: ["linear", "radial", "brush", "luminance", "color"]
     readonly property var operations: ["add", "subtract", "intersect"]
     function kindName(kind) {

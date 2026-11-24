@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "hy",
   "messages": {
+    "Navigator": "Նավարկիչ",
+    "Histogram options": "Հիստոգրամի ընտրանքներ",
     "Sort photos": "Դասավորել լուսանկարները",
     "Capture time ↓": "Նկարահանման ժամ ↓",
     "Capture time ↑": "Նկարահանման ժամ ↑",

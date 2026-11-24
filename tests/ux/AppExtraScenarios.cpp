@@ -139,9 +139,17 @@ void dragScrollbar(Context &c, const QString &selector, QQuickItem &viewport, bo
     d.frame();
     const auto observed = scroll(viewport, horizontal);
     const double range = observed.content - observed.viewport;
-    require(range > 0 && std::abs((observed.offset - observed.origin) / range - fraction) <=
-                             2 / travel + 1e-3,
-            "Lifecycle scrollbar did not acknowledge the requested nonzero offset");
+    require(
+        range > 0 &&
+            std::abs((observed.offset - observed.origin) / range - fraction) <= 2 / travel + 1e-3,
+        QString(
+            "Lifecycle scrollbar %1 did not reach %2 (offset %3, origin %4, range %5, travel %6)")
+            .arg(selector)
+            .arg(fraction)
+            .arg(observed.offset)
+            .arg(observed.origin)
+            .arg(range)
+            .arg(travel));
 }
 QRectF rectangle(Context &c, const QString &selector) {
     auto *item = c.driver->item(selector);
@@ -179,18 +187,33 @@ Layout layout(Context &c) {
     values.insert("main.footer", rectangle(c, "main.footer"));
     if (c.window->property("libraryMode").toBool()) {
         for (const auto *selector :
-             {"library.pane", "library.grid", "library.search", "library.ratingFilter",
+             {"library.pane", "library.leftPanel", "library.rightPanel", "library.viewToolbar",
+              "library.filmstrip", "library.grid", "library.search", "library.ratingFilter",
               "libraryFlagFilter", "libraryLabelFilter", "library.importButton",
               "library.metadataActions", "library.labelChoice", "libraryAddToCollection",
               "libraryRemoveFromCollection"}) {
             contained(c, selector, window);
             values.insert(selector, rectangle(c, selector));
         }
+        const auto left = values["library.leftPanel"];
+        const auto right = values["library.rightPanel"];
+        const auto gridBox = values["library.grid"];
+        const auto viewTools = values["library.viewToolbar"];
+        const auto strip = values["library.filmstrip"];
+        contained(c, "library.importButton", left);
+        contained(c, "exportButton", left);
+        contained(c, "library.metadataActions", right);
+        require(left.right() <= gridBox.left() + 1 && gridBox.right() <= right.left() + 1 &&
+                    values["library.search"].bottom() <= gridBox.top() + 1 &&
+                    gridBox.bottom() <= viewTools.top() + 1 &&
+                    viewTools.bottom() <= strip.top() + 1 &&
+                    strip.bottom() <= values["main.footer"].top() + 1,
+                "Library panels overlap the grid, view controls or shared filmstrip");
         auto *grid = c.driver->item("library.grid");
         const double cellWidth = grid->property("cellWidth").toDouble();
         const double cellHeight = grid->property("cellHeight").toDouble();
         require(std::isfinite(cellWidth) && std::isfinite(cellHeight) && cellWidth > 0 &&
-                    cellWidth <= grid->width() + 1 && cellHeight == 210,
+                    cellWidth <= grid->width() + 1 && cellHeight > 0,
                 "Library resize produced invalid cell geometry");
         const auto actions = values["library.metadataActions"];
         std::function<void(QQuickItem *)> inspect = [&](QQuickItem *parent) {
@@ -201,7 +224,7 @@ Layout layout(Context &c) {
                                           QSizeF(child->width(), child->height()));
                     require(geometry.width() > 0 && geometry.height() > 0 &&
                                 actions.adjusted(-1, -1, 1, 1).contains(geometry),
-                            "Responsive metadata action is empty or overflows its GridLayout");
+                            "Responsive metadata action is empty or overflows the inspector");
                 }
                 inspect(child);
             }

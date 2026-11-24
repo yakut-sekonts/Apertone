@@ -4,7 +4,9 @@ import QtQuick.Layouts
 
 GridLayout {
     id: row
-    columns: width < 900 ? 3 : 6
+    property bool inspectorLayout: false
+    columns: inspectorLayout ? 2 : width < 900 ? 3 : 6
+    uniformCellWidths: inspectorLayout
     columnSpacing: 6
     rowSpacing: 6
     objectName: "batchSettings"
@@ -16,7 +18,10 @@ GridLayout {
     ApertoneComboBox {
         Layout.minimumWidth: 0;
         id: presetChoice; objectName: "batchPresetChoice"
-        model: row.availablePresets; textRole: "displayName"; Layout.preferredWidth: 190; Layout.maximumWidth: 230
+        model: row.availablePresets; textRole: "displayName"
+        Layout.preferredWidth: 190; Layout.maximumWidth: row.inspectorLayout ? Infinity : 230
+        Layout.columnSpan: row.inspectorLayout ? 2 : 1
+        Layout.fillWidth: row.inspectorLayout
         enabled: row.ready && row.availablePresets.length > 0
         delegate: ItemDelegate {
             required property var modelData
@@ -27,11 +32,54 @@ GridLayout {
         contentItem: Label { text: presetChoice.currentText; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; leftPadding: 8 }
         ToolTip.visible: hovered && currentText.length > 0; ToolTip.text: currentText
     }
-    ApertoneButton { objectName: "batchApplyPreset"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Apply"); enabled: row.ready && presetChoice.currentIndex >= 0; onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id) }
-    ApertoneButton { objectName: "batchPaste"; Layout.minimumWidth: 0; Layout.maximumWidth: 110; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Paste"); enabled: row.ready && presets.hasCopiedSettings; onClicked: batch.paste() }
-    ApertoneButton { objectName: "batchSync"; Layout.minimumWidth: 0; Layout.maximumWidth: 200; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Sync Settings…"); enabled: row.ready && editor.hasPhoto; onClicked: syncDialog.open() }
-    ApertoneButton { objectName: "batchUndo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Undo batch"); enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.undo() }
-    ApertoneButton { objectName: "batchRedo"; Layout.minimumWidth: 0; Layout.maximumWidth: 160; ToolTip.visible: hovered; ToolTip.text: text; text: qsTranslate("Apertone", "Redo batch"); enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting; onClicked: batch.redo() }
+    ApertoneButton {
+        objectName: "batchApplyPreset"
+        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
+        Layout.maximumWidth: row.inspectorLayout ? Infinity : 110
+        ToolTip.visible: hovered; ToolTip.text: text
+        text: qsTranslate("Apertone", "Apply")
+        enabled: row.ready && presetChoice.currentIndex >= 0
+        onClicked: batch.applyPreset(row.availablePresets[presetChoice.currentIndex].id)
+    }
+    ApertoneButton {
+        objectName: "batchPaste"
+        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
+        Layout.maximumWidth: row.inspectorLayout ? Infinity : 110
+        ToolTip.visible: hovered; ToolTip.text: text
+        text: qsTranslate("Apertone", "Paste")
+        enabled: row.ready && presets.hasCopiedSettings
+        onClicked: batch.paste()
+    }
+    ApertoneButton {
+        objectName: "batchSync"
+        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
+        Layout.columnSpan: row.inspectorLayout ? 2 : 1
+        Layout.maximumWidth: row.inspectorLayout ? Infinity : 200
+        ToolTip.visible: hovered; ToolTip.text: text
+        text: qsTranslate("Apertone", "Sync Settings…")
+        enabled: row.ready && editor.hasPhoto
+        onClicked: syncDialog.open()
+    }
+    ApertoneButton {
+        objectName: "batchUndo"
+        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
+        Layout.maximumWidth: row.inspectorLayout ? Infinity : 160
+        text: row.inspectorLayout ? qsTranslate("Apertone", "Undo") : qsTranslate("Apertone", "Undo batch")
+        Accessible.name: qsTranslate("Apertone", "Undo batch")
+        ToolTip.visible: hovered; ToolTip.text: Accessible.name
+        enabled: batch.canUndo && !library.working && !editor.busy && !editor.exporting
+        onClicked: batch.undo()
+    }
+    ApertoneButton {
+        objectName: "batchRedo"
+        Layout.minimumWidth: 0; Layout.fillWidth: row.inspectorLayout
+        Layout.maximumWidth: row.inspectorLayout ? Infinity : 160
+        text: row.inspectorLayout ? qsTranslate("Apertone", "Redo") : qsTranslate("Apertone", "Redo batch")
+        Accessible.name: qsTranslate("Apertone", "Redo batch")
+        ToolTip.visible: hovered; ToolTip.text: Accessible.name
+        enabled: batch.canRedo && !library.working && !editor.busy && !editor.exporting
+        onClicked: batch.redo()
+    }
     Dialog {
         id: syncDialog; objectName: "batchSyncDialog"
         parent: Overlay.overlay; anchors.centerIn: parent

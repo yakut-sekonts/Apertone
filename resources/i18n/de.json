@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "de",
   "messages": {
+    "Navigator": "Navigator",
+    "Histogram options": "Histogrammoptionen",
     "Sort photos": "Fotos sortieren",
     "Capture time ↓": "Aufnahmezeit ↓",
     "Capture time ↑": "Aufnahmezeit ↑",

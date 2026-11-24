@@ -101,7 +101,35 @@ bool navigationScenario(Context &c, const QString &id) {
         c.import(10);
         d.click(c.card(0));
         require(c.library.selectedCount() == 1, "Single selection fixture failed");
+        const auto nextID = d.object(c.card(1))->property("assetID").toString();
+        d.click("filmstrip.card." + nextID);
+        d.wait([&] { return c.library.selectedAssetIDs() == QStringList{nextID}; },
+               "Library filmstrip selects the matching photo");
+        require(d.item("library.grid")->isVisible() && !c.editor.hasPhoto(),
+                "Selecting a filmstrip thumbnail left the Library grid");
+        const double gridWidth = d.item("library.grid")->width();
+        d.click("main.toggleRightPanel");
+        d.wait(
+            [&] {
+                return !d.item("library.rightPanel")->isVisible() &&
+                       d.item("library.grid")->width() > gridWidth;
+            },
+            "Hiding the Library inspector widens the grid");
+        d.key(Qt::Key_F8);
+        d.wait([&] { return d.item("library.rightPanel")->isVisible(); },
+               "Library inspector restored");
+        d.click("main.toggleLeftPanel");
+        d.wait([&] { return !d.item("library.leftPanel")->isVisible(); },
+               "Library catalog panel hidden");
+        auto *footer = d.item("main.footer");
+        auto *exportButton = d.item("exportButton");
+        require(footer->mapRectToScene(footer->boundingRect())
+                    .contains(exportButton->mapRectToScene(exportButton->boundingRect())),
+                "Hiding the catalog panel stranded Export outside the footer");
         exportState(c, false, true);
+        d.key(Qt::Key_F7);
+        d.wait([&] { return d.item("library.leftPanel")->isVisible(); },
+               "Library catalog panel restored");
         d.click("library.selectAll");
         d.wait([&] { return !c.library.selecting() && c.library.selectedCount() == 10; },
                "multiple selection fixture ready");
@@ -129,17 +157,26 @@ bool navigationScenario(Context &c, const QString &id) {
         auto *label = d.item("main.filename");
         require(label->property("text").toString() == name && label->property("truncated").toBool(),
                 "Long filename was lost or not elided");
-        double right = 0;
-        for (const auto *control :
-             {"settingsButton", "updates.bell", "main.filename", "main.undoButton",
-              "main.redoButton", "exportButton", "openPhotoButton"}) {
-            auto *item = d.item(control);
-            const auto rectangle = item->mapRectToScene(item->boundingRect());
-            require(item->isVisible() && rectangle.left() >= right &&
-                        rectangle.right() <= c.window->width(),
-                    "Long filename overlapped or displaced toolbar controls: " + QString(control));
-            right = rectangle.right();
-        }
+        const auto checkRow = [&](const QString &rowId, const QStringList &controls) {
+            auto *row = d.item(rowId);
+            const auto bounds = row->mapRectToScene(row->boundingRect());
+            double right = bounds.left();
+            for (const auto &control : controls) {
+                auto *item = d.item(control);
+                const auto rectangle = item->mapRectToScene(item->boundingRect());
+                require(item->isVisible() && !rectangle.isEmpty() &&
+                            bounds.adjusted(-.5, -.5, .5, .5).contains(rectangle) &&
+                            rectangle.left() >= right - .5,
+                        "Long filename overlapped or displaced a control in " + rowId + ": " +
+                            control);
+                right = rectangle.right();
+            }
+        };
+        checkRow("main.toolbar",
+                 {"settingsButton", "updates.bell", "main.libraryButton", "main.developButton"});
+        checkRow("main.footer", {"openPhotoButton", "exportButton", "main.undoButton",
+                                 "main.redoButton", "main.filename", "main.editorStatus",
+                                 "applicationVersion", "main.workspaceView"});
         return true;
     }
     edit(c);

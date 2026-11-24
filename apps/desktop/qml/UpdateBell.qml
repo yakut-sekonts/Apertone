@@ -18,10 +18,12 @@ ApertoneButton {
             anchors.centerIn: parent
             width: 18
             height: 20
+            readonly property color strokeColor: Theme.text
+            onStrokeColorChanged: requestPaint()
             onPaint: {
                 const c = getContext("2d");
                 c.clearRect(0, 0, width, height);
-                c.strokeStyle = Theme.text;
+                c.strokeStyle = strokeColor;
                 c.lineWidth = 1.6;
                 c.beginPath();
                 c.moveTo(2, 15);

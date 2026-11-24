@@ -112,9 +112,16 @@ ColumnLayout {
         objectName: "presetTabs"
         Layout.fillWidth: true
         onCurrentIndexChanged: panel.clearHoveredPreview()
-        TabButton { objectName: "preset.tabs.quick"; text: qsTranslate("Apertone", "Quick"); implicitWidth: 68; font.pixelSize: 11 }
-        TabButton { objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters"); implicitWidth: 68; font.pixelSize: 11 }
-        TabButton { objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets"); implicitWidth: 68; font.pixelSize: 11 }
+        component PresetTab: TabButton {
+            leftPadding: 1; rightPadding: 1
+            font.pixelSize: 11
+            palette.brightText: Theme.text
+            ToolTip.visible: hovered || visualFocus
+            ToolTip.text: text
+        }
+        PresetTab { objectName: "preset.tabs.quick"; text: qsTranslate("Apertone", "Quick") }
+        PresetTab { objectName: "preset.tabs.filters"; text: qsTranslate("Apertone", "Filters") }
+        PresetTab { objectName: "preset.tabs.presets"; text: qsTranslate("Apertone", "Presets") }
     }
     ColumnLayout {
         visible: presetTabs.currentIndex === 0
@@ -125,24 +132,30 @@ ColumnLayout {
             Layout.fillWidth: true; model: presets.quickCategories
             onCurrentTextChanged: panel.updateQuickItems()
         }
-        RowLayout {
-            Layout.fillWidth: true; spacing: 4
+        GridLayout {
+            Layout.fillWidth: true; columnSpacing: 3; rowSpacing: 2
+            columns: width >= enhance.implicitWidth + mono.implicitWidth + straighten.implicitWidth + 2 * columnSpacing ? 3 : 2
             ApertoneButton {
+                id: enhance
                 objectName: "quick.enhance"; text: qsTranslate("Apertone", "Enhance")
                 enabled: editor.hasPhoto && !editor.busy && !editor.original && !editor.creativeBusy
-                Layout.fillWidth: true
+                Layout.fillWidth: true; leftPadding: 3; rightPadding: 3
                 onClicked: editor.applyEnhance()
                 ToolTip.visible: hovered
                 ToolTip.text: qsTranslate("Apertone", "Editable local enhancement with explicit processing provenance")
             }
             ApertoneButton {
+                id: mono
                 objectName: "quick.mono"; text: qsTranslate("Apertone", "B&W")
                 enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+                leftPadding: 3; rightPadding: 3
                 onClicked: presets.applyQuickLook("pure-mono")
             }
             ApertoneButton {
+                id: straighten
                 objectName: "quick.straighten"; text: qsTranslate("Apertone", "Straighten")
                 enabled: editor.hasPhoto && !editor.busy && !editor.transformAutoBusy; Layout.fillWidth: true
+                Layout.columnSpan: parent.columns === 2 ? 2 : 1; leftPadding: 3; rightPadding: 3
                 onClicked: editor.autoTransform()
             }
         }
@@ -191,7 +204,8 @@ ColumnLayout {
             Label { text: qsTranslate("Apertone", "Layers"); color: Theme.text; font.pixelSize: 11; font.weight: Font.DemiBold; Layout.fillWidth: true }
             Label { text: presets.quickStack.length + "/32"; color: Theme.muted; font.pixelSize: 10 }
             ApertoneButton {
-                objectName: "quick.clear"; text: qsTranslate("Apertone", "Clear"); implicitWidth: 52
+                objectName: "quick.clear"; text: qsTranslate("Apertone", "Clear")
+                leftPadding: 4; rightPadding: 4
                 enabled: presets.quickStack.length > 0 && !editor.busy
                 onClicked: presets.clearQuickLooks()
             }
@@ -200,7 +214,7 @@ ColumnLayout {
             id: quickStack
             objectName: "quick.stack"
             Layout.fillWidth: true; Layout.preferredHeight: Math.min(contentHeight, 190)
-            Layout.minimumHeight: presets.quickStack.length ? 52 : 28
+            Layout.minimumHeight: presets.quickStack.length ? 52 : emptyStack.implicitHeight + 4
             clip: true; model: presets.quickStack; spacing: 3
             delegate: Rectangle {
                 id: layerRow
@@ -240,7 +254,12 @@ ColumnLayout {
                     }
                 }
             }
-            Label { anchors.centerIn: parent; visible: quickStack.count === 0; text: qsTranslate("Apertone", "Add looks above — they stay editable and stack in order."); color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap; width: parent.width }
+            Label {
+                id: emptyStack
+                anchors.centerIn: parent; width: quickStack.width
+                visible: quickStack.count === 0; text: qsTranslate("Apertone", "Add looks above — they stay editable and stack in order.")
+                color: Theme.muted; font.pixelSize: 10; wrapMode: Text.Wrap
+            }
             ScrollBar.vertical: ScrollBar {}
         }
     }
@@ -415,12 +434,13 @@ ColumnLayout {
     Label { objectName: "preset.error"; text: presets.error; visible: text.length > 0; color: Theme.negative; wrapMode: Text.Wrap; Layout.fillWidth: true; font.pixelSize: 11 }
     Label { objectName: "presetImportNotice"; text: qsTranslate("Apertone", presets.importNotice); textFormat: Text.PlainText; visible: text.length > 0; color: Theme.accent; wrapMode: Text.Wrap; maximumLineCount: 4; elide: Text.ElideRight; Layout.fillWidth: true; font.pixelSize: 11 }
     ApertoneButton { objectName: "presetImportDetails"; visible: presets.importNotice.length > 0; text: qsTranslate("Apertone", "XMP compatibility"); Layout.fillWidth: true; onClicked: compatibilityDialog.open() }
-    RowLayout {
-        Layout.fillWidth: true; spacing: 4
-        ApertoneButton { objectName: "preset.copy"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Apertone", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
+    GridLayout {
+        Layout.fillWidth: true; columnSpacing: 4; rowSpacing: 2
+        columns: width >= copy.implicitWidth + paste.implicitWidth + columnSpacing ? 2 : 1
+        ApertoneButton { id: copy; objectName: "preset.copy"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Copy…"); enabled: editor.hasPhoto && !editor.busy; Layout.fillWidth: true
             onClicked: { panel.clearHoveredPreview(); editDialog.copyMode = true; editDialog.groups = presets.lastCopyGroups; editDialog.open() }
         }
-        ApertoneButton { objectName: "preset.paste"; implicitWidth: 80; Layout.minimumWidth: 0; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
+        ApertoneButton { id: paste; objectName: "preset.paste"; leftPadding: 4; rightPadding: 4; text: qsTranslate("Apertone", "Paste"); enabled: presets.hasCopiedSettings && editor.hasPhoto && !editor.busy; onClicked: presets.pasteSettings(); Layout.fillWidth: true }
     }
     Dialog {
         id: folderDialog

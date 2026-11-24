@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "ru",
   "messages": {
+    "Navigator": "Навигатор",
+    "Histogram options": "Параметры гистограммы",
     "Sort photos": "Сортировка снимков",
     "Capture time ↓": "Время съёмки ↓",
     "Capture time ↑": "Время съёмки ↑",

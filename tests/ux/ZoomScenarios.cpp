@@ -14,6 +14,7 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
+#include <QFontMetricsF>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QNativeGestureEvent>
@@ -1435,17 +1436,29 @@ bool zoomInteractionScenario(Context &c, const QString &id) {
             d.wait([&] { return !d.object("preferencesPanel")->property("visible").toBool(); },
                    "Zoom localization preferences closed");
             d.frame();
-            const auto *pane = d.item("develop.canvasPane");
-            QRectF previous;
+            if (!c.editor.zoomAvailable())
+                awaitZoomControls(c);
+            const auto *navigator = d.item("develop.navigator");
+            QList<QRectF> occupied;
             for (const auto *name :
                  {"develop.fit", "develop.fill", "develop.zoomPercent", "develop.actualPixels"}) {
                 const auto *control = d.item(QString::fromLatin1(name));
-                const auto rectangle = control->mapRectToItem(pane, control->boundingRect());
-                require(control->isVisible() && control->isEnabled() &&
-                            pane->boundingRect().contains(rectangle) &&
-                            (previous.isEmpty() || !previous.intersects(rectangle)),
-                        "Localized zoom controls overlap or leave minimum-width canvas");
-                previous = rectangle;
+                const auto rectangle =
+                    control->mapRectToItem(navigator, {0, 0, control->width(), control->height()});
+                require(control->isVisible() && control->isEnabled() && !rectangle.isEmpty() &&
+                            navigator->boundingRect().contains(rectangle),
+                        "Localized zoom control leaves the minimum-width Navigator: " +
+                            QString(name));
+                const auto textWidth = QFontMetricsF(control->property("font").value<QFont>())
+                                           .horizontalAdvance(control->property("text").toString());
+                const auto paddedWidth = control->width() -
+                                         control->property("leftPadding").toReal() -
+                                         control->property("rightPadding").toReal();
+                require(textWidth <= paddedWidth + 0.5,
+                        "Localized zoom text is clipped: " + QString(name));
+                for (const auto &other : occupied)
+                    require(!rectangle.intersects(other), "Localized zoom controls overlap");
+                occupied.append(rectangle);
             }
             d.log({{"action", "zoom_minimum_window_locale"},
                    {"locale", c.localization->language()},

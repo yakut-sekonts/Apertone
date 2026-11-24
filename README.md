@@ -39,6 +39,19 @@ Use the system print dialog for contact sheets and photo books. See the
 [3.0 release notes](docs/releases/v3.0.1.md) for platform capabilities and
 limitations.
 
+## Desktop workspace
+
+Switch between Library and Develop in the upper-right corner. In Library,
+select a collection on the left, browse photos in the center, and rate or
+inspect the selection on the right. Import and Export are at the bottom of
+the left panel. In Develop, the left panel contains the Navigator, presets,
+and history. The right panel starts with the histogram and editing tools.
+The filmstrip runs across the bottom of both modules.
+
+Click the arrows at the outer edges to hide or show the side panels. Press
+**F6** to toggle the filmstrip, **F7** for the left panel, or **F8** for the
+right panel. The **View** menu in the bottom bar offers the same controls.
+
 ### Windows x64 in 2.5.0
 
 Extract the ZIP on Windows 10 or 11 x64 and launch `Apertone.exe`. Keep the

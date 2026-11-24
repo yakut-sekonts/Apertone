@@ -2,6 +2,8 @@
   "schema": 1,
   "locale": "zh_CN",
   "messages": {
+    "Navigator": "导航器",
+    "Histogram options": "直方图选项",
     "Sort photos": "照片排序",
     "Capture time ↓": "拍摄时间 ↓",
     "Capture time ↑": "拍摄时间 ↑",

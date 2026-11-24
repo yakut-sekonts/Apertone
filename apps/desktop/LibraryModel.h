@@ -23,6 +23,8 @@ class LibraryModel final : public QAbstractListModel {
     Q_PROPERTY(QVariantList importMetadataPresets READ importMetadataPresets NOTIFY stateChanged)
     Q_PROPERTY(int count READ count NOTIFY stateChanged)
     Q_PROPERTY(int selectedCount READ selectedCount NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap selectedPhotoSummary READ selectedPhotoSummary NOTIFY
+                   selectedPhotoSummaryChanged)
     Q_PROPERTY(int sortOrder READ sortOrder WRITE setSortOrder NOTIFY stateChanged)
     Q_PROPERTY(QString selectedCopyName READ selectedCopyName NOTIFY stateChanged)
     Q_PROPERTY(QString selectedStackID READ selectedStackID NOTIFY stateChanged)
@@ -210,6 +212,7 @@ class LibraryModel final : public QAbstractListModel {
     }
     Q_INVOKABLE bool removeFromSelection(const QString &id);
     QString selectedCopyName() const;
+    QVariantMap selectedPhotoSummary() const;
     QString selectedStackID() const;
     bool viewingStack() const {
         return !filter_.stackID.empty();
@@ -396,6 +399,7 @@ class LibraryModel final : public QAbstractListModel {
   signals:
     void cameraFrameChanged();
     void stateChanged();
+    void selectedPhotoSummaryChanged();
     void reloadStarted(bool preserveViewport);
     void viewportRestored(int row);
     void openRequested(const QUrl &url);

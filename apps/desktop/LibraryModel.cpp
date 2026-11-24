@@ -35,6 +35,10 @@ LibraryModel::LibraryModel(std::filesystem::path catalog, QObject *parent)
     semanticEnabled_ = settings.value("semanticIndexEnabled", false).toBool();
     cullingAutoEnabled_ = settings.value("cullingAutoEnabled", false).toBool();
     initializeMaintenance();
+    connect(this, &QAbstractItemModel::dataChanged, this,
+            &LibraryModel::selectedPhotoSummaryChanged);
+    connect(this, &QAbstractItemModel::modelReset, this,
+            &LibraryModel::selectedPhotoSummaryChanged);
     filterTimer_.setSingleShot(true);
     filterTimer_.setInterval(160);
     connect(&filterTimer_, &QTimer::timeout, this, [this] { reload(true); });
@@ -691,6 +695,17 @@ int LibraryModel::reviewPhotoRow(const QString &id) const {
             return page * pageSize + static_cast<int>(found - rows.begin());
     }
     return -1;
+}
+QVariantMap LibraryModel::selectedPhotoSummary() const {
+    if (selected_.size() != 1)
+        return {};
+    const auto row = reviewPhotoRow(*selected_.begin());
+    if (row < 0)
+        return {};
+    const auto photo = index(row);
+    return {{"filename", data(photo, Filename)}, {"camera", data(photo, Camera)},
+            {"rating", data(photo, Rating)},     {"flag", data(photo, Flag)},
+            {"label", data(photo, Label)},       {"thumbnail", data(photo, Thumbnail)}};
 }
 QString LibraryModel::selectedCopyName() const {
     if (selected_.size() != 1)
