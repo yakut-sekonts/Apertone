@@ -1,4 +1,5 @@
 #include "tests/ux/UxContext.h"
+#include <QCoreApplication>
 #include <QDir>
 #include <QUrl>
 #include <memory>
@@ -148,6 +149,15 @@ bool updaterScenario(Context &c, const QString &id, const QString &variant) {
         stillWaiting(c, probe);
         c.storageFault.holdWrites(false);
         installed(c, probe);
+        if (releaseGuard) {
+            // Reproduce a catalog reader that Qt releases during application teardown.
+            auto reader = std::make_shared<luma::Catalog>(c.catalogFile.toStdString(),
+                                                          luma::CatalogOpenMode::existingOnly);
+            require(reader->libraryCount() == count,
+                    "Deferred reader cannot see the batch catalog");
+            QObject::connect(QCoreApplication::instance(), &QObject::destroyed,
+                             [reader = std::move(reader)]() mutable { reader.reset(); });
+        }
     } else {
         require(QDir().mkpath(c.root + "/exports"), "Cannot create export destination");
         d.click("exportButton");
