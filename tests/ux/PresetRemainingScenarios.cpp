@@ -634,14 +634,13 @@ bool presetRemainingScenario(Context &c, const QString &id) {
         fixtureFile(c, storePath(c), fixtureBytes);
         userTab(c);
         openAction(c, "preset.actions.refresh");
-        d.wait(
-            [&] {
-                return c.presets.items().size() == 512 &&
-                       d.object("presetList")->property("count").toInt() == 512;
-            },
-            "512 presets loaded through Refresh");
+        d.wait([&] { return c.presets.items().size() == 512; },
+               "512 presets loaded through Refresh");
         require(c.presets.error().isEmpty(), c.presets.error());
+        d.choose("presetFolderChildren", 1);
         auto *list = d.item("presetList");
+        d.wait([&] { return list->property("count").toInt() == 512; },
+               "fixture folder displays all 512 presets");
         d.wait([&] { return list->property("contentHeight").toDouble() > list->height(); },
                "512-preset fixture overflows the actual panel after layout");
         c.metrics.reset();
