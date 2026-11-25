@@ -85,7 +85,6 @@ SqliteFault::~SqliteFault() {
     sqlite3_vfs_unregister(&wrapper_);
     sqlite3_vfs_register(original_, 1);
     active_ = nullptr;
-    // Member storage is destroyed after this body; Context's end marker brackets it.
     std::fprintf(stderr, "UX_SHUTDOWN phase=sqlite_vfs.destructor.body.end\n");
     std::fflush(stderr);
 }

@@ -130,16 +130,21 @@ QString create(Context &c, const QString &name, std::uint32_t selected = 3,
     return id;
 }
 void select(Context &c, const QString &id) {
-    auto *row = c.driver->item("preset." + id);
+    const auto rowID = "preset." + id;
+    // A folder refresh can replace ListView delegates during a polish cycle.
+    c.driver->frame();
     c.driver->wait(
         [&] {
+            auto *row = qobject_cast<QQuickItem *>(c.driver->find(rowID));
+            if (!row || !row->isVisible())
+                return false;
             for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
                 if (parent->property("moving").toBool())
                     return false;
             return true;
         },
-        "preset list and enclosing panel finished actual wheel movement");
-    c.driver->frame();
+        "visible preset row and enclosing panel finished actual wheel movement");
+    auto *row = c.driver->item(rowID);
     for (auto *parent = row->parentItem(); parent; parent = parent->parentItem())
         if (parent->clip())
             require(parent->contains(row->mapToItem(parent, {row->width() / 2, row->height() / 2})),
@@ -161,7 +166,7 @@ void select(Context &c, const QString &id) {
                    {"center_y", center.y()},
                    {"enabled", row->isEnabled()},
                    {"scroll_ancestors", scrolling}});
-    c.driver->click("preset." + id);
+    c.driver->click(rowID);
     c.driver->log(
         {{"action", "preset_selection_after_click"},
          {"id", id},
@@ -629,14 +634,13 @@ bool presetRemainingScenario(Context &c, const QString &id) {
         fixtureFile(c, storePath(c), fixtureBytes);
         userTab(c);
         openAction(c, "preset.actions.refresh");
-        d.wait(
-            [&] {
-                return c.presets.items().size() == 512 &&
-                       d.object("presetList")->property("count").toInt() == 512;
-            },
-            "512 presets loaded through Refresh");
+        d.wait([&] { return c.presets.items().size() == 512; },
+               "512 presets loaded through Refresh");
         require(c.presets.error().isEmpty(), c.presets.error());
+        d.choose("presetFolderChildren", 1);
         auto *list = d.item("presetList");
+        d.wait([&] { return list->property("count").toInt() == 512; },
+               "fixture folder displays all 512 presets");
         d.wait([&] { return list->property("contentHeight").toDouble() > list->height(); },
                "512-preset fixture overflows the actual panel after layout");
         c.metrics.reset();

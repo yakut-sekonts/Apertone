@@ -21,12 +21,12 @@ class DiagnosticSession;
 namespace ux {
 class Context {
   public:
-    Context(QString root, QString fixture, const QString &qml, QString state = {},
-            bool updaterProbe = false);
+    Context(QString root, QString fixture, const QString &qml, QString catalogPath,
+            SqliteFault &fault, bool updaterProbe = false);
     ~Context();
     QString root, fixture;
     QString stateRoot, catalogFile;
-    SqliteFault storageFault;
+    SqliteFault &storageFault;
     PreviewProvider *provider;
     EditorController editor;
     PresetController presets;

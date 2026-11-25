@@ -47,6 +47,9 @@ struct ShutdownMarker {
 int main(int argc, char **argv) {
     if (argc > 1 && std::string_view(argv[1]) == "--activation-peer")
         return ux::nativeActivationPeerMain(argc, argv);
+    // Qt can finish catalog-backed thumbnail reads while QGuiApplication shuts down.
+    // Keep the test VFS and its per-file method tables alive until after that teardown.
+    std::optional<ux::SqliteFault> storageFault;
     ShutdownMarker applicationDestroyed{"qguiapplication.owner.destroy.end"};
     QGuiApplication app(argc, argv);
     ShutdownMarker applicationDestroying{"qguiapplication.owner.destroy.begin"};
@@ -211,8 +214,10 @@ int main(int argc, char **argv) {
             ux::require(restored.isFile() && !restored.isSymLink(),
                         "Daily restore did not produce a regular catalog file");
         }
+        const auto catalogFile = (stateRoot.isEmpty() ? root : stateRoot) + "/catalog.sqlite";
+        storageFault.emplace(catalogFile.toStdString());
         context = std::make_unique<ux::Context>(root, parser.value("fixtures"), parser.value("qml"),
-                                                stateRoot, updaterProbe);
+                                                catalogFile, *storageFault, updaterProbe);
         if (id == "UX-P10-DAT-004")
             ux::require(ux::migrationDataScenario(*context), "Migration data workflow unavailable");
         else if (id == "UX-P10-DAY-003")

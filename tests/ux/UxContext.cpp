@@ -21,13 +21,13 @@ std::unique_ptr<NativeUpdater> makeNativeUpdater(UpdateCallbacks callbacks) {
     return std::make_unique<ux::NativeUpdaterProbe>(std::move(callbacks));
 }
 namespace ux {
-Context::Context(QString rootPath, QString fixturePath, const QString &qml, QString state,
-                 bool updaterProbe)
+Context::Context(QString rootPath, QString fixturePath, const QString &qml, QString catalogPath,
+                 SqliteFault &fault, bool updaterProbe)
     : root(std::move(rootPath)), fixture(std::move(fixturePath)),
-      stateRoot(state.isEmpty() ? root : std::move(state)),
-      catalogFile(stateRoot + "/catalog.sqlite"), storageFault(catalogFile.toStdString()),
-      provider(new PreviewProvider), editor(catalogFile.toStdString(), provider),
-      presets(stateRoot + "/presets.json", editor), library(catalogFile.toStdString()),
+      stateRoot(QFileInfo(catalogPath).path()), catalogFile(std::move(catalogPath)),
+      storageFault(fault), provider(new PreviewProvider),
+      editor(catalogFile.toStdString(), provider), presets(stateRoot + "/presets.json", editor),
+      library(catalogFile.toStdString()),
       batch(catalogFile.toStdString(), editor, library, presets),
       exporter(catalogFile.toStdString(), editor, library),
       updates(
