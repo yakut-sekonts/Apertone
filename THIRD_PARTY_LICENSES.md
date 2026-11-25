@@ -59,8 +59,10 @@ Apertone's original source is Apache-2.0. Dependencies retain their own licenses
 - **Lensfun database v0.3.4** — https://github.com/lensfun/lensfun/tree/v0.3.4/data/db
   Lens calibration and camera/mount metadata, **CC BY-SA 3.0 Unported**.
   Attribution: Lensfun contributors and Tom Niemann (original PTLens data).
-  Original XML database, upstream README/license, generated data representation
-  and transformation notice accompany the bundle under `ThirdParty/Lensfun`.
+  The Industar-61 L/Z MC supplement uses the same license and preserves the
+  measurements from [Lensfun revision 37238fce](https://github.com/lensfun/lensfun/blob/37238fcef563196fb798f6151cb9023968b26c40/data/db/misc.xml).
+  The supplement, license and transformation notice ship under `ThirdParty/Lensfun`.
+  The macOS bundle also includes the original database and generated header.
   Generated calibration data retain CC BY-SA 3.0; Luma's independent profile
   reader and optical mathematics are original Apache-2.0 code. Lensfun's
   LGPL library, GPL applications and build system are not compiled or linked.

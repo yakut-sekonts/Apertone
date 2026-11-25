@@ -1,6 +1,16 @@
 #include "apps/desktop/EditorController.h"
 #include "core/lens/LensProfiles.h"
+#include <QStringList>
 #include <algorithm>
+
+namespace {
+QString lensDisplayName(const luma::LensProfile &profile) {
+    auto name = QString::fromUtf8(profile.name);
+    if (!profile.russianName.empty() && profile.russianName != profile.name)
+        name += QStringLiteral(" / ") + QString::fromUtf8(profile.russianName);
+    return name;
+}
+} // namespace
 
 QVariantMap EditorController::lensState() const {
     if (!session_)
@@ -11,8 +21,8 @@ QVariantMap EditorController::lensState() const {
         return QCoreApplication::translate("Apertone", value);
     };
     auto status = QCoreApplication::translate("Apertone", resolved.status.c_str());
-    if (resolved.status.starts_with("Lensfun 0.3.4")) {
-        status = QStringLiteral("Lensfun 0.3.4 · ") + translate("Distortion") +
+    if (resolved.status.starts_with("Lensfun · ")) {
+        status = QStringLiteral("Lensfun · ") + translate("Distortion") +
                  (resolved.distortion ? QStringLiteral(" ✓")
                                       : QStringLiteral(": ") + translate("No calibration")) +
                  QStringLiteral(" · CA") +
@@ -24,7 +34,7 @@ QVariantMap EditorController::lensState() const {
     }
     return {{"profile", QString::fromStdString(settings.profile)},
             {"resolvedProfile",
-             resolved.profile ? QString::fromUtf8(resolved.profile->name) : QStringLiteral("—")},
+             resolved.profile ? lensDisplayName(*resolved.profile) : QStringLiteral("—")},
             {"camera",
              resolved.camera ? QString::fromUtf8(resolved.camera->name) : QStringLiteral("—")},
             {"status", status},
@@ -52,11 +62,16 @@ QVariantList EditorController::lensOptions() const {
         std::sort(profiles.begin(), profiles.end(), [](const auto *a, const auto *b) {
             return std::pair{a->name, a->id} < std::pair{b->name, b->id};
         });
-        for (const auto *profile : profiles)
-            result.append(
-                QVariantMap{{"id", QString::fromUtf8(profile->id)},
-                            {"name", QString::fromUtf8(profile->name) +
-                                         QStringLiteral(" · crop %1").arg(profile->cropFactor)}});
+        for (const auto *profile : profiles) {
+            const auto name =
+                lensDisplayName(*profile) + QStringLiteral(" · crop %1").arg(profile->cropFactor);
+            QStringList labels{name};
+            for (const auto alias : profile->aliases)
+                labels.append(QString::fromUtf8(alias));
+            result.append(QVariantMap{{"id", QString::fromUtf8(profile->id)},
+                                      {"name", name},
+                                      {"searchText", labels.join(QLatin1Char('\n')).toLower()}});
+        }
     }
     const auto selected = QString::fromStdString(settings.profile);
     if (!selected.isEmpty() && std::none_of(result.begin(), result.end(), [&](const auto &entry) {

@@ -7,6 +7,22 @@ from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
 
+# Barrel markings and nominal focal lengths for measured manual primes.
+# Keep coatings and model suffixes distinct when matching EXIF.
+MANUAL_PRIMES = {
+    ("KMZ", "MC MTO 11CA 10/1000"): ("MC MTO 11CA", "МС МТО 11СА", 1000),
+    ("KMZ", "MC Helios-44M-4 58mm 1:2"): ("MC Helios-44M-4", "МС Гелиос-44М-4", 58),
+    ("KMZ", "Helios-44 58mm 1:2"): ("Helios-44", "Гелиос-44", 58),
+    ("KMZ", "Helios-40 85mm f/1.5"): ("Helios-40", "Гелиос-40", 85),
+    ("MTO", "MTO-500 500mm f/8 mirror lens"): ("MTO-500", "МТО-500", 500),
+    ("KMZ", "MIR-1B 37mm f/2.8"): ("Mir-1V", "Мир-1В", 37),
+    ("KMZ", "Industar-50-2 3.5/50"): ("Industar-50-2", "Индустар-50-2", 50),
+    ("KMZ", "Jupiter-37AM MC 3.5/135"): ("Jupiter-37AM MC", "Юпитер-37АМ МС", 135),
+    ("Arsenal", "MC Volna-3 80mm f/2.8"): ("MC Volna-3", "МС Волна-3", 80),
+    ("LZOS", "Industar-61 L/Z MC 50mm f/2.8"): ("Industar-61 L/Z MC", "Индустар-61 Л/З МС", 50),
+    ("Zenit", "Zenitar MC 16mm f/2.8"): ("MC Zenitar 2.8/16", "МС Зенитар 2,8/16", 16),
+}
+
 
 def number(value):
     result = float(value)
@@ -24,7 +40,7 @@ def texts(node, name):
 
 
 def build(source, destination):
-    lines = ["// Lensfun v0.3.4 database, CC BY-SA 3.0; generated, do not edit.",
+    lines = ["// Lensfun calibration data, CC BY-SA 3.0; generated, do not edit.",
              "// Lensfun contributors / Tom Niemann; see THIRD_PARTY_LICENSES.md."]
     profiles, cameras, mounts = [], [], []
     identities = set()
@@ -58,7 +74,8 @@ def build(source, destination):
                      "{{" + ",".join(entries) + "}};")
         return name
 
-    for file in sorted(source.glob("*.xml")):
+    supplement = Path(__file__).resolve().parents[1] / "resources/lens/industar-61.xml"
+    for file in [*sorted(source.glob("*.xml")), supplement]:
         root = ET.parse(file).getroot()
         if root.get("version") != "1":
             raise ValueError("Unsupported lens database version")
@@ -77,10 +94,16 @@ def build(source, destination):
                                             quoted(camera.findtext("mount")),
                                             number(camera.findtext("cropfactor"))]) + "}")
         for lens in root.findall("lens"):
-            if lens.findtext("type", "rectilinear") != "rectilinear":
+            name = lens.findtext("model")
+            maker = lens.findtext("maker")
+            projection = lens.findtext("type", "rectilinear")
+            # Apply only the measured radial distortion and TCA in the Zenitar's native
+            # fisheye projection. The mapping does not convert to a rectilinear image.
+            if projection != "rectilinear" and not (
+                projection == "fisheye" and (maker, name) == ("Zenit", "Zenitar MC 16mm f/2.8")
+            ):
                 continue
             index = len(profiles)
-            name = lens.findtext("model")
             crop = number(lens.findtext("cropfactor"))
             aspect = lens.findtext("aspect-ratio", "3:2")
             aspect = number(float(aspect.split(":")[0]) / float(aspect.split(":")[1])
@@ -95,6 +118,11 @@ def build(source, destination):
                 raise ValueError("Duplicate lens identity")
             identities.add(profile_id)
             models, makers = texts(lens, "model"), texts(lens, "maker")
+            russian_name = lens.findtext("model[@lang='ru']", "") if file.name == "slr-ussr.xml" else ""
+            fixed_focal = 0
+            if prime := MANUAL_PRIMES.get((maker, name)):
+                latin, russian_name, fixed_focal = prime
+                models.extend([latin, russian_name])
             aliases = strings(f"lensAliases{index}", sorted(set(
                 models + [a + " " + b for a in makers for b in models] +
                 [b[len(a):].strip() for a in makers for b in models
@@ -103,7 +131,8 @@ def build(source, destination):
             data = [calibrations(f"lens{tag}{index}", lens, tag)
                     for tag in ["distortion", "tca", "vignetting"]]
             profiles.append("{" + ",".join([quoted(profile_id), quoted(name), aliases,
-                                            compatible, crop, aspect, cx, cy, *data]) + "}")
+                                            compatible, crop, aspect, cx, cy, *data,
+                                            number(fixed_focal), quoted(russian_name)]) + "}")
     for kind, name, entries in [("LensProfile", "profiles", profiles),
                                 ("LensCamera", "cameras", cameras),
                                 ("LensMount", "mounts", mounts)]:

@@ -93,6 +93,37 @@ void lensEditorTests(const QString &source, const QString &root, const QString &
             "Manual lens profile cannot be chosen from QML.");
     require(editor.currentSettings().lens.profile == id.toStdString(),
             "QML selected wrong profile.");
+    auto *search = child("lensSearch");
+    search->setProperty("text", QStringLiteral("ГеЛиОс-44М-4"));
+    const auto russianMatches = profiles->property("model").toList();
+    require(russianMatches.size() > 2 && russianMatches.size() < options.size() &&
+                russianMatches.first().toMap()["id"].toString().isEmpty() &&
+                profiles->property("currentValue").toString() == id,
+            "Russian search lost the selected profile, Auto, or compatible Helios calibrations.");
+    for (const auto &row : russianMatches) {
+        const auto option = row.toMap();
+        const auto matchId = option["id"].toString();
+        if (!matchId.isEmpty() && matchId != id)
+            require(option["name"].toString().contains(QStringLiteral("Гелиос-44М-4")) &&
+                        option["name"].toString().contains(QStringLiteral("Helios-44M-4")) &&
+                        option["name"].toString().contains(QStringLiteral(" · crop ")),
+                    "Russian lens search returned an unrelated profile or lost the crop label.");
+    }
+    search->setProperty("text", QStringLiteral("helios-44m-4"));
+    require(profiles->property("model").toList() == russianMatches,
+            "Russian and Latin aliases returned different Helios profiles.");
+    search->setProperty("text", QStringLiteral("КМЗ МС Гелиос-44М-4"));
+    require(profiles->property("model").toList() == russianMatches,
+            "Search ignored the lens maker alias.");
+    const int heliosIndex = russianMatches.at(1).toMap()["id"].toString() == id ? 2 : 1;
+    require(QMetaObject::invokeMethod(profiles, "activated", Q_ARG(int, heliosIndex)) &&
+                editor.lensState()["resolvedProfile"].toString().contains(
+                    QStringLiteral("Гелиос-44М-4")),
+            "The manually selected Helios lost its Russian name in lens status.");
+    editor.undo();
+    require(editor.currentSettings().lens.profile == id.toStdString(),
+            "Undo did not restore the profile after a filtered selection.");
+    search->setProperty("text", QString());
     const auto manual = editor.currentSettings();
     auto *ca = child("lensCA");
     ca->setProperty("checked", false);

@@ -246,6 +246,8 @@ if(WIN32)
     set_target_properties(luma_cli PROPERTIES OUTPUT_NAME apertone-cli)
     install(TARGETS Apertone ApertoneUpdate luma_cli luma_libraw RUNTIME DESTINATION .)
     install(FILES LICENSE THIRD_PARTY_LICENSES.md DESTINATION .)
+    install(FILES docs/LENS_DATABASE_NOTICE.md resources/lens/industar-61.xml
+        "${lens_database_SOURCE_DIR}/docs/cc-by-sa-3.0.txt" DESTINATION ThirdParty/Lensfun)
     install(FILES "${apertone_jpegxl_SOURCE_DIR}/LICENSE" "${apertone_jpegxl_SOURCE_DIR}/PATENTS"
         DESTINATION licenses/jpeg-xl)
     install(FILES "${apertone_jpegxl_SOURCE_DIR}/third_party/brotli/LICENSE" DESTINATION licenses/brotli)

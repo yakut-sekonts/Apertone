@@ -22,6 +22,8 @@ struct LensProfile {
     double aspect = 1.5;
     double centerX = 0, centerY = 0;
     std::span<const LensCalibration> distortion, tca, vignetting;
+    double fixedFocal = 0;
+    std::string_view russianName{};
 };
 struct LensCamera {
     std::string_view name;

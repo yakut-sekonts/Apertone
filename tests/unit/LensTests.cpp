@@ -85,6 +85,77 @@ void identification() {
     require(luma::resolveLens(metadata, settings).profile == &*chosen,
             "Manual selection did not resolve an ambiguous lens.");
 }
+void manualPrime() {
+    luma::PhotoMetadata metadata;
+    metadata.camera = "Sony ILCE-7";
+    metadata.lens = "гЕЛИОс–44 58ММ 1:2";
+    metadata.focalLength = 58;
+    const auto helios = luma::resolveLens(metadata, {});
+    if (!helios.profile || helios.profile->name != "Helios-44 58mm 1:2" || !helios.distortion ||
+        !helios.tca)
+        throw std::runtime_error("Cyrillic Helios alias did not resolve to its measured profile.");
+    metadata.focalLength.reset();
+    const auto autoPrime = luma::resolveLens(metadata, {});
+    require(autoPrime.profile == helios.profile && !autoPrime.distortion && !autoPrime.tca,
+            "Auto mode silently substituted missing focal metadata.");
+    metadata.lens = "Чужой-44 58мм 1:2";
+    require(!luma::resolveLens(metadata, {}).profile,
+            "A different Cyrillic lens matched the Helios model numbers.");
+
+    luma::LensSettings settings;
+    settings.profile = helios.profile->id;
+    metadata.lens.clear();
+    const auto manual = luma::resolveLens(metadata, settings);
+    require(manual.profile == helios.profile && manual.distortion && manual.tca &&
+                manual.distortion->terms == helios.distortion->terms &&
+                manual.tca->terms == helios.tca->terms && !manual.vignetting,
+            "Manual prime without EXIF did not use its calibrated focal length.");
+    metadata.focalLength = 50;
+    require(!luma::resolveLens(metadata, settings).distortion,
+            "Prime focal fallback overrode an explicit EXIF focal length.");
+
+    metadata = nikon();
+    const auto zoom = luma::resolveLens(metadata, {});
+    require(zoom.profile, "Missing Nikon zoom fixture.");
+    settings.profile = zoom.profile->id;
+    metadata.focalLength.reset();
+    const auto missingFocal = luma::resolveLens(metadata, settings);
+    require(!missingFocal.distortion && !missingFocal.tca && !missingFocal.vignetting,
+            "Manual zoom selection guessed the missing focal length.");
+}
+void industarCalibration() {
+    luma::PhotoMetadata metadata;
+    metadata.camera = "Sony ILCE-7";
+    metadata.lens = "Индустар-61 Л/З МС 50мм f/2.8";
+    metadata.focalLength = 50;
+    metadata.aperture = 2.8;
+    const auto resolved = luma::resolveLens(metadata, {});
+    if (!resolved.profile || resolved.profile->name != "Industar-61 L/Z MC 50mm f/2.8" ||
+        !resolved.distortion || !resolved.tca || !resolved.vignetting)
+        throw std::runtime_error("Industar-61 L/Z MC calibration missing on full frame.");
+    require(
+        resolved.distortion->model == "ptlens" && near(resolved.distortion->terms[0], -0.0017374) &&
+            near(resolved.tca->terms[2], 1.0000217) && near(resolved.vignetting->terms[0], -1.0336),
+        "Industar-61 L/Z MC calibration diverged from Lensfun measurements.");
+}
+void zenitarCalibration() {
+    luma::PhotoMetadata metadata;
+    metadata.camera = "Fujifilm X-E2";
+    metadata.lens = "МС Зенитар 2,8/16";
+    metadata.focalLength = 16;
+    metadata.aperture = 2.8;
+    const auto resolved = luma::resolveLens(metadata, {});
+    if (!resolved.profile || resolved.profile->name != "Zenitar MC 16mm f/2.8" ||
+        !resolved.distortion || !resolved.tca || resolved.vignetting)
+        throw std::runtime_error("Unexpected Zenitar calibration on the measured camera.");
+    require(resolved.distortion->model == "poly3" &&
+                near(resolved.distortion->terms[0], -0.00676) &&
+                near(resolved.tca->terms[2], 0.9999213) && near(resolved.tca->terms[5], 1.0005960),
+            "Zenitar radial calibration diverged from Lensfun measurements.");
+    metadata.camera = "Sony ILCE-7";
+    require(!luma::resolveLens(metadata, {}).profile,
+            "Zenitar cropped calibration was applied on a full-frame camera.");
+}
 void equations() {
     const luma::LensCamera camera{"Fixture", {}, "Fixture", 1};
     const luma::LensProfile profile{"", "Fixture", {}, {}, 1, 1.5, 0, 0, {}, {}, {}};
@@ -205,6 +276,9 @@ void pixels() {
 int main() {
     try {
         identification();
+        manualPrime();
+        industarCalibration();
+        zenitarCalibration();
         equations();
         pixels();
         std::cout << "Lens identification, equations, normalization, safe bounds, signed HDR and "
